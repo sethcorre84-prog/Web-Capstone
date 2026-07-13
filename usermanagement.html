@@ -97,7 +97,18 @@
   .admin-mini .role{font-size:11px;color:var(--text-secondary);}
 
   /* STAT CARDS */
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+  .section-label-row{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+  .section-chip{
+    padding:8px 12px;border-radius:999px;border:1px solid var(--border);
+    background:#fff;color:var(--text-secondary);font-size:12px;font-weight:700;
+    cursor:pointer;transition:all .2s ease;
+  }
+  .section-chip:hover{background:#f4f8f5;}
+  .section-chip.active{
+    background:var(--accent-light);border-color:transparent;color:var(--accent-dark);
+    box-shadow:inset 0 0 0 1px rgba(45,104,70,.18);
+  }
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px;}
   .stat-card{
     background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);
     padding:16px 18px;display:flex;flex-direction:column;gap:10px;
@@ -150,6 +161,22 @@
   .summary-item{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#f8faf8;border:1px solid var(--border);border-radius:8px;}
   .summary-item strong{font-size:13px;color:var(--text-primary);}
   .summary-item span{font-size:12px;color:var(--text-secondary);}
+  .detail-card{display:flex;flex-direction:column;gap:12px;}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:11.5px;font-weight:700;color:var(--text-secondary);}
+  .field input,.field select{
+    border:1px solid var(--border);background:#fbfcfa;border-radius:8px;padding:9px 10px;font-size:13px;color:var(--text-primary);outline:none;
+  }
+  .field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,143,78,.12);}
+  .field.full{grid-column:1 / -1;}
+  .activity-list{display:flex;flex-direction:column;gap:10px;}
+  .activity-item{display:flex;gap:10px;align-items:flex-start;}
+  .activity-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0;}
+  .activity-content{flex:1;padding-bottom:10px;border-bottom:1px dashed var(--border);}
+  .activity-content:last-child{border-bottom:none;padding-bottom:0;}
+  .activity-title{font-size:13px;font-weight:600;margin-bottom:2px;}
+  .activity-time{font-size:11px;color:var(--text-muted);}
   .primary-btn{width:100%;padding:11px 12px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;}
   .secondary-btn{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--text-primary);font-weight:600;}
 
@@ -218,6 +245,11 @@
       </div>
     </section>
 
+    <div class="section-label-row">
+      <button class="section-chip active" type="button">Users</button>
+      <button class="section-chip" type="button">User Reports</button>
+    </div>
+
     <section class="stats">
       <div class="stat-card">
         <div class="stat-top">
@@ -228,13 +260,6 @@
       </div>
       <div class="stat-card">
         <div class="stat-top">
-          <div class="stat-icon" style="background:#fdf3e0;color:#c9821f;">🛡️</div>
-        </div>
-        <div class="stat-value">9</div>
-        <div class="stat-label">Admins</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top">
           <div class="stat-icon" style="background:#e7f5eb;color:#2f8f4e;">✅</div>
         </div>
         <div class="stat-value">39</div>
@@ -242,10 +267,24 @@
       </div>
       <div class="stat-card">
         <div class="stat-top">
-          <div class="stat-icon" style="background:#fbeae7;color:#c8402f;">⛔</div>
+          <div class="stat-icon" style="background:#fdf3e0;color:#c9821f;">👥</div>
         </div>
-        <div class="stat-value">3</div>
-        <div class="stat-label">Blocked</div>
+        <div class="stat-value">12</div>
+        <div class="stat-label">Teams</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon" style="background:#fbeae7;color:#c8402f;">🚨</div>
+        </div>
+        <div class="stat-value">5</div>
+        <div class="stat-label">Emergency Alerts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon" style="background:#fdf3e0;color:#c9821f;">🛡️</div>
+        </div>
+        <div class="stat-value">9</div>
+        <div class="stat-label">Administrator</div>
       </div>
     </section>
 
@@ -364,6 +403,71 @@
       </div>
 
       <aside>
+        <div class="panel detail-card">
+          <div class="panel-title">User Details</div>
+          <div class="detail-grid">
+            <div class="field full">
+              <label>Full Name</label>
+              <input type="text" value="Aira Reyes" />
+            </div>
+            <div class="field">
+              <label>Role</label>
+              <select>
+                <option selected>Admin</option>
+                <option>Manager</option>
+                <option>Operator</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Status</label>
+              <select>
+                <option selected>Active</option>
+                <option>Blocked</option>
+                <option>Pending</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label>Email Address</label>
+              <input type="email" value="aira@peakpath.org" />
+            </div>
+            <div class="field">
+              <label>Department</label>
+              <input type="text" value="Operations" />
+            </div>
+            <div class="field">
+              <label>Last Login</label>
+              <input type="text" value="2 mins ago" />
+            </div>
+          </div>
+        </div>
+
+        <div class="panel detail-card">
+          <div class="panel-title">User Activities</div>
+          <div class="activity-list">
+            <div class="activity-item">
+              <div class="activity-dot"></div>
+              <div class="activity-content">
+                <div class="activity-title">Updated trail access permissions</div>
+                <div class="activity-time">Today • 09:15 AM</div>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot"></div>
+              <div class="activity-content">
+                <div class="activity-title">Reviewed emergency alert status</div>
+                <div class="activity-time">Yesterday • 04:42 PM</div>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot"></div>
+              <div class="activity-content">
+                <div class="activity-title">Reset password request approved</div>
+                <div class="activity-time">2 days ago • 11:30 AM</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="panel summary-card">
           <div class="panel-title">Quick Actions</div>
           <button class="primary-btn">+ Add New User</button>
