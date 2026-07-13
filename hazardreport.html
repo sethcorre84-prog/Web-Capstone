@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PeakPath Admin — Hazard Reports</title>
+<style>
+  :root{
+    --forest-900:#16311f;
+    --forest-800:#1b3a25;
+    --forest-700:#234a2f;
+    --forest-accent:#2f6b3e;
+    --green-active:#3a7a3a;
+    --bg:#f4f6f4;
+    --card:#ffffff;
+    --border:#e7ebe7;
+    --text-900:#1f2a22;
+    --text-600:#5b6b60;
+    --text-400:#93a199;
+    --amber-bg:#fdf3e0;
+    --amber-text:#b9791b;
+    --amber-icon:#e8a63c;
+    --green-bg:#e7f5ea;
+    --green-text:#2f8f4e;
+    --red-bg:#fbe9e9;
+    --red-text:#d1453b;
+    --pending-bg:#fdf0d8;
+    --pending-text:#c08a1f;
+    --verified-bg:#e5f5e8;
+    --verified-text:#2e9147;
+    --rejected-bg:#fbe7e6;
+    --rejected-text:#d1453b;
+    --radius-md:10px;
+    --radius-lg:14px;
+    --shadow-sm: 0 1px 2px rgba(20,40,25,0.05);
+    --shadow-card: 0 1px 3px rgba(20,40,25,0.06), 0 1px 2px rgba(20,40,25,0.04);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text-900);
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .app{
+    display:grid;
+    grid-template-columns: 236px 1fr;
+    min-height:100vh;
+  }
+
+  /* ---------------- Sidebar ---------------- */
+  .sidebar{
+    background:var(--forest-900);
+    color:#dbe6dd;
+    display:flex;
+    flex-direction:column;
+    padding:20px 14px;
+  }
+  .brand{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:6px 10px 20px 10px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    margin-bottom:14px;
+    text-align:center;
+  }
+  .brand-icon{
+    width:34px;height:34px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;
+    margin:0 auto;
+  }
+  .brand-text{display:flex;flex-direction:column;line-height:1.2;}
+  .brand-title{font-weight:700;font-size:16px;color:#ffffff;letter-spacing:0.2px;}
+  .brand-sub{font-size:11px;color:#9db3a2;}
+
+  .nav{
+    list-style:none;
+    margin:0;padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    flex:1;
+  }
+  .nav li a{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:10px 12px;
+    border-radius:8px;
+    color:#c3d2c6;
+    text-decoration:none;
+    font-size:13.5px;
+    font-weight:500;
+    transition:background .15s ease, color .15s ease;
+  }
+  .nav-icon{
+    width:18px;
+    height:18px;
+    flex-shrink:0;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:1.8;
+  }
+  .nav li a .ic{
+    width:18px;text-align:center;font-size:15px;opacity:0.9;
+  }
+  .nav li a:hover{
+    background:rgba(255,255,255,0.06);
+    color:#fff;
+  }
+  .nav li a.active{
+    background:var(--green-active);
+    color:#fff;
+    box-shadow:var(--shadow-sm);
+  }
+
+  .sidebar-footer{
+    border-top:1px solid rgba(255,255,255,0.08);
+    padding-top:14px;
+    margin-top:10px;
+  }
+  .sidebar-user{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 10px 14px 10px;
+  }
+  .avatar-circle{
+    width:32px;height:32px;border-radius:50%;
+    background:#3a7a3a;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:15px;flex-shrink:0;
+  }
+  .sidebar-user .name{font-size:13px;font-weight:600;color:#fff;}
+  .sidebar-user .role{font-size:11px;color:#9db3a2;}
+  .logout{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;color:#c3d2c6;
+    font-size:13.5px;font-weight:500;
+    text-decoration:none;border-radius:8px;
+  }
+  .logout:hover{background:rgba(255,255,255,0.06);color:#fff;}
+
+  /* ---------------- Main ---------------- */
+  .main{
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+  }
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:20px 28px;
+    background:var(--bg);
+  }
+  .topbar h1{
+    font-size:22px;
+    margin:0 0 4px 0;
+    font-weight:700;
+    color:var(--text-900);
+  }
+  .topbar p{
+    margin:0;
+    font-size:13px;
+    color:var(--text-600);
+  }
+  .topbar-right{
+    display:flex;
+    align-items:center;
+    gap:18px;
+  }
+  .bell{
+    position:relative;
+    width:38px;height:38px;
+    border-radius:50%;
+    background:#fff;
+    border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px;
+    color:var(--text-600);
+  }
+  .bell .dot{
+    position:absolute;top:-3px;right:-3px;
+    background:#e0483f;color:#fff;
+    font-size:9px;font-weight:700;
+    width:16px;height:16px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    border:2px solid var(--bg);
+  }
+  .topbar-user{
+    display:flex;align-items:center;gap:10px;
+  }
+  .topbar-user .avatar-circle{background:var(--forest-700);}
+  .topbar-user .info{line-height:1.25;}
+  .topbar-user .name{font-size:13.5px;font-weight:600;}
+  .topbar-user .role{font-size:11.5px;color:var(--text-600);}
+  .chev{color:var(--text-400);font-size:11px;margin-left:2px;}
+
+  .content{
+    padding:0 28px 28px 28px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+
+  /* ---------------- Stat cards ---------------- */
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+  }
+  .stat-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:16px 18px;
+    display:flex;
+    align-items:flex-start;
+    gap:14px;
+    box-shadow:var(--shadow-card);
+  }
+  .stat-icon{
+    width:42px;height:42px;
+    border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:19px;
+    flex-shrink:0;
+  }
+  .stat-icon.total{background:#eef2ee;color:#4c5f52;}
+  .stat-icon.pending{background:var(--amber-bg);color:var(--amber-icon);}
+  .stat-icon.verified{background:var(--green-bg);color:var(--green-text);}
+  .stat-icon.rejected{background:var(--red-bg);color:var(--red-text);}
+  .stat-info .label{font-size:12.5px;color:var(--text-600);font-weight:500;}
+  .stat-info .value{font-size:24px;font-weight:700;margin:2px 0 3px 0;color:var(--text-900);}
+  .stat-info .meta{font-size:11.5px;color:var(--text-400);}
+
+  /* ---------------- Panels ---------------- */
+  .panels{
+    display:grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap:18px;
+    align-items:start;
+  }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-card);
+  }
+
+  /* --- Reports list card --- */
+  .list-card-header{
+    padding:18px 20px 12px 20px;
+    border-bottom:1px solid var(--border);
+  }
+  .list-card-header h2{
+    margin:0 0 12px 0;
+    font-size:16px;
+    font-weight:700;
+  }
+  .filters-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .search-box{
+    position:relative;
+    flex:1;
+    min-width:150px;
+  }
+  .search-box input{
+    width:100%;
+    padding:8px 12px 8px 30px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:12.5px;
+    background:#fafbfa;
+    color:var(--text-900);
+  }
+  .search-box .ic{
+    position:absolute;left:10px;top:50%;transform:translateY(-50%);
+    font-size:12px;color:var(--text-400);
+  }
+  select.filter-select{
+    padding:8px 26px 8px 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:12.5px;
+    background:#fafbfa;
+    color:var(--text-900);
+    min-width:110px;
+  }
+  .date-range-row{
+    display:flex;
+    gap:10px;
+    margin-top:10px;
+    align-items:center;
+  }
+  .btn-outline{
+    display:flex;align-items:center;gap:6px;
+    padding:8px 14px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:#fafbfa;
+    font-size:12.5px;
+    color:var(--text-700,#3a463d);
+    cursor:pointer;
+  }
+  .btn-clear{
+    color:#c0453c;
+    background:#fff;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+  }
+  thead tr{
+    background:#fafbfa;
+  }
+  th{
+    text-align:left;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    color:var(--text-600);
+    padding:11px 14px;
+    font-weight:600;
+    border-bottom:1px solid var(--border);
+  }
+  td{
+    padding:12px 14px;
+    font-size:12.8px;
+    border-bottom:1px solid var(--border);
+    color:var(--text-900);
+    vertical-align:middle;
+  }
+  tbody tr{cursor:pointer;transition:background .12s ease;}
+  tbody tr:hover{background:#f7f9f7;}
+  tbody tr.selected{background:#eef6ee;}
+
+  .hazard-cell{display:flex;align-items:center;gap:8px;}
+  .hazard-icon{font-size:15px;width:18px;text-align:center;}
+  .sub{display:block;font-size:11px;color:var(--text-400);margin-top:1px;}
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    padding:4px 10px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:600;
+  }
+  .badge.pending{background:var(--pending-bg);color:var(--pending-text);}
+  .badge.verified{background:var(--verified-bg);color:var(--verified-text);}
+  .badge.rejected{background:var(--rejected-bg);color:var(--rejected-text);}
+
+  .actions-btn{
+    background:none;border:none;color:var(--text-400);
+    font-size:16px;cursor:pointer;padding:4px 8px;
+  }
+
+  .table-footer{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 20px;
+    font-size:12px;
+    color:var(--text-600);
+  }
+  .pagination{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .pagination button{
+    width:26px;height:26px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    background:#fff;
+    color:var(--text-600);
+    font-size:12px;
+    cursor:pointer;
+  }
+  .pagination button.active{
+    background:var(--forest-700);
+    border-color:var(--forest-700);
+    color:#fff;
+    font-weight:700;
+  }
+
+  /* --- Report details card --- */
+  .details-card{
+    padding:18px 20px 22px 20px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .details-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+  }
+  .details-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .details-title .ic-circle{
+    width:38px;height:38px;
+    border-radius:10px;
+    background:#fbeae7;
+    display:flex;align-items:center;justify-content:center;
+    font-size:17px;
+  }
+  .details-title h3{margin:0;font-size:15.5px;font-weight:700;}
+  .details-title .sub-id{font-size:11.5px;color:var(--text-400);}
+  .status-pill{
+    background:var(--pending-bg);
+    color:var(--pending-text);
+    font-size:11px;
+    font-weight:600;
+    padding:5px 11px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+
+  .info-row{
+    display:flex;
+    gap:8px;
+    font-size:12.5px;
+  }
+  .info-row .ic{color:var(--text-400);margin-top:1px;}
+  .info-row div strong{display:block;font-size:13px;font-weight:600;color:var(--text-900);}
+  .info-row div span{font-size:12px;color:var(--text-600);}
+
+  .section-label{
+    font-size:12px;
+    font-weight:700;
+    color:var(--text-900);
+    margin:0 0 4px 0;
+  }
+  .desc-text{
+    font-size:12.5px;
+    color:var(--text-600);
+    line-height:1.55;
+    margin:0;
+  }
+
+  .map-wrap{
+    border-radius:12px;
+    overflow:hidden;
+    border:1px solid var(--border);
+    position:relative;
+  }
+  .map-wrap img, .map-wrap svg{display:block;width:100%;height:auto;}
+
+  .reporter-block{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .reporter-row{display:flex;gap:16px;}
+  .reporter-col{flex:1;}
+  .reporter-col .val{font-size:12.5px;font-weight:600;color:var(--text-900);}
+  .reporter-col .lbl{font-size:11px;color:var(--text-400);margin-bottom:2px;}
+
+  .attachments{
+    display:flex;
+    gap:8px;
+  }
+  .attach-thumb{
+    width:54px;height:54px;
+    border-radius:8px;
+    background:#dfe6df;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;
+    overflow:hidden;
+  }
+  .attach-more{
+    width:54px;height:54px;
+    border-radius:8px;
+    background:#eef2ee;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;color:var(--text-600);
+  }
+
+  .admin-actions{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .admin-actions .row{display:flex;gap:8px;}
+  .btn{
+    flex:1;
+    padding:10px 10px;
+    border-radius:9px;
+    border:none;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+  }
+  .btn-verify{background:#2f8f4e;color:#fff;}
+  .btn-reject{background:#d1453b;color:#fff;}
+  .btn-info{background:#2f6fed;color:#fff;}
+
+  .history-list{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    position:relative;
+    padding-left:6px;
+  }
+  .history-item{
+    display:flex;
+    gap:10px;
+    position:relative;
+  }
+  .history-dot{
+    width:8px;height:8px;
+    border-radius:50%;
+    background:#2f8f4e;
+    margin-top:5px;
+    flex-shrink:0;
+  }
+  .history-item.pending .history-dot{background:var(--amber-icon);}
+  .history-text strong{font-size:12.5px;font-weight:600;display:block;color:var(--text-900);}
+  .history-text span{font-size:11px;color:var(--text-400);}
+
+  @media (max-width: 1150px){
+    .panels{grid-template-columns:1fr;}
+    .stats{grid-template-columns:repeat(2,1fr);}
+  }
+  @media (max-width: 760px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+    .stats{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 20l6-11 4 6 3-5 5 10H3z"/><circle cx="17" cy="5" r="1.6" fill="#fff" stroke="none"/></svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-title">PeakPath</span>
+        <span class="brand-sub">Admin Portal</span>
+      </div>
+    </div>
+
+    <ul class="nav">
+      <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
+      <li><a href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
+      <li><a href="hazardreport.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a></li>
+      <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a></li>
+      <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>Geomap Monitoring</a></li>
+      <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
+      <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
+      <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar-circle">🌿</div>
+        <div>
+          <div class="name">Admin User</div>
+          <div class="role">Super Administrator</div>
+        </div>
+      </div>
+      <a href="#" class="logout"><span class="ic">↩</span>Logout</a>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+
+    <div class="topbar">
+      <div>
+        <h1>Hazard Reports</h1>
+        <p>Review, verify, and manage hazard reports in Mount Makiling.</p>
+      </div>
+      <div class="topbar-right">
+        <div class="bell">🔔<span class="dot">5</span></div>
+        <div class="topbar-user">
+          <div class="avatar-circle">👤</div>
+          <div class="info">
+            <div class="name">Admin User</div>
+            <div class="role">Super Administrator</div>
+          </div>
+          <span class="chev">▾</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ===== Stat cards ===== -->
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-icon total">👥</div>
+          <div class="stat-info">
+            <div class="label">Total Reports</div>
+            <div class="value">24</div>
+            <div class="meta">All Time</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon pending">🕐</div>
+          <div class="stat-info">
+            <div class="label">Pending Review</div>
+            <div class="value">7</div>
+            <div class="meta">29% of total</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon verified">✔</div>
+          <div class="stat-info">
+            <div class="label">Verified</div>
+            <div class="value">15</div>
+            <div class="meta">63% of total</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon rejected">✖</div>
+          <div class="stat-info">
+            <div class="label">Rejected</div>
+            <div class="value">2</div>
+            <div class="meta">8% of total</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Panels ===== -->
+      <div class="panels">
+
+        <!-- LEFT: Reports list -->
+        <div class="card">
+          <div class="list-card-header">
+            <h2>Hazard Reports List</h2>
+            <div class="filters-row">
+              <div class="search-box">
+                <span class="ic">🔍</span>
+                <input type="text" placeholder="Search reports...">
+              </div>
+              <select class="filter-select">
+                <option>Status: All</option>
+              </select>
+              <select class="filter-select">
+                <option>Hazard Type: All</option>
+              </select>
+              <select class="filter-select">
+                <option>Trail / Location: All</option>
+              </select>
+            </div>
+            <div class="date-range-row">
+              <button class="btn-outline">📅 Date Range</button>
+              <button class="btn-outline btn-clear">✕ Clear Filters</button>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Report ID</th>
+                <th>Hazard Type</th>
+                <th>Location / Trail</th>
+                <th>Reported By</th>
+                <th>Status</th>
+                <th>Reported On</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="selected">
+                <td>HR-2025-024</td>
+                <td><div class="hazard-cell"><span class="hazard-icon">⛰️</span>Rockfall</div></td>
+                <td>Spirit Trail (Section 2)</td>
+                <td>Hiker_0211</td>
+                <td><span class="badge pending">Pending</span></td>
+                <td>May 20, 2025<span class="sub">09:15 AM</span></td>
+                <td><button class="actions-btn">⋮</button></td>
+              </tr>
+              <tr>
+                <td>HR-2025-023</td>
+                <td><div class="hazard-cell"><span class="hazard-icon">🏔️</span>Landslide</div></td>
+                <td>Mariang Makiling Trail (Upper Section)</td>
+                <td>User_0741</td>
+                <td><span class="badge pending">Pending</span></td>
+                <td>May 19, 2025<span class="sub">04:30 PM</span></td>
+                <td><button class="actions-btn">⋮</button></td>
+              </tr>
+              <tr>
+                <td>HR-2025-022</td>
+                <td><div class="hazard-cell"><span class="hazard-icon">🌲</span>Fallen Tree</div></td>
+                <td>Makiling Rainforest Trail (Section 1)</td>
+                <td>User_0432</td>
+                <td><span class="badge verified">Verified</span></td>
+                <td>May 19, 2025<span class="sub">11:20 AM</span></td>
+                <td><button class="actions-btn">⋮</button></td>
+              </tr>
+              <tr>
+                <td>HR-2025-021</td>
+                <td><div class="hazard-cell"><span class="hazard-icon">〰️</span>Mud Path / Slippery Area</div></td>
+                <td>Forestry Trail (UPLB Area)</td>
+                <td>Hiker_0108</td>
+                <td><span class="badge verified">Verified</span></td>
+                <td>May 18, 2025<span class="sub">03:45 PM</span></td>
+                <td><button class="actions-btn">⋮</button></td>
+              </tr>
+              <tr>
+                <td>HR-2025-020</td>
+                <td><div class="hazard-cell"><span class="hazard-icon">⚠️</span>Damaged Signage</div></td>
+                <td>Mariang Makiling Trail (Near Ranger Station)</td>
+                <td>User_0922</td>
+                <td><span class="badge pending">Pending</span></td>
+                <td>May 18, 2025<span class="sub">10:05 AM</span></td>
+                <td><button class="actions-btn">⋮</button></td>
+              </tr>
+              <tr>
+                <td>HR-2025-019</td>
+                <td><div class="hazard-cell"><span class="hazard-icon">⛰️</span>Rockfall</div></td>
+                <td>Forestry Trail (UPLB Area)</td>
+                <td>Hiker_0505</td>
+                <td><span class="badge rejected">Rejected</span></td>
+                <td>May 17, 2025<span class="sub">05:25 PM</span></td>
+                <td><button class="actions-btn">⋮</button></td>
+              </tr>
+              <tr>
+                <td>HR-2025-018</td>
+                <td><div class="hazard-cell"><span class="hazard-icon">🏔️</span>Landslide</div></td>
+                <td>Spirit Trail (Section 1)</td>
+                <td>User_0387</td>
+                <td><span class="badge verified">Verified</span></td>
+                <td>May 17, 2025<span class="sub">02:10 PM</span></td>
+                <td><button class="actions-btn">⋮</button></td>
+              </tr>
+              <tr>
+                <td>HR-2025-017</td>
+                <td><div class="hazard-cell"><span class="hazard-icon">〰️</span>Flooded Area</div></td>
+                <td>Makiling Rainforest Trail (Near Camp 2)</td>
+                <td>Hiker_0663</td>
+                <td><span class="badge verified">Verified</span></td>
+                <td>May 16, 2025<span class="sub">09:30 AM</span></td>
+                <td><button class="actions-btn">⋮</button></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="table-footer">
+            <span>Showing 1 to 8 of 24 reports</span>
+            <div class="pagination">
+              <button>‹</button>
+              <button class="active">1</button>
+              <button>2</button>
+              <button>3</button>
+              <button>›</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Report details -->
+        <div class="card details-card">
+
+          <div class="details-top">
+            <div class="details-title">
+              <div class="ic-circle">⛰️</div>
+              <div>
+                <h3>Rockfall</h3>
+                <div class="sub-id">HR-2025-024</div>
+              </div>
+            </div>
+            <span class="status-pill">Pending Review</span>
+          </div>
+
+          <div class="info-row">
+            <span class="ic">📍</span>
+            <div>
+              <strong>Spirit Trail (Section 2)</strong>
+              <span>Near the rocky portion before the steep ascent</span>
+            </div>
+          </div>
+
+          <div>
+            <p class="section-label">Description</p>
+            <p class="desc-text">There are loose rocks along the trail. Small rocks are falling occasionally. Please be careful when passing through.</p>
+          </div>
+
+          <div class="map-wrap">
+            <svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+              <rect width="480" height="300" fill="#dfead9"/>
+              <path d="M0 40 L480 20 L480 90 L0 110 Z" fill="#d3e2cb" opacity="0.6"/>
+              <path d="M0 180 L480 160 L480 300 L0 300 Z" fill="#d3e2cb" opacity="0.5"/>
+              <path d="M40 250 Q140 80 260 60 Q360 45 440 120" stroke="#4a7a44" stroke-width="2" stroke-dasharray="5 4" fill="none"/>
+              <path d="M60 260 Q160 220 220 150" stroke="#c25c50" stroke-width="2" stroke-dasharray="5 4" fill="none"/>
+              <path d="M260 60 Q300 140 260 230" stroke="#4a7a44" stroke-width="2" stroke-dasharray="5 4" fill="none"/>
+              <circle cx="260" cy="60" r="5" fill="#3a7a3a"/>
+              <circle cx="150" cy="95" r="5" fill="#2f6fed"/>
+              <circle cx="220" cy="150" r="9" fill="#e0483f" stroke="#fff" stroke-width="2"/>
+              <text x="228" y="154" font-size="11" fill="#fff" font-family="Arial">!</text>
+              <text x="270" y="55" font-size="11" fill="#33482f" font-family="Arial">Mariang Makiling Trail</text>
+              <text x="175" y="90" font-size="11" fill="#33482f" font-family="Arial">Spirit Trail</text>
+              <text x="330" y="150" font-size="11" fill="#33482f" font-family="Arial">Makiling Rainforest Trail</text>
+              <text x="330" y="230" font-size="11" fill="#33482f" font-family="Arial">Forestry Trail (UPLB Area)</text>
+              <rect x="16" y="180" width="120" height="90" fill="#ffffff" opacity="0.9" rx="6"/>
+              <text x="24" y="196" font-size="10" font-weight="bold" fill="#1f2a22" font-family="Arial">Legend</text>
+              <text x="24" y="212" font-size="9" fill="#33482f" font-family="Arial">-- Open Trail</text>
+              <text x="24" y="225" font-size="9" fill="#33482f" font-family="Arial">-- Closed Trail</text>
+              <text x="24" y="238" font-size="9" fill="#33482f" font-family="Arial">▲ Checkpoint</text>
+              <text x="24" y="251" font-size="9" fill="#33482f" font-family="Arial">● Campsite</text>
+              <text x="24" y="264" font-size="9" fill="#33482f" font-family="Arial">● Ranger Station</text>
+            </svg>
+          </div>
+
+          <div class="reporter-block">
+            <p class="section-label">Reported By</p>
+            <div class="reporter-row">
+              <div class="reporter-col">
+                <div class="lbl">Name</div>
+                <div class="val">Hiker_0211</div>
+              </div>
+            </div>
+            <div class="reporter-row">
+              <div class="reporter-col">
+                <div class="lbl">Contact</div>
+                <div class="val">0917-123-4567</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p class="section-label">Attachments</p>
+            <div class="attachments">
+              <div class="attach-thumb">🪨</div>
+              <div class="attach-thumb">🌄</div>
+              <div class="attach-more">+2<br>More</div>
+            </div>
+          </div>
+
+          <div class="admin-actions">
+            <p class="section-label">Admin Actions</p>
+            <div class="row">
+              <button class="btn btn-verify">✔ Verify Hazard</button>
+              <button class="btn btn-reject">✖ Reject Report</button>
+            </div>
+            <button class="btn btn-info">✉ Request More Info</button>
+          </div>
+
+          <div>
+            <p class="section-label">Report History</p>
+            <div class="history-list">
+              <div class="history-item">
+                <span class="history-dot"></span>
+                <div class="history-text">
+                  <strong>Report submitted by Hiker_0211</strong>
+                  <span>May 20, 2025 09:15 AM</span>
+                </div>
+              </div>
+              <div class="history-item pending">
+                <span class="history-dot"></span>
+                <div class="history-text">
+                  <strong>Report received and pending review</strong>
+                  <span>May 20, 2025 09:15 AM</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <!-- /details -->
+
+      </div>
+      <!-- /panels -->
+
+    </div>
+    <!-- /content -->
+
+  </div>
+  <!-- /main -->
+
+</div>
+</body>
+</html>

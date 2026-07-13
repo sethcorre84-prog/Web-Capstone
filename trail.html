@@ -1,109 +1,530 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PeakPath Admin</title>
-    <link rel="stylesheet" href="trailstyle.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<meta charset="UTF-8">
+<title>PeakPath — Trail Management</title>
+<style>
+  :root{
+    --sidebar-bg:#132313;
+    --sidebar-bg-light:#1c341c;
+    --accent:#2f8f4e;
+    --accent-dark:#1f6b39;
+    --accent-light:#e7f5eb;
+    --page-bg:#eef1ec;
+    --card-bg:#ffffff;
+    --text-primary:#1c231c;
+    --text-secondary:#6b7268;
+    --text-muted:#98a094;
+    --border:#e4e7e1;
+    --danger:#c8402f;
+    --danger-light:#fbeae7;
+    --warning:#c9821f;
+    --warning-light:#fbf1e2;
+    --success:#2f8f4e;
+    --success-light:#e7f5eb;
+    --radius:10px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--page-bg);color:var(--text-primary);font-size:14px;}
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+
+  .app{display:flex;min-height:100vh;}
+
+  /* SIDEBAR */
+  .sidebar{
+    width:236px;flex-shrink:0;background:var(--sidebar-bg);
+    display:flex;flex-direction:column;padding:22px 16px;color:#dfe8df;
+  }
+  .brand{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:4px 8px 20px 8px;
+    text-align:center;
+  }
+  .brand-icon{
+    width:34px;height:34px;border-radius:9px;background:linear-gradient(160deg,#3fa860,#1f6b39);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    margin:0 auto;
+  }
+  .brand-name{font-size:17px;font-weight:700;color:#fff;line-height:1.1;margin-top:4px;display:block;}
+  .brand-sub{font-size:11px;color:#8fa88f;}
+
+  .nav{list-style:none;display:flex;flex-direction:column;gap:2px;flex:1;margin-top:6px;}
+  .nav li a{
+    display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;
+    font-size:13.5px;color:#c4d1c4;font-weight:500;transition:background .15s;
+  }
+  .nav li a:hover{background:var(--sidebar-bg-light);color:#fff;}
+  .nav li a.active{background:var(--accent);color:#fff;}
+  .nav-icon{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;}
+
+  .sidebar-footer{border-top:1px solid #2a3d2a;padding-top:14px;margin-top:10px;}
+  .user-chip{display:flex;align-items:center;gap:10px;padding:6px 8px 14px 8px;}
+  .avatar{
+    width:36px;height:36px;border-radius:50%;background:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;flex-shrink:0;
+  }
+  .user-chip .name{font-size:13.5px;font-weight:600;color:#fff;}
+  .user-chip .role{font-size:11px;color:#8fa88f;}
+  .logout-btn{
+    display:flex;align-items:center;gap:8px;width:100%;background:transparent;border:1px solid #33472f;
+    color:#c4d1c4;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:500;
+  }
+  .logout-btn:hover{background:var(--sidebar-bg-light);}
+
+  /* MAIN */
+  .main{flex:1;padding:26px 32px;min-width:0;}
+
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;}
+  .topbar h1{font-size:22px;font-weight:700;margin-bottom:4px;}
+  .topbar p{color:var(--text-secondary);font-size:13.5px;}
+  .topbar-right{display:flex;align-items:center;gap:18px;}
+  .bell-wrap{position:relative;width:38px;height:38px;border-radius:9px;background:var(--card-bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;}
+  .bell-badge{
+    position:absolute;top:-5px;right:-5px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;
+    width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  }
+  .admin-mini{display:flex;align-items:center;gap:10px;}
+  .admin-mini .avatar{width:34px;height:34px;font-size:12px;background:var(--accent-dark);}
+  .admin-mini .name{font-size:13.5px;font-weight:600;}
+  .admin-mini .role{font-size:11px;color:var(--text-secondary);}
+
+  /* STAT CARDS */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px;}
+  .stat-card{
+    background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px 18px;display:flex;flex-direction:column;gap:10px;
+  }
+  .stat-top{display:flex;justify-content:space-between;align-items:center;}
+  .stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .stat-value{font-size:24px;font-weight:700;}
+  .stat-label{font-size:12px;color:var(--text-secondary);}
+
+  /* GRID LAYOUT */
+  .content-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:18px;align-items:start;}
+
+  .panel{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px;}
+  .panel-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--accent-dark);}
+
+  .toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+  .search-box{
+    flex:1;min-width:160px;display:flex;align-items:center;gap:8px;border:1px solid var(--border);
+    border-radius:8px;padding:8px 12px;background:#fbfcfa;
+  }
+  .search-box input{border:none;background:transparent;outline:none;font-size:13px;width:100%;color:var(--text-primary);}
+  select.filter{
+    border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;background:#fbfcfa;color:var(--text-secondary);
+  }
+  .clear-btn{
+    border:1px solid var(--border);background:#fff;border-radius:8px;padding:8px 12px;font-size:12.5px;
+    color:var(--text-secondary);display:flex;align-items:center;gap:6px;font-weight:500;
+  }
+  .clear-btn:hover{background:#f5f5f2;}
+
+  table{width:100%;border-collapse:collapse;}
+  thead th{
+    text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);
+    padding:8px 6px;border-bottom:1px solid var(--border);font-weight:600;
+  }
+  tbody td{padding:10px 6px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+  tbody tr{cursor:pointer;transition:background .12s;}
+  tbody tr:hover{background:#f6f8f4;}
+  tbody tr.selected{background:var(--accent-light);}
+  tbody tr:last-child td{border-bottom:none;}
+
+  .trail-cell{display:flex;align-items:center;gap:10px;}
+  .thumb{
+    width:44px;height:44px;border-radius:8px;flex-shrink:0;background:linear-gradient(160deg,#7fbf8f,#2f6b45);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .trail-name{font-weight:600;font-size:13px;}
+  .trail-loc{font-size:11px;color:var(--text-secondary);}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600;}
+  .badge.easy{background:var(--success-light);color:var(--success);}
+  .badge.moderate{background:#e6eefb;color:#2a63b5;}
+  .badge.difficult{background:var(--danger-light);color:var(--danger);}
+  .badge.open{background:var(--success-light);color:var(--success);}
+  .badge.closed{background:var(--danger-light);color:var(--danger);}
+
+  .row-actions{display:flex;gap:6px;}
+  .icon-btn{
+    width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:#fff;
+    display:flex;align-items:center;justify-content:center;color:var(--text-secondary);
+  }
+  .icon-btn:hover{background:#f0f2ee;}
+
+  .pagination{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:12px;color:var(--text-secondary);}
+  .page-btns{display:flex;gap:6px;}
+  .page-btn{
+    width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:12px;
+  }
+  .page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  /* MAP */
+  .map-box{
+    height:290px;border-radius:8px;background:#dfeed9;position:relative;overflow:hidden;
+    border:1px solid var(--border);
+  }
+  .map-legend{
+    position:absolute;bottom:10px;left:10px;background:#fff;border-radius:8px;padding:10px 12px;
+    font-size:11px;color:var(--text-secondary);box-shadow:0 1px 4px rgba(0,0,0,.08);line-height:1.9;
+  }
+  .legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;}
+
+  /* RIGHT COLUMN */
+  .detail-photo{
+    height:150px;border-radius:8px;background:linear-gradient(160deg,#8fd0a5,#2f6b45);margin-bottom:14px;
+    display:flex;align-items:flex-end;padding:10px;position:relative;
+  }
+  .detail-status-badge{position:absolute;top:10px;right:10px;}
+  .detail-name{font-size:17px;font-weight:700;margin-bottom:6px;}
+  .detail-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--text-secondary);margin-bottom:10px;}
+  .detail-desc{font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;}
+  .detail-rows{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+  .detail-row{display:flex;justify-content:space-between;font-size:12.5px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+  .detail-row span:first-child{color:var(--text-secondary);}
+  .detail-row span:last-child{font-weight:600;text-align:right;}
+  .btn-primary{
+    width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;
+    font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .btn-primary:hover{background:var(--accent-dark);}
+  .btn-secondary{
+    width:100%;background:#fff;color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:10px;
+    font-size:13px;font-weight:600;
+  }
+  .btn-secondary:hover{background:#f5f5f2;}
+
+  .status-mgmt-row{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:12px;}
+  .status-update-select{
+    width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:13px;margin-bottom:10px;color:var(--text-secondary);
+  }
+
+  .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+  .quick-btn{
+    background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 8px;font-size:12.5px;
+    font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .quick-btn.outline{background:#fff;color:var(--text-primary);border:1px solid var(--border);}
+  .quick-btn:hover{opacity:.9;}
+</style>
 </head>
 <body>
-    <div class="app-shell">
-        <aside class="sidebar">
-            <div class="brand">
-                <i class="fa-solid fa-mountain-sun"></i>
-                <span>PeakPath</span>
-            </div>
-            <p>Admin Portal</p>
+<div class="app">
 
-            <nav>
-                <a class="nav-link" href="dashboard.html"><i class="fa-solid fa-house"></i>Dashboard</a>
-                <a class="nav-link active" href="trail.html"><i class="fa-solid fa-route"></i>Trail Management</a>
-                <a class="nav-link" href="#"><i class="fa-solid fa-triangle-exclamation"></i>Hazard Reports</a>
-                <a class="nav-link" href="#"><i class="fa-solid fa-bullhorn"></i>Advisories &amp; Announcements</a>
-                <a class="nav-link" href="#"><i class="fa-solid fa-earth-americas"></i>Geomap Monitoring</a>
-                <a class="nav-link" href="#"><i class="fa-solid fa-users"></i>User Management</a>
-                <a class="nav-link" href="#"><i class="fa-solid fa-chart-line"></i>Analytics &amp; Reports</a>
-                <a class="nav-link" href="#"><i class="fa-solid fa-circle-plus"></i>Emergency Monitoring</a>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div class="user-card">
-                    <div class="user-avatar">AU</div>
-                    <div class="user-info">
-                        <strong>Admin User</strong>
-                        <span>Super Administrator</span>
-                    </div>
-                </div>
-                <a class="logout-btn" href="#"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
-            </div>
-        </aside>
-
-        <main class="main-panel">
-            <header class="top-bar">
-                <div class="top-copy">
-                    <h1>Trail Management</h1>
-                    <p>Manage active routes, hazard flags, and trail conditions.</p>
-                </div>
-                <div class="top-meta">
-                    <span class="meta-label">Current Admin</span>
-                    <strong>Admin User</strong>
-                </div>
-            </header>
-
-            <section class="cards">
-                <div class="card">
-                    <h3>4</h3>
-                    <p>Total Trails</p>
-                </div>
-                <div class="card">
-                    <h3>3</h3>
-                    <p>Open Trails</p>
-                </div>
-                <div class="card">
-                    <h3>1</h3>
-                    <p>Closed Trails</p>
-                </div>
-                <div class="card">
-                    <h3>15</h3>
-                    <p>Checkpoints</p>
-                </div>
-            </section>
-
-            <section class="content">
-                <div class="left">
-                    <table>
-                        <tr>
-                            <th>Trail</th>
-                            <th>Difficulty</th>
-                            <th>Status</th>
-                        </tr>
-                        <tr>
-                            <td>Mariang Makiling</td>
-                            <td>Moderate</td>
-                            <td><span class="open">Open</span></td>
-                        </tr>
-                        <tr>
-                            <td>Sipit</td>
-                            <td>Easy</td>
-                            <td><span class="open">Open</span></td>
-                        </tr>
-                        <tr>
-                            <td>Forestry</td>
-                            <td>Difficult</td>
-                            <td><span class="closed">Closed</span></td>
-                        </tr>
-                    </table>
-                    <div class="map">Trail Map Placeholder</div>
-                </div>
-
-                <aside class="right">
-                    <img src="https://via.placeholder.com/350x180" alt="Trail preview">
-                    <h2>Mariang Makiling Trail</h2>
-                    <button>Edit Trail</button>
-                </aside>
-            </section>
-        </main>
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 20l6-11 4 6 3-5 5 10H3z"/><circle cx="17" cy="5" r="1.6" fill="#fff" stroke="none"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">PeakPath</div>
+        <div class="brand-sub">Admin Portal</div>
+      </div>
     </div>
+
+    <ul class="nav">
+      <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
+      <li><a href="trail.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
+      <li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a></li>
+      <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a></li>
+      <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>Geomap Monitoring</a></li>
+      <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
+      <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
+      <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="avatar">AU</div>
+        <div>
+          <div class="name">Admin User</div>
+          <div class="role">Super Administrator</div>
+        </div>
+      </div>
+      <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1>Trail Management</h1>
+        <p>Manage Mount Makiling trails, statuses, checkpoints, and campsite information.</p>
+      </div>
+      <div class="topbar-right">
+        <div class="bell-wrap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4b524b" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+          <div class="bell-badge">3</div>
+        </div>
+        <div class="admin-mini">
+          <div class="avatar">AU</div>
+          <div>
+            <div class="name">Admin User</div>
+            <div class="role">Super Administrator</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-value">4</span>
+          <div class="stat-icon" style="background:var(--accent-light);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M3 20l6-11 4 6 3-5 5 10H3z"/></svg>
+          </div>
+        </div>
+        <div class="stat-label">Total Trails · All Mount Makiling</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-value">3</span>
+          <div class="stat-icon" style="background:var(--success-light);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+        </div>
+        <div class="stat-label">Open Trails · 75%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-value">1</span>
+          <div class="stat-icon" style="background:var(--danger-light);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg>
+          </div>
+        </div>
+        <div class="stat-label">Closed Trails · 25%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-value">15</span>
+          <div class="stat-icon" style="background:#e6eefb;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2a63b5" stroke-width="2"><path d="M12 21s-7-6.5-7-11a7 7 0 0114 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+          </div>
+        </div>
+        <div class="stat-label">Total Checkpoints · Across all trails</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-value">8</span>
+          <div class="stat-icon" style="background:#f2e9fb;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a4bb5" stroke-width="2"><path d="M4 20l6-9 4 5 2-3 4 7H4z"/></svg>
+          </div>
+        </div>
+        <div class="stat-label">Total Campsites · Across all trails</div>
+      </div>
+    </div>
+
+    <!-- CONTENT GRID -->
+    <div class="content-grid">
+
+      <!-- LEFT COLUMN -->
+      <div>
+        <div class="panel">
+          <div class="panel-title">Trail List (Mount Makiling)</div>
+          <div class="toolbar">
+            <div class="search-box">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+              <input id="searchInput" placeholder="Search trails...">
+            </div>
+            <select class="filter" id="statusFilter"><option value="">Status: All</option><option>Open</option><option>Closed</option></select>
+            <select class="filter" id="diffFilter"><option value="">Difficulty: All</option><option>Easy</option><option>Moderate</option><option>Difficult</option></select>
+            <select class="filter" id="typeFilter"><option value="">Trail Type: All</option><option>Major Trail</option><option>Side Trail</option></select>
+            <button class="clear-btn" id="clearBtn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              Clear Filters
+            </button>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Trail Name</th><th>Difficulty</th><th>Distance</th><th>Elevation Gain</th><th>Est. Duration</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="trailBody"></tbody>
+          </table>
+
+          <div class="pagination">
+            <span id="pageInfo">Showing 1 to 4 of 4 trails (Mount Makiling)</span>
+            <div class="page-btns">
+              <button class="page-btn">&lsaquo;</button>
+              <button class="page-btn active">1</button>
+              <button class="page-btn">&rsaquo;</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Trail Map Overview (Mount Makiling)</div>
+          <div class="map-box">
+            <svg width="100%" height="100%" viewBox="0 0 600 290">
+              <rect width="600" height="290" fill="#dfeed9"/>
+              <path d="M0 210 Q100 160 200 190 T400 170 T600 200 V290 H0 Z" fill="#cfe4c3"/>
+              <path d="M60 240 Q150 100 260 90 T430 130" stroke="#2f8f4e" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+              <path d="M260 90 Q320 110 360 170" stroke="#c9821f" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+              <path d="M360 170 Q420 190 470 230" stroke="#c8402f" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+              <path d="M260 90 Q220 60 150 55" stroke="#2a63b5" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+              <circle cx="260" cy="90" r="9" fill="#2f6b45"/>
+              <circle cx="150" cy="55" r="6" fill="#2f8f4e"/>
+              <circle cx="470" cy="230" r="6" fill="#c8402f"/>
+              <circle cx="60" cy="240" r="6" fill="#2f8f4e"/>
+              <circle cx="360" cy="170" r="6" fill="#c9821f"/>
+              <text x="150" y="45" font-size="10" fill="#3a4a3a" font-family="sans-serif">Mariang Makiling Trail</text>
+              <text x="255" y="76" font-size="10" fill="#3a4a3a" font-family="sans-serif">Makiling Rainforest Trail</text>
+              <text x="255" y="106" font-size="10" fill="#3a4a3a" font-family="sans-serif">Mount Makiling (1,096 m)</text>
+              <text x="30" y="255" font-size="10" fill="#3a4a3a" font-family="sans-serif">Sipit Trail</text>
+              <text x="400" y="245" font-size="10" fill="#3a4a3a" font-family="sans-serif">Forestry Trail (UPLB Area)</text>
+            </svg>
+            <div class="map-legend">
+              <div><span class="legend-dot" style="background:#2f8f4e"></span>Open Trail</div>
+              <div><span class="legend-dot" style="background:#c8402f"></span>Closed Trail</div>
+              <div><span class="legend-dot" style="background:#2f6b45"></span>Checkpoint / Campsite</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <div class="panel">
+          <div class="panel-title">Trail Details</div>
+          <div id="detailPhoto" class="detail-photo"></div>
+          <div class="detail-name" id="detailName">Mariang Makiling Trail</div>
+          <div class="detail-meta">
+            <span>📍 Laguna, Philippines</span>
+            <span class="badge moderate" id="detailDiff">Moderate</span>
+            <span id="detailDist">7.2 km</span>
+            <span id="detailDur">4–6 hrs</span>
+          </div>
+          <div class="detail-desc" id="detailDesc">The most popular trail of Mount Makiling. Passes through dense forest, mossy rocks, and offers scenic views of Laguna de Bay.</div>
+          <div class="detail-rows">
+            <div class="detail-row"><span>Elevation Gain</span><span id="detailElev">1,200 m</span></div>
+            <div class="detail-row"><span>Highest Point</span><span id="detailPeak">1,096 m (Peak 2)</span></div>
+            <div class="detail-row"><span>Trail Type</span><span id="detailType">Major Trail</span></div>
+            <div class="detail-row"><span>Last Updated</span><span>May 20, 2026 · 09:15 AM<br>by Admin User</span></div>
+          </div>
+          <button class="btn-secondary">✎ Edit Trail Information</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Trail Status Management</div>
+          <div class="status-mgmt-row">
+            <span>Current Status</span>
+            <span class="badge open" id="detailStatus">Open</span>
+          </div>
+          <div class="status-mgmt-row" style="margin-bottom:14px;">
+            <span>Last Updated</span>
+            <span style="color:var(--text-secondary)">May 20, 2026 09:15 AM</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">Update Status</div>
+          <select class="status-update-select">
+            <option>Select Status</option>
+            <option>Open</option>
+            <option>Closed</option>
+          </select>
+          <button class="btn-primary">Update Status</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Quick Actions</div>
+          <div class="quick-grid">
+            <button class="quick-btn">+ Add Trail</button>
+            <button class="quick-btn">+ Add Checkpoint</button>
+            <button class="quick-btn">+ Add Campsite</button>
+            <button class="quick-btn outline">📍 View on Map</button>
+          </div>
+          <button class="quick-btn outline" style="width:100%;">📊 View Reports</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const trails = [
+  {name:"Mariang Makiling Trail", loc:"Laguna, Philippines", diff:"Moderate", distance:"7.2 km", elev:"1,200 m", duration:"4–6 hrs", status:"Open", type:"Major Trail", peak:"1,096 m (Peak 2)", desc:"The most popular trail of Mount Makiling. Passes through dense forest, mossy rocks, and offers scenic views of Laguna de Bay."},
+  {name:"Sipit Trail", loc:"Laguna, Philippines", diff:"Easy", distance:"4.3 km", elev:"650 m", duration:"2–3 hrs", status:"Open", type:"Side Trail", peak:"650 m", desc:"A gentle, well-shaded trail popular with beginner hikers and families exploring the lower slopes of Mount Makiling."},
+  {name:"Makiling Rainforest Trail", loc:"Laguna, Philippines", diff:"Easy", distance:"3.5 km", elev:"400 m", duration:"1.5–2.5 hrs", status:"Open", type:"Side Trail", peak:"400 m", desc:"A short interpretive loop through old-growth rainforest, ideal for nature study and casual day visitors."},
+  {name:"Forestry Trail (UPLB Area)", loc:"Laguna, Philippines", diff:"Difficult", distance:"9.8 km", elev:"1,450 m", duration:"5–7 hrs", status:"Closed", type:"Major Trail", peak:"1,450 m (Summit ridge)", desc:"A steep, technical route through the UPLB forestry reserve, currently closed pending trail repair after recent landslides."},
+];
+
+const diffClass = {Easy:"easy", Moderate:"moderate", Difficult:"difficult"};
+let selectedIndex = 0;
+
+function render(){
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const st = document.getElementById('statusFilter').value;
+  const df = document.getElementById('diffFilter').value;
+  const ty = document.getElementById('typeFilter').value;
+
+  const filtered = trails.filter(t =>
+    t.name.toLowerCase().includes(q) &&
+    (st === "" || t.status === st) &&
+    (df === "" || t.diff === df) &&
+    (ty === "" || t.type === ty)
+  );
+
+  const body = document.getElementById('trailBody');
+  body.innerHTML = '';
+  filtered.forEach((t) => {
+    const realIndex = trails.indexOf(t);
+    const tr = document.createElement('tr');
+    if(realIndex === selectedIndex) tr.classList.add('selected');
+    tr.innerHTML = `
+      <td><div class="trail-cell"><div class="thumb"></div><div><div class="trail-name">${t.name}</div><div class="trail-loc">${t.loc}</div></div></div></td>
+      <td><span class="badge ${diffClass[t.diff]}">${t.diff}</span></td>
+      <td>${t.distance}</td>
+      <td>${t.elev}</td>
+      <td>${t.duration}</td>
+      <td><span class="badge ${t.status.toLowerCase()}">${t.status}</span></td>
+      <td><div class="row-actions">
+        <button class="icon-btn" title="View">👁</button>
+        <button class="icon-btn" title="Edit">✎</button>
+        <button class="icon-btn" title="More">⋮</button>
+      </div></td>
+    `;
+    tr.addEventListener('click', () => { selectedIndex = realIndex; renderDetail(); render(); });
+    body.appendChild(tr);
+  });
+
+  document.getElementById('pageInfo').textContent = `Showing 1 to ${filtered.length} of ${trails.length} trails (Mount Makiling)`;
+}
+
+function renderDetail(){
+  const t = trails[selectedIndex];
+  document.getElementById('detailName').textContent = t.name;
+  document.getElementById('detailDiff').textContent = t.diff;
+  document.getElementById('detailDiff').className = 'badge ' + diffClass[t.diff];
+  document.getElementById('detailDist').textContent = t.distance;
+  document.getElementById('detailDur').textContent = t.duration;
+  document.getElementById('detailDesc').textContent = t.desc;
+  document.getElementById('detailElev').textContent = t.elev;
+  document.getElementById('detailPeak').textContent = t.peak;
+  document.getElementById('detailType').textContent = t.type;
+  document.getElementById('detailStatus').textContent = t.status;
+  document.getElementById('detailStatus').className = 'badge ' + t.status.toLowerCase();
+}
+
+['searchInput','statusFilter','diffFilter','typeFilter'].forEach(id => {
+  document.getElementById(id).addEventListener('input', render);
+  document.getElementById(id).addEventListener('change', render);
+});
+document.getElementById('clearBtn').addEventListener('click', () => {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('statusFilter').value = '';
+  document.getElementById('diffFilter').value = '';
+  document.getElementById('typeFilter').value = '';
+  render();
+});
+
+render();
+renderDetail();
+</script>
 </body>
 </html>
