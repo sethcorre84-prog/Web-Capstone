@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PeakPath — Geomap Monitoring</title>
+  <style>
+    :root{
+      --sidebar-bg:#132313;
+      --sidebar-bg-light:#1c341c;
+      --accent:#2f8f4e;
+      --accent-dark:#1f6b39;
+      --accent-light:#e7f5eb;
+      --page-bg:#eef1ec;
+      --card-bg:#ffffff;
+      --text-primary:#1c231c;
+      --text-secondary:#6b7268;
+      --text-muted:#98a094;
+      --border:#e4e7e1;
+      --danger:#c8402f;
+      --danger-light:#fbeae7;
+      --success:#2f8f4e;
+      --radius:10px;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--page-bg);color:var(--text-primary);font-size:14px}
+    a{text-decoration:none;color:inherit}
+    .app{display:flex;min-height:100vh}
+
+    /* SIDEBAR (same as trail) */
+    .sidebar{width:236px;flex-shrink:0;background:var(--sidebar-bg);display:flex;flex-direction:column;padding:22px 16px;color:#dfe8df}
+    .brand{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:4px 8px 20px 8px;text-align:center}
+    .brand-name{font-size:17px;font-weight:700;color:#fff}
+    .brand-sub{font-size:11px;color:#8fa88f}
+    .nav{list-style:none;display:flex;flex-direction:column;gap:2px;flex:1;margin-top:6px}
+    .nav li a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;font-size:13.5px;color:#c4d1c4;font-weight:500;transition:background .15s}
+    .nav li a:hover{background:var(--sidebar-bg-light);color:#fff}
+    .nav li a.active{background:var(--accent);color:#fff}
+    .nav-icon{width:18px;height:18px;flex-shrink:0}
+    .sidebar-footer{border-top:1px solid #2a3d2a;padding-top:14px;margin-top:10px}
+    .user-chip{display:flex;align-items:center;gap:10px;padding:6px 8px 14px 8px}
+    .avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;flex-shrink:0}
+    .logout-btn{display:flex;align-items:center;gap:8px;width:100%;background:transparent;border:1px solid #33472f;color:#c4d1c4;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:500}
+    .logout-btn:hover{background:var(--sidebar-bg-light)}
+
+    .main{flex:1;padding:26px 32px;min-width:0}
+    .topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+    .topbar h1{font-size:22px;font-weight:700}
+    .topbar p{color:var(--text-secondary);font-size:13px}
+
+    .summary-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0 18px}
+    .card{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;align-items:center;gap:12px}
+    .card .value{font-size:20px;font-weight:700}
+    .card .label{font-size:13px;color:var(--text-secondary)}
+
+    .map-area{background:linear-gradient(180deg,#f8fbf8,#eaf4e9);border-radius:10px;padding:18px;border:1px solid var(--border);min-height:320px}
+
+    .content-grid{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start;margin-top:12px}
+    .left-column{display:flex;flex-direction:column;gap:12px}
+    .right-column{display:flex;flex-direction:column;gap:12px}
+
+    .legend, .alerts, .recent{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:12px}
+
+    @media(max-width:980px){.content-grid{grid-template-columns:1fr}.sidebar{display:none}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-name">PeakPath</div>
+        <div class="brand-sub">Admin Portal</div>
+      </div>
+      <ul class="nav">
+        <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/></svg>Dashboard</a></li>
+        <li><a href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/></svg>Trail Management</a></li>
+        <li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/></svg>Hazard Reports</a></li>
+        <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/></svg>Advisories &amp; Announcements</a></li>
+        <li><a class="active" href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>Geomap Monitoring</a></li>
+        <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/></svg>User Management</a></li>
+        <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
+        <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>Emergency Monitoring</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">AU</div>
+          <div>
+            <div class="name">Admin User</div>
+            <div class="role">Super Administrator</div>
+          </div>
+        </div>
+        <a class="logout-btn" href="Home.html">Logout</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <h1>Geomap Monitoring</h1>
+          <p>Real-time monitoring of trails, hazards, and environmental conditions.</p>
+        </div>
+        <div>
+          <div style="color:var(--text-secondary);font-size:13px">May 20, 2025 &nbsp; | &nbsp; 10:30 AM</div>
+        </div>
+      </div>
+
+      <div class="summary-cards">
+        <div class="card"><div style="flex:1"><div class="value">162</div><div class="label">Active Hikers Today</div></div></div>
+        <div class="card"><div style="flex:1"><div class="value">3 / 4</div><div class="label">Open Trails</div></div></div>
+        <div class="card"><div style="flex:1"><div class="value">2</div><div class="label">Active Hazard Alerts</div></div></div>
+        <div class="card"><div style="flex:1"><div class="value">22°C</div><div class="label">Weather (Mt. Makiling)</div></div></div>
+      </div>
+
+      <div class="content-grid">
+        <div class="left-column">
+          <div class="map-area">
+            <!-- simplified illustrative map -->
+            <svg width="100%" height="320" viewBox="0 0 900 320">
+              <rect width="900" height="320" fill="#e6efe0"/>
+              <path d="M20 210 Q150 150 280 190 T520 170 T820 200 V320 H20 Z" fill="#d7ead2"/>
+              <path d="M80 240 Q180 100 300 90 T480 130 T760 170" stroke="#2f8f4e" stroke-width="3" stroke-dasharray="8 6" fill="none"/>
+              <circle cx="480" cy="130" r="8" fill="#2f6b45"/>
+              <circle cx="300" cy="90" r="6" fill="#2f8f4e"/>
+              <circle cx="760" cy="170" r="6" fill="#c8402f"/>
+            </svg>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:8px">Legend: Open Trail · Closed Trail · Hazard Area</div>
+          </div>
+
+          <div class="panel" style="padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><strong>Active Alerts</strong><a href="#">View All</a></div>
+            <div style="margin-top:12px">
+              <div style="display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid var(--border)"><div style="width:36px;height:36;border-radius:50%;background:#fdecea;display:grid;place-items:center;color:#c8402f">!</div><div><div style="font-weight:700">Trail Closure: Forestry Trail (UPLB Area)</div><div style="font-size:12px;color:var(--text-secondary)">May 20, 2025 — High Risk</div></div></div>
+              <div style="display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid var(--border)"><div style="width:36px;height:36;border-radius:50%;background:#fff7e6;display:grid;place-items:center;color:#c9821f">⚠</div><div><div style="font-weight:700">Weather Advisory: Mt. Makiling</div><div style="font-size:12px;color:var(--text-secondary)">May 20, 2025 — Moderate Risk</div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="right-column">
+          <div class="legend">
+            <strong>Map Legend</strong>
+            <div style="margin-top:8px;font-size:13px;color:var(--text-secondary)">
+              <div>• Contour Line</div>
+              <div>• River/Creek</div>
+              <div>• Trail Station</div>
+              <div>• Monitoring Station</div>
+              <div>• Campsite</div>
+            </div>
+          </div>
+
+          <div class="alerts">
+            <strong>Alerts Overview</strong>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <div style="flex:1;background:#fff6f6;border:1px solid #f3d6d6;border-radius:8px;padding:10px;text-align:center"><div style="font-weight:700">2</div><div style="font-size:12px;color:var(--text-secondary)">High Risk</div></div>
+              <div style="flex:1;background:#fff7e6;border:1px solid #f6e2c8;border-radius:8px;padding:10px;text-align:center"><div style="font-weight:700">5</div><div style="font-size:12px;color:var(--text-secondary)">Moderate</div></div>
+            </div>
+          </div>
+
+          <div class="recent">
+            <strong>Recent Hazards</strong>
+            <div style="margin-top:10px;font-size:13px;color:var(--text-secondary)">
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><div>Landslide<br><small style="color:var(--text-secondary)">Forestry Trail</small></div><div style="color:#c8402f;font-weight:700">High Risk</div></div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><div>Fallen Tree<br><small style="color:var(--text-secondary)">Makiling Rainforest</small></div><div style="color:#c9821f;font-weight:700">Moderate</div></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
