@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PeakPath — User Management</title>
+<style>
+  :root{
+    --sidebar-bg:#132313;
+    --sidebar-bg-light:#1c341c;
+    --accent:#2f8f4e;
+    --accent-dark:#1f6b39;
+    --accent-light:#e7f5eb;
+    --page-bg:#eef1ec;
+    --card-bg:#ffffff;
+    --text-primary:#1c231c;
+    --text-secondary:#6b7268;
+    --text-muted:#98a094;
+    --border:#e4e7e1;
+    --danger:#c8402f;
+    --danger-light:#fbeae7;
+    --warning:#c9821f;
+    --warning-light:#fbf1e2;
+    --success:#2f8f4e;
+    --success-light:#e7f5eb;
+    --radius:10px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--page-bg);color:var(--text-primary);font-size:14px;}
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+
+  .app{display:flex;min-height:100vh;}
+
+  /* SIDEBAR */
+  .sidebar{
+    width:236px;flex-shrink:0;background:var(--sidebar-bg);
+    display:flex;flex-direction:column;padding:22px 16px;color:#dfe8df;
+  }
+  .brand{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:4px 8px 20px 8px;
+    text-align:center;
+  }
+  .brand-icon{
+    width:34px;height:34px;border-radius:9px;background:linear-gradient(160deg,#3fa860,#1f6b39);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    margin:0 auto;
+  }
+  .brand-name{font-size:17px;font-weight:700;color:#fff;line-height:1.1;margin-top:4px;display:block;}
+  .brand-sub{font-size:11px;color:#8fa88f;}
+
+  .nav{list-style:none;display:flex;flex-direction:column;gap:2px;flex:1;margin-top:6px;}
+  .nav li a{
+    display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;
+    font-size:13.5px;color:#c4d1c4;font-weight:500;transition:background .15s;
+  }
+  .nav li a:hover{background:var(--sidebar-bg-light);color:#fff;}
+  .nav li a.active{background:var(--accent);color:#fff;}
+  .nav-icon{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;}
+
+  .sidebar-footer{border-top:1px solid #2a3d2a;padding-top:14px;margin-top:10px;}
+  .user-chip{display:flex;align-items:center;gap:10px;padding:6px 8px 14px 8px;}
+  .avatar{
+    width:36px;height:36px;border-radius:50%;background:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;flex-shrink:0;
+  }
+  .user-chip .name{font-size:13.5px;font-weight:600;color:#fff;}
+  .user-chip .role{font-size:11px;color:#8fa88f;}
+  .logout-btn{
+    display:flex;align-items:center;gap:8px;width:100%;background:transparent;border:1px solid #33472f;
+    color:#c4d1c4;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:500;
+  }
+  .logout-btn:hover{background:var(--sidebar-bg-light);}
+
+  /* MAIN */
+  .main{flex:1;padding:26px 32px;min-width:0;}
+
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;}
+  .topbar h1{font-size:22px;font-weight:700;margin-bottom:4px;}
+  .topbar p{color:var(--text-secondary);font-size:13.5px;}
+  .topbar-right{display:flex;align-items:center;gap:18px;}
+  .bell-wrap{position:relative;width:38px;height:38px;border-radius:9px;background:var(--card-bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;}
+  .bell-badge{
+    position:absolute;top:-5px;right:-5px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;
+    width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  }
+  .admin-mini{display:flex;align-items:center;gap:10px;}
+  .admin-mini .avatar{width:34px;height:34px;font-size:12px;background:var(--accent-dark);}
+  .admin-mini .name{font-size:13.5px;font-weight:600;}
+  .admin-mini .role{font-size:11px;color:var(--text-secondary);}
+
+  /* STAT CARDS */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+  .stat-card{
+    background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px 18px;display:flex;flex-direction:column;gap:10px;
+  }
+  .stat-top{display:flex;justify-content:space-between;align-items:center;}
+  .stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .stat-value{font-size:24px;font-weight:700;}
+  .stat-label{font-size:12px;color:var(--text-secondary);}
+
+  /* CONTENT */
+  .content-grid{display:grid;grid-template-columns:1.65fr 0.95fr;gap:18px;align-items:start;}
+  .panel{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px;}
+  .panel-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--accent-dark);}
+
+  .toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+  .search-box{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:#fbfcfa;}
+  .search-box input{border:none;background:transparent;outline:none;font-size:13px;width:100%;color:var(--text-primary);}
+  select.filter{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;background:#fbfcfa;color:var(--text-secondary);}
+  .clear-btn{border:1px solid var(--border);background:#fff;border-radius:8px;padding:8px 12px;font-size:12.5px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;font-weight:500;}
+
+  table{width:100%;border-collapse:collapse;}
+  thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);padding:8px 6px;border-bottom:1px solid var(--border);font-weight:600;}
+  tbody td{padding:10px 6px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+  tbody tr:hover{background:#f6f8f4;}
+  tbody tr:last-child td{border-bottom:none;}
+
+  .user-cell{display:flex;align-items:center;gap:10px;}
+  .thumb{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;background:linear-gradient(160deg,#7fbf8f,#2f6b45);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;
+  }
+  .user-name{font-weight:600;font-size:13px;}
+  .user-email{font-size:11px;color:var(--text-secondary);}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600;}
+  .badge.admin{background:var(--success-light);color:var(--success);}
+  .badge.manager{background:#e6eefb;color:#2a63b5;}
+  .badge.operator{background:var(--warning-light);color:var(--warning);}
+  .badge.active{background:var(--success-light);color:var(--success);}
+  .badge.blocked{background:var(--danger-light);color:var(--danger);}
+
+  .row-actions{display:flex;gap:6px;}
+  .icon-btn{
+    width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:#fff;
+    display:flex;align-items:center;justify-content:center;color:var(--text-secondary);
+  }
+  .icon-btn:hover{background:#f0f2ee;}
+
+  .summary-card{display:flex;flex-direction:column;gap:14px;}
+  .summary-item{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#f8faf8;border:1px solid var(--border);border-radius:8px;}
+  .summary-item strong{font-size:13px;color:var(--text-primary);}
+  .summary-item span{font-size:12px;color:var(--text-secondary);}
+  .primary-btn{width:100%;padding:11px 12px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;}
+  .secondary-btn{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--text-primary);font-weight:600;}
+
+  @media (max-width: 980px){
+    .stats{grid-template-columns:repeat(2,1fr);} .content-grid{grid-template-columns:1fr;}
+  }
+  @media (max-width: 700px){
+    .app{flex-direction:column;} .sidebar{width:100%;} .stats{grid-template-columns:1fr;} .topbar{flex-direction:column;gap:14px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 20l6-11 4 6 3-5 5 10H3z"/><circle cx="17" cy="5" r="1.6" fill="#fff" stroke="none"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">PeakPath</div>
+        <div class="brand-sub">Admin Portal</div>
+      </div>
+    </div>
+
+    <ul class="nav">
+      <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
+      <li><a href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
+      <li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a></li>
+      <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a></li>
+      <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>Geomap Monitoring</a></li>
+      <li><a href="usermanagement.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
+      <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
+      <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="avatar">AU</div>
+        <div>
+          <div class="name">Admin User</div>
+          <div class="role">Super Administrator</div>
+        </div>
+      </div>
+      <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="topbar">
+      <div>
+        <h1>User Management</h1>
+        <p>Manage officers, trail administrators, and system access roles.</p>
+      </div>
+      <div class="topbar-right">
+        <div class="bell-wrap">
+          <span>🔔</span>
+          <div class="bell-badge">3</div>
+        </div>
+        <div class="admin-mini">
+          <div class="avatar">AU</div>
+          <div>
+            <div class="name">Admin User</div>
+            <div class="role">Super Administrator</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon" style="background:#e7f5eb;color:#2f8f4e;">👥</div>
+        </div>
+        <div class="stat-value">48</div>
+        <div class="stat-label">Total Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon" style="background:#fdf3e0;color:#c9821f;">🛡️</div>
+        </div>
+        <div class="stat-value">9</div>
+        <div class="stat-label">Admins</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon" style="background:#e7f5eb;color:#2f8f4e;">✅</div>
+        </div>
+        <div class="stat-value">39</div>
+        <div class="stat-label">Active Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon" style="background:#fbeae7;color:#c8402f;">⛔</div>
+        </div>
+        <div class="stat-value">3</div>
+        <div class="stat-label">Blocked</div>
+      </div>
+    </section>
+
+    <section class="content-grid">
+      <div>
+        <div class="panel">
+          <div class="panel-title">User Directory</div>
+          <div class="toolbar">
+            <div class="search-box">
+              <span>🔎</span>
+              <input type="text" placeholder="Search user or email" />
+            </div>
+            <select class="filter">
+              <option>All Roles</option>
+              <option>Admin</option>
+              <option>Manager</option>
+              <option>Operator</option>
+            </select>
+            <button class="clear-btn">Clear</button>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Last Active</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="thumb">AR</div>
+                    <div>
+                      <div class="user-name">Aira Reyes</div>
+                      <div class="user-email">aira@peakpath.org</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge admin">Admin</span></td>
+                <td><span class="badge active">Active</span></td>
+                <td>2 mins ago</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="icon-btn">✎</button>
+                    <button class="icon-btn">🗑</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="thumb">JT</div>
+                    <div>
+                      <div class="user-name">Jasper Tan</div>
+                      <div class="user-email">jasper@peakpath.org</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge manager">Manager</span></td>
+                <td><span class="badge active">Active</span></td>
+                <td>14 mins ago</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="icon-btn">✎</button>
+                    <button class="icon-btn">🗑</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="thumb">LN</div>
+                    <div>
+                      <div class="user-name">Liana Navarro</div>
+                      <div class="user-email">liana@peakpath.org</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge operator">Operator</span></td>
+                <td><span class="badge active">Active</span></td>
+                <td>1 hour ago</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="icon-btn">✎</button>
+                    <button class="icon-btn">🗑</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="thumb">PM</div>
+                    <div>
+                      <div class="user-name">Paul Mercado</div>
+                      <div class="user-email">paul@peakpath.org</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge manager">Manager</span></td>
+                <td><span class="badge blocked">Blocked</span></td>
+                <td>2 days ago</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="icon-btn">✎</button>
+                    <button class="icon-btn">🗑</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <aside>
+        <div class="panel summary-card">
+          <div class="panel-title">Quick Actions</div>
+          <button class="primary-btn">+ Add New User</button>
+          <button class="secondary-btn">Manage Roles</button>
+          <button class="secondary-btn">Reset Password Requests</button>
+        </div>
+
+        <div class="panel summary-card">
+          <div class="panel-title">Access Summary</div>
+          <div class="summary-item"><strong>Super Admin</strong><span>1</span></div>
+          <div class="summary-item"><strong>Trail Managers</strong><span>7</span></div>
+          <div class="summary-item"><strong>Field Operators</strong><span>18</span></div>
+          <div class="summary-item"><strong>Pending Approvals</strong><span>5</span></div>
+        </div>
+      </aside>
+    </section>
+  </main>
+</div>
+</body>
+</html>

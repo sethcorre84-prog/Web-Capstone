@@ -6,11 +6,11 @@
 <title>PeakPath Admin — Hazard Reports</title>
 <style>
   :root{
-    --forest-900:#16311f;
-    --forest-800:#1b3a25;
-    --forest-700:#234a2f;
-    --forest-accent:#2f6b3e;
-    --green-active:#3a7a3a;
+    --sidebar-bg:#132313;
+    --sidebar-bg-light:#1c341c;
+    --accent:#2f8f4e;
+    --accent-dark:#1f6b39;
+    --accent-light:#e7f5eb;
     --bg:#f4f6f4;
     --card:#ffffff;
     --border:#e7ebe7;
@@ -55,7 +55,7 @@
   .sidebar{
     width:236px;
     flex-shrink:0;
-    background:var(--forest-900);
+    background:var(--sidebar-bg);
     color:#dfe8df;
     display:flex;
     flex-direction:column;
@@ -114,11 +114,11 @@
     width:18px;text-align:center;font-size:15px;opacity:0.9;
   }
   .nav li a:hover{
-    background:rgba(255,255,255,0.06);
+    background:var(--sidebar-bg-light);
     color:#fff;
   }
   .nav li a.active{
-    background:var(--green-active);
+    background:var(--accent);
     color:#fff;
     box-shadow:var(--shadow-sm);
   }
@@ -148,7 +148,7 @@
     font-size:13.5px;font-weight:500;
     text-decoration:none;border-radius:8px;
   }
-  .logout:hover{background:rgba(255,255,255,0.06);color:#fff;}
+  .logout:hover{background:var(--sidebar-bg-light);color:#fff;}
 
   /* ---------------- Main ---------------- */
   .main{
