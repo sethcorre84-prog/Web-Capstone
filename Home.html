@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeakPath Admin Login</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Left Side -->
+    <div class="left-panel">
+
+        <div class="logo">
+    <img src="logo.png" alt="PeakPath Logo">
+
+    <div>
+        <h1>Peak<span>Path</span></h1>
+        <p>Hike Smart. Stay Safe. Explore More.</p>
+    </div>
+</div>
+
+        <div class="overlay-box">
+
+    <div class="features">
+
+        <div class="feature">
+            <i class="fa-solid fa-shield-halved"></i>
+
+            <div>
+                <h3>Trail Management</h3>
+                <p>Manage trails, checkpoints, and camp sites efficiently.</p>
+            </div>
+
+        </div>
+
+        <div class="feature">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+
+            <div>
+                <h3>Hazard Monitoring</h3>
+                <p>Verify reports, monitor hazards, and publish advisories.</p>
+            </div>
+
+        </div>
+
+        <div class="feature">
+            <i class="fa-solid fa-chart-column"></i>
+
+            <div>
+                <h3>Analytics & Reports</h3>
+                <p>Get real-time insights and make data-driven decisions.</p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="empower">
+
+        <img src="logo.png" alt="PeakPath">
+
+        <h1>Empowering</h1>
+
+        <h4>Safer Adventures</h4>
+
+        <p>
+            A centralized system for trail management,
+            hazard monitoring, and hiker safety.
+        </p>
+
+    </div>
+
+</div>
+
+    </div>
+
+    <!-- Right Side -->
+    <div class="right-panel">
+
+        <div class="login-card">
+
+            <i class="fa-solid fa-shield-halved shield"></i>
+
+            <h1>Admin Login</h1>
+
+            <p>Sign in to your PeakPath Admin account</p>
+
+            <div class="card-divider">
+                <span></span>
+                <i class="fa-solid fa-mountain divider-icon"></i>
+                <span></span>
+            </div>
+
+            <form>
+
+                <label for="email">Email Address</label>
+                <div class="input-box">
+                    <i class="fa-regular fa-envelope"></i>
+                    <input type="email" id="email" placeholder="admin@peakpath.com">
+                </div>
+
+                <label for="password">Password</label>
+                <div class="input-box">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="password" placeholder="Enter your password">
+                    <i class="fa-regular fa-eye"></i>
+                </div>
+
+                <div class="options">
+                    <label>
+                        <input type="checkbox">
+                        Remember me
+                    </label>
+                    <a href="#">Forgot Password?</a>
+                </div>
+
+                <button type="button" onclick="login()">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    Sign In
+                </button>
+
+            </form>
+
+            <div class="footer">
+                <i class="fa-solid fa-shield"></i>
+                Your data is secure with PeakPath.
+                <br><br>
+                © 2026 PeakPath. All rights reserved.
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+<script src="login.js"></script>
+</body>
+</html>
