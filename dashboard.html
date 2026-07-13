@@ -39,19 +39,29 @@
         }
         .sidebar .brand {
             display: flex;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
             color: #ffffff;
             font-size: 22px;
             font-weight: 800;
+            text-align: center;
         }
         .sidebar .brand i {
-            font-size: 28px;
+            font-size: 34px;
             color: #72d07e;
         }
+        .sidebar .brand span {
+            display: block;
+            margin-top: 2px;
+        }
         .sidebar p {
-            margin: 0;
+            margin: 12px 0 0;
             color: #cbd5e1;
             font-size: 14px;
+            text-align: center;
         }
         nav {
             display: flex;
@@ -355,12 +365,15 @@
     <div class="app-shell">
         <aside class="sidebar">
             <div>
-                <div class="brand"><i class="fa-solid fa-mountain-sun"></i> PeakPath</div>
+                <div class="brand">
+                    <i class="fa-solid fa-mountain-sun"></i>
+                    <span>PeakPath</span>
+                </div>
                 <p>Admin Portal</p>
             </div>
             <nav>
-                <a class="nav-link active" href="#"><i class="fa-solid fa-house"></i>Dashboard</a>
-                <a class="nav-link" href="#"><i class="fa-solid fa-route"></i>Trail Management</a>
+                <a class="nav-link active" href="dashboard.html"><i class="fa-solid fa-house"></i>Dashboard</a>
+                <a class="nav-link" href="trail.html"><i class="fa-solid fa-route"></i>Trail Management</a>
                 <a class="nav-link" href="#"><i class="fa-solid fa-triangle-exclamation"></i>Hazard Reports</a>
                 <a class="nav-link" href="#"><i class="fa-solid fa-bullhorn"></i>Advisories & Announcements</a>
                 <a class="nav-link" href="#"><i class="fa-solid fa-earth-americas"></i>Geomap Monitoring</a>

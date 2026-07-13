@@ -6,7 +6,7 @@ function login() {
     if (email === "admin" &&
         password === "123456") {
 
-        window.location.href = "DashBoard.html";
+        window.location.href = "dashboard.html";
 
     } else {
 
