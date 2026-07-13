@@ -73,6 +73,7 @@
         .nav-link {
             display: flex;
             align-items: center;
+            gap: 12px;
             padding: 14px 16px;
             color: #cbd5e1;
             text-decoration: none;
@@ -80,9 +81,15 @@
             font-weight: 600;
             transition: background 0.2s ease, color 0.2s ease;
         }
-        .nav-link i {
-            width: 22px;
-            text-align: center;
+        .nav-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
         .nav-link.active {
             background: #196f3d;
@@ -372,14 +379,14 @@
                 <p>Admin Portal</p>
             </div>
             <nav>
-                <a class="nav-link active" href="dashboard.html"><i class="fa-solid fa-house"></i>Dashboard</a>
-                <a class="nav-link" href="trail.html"><i class="fa-solid fa-route"></i>Trail Management</a>
-                <a class="nav-link" href="hazardreport.html"><i class="fa-solid fa-triangle-exclamation"></i>Hazard Reports</a>
-                <a class="nav-link" href="A&A.html"><i class="fa-solid fa-bullhorn"></i>Advisories & Announcements</a>
-                <a class="nav-link" href="geomap.html"><i class="fa-solid fa-earth-americas"></i>Geomap Monitoring</a>
-                <a class="nav-link" href="usermanagement.html"><i class="fa-solid fa-users"></i>User Management</a>
-                <a class="nav-link" href="analytics.html"><i class="fa-solid fa-chart-line"></i>Analytics & Reports</a>
-                <a class="nav-link" href="emergency.html"><i class="fa-solid fa-hospital-symbol"></i>Emergency Monitoring</a>
+                <a class="nav-link active" href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a>
+                <a class="nav-link" href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a>
+                <a class="nav-link" href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a>
+                <a class="nav-link" href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a>
+                <a class="nav-link" href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 21s6-4.8 6-10a6 6 0 10-12 0c0 5.2 6 10 6 10z"/><circle cx="12" cy="11" r="2.4"/></svg>Geomap Monitoring</a>
+                <a class="nav-link" href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a>
+                <a class="nav-link" href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a>
+                <a class="nav-link" href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a>
             </nav>
             <div class="sidebar-footer">
                 <div class="user-card">
