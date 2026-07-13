@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeakPath Admin</title>
+    <link rel="stylesheet" href="trailstyle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="fa-solid fa-mountain-sun"></i>
+                <span>PeakPath</span>
+            </div>
+            <p>Trail Operations Admin</p>
+
+            <nav>
+                <a class="nav-link" href="#"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+                <a class="nav-link active" href="#"><i class="fa-solid fa-route"></i> Trail Management</a>
+                <a class="nav-link" href="#"><i class="fa-solid fa-triangle-exclamation"></i> Hazards</a>
+                <a class="nav-link" href="#"><i class="fa-solid fa-users"></i> Users</a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-card">
+                    <div class="user-avatar">A</div>
+                    <div class="user-info">
+                        <strong>Admin User</strong>
+                        <span>Operations Lead</span>
+                    </div>
+                </div>
+                <a class="logout-btn" href="#"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            </div>
+        </aside>
+
+        <main class="main-panel">
+            <header class="top-bar">
+                <div class="top-copy">
+                    <h1>Trail Management</h1>
+                    <p>Manage active routes, hazard flags, and trail conditions.</p>
+                </div>
+                <div class="top-meta">
+                    <span class="meta-label">Current Admin</span>
+                    <strong>Admin User</strong>
+                </div>
+            </header>
+
+            <section class="cards">
+                <div class="card">
+                    <h3>4</h3>
+                    <p>Total Trails</p>
+                </div>
+                <div class="card">
+                    <h3>3</h3>
+                    <p>Open Trails</p>
+                </div>
+                <div class="card">
+                    <h3>1</h3>
+                    <p>Closed Trails</p>
+                </div>
+                <div class="card">
+                    <h3>15</h3>
+                    <p>Checkpoints</p>
+                </div>
+            </section>
+
+            <section class="content">
+                <div class="left">
+                    <table>
+                        <tr>
+                            <th>Trail</th>
+                            <th>Difficulty</th>
+                            <th>Status</th>
+                        </tr>
+                        <tr>
+                            <td>Mariang Makiling</td>
+                            <td>Moderate</td>
+                            <td><span class="open">Open</span></td>
+                        </tr>
+                        <tr>
+                            <td>Sipit</td>
+                            <td>Easy</td>
+                            <td><span class="open">Open</span></td>
+                        </tr>
+                        <tr>
+                            <td>Forestry</td>
+                            <td>Difficult</td>
+                            <td><span class="closed">Closed</span></td>
+                        </tr>
+                    </table>
+                    <div class="map">Trail Map Placeholder</div>
+                </div>
+
+                <aside class="right">
+                    <img src="https://via.placeholder.com/350x180" alt="Trail preview">
+                    <h2>Mariang Makiling Trail</h2>
+                    <button>Edit Trail</button>
+                </aside>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

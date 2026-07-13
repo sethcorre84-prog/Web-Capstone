@@ -387,7 +387,8 @@
                 </div>
                 <div class="top-meta">
                     <div class="meta-label">Today</div>
-                    <strong>10:30 AM</strong>
+                    <strong id="live-clock">10:30 AM</strong>
+                    <span id="live-day">Tuesday</span>
                     <span>Admin User • Super Administrator</span>
                 </div>
             </section>
@@ -477,5 +478,25 @@
             </section>
         </main>
     </div>
+    <script>
+        function updateClock() {
+            const clock = document.getElementById('live-clock');
+            const day = document.getElementById('live-day');
+            if (!clock || !day) return;
+
+            const now = new Date();
+            clock.textContent = now.toLocaleTimeString([], {
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            day.textContent = now.toLocaleDateString([], {
+                weekday: 'long'
+            });
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+    </script>
 </body>
 </html>
