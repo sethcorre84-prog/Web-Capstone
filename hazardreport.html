@@ -47,18 +47,19 @@
   }
 
   .app{
-    display:grid;
-    grid-template-columns: 236px 1fr;
+    display:flex;
     min-height:100vh;
-  }
+}
 
   /* ---------------- Sidebar ---------------- */
   .sidebar{
+    width:236px;
+    flex-shrink:0;
     background:var(--forest-900);
-    color:#dbe6dd;
+    color:#dfe8df;
     display:flex;
     flex-direction:column;
-    padding:20px 14px;
+    padding:22px 16px;
   }
   .brand{
     display:flex;
