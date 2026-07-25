@@ -9,6 +9,10 @@
         :root {
             color-scheme: dark;
             font-family: Inter, Arial, sans-serif;
+            --um-sidebar-bg: #132313;
+            --um-sidebar-bg-light: #1c341c;
+            --um-accent: #2f8f4e;
+            --um-accent-dark: #1f6b39;
         }
         * { box-sizing: border-box; }
         body {
@@ -19,67 +23,81 @@
         }
         .app-shell {
             display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: 24px;
+            grid-template-columns: 236px 1fr;
+            gap: 0;
             min-height: 100vh;
-            padding: 24px;
-            align-items: start;
         }
         .sidebar {
-            position: sticky;
-            top: 24px;
-            align-self: start;
+            width: 100%;
+            flex-shrink: 0;
+            background: var(--um-sidebar-bg);
             display: flex;
             flex-direction: column;
-            background: #0b2904;
-            padding: 28px 22px;
+            padding: 22px 16px;
+            color: #dfe8df;
             box-shadow: 0 30px 80px rgba(15,23,42,0.18);
-            height: calc(100vh - 48px);
-            overflow: hidden;
         }
-        .sidebar .brand {
+        .brand {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            width: 100%;
-            color: #ffffff;
-            font-size: 22px;
-            font-weight: 800;
+            padding: 4px 8px 20px 8px;
             text-align: center;
         }
-        .sidebar .brand i {
-            font-size: 34px;
-            color: #72d07e;
-        }
-        .sidebar .brand span {
-            display: block;
-            margin-top: 2px;
-        }
-        .sidebar p {
-            margin: 12px 0 0;
-            color: #cbd5e1;
-            font-size: 14px;
-            text-align: center;
-        }
-        nav {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-        }
-        .nav-link {
+        .brand-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: linear-gradient(160deg,#3fa860,#1f6b39);
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
-            color: #cbd5e1;
+            justify-content: center;
+            flex-shrink: 0;
+            margin: 0 auto;
+        }
+        .brand-name {
+            display: block;
+            margin-top: 4px;
+            font-size: 17px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: #fff;
+        }
+        .brand-sub {
+            font-size: 11px;
+            color: #8fa88f;
+        }
+        .nav {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            min-height: 0;
+            margin-top: 6px;
+            overflow-y: auto;
+        }
+        .nav li a {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13.5px;
+            font-weight: 500;
+            color: #c4d1c4;
             text-decoration: none;
-            font-size: 15px;
-            font-weight: 600;
-            transition: background 0.2s ease, color 0.2s ease;
+            transition: background .15s;
+        }
+        .nav li a:hover {
+            background: var(--um-sidebar-bg-light);
+            color: #fff;
+        }
+        .nav li a.active {
+            background: var(--um-accent);
+            color: #fff;
         }
         .nav-icon {
             width: 18px;
@@ -91,51 +109,62 @@
             stroke-linecap: round;
             stroke-linejoin: round;
         }
-        .nav-link.active {
-            background: #196f3d;
-            color: #ffffff;
-        }
-        .nav-link.active i { color: #ffffff; }
-        .nav-link:hover { background: rgba(255,255,255,0.08); color: #ffffff; }
         .sidebar-footer {
-            margin-top: auto;
+            border-top: 1px solid #2a3d2a;
+            padding-top: 14px;
+            margin-top: 10px;
             flex-shrink: 0;
         }
-        .user-card {
+        .user-chip {
             display: flex;
             align-items: center;
-            padding: 16px;
-            background: #0f172a;
-            border: 1px solid rgba(255,255,255,0.08);
+            gap: 10px;
+            padding: 6px 8px 14px 8px;
         }
-        .user-avatar {
-            width: 46px;
-            height: 46px;
-            background: #72d07e;
-            display: grid;
-            place-items: center;
-            color: #0f172a;
-            font-weight: 800;
-        }
-        .user-info strong { font-size: 14px; color: #ffffff; }
-        .user-info span { font-size: 13px; color: #94a3b8; }
-        .logout-btn {
-            display: inline-flex;
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--um-accent);
+            display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            width: 100%;
-            padding: 14px;
-            margin-top: 18px;
-            border: 1px solid rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.08);
-            color: #ffffff;
-            text-decoration: none;
+            flex-shrink: 0;
+            font-size: 13px;
             font-weight: 700;
+            color: #fff;
+        }
+        .user-chip .name {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #fff;
+        }
+        .user-chip .role {
+            font-size: 11px;
+            color: #8fa88f;
+        }
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 9px 12px;
+            margin-top: 18px;
+            border: 1px solid #33472f;
+            border-radius: 8px;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 500;
+            color: #c4d1c4;
+            text-decoration: none;
+        }
+        .logout-btn:hover {
+            background: var(--um-sidebar-bg-light);
         }
         .main-panel {
             display: flex;
             flex-direction: column;
+            padding: 24px;
         }
         .top-bar {
             display: flex;
@@ -371,32 +400,36 @@
 <body>
     <div class="app-shell">
         <aside class="sidebar">
-            <div>
-                <div class="brand">
-                    <i class="fa-solid fa-mountain-sun"></i>
-                    <span>PeakPath</span>
-                </div>
-                <p>Admin Portal</p>
+            <div class="brand">
+              <div class="brand-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 20l6-11 4 6 3-5 5 10H3z"/><circle cx="17" cy="5" r="1.6" fill="#fff" stroke="none"/></svg>
+              </div>
+              <div>
+                <div class="brand-name">PeakPath</div>
+                <div class="brand-sub">Admin Portal</div>
+              </div>
             </div>
-            <nav>
-                <a class="nav-link active" href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a>
-                <a class="nav-link" href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a>
-                <a class="nav-link" href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a>
-                <a class="nav-link" href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a>
-                <a class="nav-link" href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 21s6-4.8 6-10a6 6 0 10-12 0c0 5.2 6 10 6 10z"/><circle cx="12" cy="11" r="2.4"/></svg>Geomap Monitoring</a>
-                <a class="nav-link" href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a>
-                <a class="nav-link" href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a>
-                <a class="nav-link" href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a>
-            </nav>
+
+            <ul class="nav">
+              <li><a href="dashboard.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
+              <li><a href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
+              <li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a></li>
+              <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a></li>
+              <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>Geomap Monitoring</a></li>
+              <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
+              <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
+              <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
+            </ul>
+
             <div class="sidebar-footer">
-                <div class="user-card">
-                    <div class="user-avatar">AU</div>
-                    <div class="user-info">
-                        <strong>Admin User</strong>
-                        <span>Super Administrator</span>
-                    </div>
+              <div class="user-chip">
+                <div class="avatar">AU</div>
+                <div>
+                  <div class="name">Admin User</div>
+                  <div class="role">Super Administrator</div>
                 </div>
-                <a class="logout-btn" href="Home.html"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+              </div>
+              <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
             </div>
         </aside>
         <main class="main-panel">
