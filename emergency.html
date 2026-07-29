@@ -37,13 +37,18 @@ display:flex;
 min-height:100vh;
 }
 .sidebar{
-width:236px;
-flex-shrink:0;
-background:var(--sidebar-bg);
-display:flex;
-flex-direction:column;
-padding:22px 16px;
-color:#dfe8df;
+width: 236px;
+flex-shrink: 0;
+background: var(--sidebar-bg); 
+display: flex;
+flex-direction: column;
+padding: 22px 16px;
+color: #dfe8df;
+position: sticky;
+top: 0;
+align-self: flex-start;
+height: 100vh;
+overflow-y: auto;
 }
 .brand{
 display:flex;

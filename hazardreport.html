@@ -49,9 +49,13 @@
   .app{
     display:flex;
     min-height:100vh;
+    align-items:flex-start;
 }
 
   /* ---------------- Sidebar ---------------- */
+  /* Sized and pinned to match the Geomap Monitoring page: fixed width,
+     fixed to the viewport height, and sticky so Logout is always visible
+     without needing to scroll, no matter how tall the main content gets. */
   .sidebar{
     width:236px;
     flex-shrink:0;
@@ -59,7 +63,11 @@
     display:flex;
     flex-direction:column;
     padding:22px 16px;
-    color:#dfe8df
+    color:#dfe8df;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
   }
   .brand{
     display:flex;
@@ -134,29 +142,33 @@
   }
 
   .sidebar-footer{
-    border-top:1px solid rgba(255,255,255,0.08);
+    border-top:1px solid #2a3d2a;
     padding-top:14px;
     margin-top:10px;
+    flex-shrink:0;
   }
   .sidebar-user{
     display:flex;
     align-items:center;
     gap:10px;
-    padding:8px 10px 14px 10px;
+    padding:6px 8px 14px 8px;
   }
   .avatar-circle{
-    width:32px;height:32px;border-radius:50%;
-    background:#3a7a3a;
+    width:36px;height:36px;border-radius:50%;
+    background:var(--accent);
     display:flex;align-items:center;justify-content:center;
-    color:#fff;font-size:15px;flex-shrink:0;
+    color:#fff;font-size:13px;font-weight:700;flex-shrink:0;
   }
-  .sidebar-user .name{font-size:13px;font-weight:600;color:#fff;}
-  .sidebar-user .role{font-size:11px;color:#9db3a2;}
+  .sidebar-user .name{font-size:13.5px;font-weight:600;color:#fff;}
+  .sidebar-user .role{font-size:11px;color:#8fa88f;}
   .logout{
-    display:flex;align-items:center;gap:10px;
-    padding:10px 12px;color:#c3d2c6;
-    font-size:13.5px;font-weight:500;
+    display:flex;align-items:center;gap:8px;
+    width:100%;
+    padding:9px 12px;color:#c4d1c4;
+    font-size:13px;font-weight:500;
     text-decoration:none;border-radius:8px;
+    border:1px solid #33472f;
+    background:transparent;
   }
   .logout:hover{background:var(--sidebar-bg-light);color:#fff;}
 
@@ -165,6 +177,7 @@
     display:flex;
     flex-direction:column;
     min-width:0;
+    flex:1;
   }
 
   .topbar{
@@ -211,9 +224,9 @@
   .topbar-user{
     display:flex;align-items:center;gap:10px;
   }
-  .topbar-user .avatar-circle{background:var(--forest-700);}
+  .topbar-user .avatar-circle{background:var(--accent-dark);}
   .topbar-user .info{line-height:1.25;}
-  .topbar-user .name{font-size:13.5px;font-weight:600;}
+  .topbar-user .name{font-size:13.5px;font-weight:600;color:var(--text-900);}
   .topbar-user .role{font-size:11.5px;color:var(--text-600);}
   .chev{color:var(--text-400);font-size:11px;margin-left:2px;}
 
@@ -406,8 +419,8 @@
     cursor:pointer;
   }
   .pagination button.active{
-    background:var(--forest-700);
-    border-color:var(--forest-700);
+    background:var(--accent-dark);
+    border-color:var(--accent-dark);
     color:#fff;
     font-weight:700;
   }
@@ -590,14 +603,14 @@
         <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
       </ul>
       <div class="sidebar-footer">
-        <div class="user-chip">
-          <div class="avatar">AU</div>
+        <div class="sidebar-user">
+          <div class="avatar-circle">AU</div>
           <div>
             <div class="name">Admin User</div>
             <div class="role">Super Administrator</div>
           </div>
         </div>
-        <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
+        <a class="logout" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
       </div>
     </aside>
 

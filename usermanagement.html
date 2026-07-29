@@ -56,10 +56,16 @@ button{
 .app{
     display:flex;
     min-height:100vh;
+    align-items:flex-start;
 }
 
 /* ==========================================
    SIDEBAR
+   Pinned to the viewport (position: sticky + height: 100vh)
+   so it no longer stretches to match the taller .main content.
+   Only .nav scrolls internally if the list ever grows too long;
+   the footer (Admin User + Logout) always stays pinned at the
+   bottom of the visible sidebar without needing a page scroll.
 ========================================== */
 
 .sidebar{
@@ -70,6 +76,10 @@ button{
     flex-direction:column;
     padding:22px 16px;
     color:#dfe8df;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow:hidden;
 }
 
 .brand{
@@ -80,6 +90,7 @@ button{
     gap:10px;
     padding:4px 8px 20px 8px;
     text-align:center;
+    flex-shrink:0;
 }
 
 .brand-icon{
@@ -119,6 +130,8 @@ button{
     gap:2px;
     flex:1;
     margin-top:6px;
+    overflow-y:auto;
+    min-height:0;
 }
 
 .nav li a{
@@ -156,12 +169,15 @@ button{
 
 /* ==========================================
    SIDEBAR FOOTER
+   flex-shrink:0 keeps it from ever being compressed, so it
+   always remains fully visible at the bottom of the sidebar.
 ========================================== */
 
 .sidebar-footer{
     border-top:1px solid #2a3d2a;
     padding-top:14px;
     margin-top:10px;
+    flex-shrink:0;
 }
 
 .user-chip{
@@ -277,7 +293,12 @@ button{
     font-weight:700;
     display:flex;
     align-items:center;
-    justify-content:center;
+    justify-content:center; 
+}
+
+.bell-icon{
+    font-size:20px;   /* Increase or decrease this */
+    line-height:1;
 }
   /* ==========================================
    ADMIN PROFILE
@@ -797,6 +818,8 @@ tbody tr:last-child td{
 
     .sidebar{
         width:100%;
+        position:relative;
+        height:auto;
     }
 
     .stats{
@@ -855,9 +878,9 @@ tbody tr:last-child td{
       </div>
       <div class="topbar-right">
         <div class="bell-wrap">
-          <span>🔔</span>
-          <div class="bell-badge">3</div>
-        </div>
+    <span class="bell-icon">🔔</span>
+    <div class="bell-badge">3</div>
+</div>
         <div class="admin-mini">
           <div class="avatar">AU</div>
           <div>
