@@ -234,6 +234,11 @@
     justify-content:center;
 }
 
+.bell-icon{
+    font-size:20px;   /* Increase or decrease this */
+    line-height:1;
+}
+
 .admin-mini{
     display:flex;
     align-items:center;
@@ -791,18 +796,17 @@ tbody tr:last-child td{
       </div>
     </aside>
 
-  <!-- MAIN -->
-  <div class="main">
-    <div class="topbar">
+  <main class="main">
+    <section class="topbar">
       <div>
         <h1>Trail Management</h1>
         <p>Manage Mount Makiling trails, statuses, checkpoints, and campsite information.</p>
       </div>
       <div class="topbar-right">
         <div class="bell-wrap">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4b524b" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
-          <div class="bell-badge">3</div>
-        </div>
+    <span class="bell-icon">🔔</span>
+    <div class="bell-badge">3</div>
+</div>
         <div class="admin-mini">
           <div class="avatar">AU</div>
           <div>
@@ -811,7 +815,7 @@ tbody tr:last-child td{
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- STATS -->
     <div class="stats">
