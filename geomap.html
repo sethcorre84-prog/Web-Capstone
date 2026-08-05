@@ -41,15 +41,19 @@
       min-height:100vh
     }
 
-    /* SIDEBAR (same as trail) */
     .sidebar{
-      width:236px;
-      flex-shrink:0;
-      background:var(--sidebar-bg);
-      display:flex;
-      flex-direction:column;
-      padding:22px 16px;
-      color:#dfe8df
+      width: 236px;
+      flex-shrink: 0;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      padding: 22px 16px;
+      color: #dfe8df;
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      height: 100vh;
+      overflow-y: auto;
     }
     .brand{
       display:flex;
@@ -58,7 +62,7 @@
       justify-content:center;
       gap:10px;
       padding:4px 8px 20px 8px;
-      text-align:center
+      text-align:center;
     }
     .brand-icon{
       width:34px;
@@ -69,25 +73,26 @@
       align-items:center;
       justify-content:center;
       flex-shrink:0;
-      margin:0 auto
+      margin:0 auto;
     }
     .brand-name{
       font-size:17px;
       font-weight:700;
       color:#fff;
-      line-height: 1.1;
-      margin-top: 4px;
+      line-height:1.1;
+      margin-top:4px;
     }
     .brand-sub{
       font-size:11px;
-      color:#8fa88f
+      color:#8fa88f;
     }
     .nav{
       list-style:none;
       display:flex;
       flex-direction:column;
-      gap:2px;flex:1;
-      margin-top:6px
+      gap:2px;
+      flex:1;
+      margin-top:6px;
     }
     .nav li a{
       display:flex;
@@ -98,15 +103,15 @@
       font-size:13.5px;
       color:#c4d1c4;
       font-weight:500;
-      transition:background .15s
+      transition:background .15s ease,color .15s ease;
     }
     .nav li a:hover{
       background:var(--sidebar-bg-light);
-      color:#fff
+      color:#fff;
     }
     .nav li a.active{
       background:var(--accent);
-      color:#fff
+      color:#fff;
     }
     .nav-icon{
       width:18px;
@@ -116,18 +121,18 @@
       fill:none;
       stroke-width:1.8;
       stroke-linecap:round;
-      stroke-linejoin:round
+      stroke-linejoin:round;
     }
     .sidebar-footer{
       border-top:1px solid #2a3d2a;
       padding-top:14px;
-      margin-top:10px
+      margin-top:10px;
     }
     .user-chip{
       display:flex;
       align-items:center;
       gap:10px;
-      padding:6px 8px 14px 8px
+      padding:6px 8px 14px 8px;
     }
     .avatar{
       width:36px;
@@ -140,16 +145,16 @@
       font-weight:700;
       color:#fff;
       font-size:13px;
-      flex-shrink:0
+      flex-shrink:0;
     }
     .user-chip .name{
       font-size:13.5px;
       font-weight:600;
-      color:#fff
+      color:#fff;
     }
     .user-chip .role{
       font-size:11px;
-      color:#8fa88f
+      color:#8fa88f;
     }
     .logout-btn{
       display:flex;
@@ -162,15 +167,15 @@
       padding:9px 12px;
       border-radius:8px;
       font-size:13px;
-      font-weight:500
+      font-weight:500;
     }
     .logout-btn:hover{
-      background:var(--sidebar-bg-light)
+      background:var(--sidebar-bg-light);
     }
     .main{
       flex:1;
       padding:26px 32px;
-      min-width:0
+      min-width:0;
     }
     .topbar{
       display:flex;
