@@ -8,12 +8,13 @@
     <style>
         :root {
             color-scheme: dark;
-            font-family: Inter, Arial, sans-serif;
-            --sidebar-bg:#132313;
-            --sidebar-bg-light:#1c341c;
-            --accent:#2f8f4e;
-            --accent-dark:#1f6b39;
-            --shadow-sm: 0 1px 2px rgba(20,40,25,0.05);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            --sidebar-bg: #132313;
+            --sidebar-bg-light: #1c341c;
+            --accent: #2f8f4e;
+            --accent-dark: #1f6b39;
+            --text-primary: #ffffff;
+            --text-secondary: #c4d1c4;
         }
         * { box-sizing: border-box; }
         body {
@@ -36,7 +37,6 @@
             color: #dfe8df;
             position: sticky;
             top: 0;
-            align-self: flex-start;
             height: 100vh;
             overflow: hidden;
         }
@@ -48,12 +48,13 @@
             gap: 10px;
             padding: 4px 8px 20px 8px;
             text-align: center;
+            flex-shrink: 0;
         }
         .brand-icon {
             width: 34px;
             height: 34px;
             border-radius: 9px;
-            background: linear-gradient(160deg,#3fa860,#1f6b39);
+            background: linear-gradient(160deg, #3fa860, #1f6b39);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -77,9 +78,15 @@
             flex-direction: column;
             gap: 2px;
             flex: 1;
-            min-height: 0;
             margin-top: 6px;
             overflow-y: auto;
+            min-height: 0;
+            padding: 0;
+        }
+        .nav li {
+            list-style: none;
+            margin: 0;
+            padding: 0;
         }
         .nav li a {
             display: flex;
@@ -88,10 +95,10 @@
             padding: 10px 12px;
             border-radius: 8px;
             font-size: 13.5px;
-            font-weight: 500;
             color: #c4d1c4;
+            font-weight: 500;
+            transition: background .15s;
             text-decoration: none;
-            transition: background .15s ease,color .15s ease;
         }
         .nav li a:hover {
             background: var(--sidebar-bg-light);
@@ -131,10 +138,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
-            font-size: 13px;
             font-weight: 700;
             color: #fff;
+            font-size: 13px;
+            flex-shrink: 0;
         }
         .user-chip .name {
             font-size: 13.5px;
@@ -150,22 +157,22 @@
             align-items: center;
             gap: 8px;
             width: 100%;
-            padding: 9px 12px;
-            border: 1px solid #33472f;
-            border-radius: 8px;
             background: transparent;
+            border: 1px solid #33472f;
+            color: #c4d1c4;
+            padding: 9px 12px;
+            border-radius: 8px;
             font-size: 13px;
             font-weight: 500;
-            color: #c4d1c4;
             text-decoration: none;
         }
         .logout-btn:hover {
             background: var(--sidebar-bg-light);
-            color: #fff;
         }
         .main-panel {
             display: flex;
             flex-direction: column;
+            flex: 1;
             padding: 24px;
         }
         .top-bar {
@@ -176,8 +183,10 @@
             background: #ffffff;
             padding: 28px 30px;
             box-shadow: 0 20px 40px rgba(15,23,42,0.08);
+            border-radius: 12px;
+            margin-bottom: 24px;
         }
-        .top-copy h1 { margin: 0; font-size: 32px; color: #0f172a; }
+        .top-copy h1 { margin: 0; font-size: 32px; color: #0f172a; font-weight: 700; }
         .top-copy p { margin: 8px 0 0; color: #475569; font-size: 15px; }
         .top-meta {
             display: grid;
@@ -190,7 +199,7 @@
             display: grid;
             grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 18px;
-            margin-top: 18px;
+            margin-bottom: 24px;
         }
         .hero-card {
             background: #ffffff;
@@ -198,6 +207,11 @@
             box-shadow: 0 18px 36px rgba(15,23,42,0.06);
             border: 1px solid #e2e8f0;
             border-radius: 14px;
+            transition: all 0.2s ease;
+        }
+        .hero-card:hover {
+            box-shadow: 0 24px 48px rgba(15,23,42,0.08);
+            transform: translateY(-2px);
         }
         .hero-card-title {
             display: flex;
@@ -225,14 +239,13 @@
             background: #eff6ff;
             color: #2563eb;
         }
-        .hero-card h3 { margin: 0; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: #64748b; }
+        .hero-card h3 { margin: 0; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: #64748b; font-weight: 600; }
         .hero-card p { margin: 0; font-size: 28px; font-weight: 700; color: #0f172a; }
         .hero-card span { display: block; margin-top: 10px; font-size: 13px; color: #64748b; }
         .dashboard-grid {
             display: grid;
             grid-template-columns: 2.25fr 1fr;
             gap: 24px;
-            margin-top: 20px;
             align-items: stretch;
         }
         .left-column,
@@ -250,9 +263,13 @@
             height: 100%;
             display: flex;
             flex-direction: column;
+            border-radius: 12px;
+            transition: all 0.2s ease;
         }
-
-        .card h2 { margin: 0 0 16px; font-size: 20px; color: #0f172a; }
+        .card:hover {
+            box-shadow: 0 24px 48px rgba(15,23,42,0.08);
+        }
+        .card h2 { margin: 0 0 16px; font-size: 20px; color: #0f172a; font-weight: 700; }
         .card .card-top {
             display: flex;
             justify-content: space-between;
@@ -264,6 +281,8 @@
             background: #f8fafc;
             color: #0f172a;
             font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 6px;
         }
         .chart-placeholder {
             min-height: 260px;
@@ -273,6 +292,7 @@
             color: #475569;
             font-size: 15px;
             border: 1px solid #e2e8f0;
+            border-radius: 8px;
         }
         .chart-row {
             display: grid;
@@ -288,7 +308,6 @@
             margin: 0;
             padding: 0;
             display: grid;
-
         }
         .pill-item {
             display: flex;
@@ -297,6 +316,10 @@
             padding: 16px 18px;
             border: 1px solid #e2e8f0;
             background: #f8fafc;
+            transition: all 0.2s ease;
+        }
+        .pill-item:hover {
+            background: #f1f5f9;
         }
         .pill-item strong { color: #0f172a; font-size: 14px; }
         .pill-chip {
@@ -304,6 +327,7 @@
             font-size: 12px;
             font-weight: 700;
             color: #ffffff;
+            border-radius: 6px;
         }
         .pill-green { background: #22c55e; }
         .pill-red { background: #ef4444; }
@@ -319,6 +343,8 @@
             padding: 16px;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
+            gap: 12px;
+            border-radius: 8px;
         }
         .summary-icon {
             width: 44px;
@@ -328,6 +354,8 @@
             background: #e2f8ed;
             color: #15803d;
             font-size: 18px;
+            border-radius: 8px;
+            flex-shrink: 0;
         }
         .summary-info strong { display: block; color: #0f172a; font-size: 18px; }
         .summary-info span { color: #64748b; font-size: 13px; }
@@ -344,8 +372,13 @@
             height: 100%;
             display: flex;
             flex-direction: column;
+            border-radius: 12px;
+            transition: all 0.2s ease;
         }
-        .side-card h3 { margin: 0 0 16px; font-size: 17px; color: #0f172a; }
+        .side-card:hover {
+            box-shadow: 0 24px 48px rgba(15,23,42,0.08);
+        }
+        .side-card h3 { margin: 0 0 16px; font-size: 17px; color: #0f172a; font-weight: 700; }
         .side-card .side-list {
             list-style: none;
             margin: 0;
@@ -359,11 +392,16 @@
             padding: 14px 16px;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+        .side-card .side-list li:hover {
+            background: #f1f5f9;
         }
         .side-card .side-list li strong { font-size: 14px; color: #0f172a; }
         .side-card .side-list li span { font-size: 13px; color: #475569; }
         .action-grid {
             display: grid;
+            gap: 10px;
             margin-top: 16px;
         }
         .button {
@@ -374,24 +412,40 @@
             font-weight: 700;
             text-decoration: none;
             color: #ffffff;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
         }
         .button-green { background: #15803d; }
+        .button-green:hover { background: #166a3c; }
         .button-blue { background: #0f62fe; }
+        .button-blue:hover { background: #0e56e1; }
         .button-purple { background: #7c3aed; }
+        .button-purple:hover { background: #6d28d9; }
         .button-outline {
             background: #ffffff;
             color: #0f172a;
             border: 1px solid #cbd5e1;
         }
+        .button-outline:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+        }
         @media (max-width: 1120px) {
-            .app-shell { grid-template-columns: 1fr; }
+            .sidebar { width: 240px; }
+            .hero-grid { grid-template-columns: repeat(3, 1fr); }
         }
         @media (max-width: 900px) {
+            .sidebar { width: 220px; }
             .hero-grid { grid-template-columns: 1fr 1fr; }
             .dashboard-grid { grid-template-columns: 1fr; }
             .summary-list { grid-template-columns: 1fr 1fr; }
         }
         @media (max-width: 640px) {
+            .sidebar { width: 100%; height: auto; position: relative; padding: 16px 0; }
+            .nav { margin: 12px 0; }
             .hero-grid { grid-template-columns: 1fr; }
             .summary-list { grid-template-columns: 1fr; }
             .top-bar { flex-direction: column; align-items: stretch; }
@@ -404,7 +458,7 @@
         <aside class="sidebar">
             <div class="brand">
               <div class="brand-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 20l6-11 4 6 3-5 5 10H3z"/><circle cx="17" cy="5" r="1.6" fill="#fff" stroke="none"/></svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 20l6-11 4 6 3-5 5 10H3z"/><circle cx="17" cy="5" r="1.6" fill="#fff" stroke="none"/></svg>
               </div>
               <div>
                 <div class="brand-name">PeakPath</div>
@@ -482,10 +536,10 @@
                     <div class="card">
                         <h2>Trail Status Overview</h2>
                         <ul class="pill-list">
-                            <li class="pill-item"><strong>Mariang Makiling Trail</strong><span class="pill-green">Open</span></li>
-                            <li class="pill-item"><strong>Sipit Trail</strong><span class="pill-green">Open</span></li>
-                            <li class="pill-item"><strong>Makiling Rainforest Trail</strong><span class="pill-green">Open</span></li>
-                            <li class="pill-item"><strong>Forestry Trail (UPLB Area)</strong><span class="pill-red">Closed</span></li>
+                            <li class="pill-item"><strong>Mariang Makiling Trail</strong><span class="pill-chip pill-green">Open</span></li>
+                            <li class="pill-item"><strong>Sipit Trail</strong><span class="pill-chip pill-green">Open</span></li>
+                            <li class="pill-item"><strong>Makiling Rainforest Trail</strong><span class="pill-chip pill-green">Open</span></li>
+                            <li class="pill-item"><strong>Forestry Trail (UPLB Area)</strong><span class="pill-chip pill-red">Closed</span></li>
                         </ul>
                     </div>
                 </div>
@@ -504,10 +558,10 @@
                         <div class="side-card">
                             <h3>Recent Hazard Reports</h3>
                             <ul class="pill-list">
-                                <li class="pill-item"><strong>Rockfall</strong><span class="pill-yellow">Pending</span></li>
-                                <li class="pill-item"><strong>Landslide Risk</strong><span class="pill-green">Verified</span></li>
-                                <li class="pill-item"><strong>Fallen Tree</strong><span class="pill-green">Verified</span></li>
-                                <li class="pill-item"><strong>Mud Path</strong><span class="pill-green">Resolved</span></li>
+                                <li class="pill-item"><strong>Rockfall</strong><span class="pill-chip pill-yellow">Pending</span></li>
+                                <li class="pill-item"><strong>Landslide Risk</strong><span class="pill-chip pill-green">Verified</span></li>
+                                <li class="pill-item"><strong>Fallen Tree</strong><span class="pill-chip pill-green">Verified</span></li>
+                                <li class="pill-item"><strong>Mud Path</strong><span class="pill-chip pill-green">Resolved</span></li>
                             </ul>
                         </div>
                         <div class="side-card">
