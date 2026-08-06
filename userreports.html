@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PeakPath Admin — User Reports</title>
+<style>
+  :root{
+    --sidebar-bg:#132313;
+    --sidebar-bg-light:#1c341c;
+    --accent:#2f8f4e;
+    --accent-dark:#1f6b39;
+    --accent-light:#e7f5eb;
+    --bg:#f4f6f4;
+    --card:#ffffff;
+    --border:#e7ebe7;
+    --text-900:#1f2a22;
+    --text-600:#5b6b60;
+    --text-400:#93a199;
+    --red-bg:#fbe9e7;
+    --red-text:#d1453b;
+    --orange-bg:#fdf1e0;
+    --orange-text:#c9821f;
+    --purple-bg:#f1eafb;
+    --purple-text:#7b4fd1;
+    --blue-bg:#e6eefb;
+    --blue-text:#2a63b5;
+    --green-bg:#e7f5ea;
+    --green-text:#2f8f4e;
+    --radius-md:10px;
+    --radius-lg:14px;
+    --shadow-card: 0 1px 3px rgba(20,40,25,0.06), 0 1px 2px rgba(20,40,25,0.04);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text-900);font-size:14px;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+
+  .app{display:flex;min-height:100vh;}
+
+  /* ---------------- Sidebar (matches other admin pages) ---------------- */
+  .sidebar{
+    width:236px;flex-shrink:0;background:var(--sidebar-bg);
+    display:flex;flex-direction:column;padding:22px 16px;color:#dfe8df;
+    position:sticky;top:0;height:100vh;overflow:hidden;
+  }
+  .brand{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:4px 8px 20px 8px;text-align:center;flex-shrink:0;}
+  .brand-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(160deg,#3fa860,#1f6b39);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:0 auto;}
+  .brand-name{display:block;margin-top:4px;font-size:17px;font-weight:700;line-height:1.1;color:#fff;}
+  .brand-sub{font-size:11px;color:#8fa88f;}
+  .nav{list-style:none;display:flex;flex-direction:column;gap:2px;flex:1;margin-top:6px;overflow-y:auto;min-height:0;}
+  .nav li a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;font-size:13.5px;font-weight:500;color:#c4d1c4;transition:background .15s;}
+  .nav li a:hover{background:var(--sidebar-bg-light);color:#fff;}
+  .nav li a.active{background:var(--accent);color:#fff;}
+  .nav-icon{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+  .sidebar-footer{border-top:1px solid #2a3d2a;padding-top:14px;margin-top:10px;flex-shrink:0;}
+  .user-chip{display:flex;align-items:center;gap:10px;padding:6px 8px 14px 8px;}
+  .avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:700;color:#fff;}
+  .user-chip .name{font-size:13.5px;font-weight:600;color:#fff;}
+  .user-chip .role{font-size:11px;color:#8fa88f;}
+  .logout-btn{display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;border:1px solid #33472f;border-radius:8px;background:transparent;font-size:13px;font-weight:500;color:#c4d1c4;}
+  .logout-btn:hover{background:var(--sidebar-bg-light);}
+
+  /* ---------------- Main ---------------- */
+  .main{flex:1;min-width:0;padding:26px 32px;}
+
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;}
+  .topbar h1{margin-bottom:4px;font-size:22px;font-weight:700;}
+  .topbar p{font-size:13.5px;color:var(--text-600);}
+  .topbar-right{display:flex;align-items:center;gap:16px;}
+
+  .location-pill{
+    display:flex;align-items:center;gap:8px;
+    padding:8px 14px;border:1px solid var(--border);border-radius:9px;
+    background:var(--card);font-size:12.5px;font-weight:600;color:var(--text-900);
+  }
+  .location-pill .chev{color:var(--text-400);font-size:11px;margin-left:4px;}
+
+  .bell-wrap{position:relative;width:38px;height:38px;border:1px solid var(--border);border-radius:9px;background:var(--card);display:flex;align-items:center;justify-content:center;}
+  .bell-icon{font-size:20px;line-height:1;}
+  .bell-badge{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:var(--red-text);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+
+  .admin-mini{display:flex;align-items:center;gap:10px;}
+  .admin-mini .avatar{width:34px;height:34px;background:var(--accent-dark);font-size:12px;}
+  .admin-mini .name{font-size:13.5px;font-weight:600;}
+  .admin-mini .role{font-size:11px;color:var(--text-600);}
+  .chev{color:var(--text-400);font-size:11px;margin-left:2px;}
+
+  /* Tabs */
+  .tabs{display:flex;gap:24px;border-bottom:1px solid var(--border);margin-bottom:18px;}
+  .tab{padding:10px 2px 12px 2px;font-size:13.5px;font-weight:600;color:var(--text-600);border-bottom:2px solid transparent;}
+  .tab.active{color:var(--accent-dark);border-bottom-color:var(--accent-dark);}
+
+  /* ---------------- Stat cards ---------------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+  .stat-card{display:flex;align-items:flex-start;gap:12px;padding:16px 18px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);box-shadow:var(--shadow-card);}
+  .stat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+  .stat-info .label{font-size:12.5px;color:var(--text-600);font-weight:500;margin-bottom:2px;}
+  .stat-info .value{font-size:22px;font-weight:700;margin-bottom:3px;}
+  .stat-info .meta{font-size:11px;font-weight:600;}
+  .meta.up{color:var(--green-text);}
+  .meta.down{color:var(--red-text);}
+
+  /* ---------------- Content layout ---------------- */
+  .content-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:18px;align-items:start;}
+
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:18px 20px;margin-bottom:18px;}
+  .panel-title{font-size:15.5px;font-weight:700;margin-bottom:2px;}
+  .panel-sub{font-size:12px;color:var(--text-600);margin-bottom:14px;}
+
+  /* Toolbar */
+  .toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+  .search-box{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fbfcfa;}
+  .search-box input{width:100%;border:none;outline:none;background:transparent;font-size:12.5px;color:var(--text-900);}
+  select.filter{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#fbfcfa;font-size:12.5px;color:var(--text-600);}
+  .filters-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12.5px;font-weight:600;color:var(--text-600);}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse;}
+  thead th{padding:9px 6px;border-bottom:1px solid var(--border);text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-400);white-space:nowrap;}
+  tbody td{padding:11px 6px;border-bottom:1px solid var(--border);font-size:12.5px;vertical-align:middle;}
+  tbody tr:hover{background:#f7f9f7;cursor:pointer;}
+  tbody tr.selected{background:#eef6ee;}
+  tbody tr:last-child td{border-bottom:none;}
+
+  .flag{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:6px;flex-shrink:0;}
+  .report-id-cell{display:flex;align-items:center;}
+
+  .person-cell{display:flex;align-items:center;gap:8px;}
+  .p-avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#fff;}
+  .p-name{font-size:12px;font-weight:600;}
+  .p-email{font-size:10.5px;color:var(--text-400);}
+
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:700;white-space:nowrap;}
+  .badge.harassment{background:var(--red-bg);color:var(--red-text);}
+  .badge.inappropriate{background:var(--orange-bg);color:var(--orange-text);}
+  .badge.rule{background:var(--purple-bg);color:var(--purple-text);}
+  .badge.unsafe{background:var(--red-bg);color:var(--red-text);}
+  .badge.disrespectful{background:var(--orange-bg);color:var(--orange-text);}
+  .badge.pending{background:var(--orange-bg);color:var(--orange-text);}
+  .badge.under-review{background:var(--blue-bg);color:var(--blue-text);}
+  .badge.resolved{background:var(--green-bg);color:var(--green-text);}
+
+  .desc-preview{color:var(--text-600);font-size:11.5px;max-width:200px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  .row-actions{display:flex;gap:4px;}
+  .icon-btn{width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--text-600);font-size:12px;}
+  .icon-btn:hover{background:#f0f2ee;}
+
+  .table-footer{display:flex;align-items:center;justify-content:space-between;padding:14px 4px 2px 4px;font-size:12px;color:var(--text-600);}
+  .pagination{display:flex;align-items:center;gap:5px;}
+  .pagination button{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--text-600);font-size:12px;cursor:pointer;}
+  .pagination button.active{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff;font-weight:700;}
+  .pagination .dots{color:var(--text-400);padding:0 2px;}
+
+  /* Charts row */
+  .charts-row{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:18px;}
+  .chart-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:16px 18px;}
+  .chart-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .chart-panel-head h3{font-size:13.5px;font-weight:700;}
+  .period-select{padding:5px 10px;border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--text-600);background:#fbfcfa;}
+  .chart-sub{font-size:11px;color:var(--text-400);margin-bottom:10px;}
+
+  .donut-wrap{display:flex;align-items:center;gap:14px;}
+  .donut{position:relative;width:112px;height:112px;border-radius:50%;flex-shrink:0;}
+  .donut-hole{position:absolute;inset:18px;background:var(--card);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .donut-hole .total{font-size:17px;font-weight:700;}
+  .donut-hole .label{font-size:9.5px;color:var(--text-400);}
+
+  .legend{display:flex;flex-direction:column;gap:7px;font-size:11px;}
+  .legend-item{display:flex;align-items:center;gap:7px;}
+  .legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+  .legend-item span.lname{color:var(--text-900);}
+  .legend-item span.lval{margin-left:auto;color:var(--text-400);padding-left:8px;}
+
+  .linechart-legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-600);margin-bottom:8px;}
+  .linechart-legend .dot{width:7px;height:7px;border-radius:50%;background:var(--red-text);}
+
+  /* Sidebar / Report details */
+  .details-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+  .status-pill{background:var(--orange-bg);color:var(--orange-text);font-size:11px;font-weight:700;padding:5px 11px;border-radius:20px;white-space:nowrap;}
+
+  .detail-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+  .detail-field .lbl{font-size:10.5px;font-weight:700;color:var(--text-400);text-transform:uppercase;letter-spacing:.02em;margin-bottom:3px;}
+  .detail-field .val{font-size:12.5px;font-weight:600;color:var(--text-900);}
+
+  .person-block{margin-bottom:16px;}
+  .person-block .section-label{font-size:12px;font-weight:700;margin-bottom:8px;}
+  .person-row{display:flex;align-items:center;gap:10px;}
+  .person-row .p-avatar{width:36px;height:36px;font-size:12.5px;}
+  .person-row .p-name{font-size:13px;}
+  .person-row .p-email{font-size:11px;}
+
+  .section-block{margin-bottom:16px;}
+  .section-block .section-label{font-size:12px;font-weight:700;margin-bottom:6px;}
+  .section-block .section-text{font-size:12px;color:var(--text-600);line-height:1.55;}
+
+  .evidence-row{display:flex;gap:8px;margin-bottom:16px;}
+  .evidence-thumb{width:56px;height:56px;border-radius:8px;background:linear-gradient(160deg,#7fbf8f,#2f6b45);overflow:hidden;flex-shrink:0;}
+  .evidence-more{width:56px;height:56px;border-radius:8px;background:#eef2ee;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text-600);flex-shrink:0;}
+
+  .actions-list{display:flex;flex-direction:column;gap:8px;}
+  .action-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 12px;border-radius:9px;border:none;font-size:12.5px;font-weight:700;}
+  .action-btn.view{background:var(--accent-dark);color:#fff;}
+  .action-btn.contact{background:#2f6fed;color:#fff;}
+  .action-btn.warn{background:#e8a63c;color:#fff;}
+  .action-btn.suspend{background:var(--red-text);color:#fff;}
+  .action-btn.resolve{background:#fff;color:var(--text-900);border:1px solid var(--border);}
+
+  @media (max-width:1150px){
+    .content-grid{grid-template-columns:1fr;}
+    .charts-row{grid-template-columns:1fr;}
+  }
+  @media (max-width:980px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+  }
+  @media (max-width:700px){
+    .app{flex-direction:column;}
+    .sidebar{width:100%;position:relative;height:auto;}
+    .topbar{flex-direction:column;gap:14px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 20l6-11 4 6 3-5 5 10H3z"/><circle cx="17" cy="5" r="1.6" fill="#fff" stroke="none"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">PeakPath</div>
+        <div class="brand-sub">Admin Portal</div>
+      </div>
+    </div>
+
+    <ul class="nav">
+      <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
+      <li><a href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
+      <li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a></li>
+      <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a></li>
+      <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>Geomap Monitoring</a></li>
+      <li><a href="usermanagement.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
+      <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
+      <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
+      <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="avatar">AU</div>
+        <div>
+          <div class="name">Admin User</div>
+          <div class="role">Super Administrator</div>
+        </div>
+      </div>
+      <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="topbar">
+      <div>
+        <h1>User Management</h1>
+        <p>Manage hikers and view user reports about other users' behavior.</p>
+      </div>
+      <div class="topbar-right">
+        <div class="location-pill">🏔️ Location: Mount Makiling <span class="chev">▾</span></div>
+        <div class="bell-wrap">
+          <span class="bell-icon">🔔</span>
+          <div class="bell-badge">5</div>
+        </div>
+        <div class="admin-mini">
+          <div class="avatar">AU</div>
+          <div>
+            <div class="name">Admin User</div>
+            <div class="role">Super Administrator</div>
+          </div>
+          <span class="chev">▾</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="tabs">
+      <a class="tab" href="usermanagement.html">Users</a>
+      <a class="tab active" href="userreports.html">User Reports</a>
+    </div>
+
+    <!-- Stat cards -->
+    <section class="stats">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:var(--red-bg);color:var(--red-text);">🚩</div>
+        <div class="stat-info">
+          <div class="label">Total Reports</div>
+          <div class="value">34</div>
+          <div class="meta up">▲ 18% vs last month</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:var(--orange-bg);color:var(--orange-text);">🕐</div>
+        <div class="stat-info">
+          <div class="label">Pending Review</div>
+          <div class="value">12</div>
+          <div class="meta up">▲ 33% vs last month</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:var(--blue-bg);color:var(--blue-text);">👁️</div>
+        <div class="stat-info">
+          <div class="label">Under Review</div>
+          <div class="value">17</div>
+          <div class="meta down">▼ 6% vs last month</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:var(--green-bg);color:var(--green-text);">✅</div>
+        <div class="stat-info">
+          <div class="label">Resolved</div>
+          <div class="value">5</div>
+          <div class="meta up">▲ 25% vs last month</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="content-grid">
+      <div>
+        <!-- Reports table -->
+        <div class="panel">
+          <div class="panel-title">Reports About User Behavior</div>
+          <div class="panel-sub">View and manage reports submitted by users regarding the behavior of other users.</div>
+
+          <div class="toolbar">
+            <div class="search-box">
+              <span>🔎</span>
+              <input type="text" placeholder="Search reports...">
+            </div>
+            <select class="filter">
+              <option>All Status</option>
+              <option>Pending</option>
+              <option>Under Review</option>
+              <option>Resolved</option>
+            </select>
+            <select class="filter">
+              <option>All Report Types</option>
+              <option>Harassment</option>
+              <option>Inappropriate Behavior</option>
+              <option>Rule Violation</option>
+              <option>Unsafe Behavior</option>
+              <option>Disrespectful Conduct</option>
+            </select>
+            <select class="filter">
+              <option>All Dates</option>
+            </select>
+            <button class="filters-btn">▽ Filters</button>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Report ID</th>
+                <th>Reported User</th>
+                <th>Reported By</th>
+                <th>Report Type</th>
+                <th>Description (Preview)</th>
+                <th>Location / Trail</th>
+                <th>Date Reported</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="selected">
+                <td><div class="report-id-cell"><span class="flag" style="background:#d1453b;"></span>UR-2025-034</div></td>
+                <td>
+                  <div class="person-cell">
+                    <div class="p-avatar" style="background:linear-gradient(160deg,#e08fa0,#c24a63);">H</div>
+                    <div><div class="p-name">Hiker_0211</div><div class="p-email">hiker_0211@email.com</div></div>
+                  </div>
+                </td>
+                <td>
+                  <div class="person-cell">
+                    <div class="p-avatar" style="background:linear-gradient(160deg,#7fa8d8,#3a5f9e);">U</div>
+                    <div><div class="p-name">User_0741</div><div class="p-email">user_0741@email.com</div></div>
+                  </div>
+                </td>
+                <td><span class="badge harassment">Harassment</span></td>
+                <td><span class="desc-preview">User was verbally abusive to other hikers at the campsite...</span></td>
+                <td>Spirit Trail (Section 2)</td>
+                <td>May 20, 2025<br><span style="color:var(--text-400);font-size:10.5px;">10:25 AM</span></td>
+                <td><span class="badge pending">Pending</span></td>
+                <td><div class="row-actions"><button class="icon-btn">👁</button><button class="icon-btn">⋮</button></div></td>
+              </tr>
+              <tr>
+                <td><div class="report-id-cell"><span class="flag" style="background:#c9821f;"></span>UR-2025-033</div></td>
+                <td>
+                  <div class="person-cell">
+                    <div class="p-avatar" style="background:linear-gradient(160deg,#8fd0c0,#2f8f6b);">H</div>
+                    <div><div class="p-name">Hiker_0663</div><div class="p-email">hiker_0663@email.com</div></div>
+                  </div>
+                </td>
+                <td>
+                  <div class="person-cell">
+                    <div class="p-avatar" style="background:linear-gradient(160deg,#c7a5e0,#7b4fd1);">R</div>
+                    <div><div class="p-name">Ranger_Jane</div><div class="p-email">rangerjane@gov.ph</div></div>
+                  </div>
+                </td>
+                <td><span class="badge inappropriate">Inappropriate Behavior</span></td>
+                <td><span class="desc-preview">Making loud noise and disturbing other hikers...</span></td>
+                <td>Makiling Rainforest Trail</td>
+                <td>May 19, 2025<br><span style="color:var(--text-400);font-size:10.5px;">08:15 PM</span></td>
+                <td><span class="badge under-review">Under Review</span></td>
+                <td><div class="row-actions"><button class="icon-btn">👁</button><button class="icon-btn">⋮</button></div></td>
+              </tr>
+              <tr>
+                <td><div class="report-id-cell"><span class="flag" style="background:#7b4fd1;"></span>UR-2025-032</div></td>
+                <td>
+                  <div class="person-cell">
+                    <div class="p-avatar" style="background:linear-gradient(160deg,#f0c380,#c9821f);">U</div>
+                    <div><div class="p-name">User_0387</div><div class="p-email">user_0387@email.com</div></div>
+                  </div>
+                </td>
+                <td>
+                  <div class="person-cell">
+                    <div class="p-avatar" style="background:linear-gradient(160deg,#7fbf8f,#2f6b45);">U</div>
+                    <div><div class="p-name">User_0922</div><div class="p-email">user_0922@email.com</div></div>
+                  </div>
+                </td>
+                <td><span class="badge rule">Rule Violation</span></td>
+                <td><span class="desc-preview">Not following Leave No Trace policy. Left trash behind...</span></td>
+                <td>Forestry Trail (UPLB Area)</td>
+                <td>May 19, 2025<br><span style="color:var(--text-400);font-size:10.5px;">04:30 PM</span></td>
+                <td><span class="badge pending">Pending</span></td>
+                <td><div class="row-actions"><button class="icon-btn">👁</button><button class="icon-btn">⋮</button></div></td>
+              </tr>
+              <tr>
+                <td><div class="report-id-cell"><span class="flag" style="background:#d1453b;"></span>UR-2025-031</div></td>
+                <td>
+                  <div class="person-cell">
+                    <div class="p-avatar" style="background:linear-gradient(160deg,#e08fa0,#c24a63);">H</div>
+                    <div><div class="p-name">Hiker_0999</div><div class="p-email">hiker_0999@email.com</div></div>
+                  </div>
+                </td>
+                <td>
+                  <div class="person-cell">
+                    <div class="p-avatar" style="background:linear-gradient(160deg,#8fbfe0,#2f6bad);">G</div>
+                    <div><div class="p-name">Guide_007</div><div class="p-email">guide_007@email.com</div></div>
+                  </div>
+                </td>
+                <td><span class="badge unsafe">Unsafe Behavior</span></td>
+                <td><span class="desc-preview">Took unnecessary risks near the cliff and encouraged others...</span></td>
+                <td>Landslide Risk Area (Upper)</td>
+                <td>May 18, 2025<br><span style="color:var(--text-400);font-size:10.5px;">11:20 AM</span></td>
+                <td><span class="badge resolved">Resolved</span></td>
+                <td><div class="row-actions"><button class="icon-btn">👁</button><button class="icon-btn">⋮</button></div></td>
+              </tr>
+              <tr>
+                <td><div class="report-id-cell"><span class="flag" style="background:#c9821f;"></span>UR-2025-030</div></td>
+                <td>
+                  <div class="person-cell">
+                    <div class="p-avatar" style="background:linear-gradient(160deg,#e0b58f,#b56b2f);">H</div>
+                    <div><div class="p-name">Hiker_0456</div><div class="p-email">hiker_0456@email.com</div></div>
+                  </div>
+                </td>
+                <td>
+                  <div class="person-cell">
+                    <div class="p-avatar" style="background:linear-gradient(160deg,#7fa8d8,#3a5f9e);">U</div>
+                    <div><div class="p-name">User_0741</div><div class="p-email">user_0741@email.com</div></div>
+                  </div>
+                </td>
+                <td><span class="badge disrespectful">Disrespectful Conduct</span></td>
+                <td><span class="desc-preview">Disrespectful to the guide and other hikers...</span></td>
+                <td>Summit Camp (Mt. Makiling)</td>
+                <td>May 17, 2025<br><span style="color:var(--text-400);font-size:10.5px;">07:05 AM</span></td>
+                <td><span class="badge under-review">Under Review</span></td>
+                <td><div class="row-actions"><button class="icon-btn">👁</button><button class="icon-btn">⋮</button></div></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="table-footer">
+            <span>Showing 1 to 5 of 34 reports</span>
+            <div class="pagination">
+              <button>‹</button>
+              <button class="active">1</button>
+              <button>2</button>
+              <button>3</button>
+              <button>4</button>
+              <button>5</button>
+              <span class="dots">…</span>
+              <button>7</button>
+              <button>›</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts row -->
+        <div class="charts-row">
+          <div class="chart-panel">
+            <div class="chart-panel-head">
+              <h3>Reports Overview</h3>
+              <select class="period-select"><option>This Month</option></select>
+            </div>
+            <div class="chart-sub">Reports by Type</div>
+            <div class="donut-wrap">
+              <div class="donut" style="background:conic-gradient(#d1453b 0% 35%, #c9821f 35% 59%, #7b4fd1 59% 77%, #2f8f4e 77% 92%, #2a63b5 92% 100%);">
+                <div class="donut-hole"><div class="total">34</div><div class="label">Total</div></div>
+              </div>
+              <div class="legend">
+                <div class="legend-item"><span class="legend-dot" style="background:#d1453b;"></span><span class="lname">Harassment</span><span class="lval">12 (35%)</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#c9821f;"></span><span class="lname">Inappropriate Behavior</span><span class="lval">8 (24%)</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#7b4fd1;"></span><span class="lname">Rule Violation</span><span class="lval">6 (18%)</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#2f8f4e;"></span><span class="lname">Unsafe Behavior</span><span class="lval">5 (15%)</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#2a63b5;"></span><span class="lname">Disrespectful Conduct</span><span class="lval">3 (8%)</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-panel">
+            <div class="chart-panel-head">
+              <h3>Reports Over Time</h3>
+            </div>
+            <div class="linechart-legend"><span class="dot"></span>Number of Reports</div>
+            <svg viewBox="0 0 320 150" width="100%" height="150">
+              <line x1="28" y1="10" x2="28" y2="120" stroke="#e7ebe7" stroke-width="1"/>
+              <line x1="28" y1="120" x2="310" y2="120" stroke="#e7ebe7" stroke-width="1"/>
+              <text x="6" y="14" font-size="9" fill="#93a199" font-family="Arial">15</text>
+              <text x="6" y="68" font-size="9" fill="#93a199" font-family="Arial">10</text>
+              <text x="10" y="123" font-size="9" fill="#93a199" font-family="Arial">5</text>
+              <polyline points="40,95 78,45 116,100 154,60 192,105 230,55 268,90 300,50" fill="none" stroke="#d1453b" stroke-width="2"/>
+              <circle cx="40" cy="95" r="3" fill="#d1453b"/>
+              <circle cx="78" cy="45" r="3" fill="#d1453b"/>
+              <circle cx="116" cy="100" r="3" fill="#d1453b"/>
+              <circle cx="154" cy="60" r="3" fill="#d1453b"/>
+              <circle cx="192" cy="105" r="3" fill="#d1453b"/>
+              <circle cx="230" cy="55" r="3" fill="#d1453b"/>
+              <circle cx="268" cy="90" r="3" fill="#d1453b"/>
+              <circle cx="300" cy="50" r="3" fill="#d1453b"/>
+              <text x="32" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 14</text>
+              <text x="70" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 15</text>
+              <text x="108" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 16</text>
+              <text x="146" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 17</text>
+              <text x="184" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 18</text>
+              <text x="222" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 19</text>
+              <text x="260" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 20</text>
+            </svg>
+          </div>
+
+          <div class="chart-panel">
+            <div class="chart-panel-head">
+              <h3>Report Status Distribution</h3>
+            </div>
+            <div class="donut-wrap" style="flex-direction:column;align-items:center;">
+              <div class="donut" style="background:conic-gradient(#c9821f 0% 35%, #2a63b5 35% 85%, #2f8f4e 85% 100%);">
+                <div class="donut-hole"><div class="total">34</div><div class="label">Total</div></div>
+              </div>
+              <div class="legend" style="width:100%;margin-top:12px;">
+                <div class="legend-item"><span class="legend-dot" style="background:#c9821f;"></span><span class="lname">Pending</span><span class="lval">12 (35%)</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#2a63b5;"></span><span class="lname">Under Review</span><span class="lval">17 (50%)</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#2f8f4e;"></span><span class="lname">Resolved</span><span class="lval">5 (15%)</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Report Details -->
+      <aside>
+        <div class="panel">
+          <div class="details-top">
+            <div class="panel-title" style="margin-bottom:0;">Report Details</div>
+            <span class="status-pill">Pending</span>
+          </div>
+
+          <div class="detail-fields">
+            <div class="detail-field"><div class="lbl">Report ID</div><div class="val">UR-2025-034</div></div>
+            <div class="detail-field"><div class="lbl">Report Type</div><div class="val">Harassment</div></div>
+          </div>
+
+          <div class="person-block">
+            <div class="section-label">Reported User</div>
+            <div class="person-row">
+              <div class="p-avatar" style="background:linear-gradient(160deg,#e08fa0,#c24a63);">H</div>
+              <div><div class="p-name">Hiker_0211</div><div class="p-email">hiker_0211@email.com</div></div>
+            </div>
+          </div>
+
+          <div class="person-block">
+            <div class="section-label">Reported By</div>
+            <div class="person-row">
+              <div class="p-avatar" style="background:linear-gradient(160deg,#7fa8d8,#3a5f9e);">U</div>
+              <div><div class="p-name">User_0741</div><div class="p-email">user_0741@email.com</div></div>
+            </div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-label">Location / Trail</div>
+            <div class="section-text">Spirit Trail (Section 2)</div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-label">Date Reported</div>
+            <div class="section-text">May 20, 2025 10:25 AM</div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-label">Description</div>
+            <p class="section-text">The user was verbally abusive to other hikers near the campsite. This made others feel uncomfortable and unsafe.</p>
+          </div>
+
+          <div class="section-block">
+            <div class="section-label">Evidence / Attachments</div>
+            <div class="evidence-row">
+              <div class="evidence-thumb"></div>
+              <div class="evidence-thumb" style="background:linear-gradient(160deg,#9fb0c0,#4a5f70);"></div>
+              <div class="evidence-thumb" style="background:linear-gradient(160deg,#c0a08f,#6b4530);"></div>
+              <div class="evidence-more">+2<br>More</div>
+            </div>
+          </div>
+
+          <div class="section-block" style="margin-bottom:0;">
+            <div class="section-label">Actions</div>
+            <div class="actions-list">
+              <button class="action-btn view">👁 View Full Details</button>
+              <button class="action-btn contact">📞 Contact Reported User</button>
+              <button class="action-btn warn">⚠ Warn User</button>
+              <button class="action-btn suspend">⛔ Suspend User</button>
+              <button class="action-btn resolve">✔ Mark as Resolved</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+</body>
+</html>

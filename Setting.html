@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PeakPath Admin — Settings</title>
+<style>
+  :root{
+    --sidebar-bg:#132313;
+    --sidebar-bg-light:#1c341c;
+    --accent:#2f8f4e;
+    --accent-dark:#1f6b39;
+    --accent-light:#e7f5eb;
+    --bg:#f4f6f4;
+    --card:#ffffff;
+    --border:#e7ebe7;
+    --text-900:#1f2a22;
+    --text-600:#5b6b60;
+    --text-400:#93a199;
+    --radius-md:10px;
+    --radius-lg:14px;
+    --shadow-card: 0 1px 3px rgba(20,40,25,0.06), 0 1px 2px rgba(20,40,25,0.04);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text-900);
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+
+  .app{display:flex;min-height:100vh;}
+
+  /* ---------------- Sidebar (matches other admin pages) ---------------- */
+  .sidebar{
+    width:236px;
+    flex-shrink:0;
+    background:var(--sidebar-bg);
+    display:flex;
+    flex-direction:column;
+    padding:22px 16px;
+    color:#dfe8df;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow:hidden;
+  }
+  .brand{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:4px 8px 20px 8px;
+    text-align:center;
+    flex-shrink:0;
+  }
+  .brand-icon{
+    width:34px;
+    height:34px;
+    border-radius:9px;
+    background:linear-gradient(160deg,#3fa860,#1f6b39);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    margin:0 auto;
+  }
+  .brand-name{
+    display:block;
+    margin-top:4px;
+    font-size:17px;
+    font-weight:700;
+    line-height:1.1;
+    color:#fff;
+  }
+  .brand-sub{font-size:11px;color:#8fa88f;}
+
+  .nav{
+    list-style:none;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    flex:1;
+    margin-top:6px;
+    overflow-y:auto;
+    min-height:0;
+  }
+  .nav li a{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:10px 12px;
+    border-radius:8px;
+    font-size:13.5px;
+    font-weight:500;
+    color:#c4d1c4;
+    transition:background .15s;
+  }
+  .nav li a:hover{background:var(--sidebar-bg-light);color:#fff;}
+  .nav li a.active{background:var(--accent);color:#fff;}
+  .nav-icon{
+    width:18px;height:18px;flex-shrink:0;
+    fill:none;stroke:currentColor;stroke-width:1.8;
+    stroke-linecap:round;stroke-linejoin:round;
+  }
+
+  .sidebar-footer{
+    border-top:1px solid #2a3d2a;
+    padding-top:14px;
+    margin-top:10px;
+    flex-shrink:0;
+  }
+  .user-chip{display:flex;align-items:center;gap:10px;padding:6px 8px 14px 8px;}
+  .avatar{
+    width:36px;height:36px;border-radius:50%;
+    background:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;font-size:13px;font-weight:700;color:#fff;
+  }
+  .user-chip .name{font-size:13.5px;font-weight:600;color:#fff;}
+  .user-chip .role{font-size:11px;color:#8fa88f;}
+  .logout-btn{
+    display:flex;align-items:center;gap:8px;width:100%;
+    padding:9px 12px;border:1px solid #33472f;border-radius:8px;
+    background:transparent;font-size:13px;font-weight:500;color:#c4d1c4;
+  }
+  .logout-btn:hover{background:var(--sidebar-bg-light);}
+
+  /* ---------------- Main ---------------- */
+  .main{flex:1;min-width:0;padding:26px 32px;}
+
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:22px;
+  }
+  .topbar h1{margin-bottom:4px;font-size:22px;font-weight:700;}
+  .topbar p{font-size:13.5px;color:var(--text-600);}
+
+  .admin-mini{display:flex;align-items:center;gap:10px;}
+  .admin-mini .avatar{width:34px;height:34px;background:var(--accent-dark);font-size:12px;}
+  .admin-mini .name{font-size:13.5px;font-weight:600;}
+  .admin-mini .role{font-size:11px;color:var(--text-600);}
+  .chev{color:var(--text-400);font-size:11px;margin-left:2px;}
+
+  /* ---------------- Settings layout ---------------- */
+  .settings-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+  }
+  .settings-grid.full{grid-template-columns:1fr;}
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-card);
+    padding:18px 20px;
+  }
+  .panel + .panel{margin-top:0;}
+  .settings-grid{margin-bottom:18px;}
+
+  .panel-title{
+    font-size:15px;
+    font-weight:700;
+    margin-bottom:14px;
+  }
+
+  .setting-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:12px 4px;
+    border-bottom:1px solid var(--border);
+    cursor:pointer;
+  }
+  .setting-row:last-child{border-bottom:none;padding-bottom:4px;}
+  .setting-row:first-child{padding-top:4px;}
+  .setting-row:hover{background:#f7f9f7;}
+
+  .setting-left{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+  }
+  .setting-icon{
+    width:34px;height:34px;
+    border-radius:9px;
+    background:var(--accent-light);
+    color:var(--accent-dark);
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;
+    flex-shrink:0;
+  }
+  .setting-text .label{
+    font-size:13px;
+    font-weight:600;
+    color:var(--text-900);
+    margin-bottom:2px;
+  }
+  .setting-text .desc{
+    font-size:11.5px;
+    color:var(--text-600);
+  }
+
+  .setting-right{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-shrink:0;
+  }
+  .chevron{color:var(--text-400);font-size:15px;}
+
+  select.inline-select{
+    padding:7px 10px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:#fbfcfa;
+    font-size:12.5px;
+    color:var(--text-900);
+  }
+
+  /* Toggle switch */
+  .switch{
+    position:relative;
+    width:40px;
+    height:22px;
+    flex-shrink:0;
+  }
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{
+    position:absolute;
+    cursor:pointer;
+    inset:0;
+    background:#d8ded7;
+    border-radius:999px;
+    transition:.2s;
+  }
+  .slider::before{
+    content:"";
+    position:absolute;
+    width:16px;height:16px;
+    left:3px;top:3px;
+    background:#fff;
+    border-radius:50%;
+    transition:.2s;
+    box-shadow:0 1px 2px rgba(0,0,0,.15);
+  }
+  .switch input:checked + .slider{background:var(--accent);}
+  .switch input:checked + .slider::before{transform:translateX(18px);}
+
+  /* Footer bar */
+  .settings-footer{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:16px 20px;
+    font-size:12px;
+    color:var(--text-600);
+  }
+  .version-pill{
+    display:inline-flex;
+    align-items:center;
+    padding:3px 10px;
+    border-radius:20px;
+    background:var(--accent-light);
+    color:var(--accent-dark);
+    font-weight:700;
+    font-size:11px;
+    margin-left:6px;
+  }
+
+  @media (max-width:980px){
+    .settings-grid{grid-template-columns:1fr;}
+  }
+  @media (max-width:700px){
+    .app{flex-direction:column;}
+    .sidebar{width:100%;position:relative;height:auto;}
+    .topbar{flex-direction:column;gap:14px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 20l6-11 4 6 3-5 5 10H3z"/><circle cx="17" cy="5" r="1.6" fill="#fff" stroke="none"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">PeakPath</div>
+        <div class="brand-sub">Admin Portal</div>
+      </div>
+    </div>
+
+    <ul class="nav">
+      <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
+      <li><a href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
+      <li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a></li>
+      <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a></li>
+      <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>Geomap Monitoring</a></li>
+      <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
+      <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
+      <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
+      <li><a href="Setting.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="avatar">AU</div>
+        <div>
+          <div class="name">Admin User</div>
+          <div class="role">Super Administrator</div>
+        </div>
+      </div>
+      <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="topbar">
+      <div>
+        <h1>Settings</h1>
+        <p>Manage your preferences and system settings.</p>
+      </div>
+      <div class="admin-mini">
+        <div class="avatar">AU</div>
+        <div>
+          <div class="name">Admin User</div>
+          <div class="role">Super Administrator</div>
+        </div>
+        <span class="chev">▾</span>
+      </div>
+    </section>
+
+    <!-- Row 1: General + Notification -->
+    <div class="settings-grid">
+      <div class="panel">
+        <div class="panel-title">General Settings</div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">👤</div>
+            <div class="setting-text">
+              <div class="label">Profile Information</div>
+              <div class="desc">Update your personal information and account details.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">🔒</div>
+            <div class="setting-text">
+              <div class="label">Change Password</div>
+              <div class="desc">Update your account password.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">🌐</div>
+            <div class="setting-text">
+              <div class="label">Language</div>
+              <div class="desc">Choose your preferred language.</div>
+            </div>
+          </div>
+          <div class="setting-right">
+            <select class="inline-select">
+              <option>English</option>
+              <option>Filipino</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">🕐</div>
+            <div class="setting-text">
+              <div class="label">Date &amp; Time</div>
+              <div class="desc">Set your timezone and date format.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Notification Settings</div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">✉️</div>
+            <div class="setting-text">
+              <div class="label">Email Notifications</div>
+              <div class="desc">Receive email alerts and updates.</div>
+            </div>
+          </div>
+          <div class="setting-right">
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">🔔</div>
+            <div class="setting-text">
+              <div class="label">Push Notifications</div>
+              <div class="desc">Receive push notifications.</div>
+            </div>
+          </div>
+          <div class="setting-right">
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">💬</div>
+            <div class="setting-text">
+              <div class="label">SMS Notifications</div>
+              <div class="desc">Receive SMS for important alerts.</div>
+            </div>
+          </div>
+          <div class="setting-right">
+            <label class="switch">
+              <input type="checkbox">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Role & Permission + System -->
+    <div class="settings-grid">
+      <div class="panel">
+        <div class="panel-title">Role &amp; Permission Settings</div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">🧑‍🤝‍🧑</div>
+            <div class="setting-text">
+              <div class="label">Role Management</div>
+              <div class="desc">Manage roles and permissions.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">🛡️</div>
+            <div class="setting-text">
+              <div class="label">Access Control</div>
+              <div class="desc">Manage module access and restrictions.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">System Settings</div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">⚙️</div>
+            <div class="setting-text">
+              <div class="label">System Preferences</div>
+              <div class="desc">Configure system preferences.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">🗄️</div>
+            <div class="setting-text">
+              <div class="label">Data &amp; Backup</div>
+              <div class="desc">Manage backups and data.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">📄</div>
+            <div class="setting-text">
+              <div class="label">Audit Logs</div>
+              <div class="desc">View system logs and activities.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 3: Security (full width) -->
+    <div class="settings-grid full">
+      <div class="panel">
+        <div class="panel-title">Security Settings</div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">🛡️</div>
+            <div class="setting-text">
+              <div class="label">Two-Factor Authentication</div>
+              <div class="desc">Add an extra layer of security to your account.</div>
+            </div>
+          </div>
+          <div class="setting-right">
+            <label class="switch">
+              <input type="checkbox">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">🖥️</div>
+            <div class="setting-text">
+              <div class="label">Login Sessions</div>
+              <div class="desc">Manage your active sessions.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-footer">
+      <span>App Version <span class="version-pill">v1.0.0</span></span>
+      <span>Last Updated &nbsp; May 20, 2025 10:30 AM</span>
+    </div>
+  </main>
+</div>
+</body>
+</html>

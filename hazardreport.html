@@ -211,32 +211,56 @@
     align-items:center;
     gap:18px;
   }
-  .bell{
+  .bell-wrap{
     position:relative;
-    width:38px;height:38px;
-    border-radius:50%;
-    background:#fff;
+    width:38px;
+    height:38px;
     border:1px solid var(--border);
-    display:flex;align-items:center;justify-content:center;
-    font-size:16px;
+    border-radius:9px;
+    background:var(--card);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .bell-icon{
+    font-size:20px;
+    line-height:1;
+  }
+  .bell-badge{
+    position:absolute;
+    top:-5px;
+    right:-5px;
+    width:17px;
+    height:17px;
+    border-radius:50%;
+    background:var(--red-text);
+    color:#fff;
+    font-size:10px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .admin-mini{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .admin-mini .avatar{
+    width:34px;
+    height:34px;
+    background:var(--accent-dark);
+    font-size:12px;
+  }
+  .admin-mini .name{
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--text-900);
+  }
+  .admin-mini .role{
+    font-size:11px;
     color:var(--text-600);
   }
-  .bell .dot{
-    position:absolute;top:-3px;right:-3px;
-    background:#e0483f;color:#fff;
-    font-size:9px;font-weight:700;
-    width:16px;height:16px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    border:2px solid var(--bg);
-  }
-  .topbar-user{
-    display:flex;align-items:center;gap:10px;
-  }
-  .topbar-user .avatar-circle{background:var(--accent-dark);}
-  .topbar-user .info{line-height:1.25;}
-  .topbar-user .name{font-size:13.5px;font-weight:600;color:var(--text-900);}
-  .topbar-user .role{font-size:11.5px;color:var(--text-600);}
-  .chev{color:var(--text-400);font-size:11px;margin-left:2px;}
 
   .content{
     padding:0 28px 28px 28px;
@@ -610,6 +634,7 @@
       <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
       <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
       <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
+      <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
     </ul>
 
     <div class="sidebar-footer">
@@ -633,14 +658,16 @@
         <p>Review, verify, and manage hazard reports in Mount Makiling.</p>
       </div>
       <div class="topbar-right">
-        <div class="bell">🔔<span class="dot">5</span></div>
-        <div class="topbar-user">
-          <div class="avatar-circle">👤</div>
-          <div class="info">
+        <div class="bell-wrap">
+          <span class="bell-icon">🔔</span>
+          <div class="bell-badge">5</div>
+        </div>
+        <div class="admin-mini">
+          <div class="avatar">AU</div>
+          <div>
             <div class="name">Admin User</div>
             <div class="role">Super Administrator</div>
           </div>
-          <span class="chev">▾</span>
         </div>
       </div>
     </div>

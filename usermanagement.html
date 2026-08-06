@@ -61,11 +61,6 @@ button{
 
 /* ==========================================
    SIDEBAR
-   Pinned to the viewport (position: sticky + height: 100vh)
-   so it no longer stretches to match the taller .main content.
-   Only .nav scrolls internally if the list ever grows too long;
-   the footer (Admin User + Logout) always stays pinned at the
-   bottom of the visible sidebar without needing a page scroll.
 ========================================== */
 
 .sidebar{
@@ -119,10 +114,6 @@ button{
     color:#8fa88f;
 }
 
-  /* ==========================================
-   NAVIGATION
-========================================== */
-
 .nav{
     list-style:none;
     display:flex;
@@ -166,12 +157,6 @@ button{
     stroke-linecap:round;
     stroke-linejoin:round;
 }
-
-/* ==========================================
-   SIDEBAR FOOTER
-   flex-shrink:0 keeps it from ever being compressed, so it
-   always remains fully visible at the bottom of the sidebar.
-========================================== */
 
 .sidebar-footer{
     border-top:1px solid #2a3d2a;
@@ -297,10 +282,11 @@ button{
 }
 
 .bell-icon{
-    font-size:20px;   /* Increase or decrease this */
+    font-size:20px;
     line-height:1;
 }
-  /* ==========================================
+
+/* ==========================================
    ADMIN PROFILE
 ========================================== */
 
@@ -328,38 +314,47 @@ button{
 }
 
 /* ==========================================
-   STAT CARDS
+   SECTION TABS (Users / User Reports)
+   Now real links so both are always clickable —
+   whichever page you're on gets the .active style,
+   and the other one is a live link to navigate to it.
 ========================================== */
 
 .section-label-row{
     display:flex;
-    gap:10px;
-    margin-bottom:12px;
-    flex-wrap:wrap;
+    gap:24px;
+    margin-bottom:18px;
+    border-bottom:1px solid var(--border);
 }
 
 .section-chip{
-    padding:8px 12px;
-    border:1px solid var(--border);
-    border-radius:999px;
-    background:#fff;
+    display:inline-flex;
+    align-items:center;
+    padding:10px 2px 12px 2px;
+    border:none;
+    border-bottom:2px solid transparent;
+    border-radius:0;
+    background:transparent;
     color:var(--text-secondary);
-    font-size:12px;
-    font-weight:700;
+    font-size:13.5px;
+    font-weight:600;
     cursor:pointer;
-    transition:all .2s ease;
+    transition:color .15s ease,border-color .15s ease;
 }
 
 .section-chip:hover{
-    background:#f4f8f5;
+    color:var(--accent-dark);
 }
 
 .section-chip.active{
-    background:var(--accent-light);
-    border-color:transparent;
     color:var(--accent-dark);
-    box-shadow:inset 0 0 0 1px rgba(45,104,70,.18);
+    border-bottom-color:var(--accent-dark);
+    cursor:default;
 }
+
+/* ==========================================
+   STAT CARDS
+========================================== */
 
 .stats{
     display:grid;
@@ -589,7 +584,7 @@ tbody tr:last-child td{
     color:var(--danger);
 }
 
-  /* ==========================================
+/* ==========================================
    ACTION BUTTONS
 ========================================== */
 
@@ -856,6 +851,7 @@ tbody tr:last-child td{
       <li><a href="usermanagement.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
       <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
       <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
+      <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
     </ul>
 
     <div class="sidebar-footer">
@@ -892,8 +888,8 @@ tbody tr:last-child td{
     </section>
 
     <div class="section-label-row">
-      <button class="section-chip active" type="button">Users</button>
-      <button class="section-chip" type="button">User Reports</button>
+      <a class="section-chip active" href="usermanagement.html">Users</a>
+      <a class="section-chip" href="userreports.html">User Reports</a>
     </div>
 
     <section class="stats">
