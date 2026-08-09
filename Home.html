@@ -140,6 +140,17 @@
     </div>
 
 </div>
-<script src="login.js"></script>
+
+<!-- Error Modal -->
+<div id="errorModal" class="modal-overlay">
+  <div class="modal-box">
+    <i class="fa-solid fa-circle-exclamation modal-icon"></i>
+    <h3 id="errorModalTitle">Login Failed</h3>
+    <p id="errorModalMessage">Something went wrong.</p>
+    <button id="errorModalClose" class="modal-btn">OK</button>
+  </div>
+</div>
+
+<script type="module" src="login.js"></script>
 </body>
 </html>
