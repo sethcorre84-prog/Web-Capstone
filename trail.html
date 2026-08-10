@@ -270,7 +270,7 @@
 
 .stats{
     display:grid;
-    grid-template-columns:repeat(5,1fr);
+    grid-template-columns:repeat(6,1fr);
     gap:14px;
     margin-bottom:22px;
 }
@@ -826,30 +826,38 @@ tbody tr:last-child td{
 
     <!-- STATS -->
     <div class="stats">
-      <div class="stat-card">
-        <div class="stat-top"><span class="stat-value">4</span>
-          <div class="stat-icon" style="background:var(--accent-light);">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M3 20l6-11 4 6 3-5 5 10H3z"/></svg>
-          </div>
-        </div>
-        <div class="stat-label">Total Trails · All Mount Makiling</div>
+  <div class="stat-card">
+    <div class="stat-top"><span class="stat-value" id="statTotalTrails">0</span>
+      <div class="stat-icon" style="background:var(--accent-light);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M3 20l6-11 4 6 3-5 5 10H3z"/></svg>
       </div>
-      <div class="stat-card">
-        <div class="stat-top"><span class="stat-value">3</span>
-          <div class="stat-icon" style="background:var(--success-light);">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
-          </div>
-        </div>
-        <div class="stat-label">Open Trails · 75%</div>
+    </div>
+    <div class="stat-label">Total Trails · All Mount Makiling</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-top"><span class="stat-value" id="statOpenTrails">0</span>
+      <div class="stat-icon" style="background:var(--success-light);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
       </div>
-      <div class="stat-card">
-        <div class="stat-top"><span class="stat-value">1</span>
-          <div class="stat-icon" style="background:var(--danger-light);">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg>
-          </div>
-        </div>
-        <div class="stat-label">Closed Trails · 25%</div>
+    </div>
+    <div class="stat-label" id="statOpenLabel">Open Trails · 0%</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-top"><span class="stat-value" id="statClosedTrails">0</span>
+      <div class="stat-icon" style="background:var(--danger-light);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg>
       </div>
+    </div>
+    <div class="stat-label" id="statClosedLabel">Closed Trails · 0%</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-top"><span class="stat-value" id="statIllegalTrails">0</span>
+      <div class="stat-icon" style="background:var(--warning-light);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2.2"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>
+      </div>
+    </div>
+    <div class="stat-label" id="statIllegalLabel">Illegal Entry · 0%</div>
+</div>
       <div class="stat-card">
         <div class="stat-top"><span class="stat-value">15</span>
           <div class="stat-icon" style="background:#e6eefb;">
@@ -1143,6 +1151,7 @@ onSnapshot(trailsCol, (snapshot) => {
   trails = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   if (!selectedId && trails.length > 0) selectedId = trails[0].id;
   render();
+  updateStats();               // add this line
   if (!editing) renderDetail();
 });
 
@@ -1190,11 +1199,12 @@ tr.innerHTML = `
   <td><div class="row-actions">
     <button class="icon-btn visibility-btn" title="${visible ? 'Visible — click to hide' : 'Hidden — click to show'}">${visible ? '👁' : '🚫'}</button>
     <button class="icon-btn edit-btn" title="${visible ? 'Edit' : 'Unhide trail to edit'}" ${visible ? '' : 'disabled style="opacity:0.35;cursor:not-allowed;"'}>✎</button>
-    <button class="icon-btn more-btn" title="More">⋮</button>
+    <button class="icon-btn more-btn" title="${visible ? 'More' : 'Unhide trail for more actions'}" ${visible ? '' : 'disabled style="opacity:0.35;cursor:not-allowed;"'}>⋮</button>
   </div></td>
 `;
-    tr.querySelector('.visibility-btn').addEventListener('click', async (e) => {
+  tr.querySelector('.visibility-btn').addEventListener('click', async (e) => {
   e.stopPropagation();
+  rowActionsMenu.style.display = 'none';   // add this line
   try {
     await updateDoc(doc(db, "trails", t.id), { Visible: !visible });
   } catch (err) {
@@ -1202,14 +1212,24 @@ tr.innerHTML = `
     alert("Failed to update visibility: " + err.message);
   }
 });
+
 tr.querySelector('.edit-btn').addEventListener('click', (e) => {
   e.stopPropagation();
-  if (!visible) return; // hidden trails can't be edited
+  rowActionsMenu.style.display = 'none';   // add this line
+  if (!visible) return;
   selectedId = t.id; renderDetail(); render(); openEditMode();
 });
 tr.querySelector('.more-btn').addEventListener('click', (e) => {
   e.stopPropagation();
-  openRowActionsMenu(e, t);
+  if (!visible) return; // hidden trails: no duplicate/delete access
+  const isOpenForThisRow = rowActionsMenu.style.display === 'block'
+    && menuTargetTrail && menuTargetTrail.id === t.id;
+  if (isOpenForThisRow) {
+    rowActionsMenu.style.display = 'none';
+    menuTargetTrail = null;
+  } else {
+    openRowActionsMenu(e, t);
+  }
 });
 tr.addEventListener('click', () => {
   selectedId = t.id; editing = false; renderDetail(); render();
@@ -1250,16 +1270,33 @@ function renderPagination(totalPages) {
   wrap.appendChild(nextBtn);
 }
 
+function updateStats() {
+  const total = trails.length;
+  const open = trails.filter(t => (t.Status || "Open") === "Open").length;
+  const closed = trails.filter(t => t.Status === "Closed").length;
+  const illegal = trails.filter(t => t.Status === "Illegal Entry").length;
+
+  document.getElementById('statTotalTrails').textContent = total;
+  document.getElementById('statOpenTrails').textContent = open;
+  document.getElementById('statClosedTrails').textContent = closed;
+  document.getElementById('statIllegalTrails').textContent = illegal;
+
+  const openPct = total ? Math.round((open / total) * 100) : 0;
+  const closedPct = total ? Math.round((closed / total) * 100) : 0;
+  const illegalPct = total ? Math.round((illegal / total) * 100) : 0;
+  document.getElementById('statOpenLabel').textContent = `Open Trails · ${openPct}%`;
+  document.getElementById('statClosedLabel').textContent = `Closed Trails · ${closedPct}%`;
+  document.getElementById('statIllegalLabel').textContent = `Illegal Entry · ${illegalPct}%`;
+}
+
 function renderDetail() {
   const t = getSelected();
+  if (!t) return;
   document.getElementById('detailUpdated').textContent = formatTimestamp(t.UpdatedAt);
   document.getElementById('statusLastUpdated').textContent = formatTimestamp(t.StatusUpdatedAt);
-  if (!t) return;
+
   const status = t.Status || "Open";
 
-  document.getElementById('detailPhoto').style.backgroundImage = `url('${getTrailImage(t)}')`;
-  document.getElementById('detailPhoto').style.backgroundSize = 'cover';
-  document.getElementById('detailPhoto').style.backgroundPosition = 'center';
   document.getElementById('detailName').textContent = t.Trail || "Untitled Trail";
   document.getElementById('detailDiff').textContent = t.Difficulty || "—";
   document.getElementById('detailDiff').className = 'badge ' + diffClass(t.Difficulty);
@@ -1272,26 +1309,30 @@ function renderDetail() {
   document.getElementById('detailStatus').textContent = status;
   document.getElementById('detailStatus').className = 'badge ' + status.toLowerCase();
 
+  document.getElementById('detailPhoto').style.backgroundImage = `url('${getTrailImage(t)}')`;
+  document.getElementById('detailPhoto').style.backgroundSize = 'cover';
+  document.getElementById('detailPhoto').style.backgroundPosition = 'center';
+
   const statusSelect = document.getElementById('statusUpdateSelect');
   if (statusSelect) {
     const match = [...statusSelect.options].some(o => o.value === status);
     statusSelect.value = match ? status : 'Select Status';
   }
 
-const visible = t.Visible !== false;
-const editBtn = document.getElementById('editTrailBtn');
-editBtn.textContent = visible ? '✎ Edit Trail Information' : '🚫 Unhide trail to edit';
-editBtn.disabled = !visible;
-editBtn.style.opacity = visible ? '1' : '0.5';
-editBtn.style.cursor = visible ? 'pointer' : 'not-allowed';
-editBtn.onclick = visible ? openEditMode : null;
+  const visible = t.Visible !== false;
+  const editBtn = document.getElementById('editTrailBtn');
+  editBtn.textContent = visible ? '✎ Edit Trail Information' : '🚫 Unhide trail to edit';
+  editBtn.disabled = !visible;
+  editBtn.style.opacity = visible ? '1' : '0.5';
+  editBtn.style.cursor = visible ? 'pointer' : 'not-allowed';
+  editBtn.onclick = visible ? openEditMode : null;
 }
 
 // ---- EDIT MODE ----
 function openEditMode() {
   const t = getSelected();
   if (!t) return;
-  if (t.Visible === false) return; // safety guard — hidden trails aren't editable
+  if (t.Visible === false) return;
   editing = true;
 
   document.getElementById('detailName').innerHTML =
@@ -1313,12 +1354,23 @@ function openEditMode() {
     `<input type="text" id="editMunicipality" value="${(t.Municipality || '').replace(/"/g, '&quot;')}" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;text-align:right;">`;
 
   const currentType = t.Type || "Undefined";
-document.getElementById('detailType').innerHTML = `
-  <select id="editType" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;">
-    <option ${currentType === "Major Trail" ? "selected" : ""}>Major Trail</option>
-    <option ${currentType === "Side Trail" ? "selected" : ""}>Side Trail</option>
-    <option ${currentType === "Undefined" ? "selected" : ""}>Undefined</option>
-  </select>`;
+  document.getElementById('detailType').innerHTML = `
+    <select id="editType" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;">
+      <option ${currentType === "Major Trail" ? "selected" : ""}>Major Trail</option>
+      <option ${currentType === "Side Trail" ? "selected" : ""}>Side Trail</option>
+      <option ${currentType === "Undefined" ? "selected" : ""}>Undefined</option>
+    </select>`;
+
+  const currentDiff = t.Difficulty || "Undefined";
+  const diffEl = document.getElementById('detailDiff');
+  diffEl.className = '';
+  diffEl.innerHTML = `
+    <select id="editDiff" style="padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;">
+      <option ${currentDiff === "Easy" ? "selected" : ""}>Easy</option>
+      <option ${currentDiff === "Moderate" ? "selected" : ""}>Moderate</option>
+      <option ${currentDiff === "Hard" ? "selected" : ""}>Hard</option>
+      <option ${currentDiff === "Undefined" ? "selected" : ""}>Undefined</option>
+    </select>`;
 
   const editBtn = document.getElementById('editTrailBtn');
   editBtn.textContent = '💾 Save Changes';
@@ -1330,20 +1382,20 @@ async function saveEdit() {
   if (!t) return;
 
   const updated = {
-  Trail: document.getElementById('editName').value,
-  Description: document.getElementById('editDesc').value,
-  "Approximate Distance": document.getElementById('editDist').value,
-  Duration: document.getElementById('editDur').value,
-  Elevation: document.getElementById('editElev').value,
-  Municipality: document.getElementById('editMunicipality').value,
-  Type: document.getElementById('editType').value,
-  UpdatedAt: serverTimestamp()
-};
+    Trail: document.getElementById('editName').value,
+    Description: document.getElementById('editDesc').value,
+    "Approximate Distance": document.getElementById('editDist').value,
+    Duration: document.getElementById('editDur').value,
+    Elevation: document.getElementById('editElev').value,
+    Municipality: document.getElementById('editMunicipality').value,
+    Type: document.getElementById('editType').value,
+    Difficulty: document.getElementById('editDiff').value,
+    UpdatedAt: serverTimestamp()
+  };
 
   try {
     await updateDoc(doc(db, "trails", t.id), updated);
     editing = false;
-    // onSnapshot will auto-refresh the view with the saved data
   } catch (err) {
     console.error(err);
     alert("Failed to save changes: " + err.message);
