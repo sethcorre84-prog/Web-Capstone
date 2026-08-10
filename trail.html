@@ -541,6 +541,11 @@ tbody tr:last-child td{
     color:var(--text-secondary);
 }
 
+.page-btn:disabled{
+  opacity:.4;
+  cursor:not-allowed;
+}
+
 .page-btns{
     display:flex;
     gap:6px;
@@ -768,7 +773,7 @@ tbody tr:last-child td{
   <aside class="sidebar">
       <div class="brand">
         <div class="brand-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 20l6-11 4 6 3-5 5 10H3z"/><circle cx="17" cy="5" r="1.6" fill="#fff" stroke="none"/></svg>
+        <img src="assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
         </div>
         <div>
           <div class="brand-name">PeakPath</div>
@@ -895,11 +900,7 @@ tbody tr:last-child td{
 
           <div class="pagination">
             <span id="pageInfo">Showing 1 to 4 of 4 trails (Mount Makiling)</span>
-            <div class="page-btns">
-              <button class="page-btn">&lsaquo;</button>
-              <button class="page-btn active">1</button>
-              <button class="page-btn">&rsaquo;</button>
-            </div>
+            <div class="page-btns"></div>
           </div>
         </div>
 
@@ -1077,6 +1078,19 @@ tbody tr:last-child td{
   <button id="deleteTrailBtn" style="width:100%;text-align:left;padding:10px 14px;border:none;background:#fff;font-size:13px;cursor:pointer;color:var(--danger);">🗑 Delete Trail</button>
 </div>
 
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirmModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1100;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;padding:28px;max-width:360px;width:90%;text-align:center;">
+    <div style="font-size:38px;color:var(--danger);margin-bottom:10px;">⚠️</div>
+    <h3 style="margin-bottom:8px;font-size:18px;">Delete this trail?</h3>
+    <p id="deleteConfirmText" style="color:var(--text-secondary);font-size:13.5px;margin-bottom:20px;">This action cannot be undone.</p>
+    <div style="display:flex;gap:10px;">
+      <button id="cancelDeleteBtn" class="btn-secondary" style="flex:1;">Cancel</button>
+      <button id="confirmDeleteBtn" style="flex:1;padding:10px;border:none;border-radius:8px;background:var(--danger);color:#fff;font-weight:600;font-size:13px;cursor:pointer;">Delete Permanently</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
   function formatTimestamp(ts) {
   if (!ts) return "No updates yet";
@@ -1100,6 +1114,20 @@ import {
 let trails = [];
 let selectedId = null;
 let editing = false;
+const PAGE_SIZE = 4;
+let currentPage = 1;
+
+const trailImages = {
+  "Makiling Botanic Gardens Trail": "assets/images/botanicGarden.jpg",
+  "Makiling Traverse (MakTrav)": "assets/images/makilingTraverse.jpg",
+  "Sipit Trail": "assets/images/sipitTrail.jpg",
+  "Mariang Makiling Trail": "assets/images/mariangMakiling.jpg"
+};
+const defaultTrailImage = "assets/images/bg.jpg";
+
+function getTrailImage(t) {
+  return trailImages[t.Trail] || defaultTrailImage;
+}
 
 function diffClass(diff) {
   if (!diff) return "moderate";
@@ -1139,16 +1167,21 @@ function render() {
       && (ty === "" || type === ty);
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+
   const body = document.getElementById('trailBody');
   body.innerHTML = '';
-  filtered.forEach((t) => {
+  pageItems.forEach((t) => {
     const status = t.Status || "Open";
     const tr = document.createElement('tr');
     if (t.id === selectedId) tr.classList.add('selected');
     const visible = t.Visible !== false; // treat missing field as visible
 tr.style.opacity = visible ? '1' : '0.45';
 tr.innerHTML = `
-  <td><div class="trail-cell"><div class="thumb"></div><div><div class="trail-name">${t.Trail || "Untitled Trail"}</div><div class="trail-loc">${t.Municipality || ""}</div></div></div></td>
+<td><div class="trail-cell"><div class="thumb" style="background-image:url('${getTrailImage(t)}');background-size:cover;background-position:center;"></div><div><div class="trail-name">${t.Trail || "Untitled Trail"}</div><div class="trail-loc">${t.Municipality || ""}</div></div></div></td>
   <td><span class="badge ${diffClass(t.Difficulty)}">${t.Difficulty || "—"}</span></td>
   <td>${t["Approximate Distance"] || "—"}</td>
   <td>${t.Elevation || "—"}</td>
@@ -1156,7 +1189,7 @@ tr.innerHTML = `
   <td><span class="badge ${status.toLowerCase()}">${status}</span></td>
   <td><div class="row-actions">
     <button class="icon-btn visibility-btn" title="${visible ? 'Visible — click to hide' : 'Hidden — click to show'}">${visible ? '👁' : '🚫'}</button>
-    <button class="icon-btn edit-btn" title="Edit">✎</button>
+    <button class="icon-btn edit-btn" title="${visible ? 'Edit' : 'Unhide trail to edit'}" ${visible ? '' : 'disabled style="opacity:0.35;cursor:not-allowed;"'}>✎</button>
     <button class="icon-btn more-btn" title="More">⋮</button>
   </div></td>
 `;
@@ -1171,6 +1204,7 @@ tr.innerHTML = `
 });
 tr.querySelector('.edit-btn').addEventListener('click', (e) => {
   e.stopPropagation();
+  if (!visible) return; // hidden trails can't be edited
   selectedId = t.id; renderDetail(); render(); openEditMode();
 });
 tr.querySelector('.more-btn').addEventListener('click', (e) => {
@@ -1184,7 +1218,36 @@ tr.addEventListener('click', () => {
   });
 
   document.getElementById('pageInfo').textContent =
-    `Showing 1 to ${filtered.length} of ${trails.length} trails (Mount Makiling)`;
+  `Showing page ${currentPage} of ${totalPages} (${filtered.length} trails total, Mount Makiling)`;
+
+  renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+  const wrap = document.querySelector('.page-btns');
+  wrap.innerHTML = '';
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'page-btn';
+  prevBtn.innerHTML = '&lsaquo;';
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.addEventListener('click', () => { currentPage--; render(); });
+  wrap.appendChild(prevBtn);
+
+  for (let p = 1; p <= totalPages; p++) {
+    const btn = document.createElement('button');
+    btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
+    btn.textContent = p;
+    btn.addEventListener('click', () => { currentPage = p; render(); });
+    wrap.appendChild(btn);
+  }
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'page-btn';
+  nextBtn.innerHTML = '&rsaquo;';
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.addEventListener('click', () => { currentPage++; render(); });
+  wrap.appendChild(nextBtn);
 }
 
 function renderDetail() {
@@ -1194,6 +1257,9 @@ function renderDetail() {
   if (!t) return;
   const status = t.Status || "Open";
 
+  document.getElementById('detailPhoto').style.backgroundImage = `url('${getTrailImage(t)}')`;
+  document.getElementById('detailPhoto').style.backgroundSize = 'cover';
+  document.getElementById('detailPhoto').style.backgroundPosition = 'center';
   document.getElementById('detailName').textContent = t.Trail || "Untitled Trail";
   document.getElementById('detailDiff').textContent = t.Difficulty || "—";
   document.getElementById('detailDiff').className = 'badge ' + diffClass(t.Difficulty);
@@ -1212,15 +1278,20 @@ function renderDetail() {
     statusSelect.value = match ? status : 'Select Status';
   }
 
-  const editBtn = document.getElementById('editTrailBtn');
-  editBtn.textContent = '✎ Edit Trail Information';
-  editBtn.onclick = openEditMode;
+const visible = t.Visible !== false;
+const editBtn = document.getElementById('editTrailBtn');
+editBtn.textContent = visible ? '✎ Edit Trail Information' : '🚫 Unhide trail to edit';
+editBtn.disabled = !visible;
+editBtn.style.opacity = visible ? '1' : '0.5';
+editBtn.style.cursor = visible ? 'pointer' : 'not-allowed';
+editBtn.onclick = visible ? openEditMode : null;
 }
 
 // ---- EDIT MODE ----
 function openEditMode() {
   const t = getSelected();
   if (!t) return;
+  if (t.Visible === false) return; // safety guard — hidden trails aren't editable
   editing = true;
 
   document.getElementById('detailName').innerHTML =
@@ -1296,14 +1367,15 @@ document.getElementById('updateStatusBtn').addEventListener('click', async () =>
 });
 
 ['searchInput', 'statusFilter', 'diffFilter', 'typeFilter'].forEach(id => {
-  document.getElementById(id).addEventListener('input', render);
-  document.getElementById(id).addEventListener('change', render);
+  document.getElementById(id).addEventListener('input', () => { currentPage = 1; render(); });
+  document.getElementById(id).addEventListener('change', () => { currentPage = 1; render(); });
 });
 document.getElementById('clearBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
   document.getElementById('statusFilter').value = '';
   document.getElementById('diffFilter').value = '';
   document.getElementById('typeFilter').value = '';
+  currentPage = 1;
   render();
 });
 
@@ -1397,18 +1469,41 @@ document.getElementById('duplicateTrailBtn').addEventListener('click', async () 
   }
 });
 
-document.getElementById('deleteTrailBtn').addEventListener('click', async () => {
-  if (!menuTargetTrail) return;
-  const confirmed = confirm(`Delete "${menuTargetTrail.Trail || 'this trail'}"? This cannot be undone.`);
-  if (!confirmed) return;
+const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+let trailPendingDelete = null;
 
+document.getElementById('deleteTrailBtn').addEventListener('click', () => {
+  if (!menuTargetTrail) return;
+  trailPendingDelete = menuTargetTrail;
+  document.getElementById('deleteConfirmText').textContent =
+    `"${menuTargetTrail.Trail || 'This trail'}" will be permanently removed. This action cannot be undone.`;
+  rowActionsMenu.style.display = 'none';
+  deleteConfirmModal.style.display = 'flex';
+});
+
+document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+  trailPendingDelete = null;
+  deleteConfirmModal.style.display = 'none';
+});
+
+deleteConfirmModal.addEventListener('click', (e) => {
+  if (e.target === deleteConfirmModal) {
+    trailPendingDelete = null;
+    deleteConfirmModal.style.display = 'none';
+  }
+});
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+  if (!trailPendingDelete) return;
   try {
-    await deleteDoc(doc(db, "trails", menuTargetTrail.id));
-    if (selectedId === menuTargetTrail.id) selectedId = null;
-    rowActionsMenu.style.display = 'none';
+    await deleteDoc(doc(db, "trails", trailPendingDelete.id));
+    if (selectedId === trailPendingDelete.id) selectedId = null;
   } catch (err) {
     console.error(err);
     alert("Failed to delete trail: " + err.message);
+  } finally {
+    trailPendingDelete = null;
+    deleteConfirmModal.style.display = 'none';
   }
 });
 </script>
