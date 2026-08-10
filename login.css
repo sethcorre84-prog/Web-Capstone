@@ -22,11 +22,10 @@ body{
     overflow:hidden;
     border-radius:32px;
 
-    background-image:url("bg.jpg");
+    background-image: url("assets/images/bg.jpg");
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
-
     position:relative;
 }
 

@@ -875,9 +875,9 @@ tbody tr:last-child td{
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
               <input id="searchInput" placeholder="Search trails...">
             </div>
-            <select class="filter" id="statusFilter"><option value="">Status: All</option><option>Open</option><option>Closed</option></select>
-            <select class="filter" id="diffFilter"><option value="">Difficulty: All</option><option>Easy</option><option>Moderate</option><option>Difficult</option></select>
-            <select class="filter" id="typeFilter"><option value="">Trail Type: All</option><option>Major Trail</option><option>Side Trail</option></select>
+            <select class="filter" id="statusFilter"><option value="">Status: All</option><option>Open</option><option>Closed</option><option>Illegal Entry</option></select>
+            <select class="filter" id="diffFilter"><option value="">Difficulty: All</option><option>Easy</option><option>Moderate</option><option>Hard</option><option>Undefined</option></select>
+            <select class="filter" id="typeFilter"><option value="">Trail Type: All</option><option>Major Trail</option><option>Side Trail</option><option>Undefined</option></select>
             <button class="clear-btn" id="clearBtn">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
               Clear Filters
@@ -949,10 +949,10 @@ tbody tr:last-child td{
           <div class="detail-rows">
             <div class="detail-row"><span>Elevation Gain</span><span id="detailElev">1,200 m</span></div>
             <div class="detail-row"><span>Highest Point</span><span id="detailPeak">1,096 m (Peak 2)</span></div>
-            <div class="detail-row"><span>Trail Type</span><span id="detailType">Major Trail</span></div>
-            <div class="detail-row"><span>Last Updated</span><span>May 20, 2026 · 09:15 AM<br>by Admin User</span></div>
+            <div class="detail-row"><span>Trail Type</span><span id="detailType">—</span></div>
+            <div class="detail-row"><span>Last Updated</span><span id="detailUpdated">—</span></div>
           </div>
-          <button class="btn-secondary">✎ Edit Trail Information</button>
+          <button class="btn-secondary" id="editTrailBtn">✎ Edit Trail Information</button>
         </div>
 
         <div class="panel">
@@ -963,21 +963,22 @@ tbody tr:last-child td{
           </div>
           <div class="status-mgmt-row" style="margin-bottom:14px;">
             <span>Last Updated</span>
-            <span style="color:var(--text-secondary)">May 20, 2026 09:15 AM</span>
+            <span style="color:var(--text-secondary)" id="statusLastUpdated">—</span>
           </div>
           <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">Update Status</div>
-          <select class="status-update-select">
+          <select class="status-update-select" id="statusUpdateSelect">
             <option>Select Status</option>
             <option>Open</option>
             <option>Closed</option>
+            <option>Illegal Entry</option>
           </select>
-          <button class="btn-primary">Update Status</button>
+          <button class="btn-primary" id="updateStatusBtn">Update Status</button>
         </div>
 
         <div class="panel">
           <div class="panel-title">Quick Actions</div>
           <div class="quick-grid">
-            <button class="quick-btn">+ Add Trail</button>
+            <button class="quick-btn" id="addTrailBtn">+ Add Trail</button>
             <button class="quick-btn">+ Add Checkpoint</button>
             <button class="quick-btn">+ Add Campsite</button>
             <button class="quick-btn outline">📍 View on Map</button>
@@ -989,72 +990,312 @@ tbody tr:last-child td{
   </div>
 </div>
 
-<script>
-const trails = [
-  {name:"Mariang Makiling Trail", loc:"Laguna, Philippines", diff:"Moderate", distance:"7.2 km", elev:"1,200 m", duration:"4–6 hrs", status:"Open", type:"Major Trail", peak:"1,096 m (Peak 2)", desc:"The most popular trail of Mount Makiling. Passes through dense forest, mossy rocks, and offers scenic views of Laguna de Bay."},
-  {name:"Sipit Trail", loc:"Laguna, Philippines", diff:"Easy", distance:"4.3 km", elev:"650 m", duration:"2–3 hrs", status:"Open", type:"Side Trail", peak:"650 m", desc:"A gentle, well-shaded trail popular with beginner hikers and families exploring the lower slopes of Mount Makiling."},
-  {name:"Makiling Rainforest Trail", loc:"Laguna, Philippines", diff:"Easy", distance:"3.5 km", elev:"400 m", duration:"1.5–2.5 hrs", status:"Open", type:"Side Trail", peak:"400 m", desc:"A short interpretive loop through old-growth rainforest, ideal for nature study and casual day visitors."},
-  {name:"Forestry Trail (UPLB Area)", loc:"Laguna, Philippines", diff:"Difficult", distance:"9.8 km", elev:"1,450 m", duration:"5–7 hrs", status:"Closed", type:"Major Trail", peak:"1,450 m (Summit ridge)", desc:"A steep, technical route through the UPLB forestry reserve, currently closed pending trail repair after recent landslides."},
-];
+<!-- Add Trail Modal -->
+<div id="addTrailModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;padding:26px;max-width:480px;width:90%;max-height:85vh;overflow-y:auto;">
+    <h3 style="margin-bottom:16px;font-size:18px;">+ Add New Trail</h3>
 
-const diffClass = {Easy:"easy", Moderate:"moderate", Difficult:"difficult"};
-let selectedIndex = 0;
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:12px;color:var(--text-secondary);">Trail Name</label>
+        <input type="text" id="newTrailName" placeholder="e.g. Mariang Makiling Trail" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
+      </div>
 
-function render(){
+      <div>
+        <label style="font-size:12px;color:var(--text-secondary);">Description</label>
+        <textarea id="newTrailDesc" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;"></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label style="font-size:12px;color:var(--text-secondary);">Difficulty</label>
+          <select id="newTrailDiff" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
+            <option>Easy</option>
+            <option>Moderate</option>
+            <option>Hard</option>
+            <option>Undefined</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12px;color:var(--text-secondary);">Trail Type</label>
+          <select id="newTrailType" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
+            <option>Major Trail</option>
+            <option>Side Trail</option>
+            <option>Undefined</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label style="font-size:12px;color:var(--text-secondary);">Approximate Distance</label>
+          <input type="text" id="newTrailDist" placeholder="e.g. 7.2 km" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12px;color:var(--text-secondary);">Duration</label>
+          <input type="text" id="newTrailDur" placeholder="e.g. 4–6 hrs" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label style="font-size:12px;color:var(--text-secondary);">Elevation</label>
+          <input type="text" id="newTrailElev" placeholder="e.g. 1,200 m" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12px;color:var(--text-secondary);">Municipality</label>
+          <input type="text" id="newTrailMunicipality" placeholder="e.g. Los Baños, Laguna" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label style="font-size:12px;color:var(--text-secondary);">Status</label>
+          <select id="newTrailStatus" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
+            <option>Open</option>
+            <option>Closed</option>
+            <option>Illegal Entry</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12px;color:var(--text-secondary);">Ratings</label>
+          <input type="text" id="newTrailRatings" placeholder="e.g. 4.8" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button id="cancelAddTrail" class="btn-secondary" style="flex:1;">Cancel</button>
+      <button id="submitAddTrail" class="btn-primary" style="flex:1;">Add Trail</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shared row actions dropdown -->
+<div id="rowActionsMenu" style="display:none;position:absolute;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:900;min-width:150px;overflow:hidden;">
+  <button id="duplicateTrailBtn" style="width:100%;text-align:left;padding:10px 14px;border:none;background:#fff;font-size:13px;cursor:pointer;">📄 Duplicate Trail</button>
+  <button id="deleteTrailBtn" style="width:100%;text-align:left;padding:10px 14px;border:none;background:#fff;font-size:13px;cursor:pointer;color:var(--danger);">🗑 Delete Trail</button>
+</div>
+
+<script type="module">
+  function formatTimestamp(ts) {
+  if (!ts) return "No updates yet";
+  const date = ts.toDate ? ts.toDate() : new Date(ts);
+  return date.toLocaleString([], {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  });
+}
+import { db } from "./firebase-config.js";
+import {
+  collection,
+  onSnapshot,
+  doc,
+  updateDoc,
+  addDoc,
+  deleteDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+let trails = [];
+let selectedId = null;
+let editing = false;
+
+function diffClass(diff) {
+  if (!diff) return "moderate";
+  const d = diff.toLowerCase();
+  if (d.includes("easy")) return "easy";
+  if (d.includes("hard") || d.includes("difficult")) return "difficult";
+  return "moderate";
+}
+
+// Live-sync with Firestore "trails" collection
+const trailsCol = collection(db, "trails");
+onSnapshot(trailsCol, (snapshot) => {
+  trails = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (!selectedId && trails.length > 0) selectedId = trails[0].id;
+  render();
+  if (!editing) renderDetail();
+});
+
+function getSelected() {
+  return trails.find(t => t.id === selectedId);
+}
+
+function render() {
   const q = document.getElementById('searchInput').value.toLowerCase();
   const st = document.getElementById('statusFilter').value;
   const df = document.getElementById('diffFilter').value;
   const ty = document.getElementById('typeFilter').value;
 
-  const filtered = trails.filter(t =>
-    t.name.toLowerCase().includes(q) &&
-    (st === "" || t.status === st) &&
-    (df === "" || t.diff === df) &&
-    (ty === "" || t.type === ty)
-  );
+  const filtered = trails.filter(t => {
+    const name = (t.Trail || "").toLowerCase();
+    const status = t.Status || "Open";
+    const diff = t.Difficulty || "";
+    const type = t.Type || "";
+    return name.includes(q)
+      && (st === "" || status === st)
+      && (df === "" || diff.toLowerCase().includes(df.toLowerCase()))
+      && (ty === "" || type === ty);
+  });
 
   const body = document.getElementById('trailBody');
   body.innerHTML = '';
   filtered.forEach((t) => {
-    const realIndex = trails.indexOf(t);
+    const status = t.Status || "Open";
     const tr = document.createElement('tr');
-    if(realIndex === selectedIndex) tr.classList.add('selected');
-    tr.innerHTML = `
-      <td><div class="trail-cell"><div class="thumb"></div><div><div class="trail-name">${t.name}</div><div class="trail-loc">${t.loc}</div></div></div></td>
-      <td><span class="badge ${diffClass[t.diff]}">${t.diff}</span></td>
-      <td>${t.distance}</td>
-      <td>${t.elev}</td>
-      <td>${t.duration}</td>
-      <td><span class="badge ${t.status.toLowerCase()}">${t.status}</span></td>
-      <td><div class="row-actions">
-        <button class="icon-btn" title="View">👁</button>
-        <button class="icon-btn" title="Edit">✎</button>
-        <button class="icon-btn" title="More">⋮</button>
-      </div></td>
-    `;
-    tr.addEventListener('click', () => { selectedIndex = realIndex; renderDetail(); render(); });
+    if (t.id === selectedId) tr.classList.add('selected');
+    const visible = t.Visible !== false; // treat missing field as visible
+tr.style.opacity = visible ? '1' : '0.45';
+tr.innerHTML = `
+  <td><div class="trail-cell"><div class="thumb"></div><div><div class="trail-name">${t.Trail || "Untitled Trail"}</div><div class="trail-loc">${t.Municipality || ""}</div></div></div></td>
+  <td><span class="badge ${diffClass(t.Difficulty)}">${t.Difficulty || "—"}</span></td>
+  <td>${t["Approximate Distance"] || "—"}</td>
+  <td>${t.Elevation || "—"}</td>
+  <td>${t.Duration || "—"}</td>
+  <td><span class="badge ${status.toLowerCase()}">${status}</span></td>
+  <td><div class="row-actions">
+    <button class="icon-btn visibility-btn" title="${visible ? 'Visible — click to hide' : 'Hidden — click to show'}">${visible ? '👁' : '🚫'}</button>
+    <button class="icon-btn edit-btn" title="Edit">✎</button>
+    <button class="icon-btn more-btn" title="More">⋮</button>
+  </div></td>
+`;
+    tr.querySelector('.visibility-btn').addEventListener('click', async (e) => {
+  e.stopPropagation();
+  try {
+    await updateDoc(doc(db, "trails", t.id), { Visible: !visible });
+  } catch (err) {
+    console.error(err);
+    alert("Failed to update visibility: " + err.message);
+  }
+});
+tr.querySelector('.edit-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  selectedId = t.id; renderDetail(); render(); openEditMode();
+});
+tr.querySelector('.more-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  openRowActionsMenu(e, t);
+});
+tr.addEventListener('click', () => {
+  selectedId = t.id; editing = false; renderDetail(); render();
+});
     body.appendChild(tr);
   });
 
-  document.getElementById('pageInfo').textContent = `Showing 1 to ${filtered.length} of ${trails.length} trails (Mount Makiling)`;
+  document.getElementById('pageInfo').textContent =
+    `Showing 1 to ${filtered.length} of ${trails.length} trails (Mount Makiling)`;
 }
 
-function renderDetail(){
-  const t = trails[selectedIndex];
-  document.getElementById('detailName').textContent = t.name;
-  document.getElementById('detailDiff').textContent = t.diff;
-  document.getElementById('detailDiff').className = 'badge ' + diffClass[t.diff];
-  document.getElementById('detailDist').textContent = t.distance;
-  document.getElementById('detailDur').textContent = t.duration;
-  document.getElementById('detailDesc').textContent = t.desc;
-  document.getElementById('detailElev').textContent = t.elev;
-  document.getElementById('detailPeak').textContent = t.peak;
-  document.getElementById('detailType').textContent = t.type;
-  document.getElementById('detailStatus').textContent = t.status;
-  document.getElementById('detailStatus').className = 'badge ' + t.status.toLowerCase();
+function renderDetail() {
+  const t = getSelected();
+  document.getElementById('detailUpdated').textContent = formatTimestamp(t.UpdatedAt);
+  document.getElementById('statusLastUpdated').textContent = formatTimestamp(t.StatusUpdatedAt);
+  if (!t) return;
+  const status = t.Status || "Open";
+
+  document.getElementById('detailName').textContent = t.Trail || "Untitled Trail";
+  document.getElementById('detailDiff').textContent = t.Difficulty || "—";
+  document.getElementById('detailDiff').className = 'badge ' + diffClass(t.Difficulty);
+  document.getElementById('detailDist').textContent = t["Approximate Distance"] || "—";
+  document.getElementById('detailDur').textContent = t.Duration || "—";
+  document.getElementById('detailDesc').textContent = t.Description || "";
+  document.getElementById('detailElev').textContent = t.Elevation || "—";
+  document.getElementById('detailPeak').textContent = t.Municipality || "—";
+  document.getElementById('detailType').textContent = t.Type || "Undefined";
+  document.getElementById('detailStatus').textContent = status;
+  document.getElementById('detailStatus').className = 'badge ' + status.toLowerCase();
+
+  const statusSelect = document.getElementById('statusUpdateSelect');
+  if (statusSelect) {
+    const match = [...statusSelect.options].some(o => o.value === status);
+    statusSelect.value = match ? status : 'Select Status';
+  }
+
+  const editBtn = document.getElementById('editTrailBtn');
+  editBtn.textContent = '✎ Edit Trail Information';
+  editBtn.onclick = openEditMode;
 }
 
-['searchInput','statusFilter','diffFilter','typeFilter'].forEach(id => {
+// ---- EDIT MODE ----
+function openEditMode() {
+  const t = getSelected();
+  if (!t) return;
+  editing = true;
+
+  document.getElementById('detailName').innerHTML =
+    `<input type="text" id="editName" value="${(t.Trail || '').replace(/"/g, '&quot;')}" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:15px;font-weight:700;">`;
+
+  document.getElementById('detailDesc').innerHTML =
+    `<textarea id="editDesc" style="width:100%;min-height:70px;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;">${t.Description || ''}</textarea>`;
+
+  document.getElementById('detailDist').innerHTML =
+    `<input type="text" id="editDist" value="${(t["Approximate Distance"] || '').replace(/"/g, '&quot;')}" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;">`;
+
+  document.getElementById('detailDur').innerHTML =
+    `<input type="text" id="editDur" value="${(t.Duration || '').replace(/"/g, '&quot;')}" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;">`;
+
+  document.getElementById('detailElev').innerHTML =
+    `<input type="text" id="editElev" value="${(t.Elevation || '').replace(/"/g, '&quot;')}" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;text-align:right;">`;
+
+  document.getElementById('detailPeak').innerHTML =
+    `<input type="text" id="editMunicipality" value="${(t.Municipality || '').replace(/"/g, '&quot;')}" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;text-align:right;">`;
+
+  const currentType = t.Type || "Undefined";
+document.getElementById('detailType').innerHTML = `
+  <select id="editType" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;">
+    <option ${currentType === "Major Trail" ? "selected" : ""}>Major Trail</option>
+    <option ${currentType === "Side Trail" ? "selected" : ""}>Side Trail</option>
+    <option ${currentType === "Undefined" ? "selected" : ""}>Undefined</option>
+  </select>`;
+
+  const editBtn = document.getElementById('editTrailBtn');
+  editBtn.textContent = '💾 Save Changes';
+  editBtn.onclick = saveEdit;
+}
+
+async function saveEdit() {
+  const t = getSelected();
+  if (!t) return;
+
+  const updated = {
+  Trail: document.getElementById('editName').value,
+  Description: document.getElementById('editDesc').value,
+  "Approximate Distance": document.getElementById('editDist').value,
+  Duration: document.getElementById('editDur').value,
+  Elevation: document.getElementById('editElev').value,
+  Municipality: document.getElementById('editMunicipality').value,
+  Type: document.getElementById('editType').value,
+  UpdatedAt: serverTimestamp()
+};
+
+  try {
+    await updateDoc(doc(db, "trails", t.id), updated);
+    editing = false;
+    // onSnapshot will auto-refresh the view with the saved data
+  } catch (err) {
+    console.error(err);
+    alert("Failed to save changes: " + err.message);
+  }
+}
+
+// ---- STATUS UPDATE (separate panel) ----
+document.getElementById('updateStatusBtn').addEventListener('click', async () => {
+  const t = getSelected();
+  const select = document.getElementById('statusUpdateSelect');
+  if (!t || !select.value || select.value === 'Select Status') return;
+  try {
+    await updateDoc(doc(db, "trails", t.id), {
+  Status: select.value,
+  StatusUpdatedAt: serverTimestamp()
+});
+  } catch (err) {
+    console.error(err);
+    alert("Failed to update status: " + err.message);
+  }
+});
+
+['searchInput', 'statusFilter', 'diffFilter', 'typeFilter'].forEach(id => {
   document.getElementById(id).addEventListener('input', render);
   document.getElementById(id).addEventListener('change', render);
 });
@@ -1066,8 +1307,110 @@ document.getElementById('clearBtn').addEventListener('click', () => {
   render();
 });
 
-render();
-renderDetail();
+// ---- ADD TRAIL MODAL ----
+const addTrailModal = document.getElementById('addTrailModal');
+
+document.getElementById('addTrailBtn').addEventListener('click', () => {
+  addTrailModal.style.display = 'flex';
+});
+
+document.getElementById('cancelAddTrail').addEventListener('click', () => {
+  addTrailModal.style.display = 'none';
+});
+
+addTrailModal.addEventListener('click', (e) => {
+  if (e.target === addTrailModal) addTrailModal.style.display = 'none';
+});
+
+document.getElementById('submitAddTrail').addEventListener('click', async () => {
+  const name = document.getElementById('newTrailName').value.trim();
+  if (!name) {
+    alert("Please enter a trail name.");
+    return;
+  }
+
+  const newTrail = {
+    Trail: name,
+    Description: document.getElementById('newTrailDesc').value,
+    Difficulty: document.getElementById('newTrailDiff').value,
+    Type: document.getElementById('newTrailType').value,
+    "Approximate Distance": document.getElementById('newTrailDist').value,
+    Duration: document.getElementById('newTrailDur').value,
+    Elevation: document.getElementById('newTrailElev').value,
+    Municipality: document.getElementById('newTrailMunicipality').value,
+    Status: document.getElementById('newTrailStatus').value,
+    Ratings: document.getElementById('newTrailRatings').value,
+    UpdatedAt: serverTimestamp(),
+    StatusUpdatedAt: serverTimestamp()
+  };
+
+  try {
+    const docRef = await addDoc(collection(db, "trails"), newTrail);
+    selectedId = docRef.id;
+    addTrailModal.style.display = 'none';
+
+    // Reset the form for next time
+    document.getElementById('newTrailName').value = '';
+    document.getElementById('newTrailDesc').value = '';
+    document.getElementById('newTrailDist').value = '';
+    document.getElementById('newTrailDur').value = '';
+    document.getElementById('newTrailElev').value = '';
+    document.getElementById('newTrailMunicipality').value = '';
+    document.getElementById('newTrailRatings').value = '';
+  } catch (err) {
+    console.error(err);
+    alert("Failed to add trail: " + err.message);
+  }
+});
+
+// ---- ROW ACTIONS MENU (Duplicate / Delete) ----
+const rowActionsMenu = document.getElementById('rowActionsMenu');
+let menuTargetTrail = null;
+
+function openRowActionsMenu(e, trail) {
+  menuTargetTrail = trail;
+  const rect = e.target.getBoundingClientRect();
+  rowActionsMenu.style.top = `${rect.bottom + window.scrollY + 4}px`;
+  rowActionsMenu.style.left = `${rect.left + window.scrollX - 120}px`;
+  rowActionsMenu.style.display = 'block';
+}
+
+document.addEventListener('click', (e) => {
+  if (!rowActionsMenu.contains(e.target)) {
+    rowActionsMenu.style.display = 'none';
+  }
+});
+
+document.getElementById('duplicateTrailBtn').addEventListener('click', async () => {
+  if (!menuTargetTrail) return;
+  const { id, ...data } = menuTargetTrail;
+  try {
+    await addDoc(collection(db, "trails"), {
+      ...data,
+      Trail: (data.Trail || "Untitled Trail") + " (Copy)",
+      UpdatedAt: serverTimestamp()
+    });
+    rowActionsMenu.style.display = 'none';
+  } catch (err) {
+    console.error(err);
+    alert("Failed to duplicate trail: " + err.message);
+  }
+});
+
+document.getElementById('deleteTrailBtn').addEventListener('click', async () => {
+  if (!menuTargetTrail) return;
+  const confirmed = confirm(`Delete "${menuTargetTrail.Trail || 'this trail'}"? This cannot be undone.`);
+  if (!confirmed) return;
+
+  try {
+    await deleteDoc(doc(db, "trails", menuTargetTrail.id));
+    if (selectedId === menuTargetTrail.id) selectedId = null;
+    rowActionsMenu.style.display = 'none';
+  } catch (err) {
+    console.error(err);
+    alert("Failed to delete trail: " + err.message);
+  }
+});
 </script>
 </body>
 </html>
