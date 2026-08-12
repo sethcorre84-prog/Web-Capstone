@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<script type="module" src="dashboard-guard.js"></script>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 	<title>PeakPath — Advisories & Announcements</title>
@@ -24,421 +23,146 @@
         --warning-light:#fbf1e2;
         --success:#2f8f4e;
         --success-light:#e7f5eb;
+        --blue:#2a63b5;
+        --blue-light:#e6f0ff;
         --radius:10px;
         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   }
-		*{
-			box-sizing:border-box;
-			margin:0;
-			padding:0
-		}
-		body{
-			background:var(--page-bg);
-			color:var(--text-primary);
-			font-size:14px
-		}
-		a{
-			text-decoration:none;
-			color:inherit
-		}
-		button{
-			font-family:inherit;
-			cursor:pointer
-		}
-		.app{
-			display:flex;
-			min-height:100vh
-			}
-		.sidebar{
-			width:236px;
-			flex-shrink:0;
-			background:var(--sidebar-bg);
-			display:flex;
-			flex-direction:column;
-			padding:22px 16px;
-			color:#dfe8df;
-			position:sticky;
-			top:0;
-			height:100vh;
-			overflow:hidden
-		}
-		.brand{
-			display:flex;
-			flex-direction:column;
-			align-items:center;
-			justify-content:center;
-			gap:10px;
-			padding:4px 8px 20px 8px;
-			text-align:center;
-			flex-shrink:0
-		}
-		.brand-icon{
-			width:34px;
-			height:34px;
-			border-radius:9px;
-			background:linear-gradient(160deg,#3fa860,#1f6b39);
-			display:flex;
-			align-items:center;
-			justify-content:center;
-			flex-shrink:0;
-			margin:0 auto
-		}
-		.brand-name{
-			font-size:17px;
-			font-weight:700;
-			color:#fff;
-			line-height:1.1;
-			margin-top:4px
-		}
-		.brand-sub{
-			font-size:11px;
-			color:#8fa88f
-		}
-		.nav{
-			list-style:none;
-			display:flex;
-			flex-direction:column;
-			gap:2px;
-			flex:1;
-			margin-top:6px;
-			overflow-y:auto;
-			min-height:0
-		}
-		.nav li a{
-			display:flex;
-			align-items:center;
-			gap:11px;
-			padding:10px 12px;
-			border-radius:8px;
-			font-size:13.5px;
-			color:#c4d1c4;
-			font-weight:500;
-			transition:background .15s
-		}
-		.nav li a:hover{
-			background:var(--sidebar-bg-light);
-			color:#fff
-		}
-		.nav li a.active{
-			background:var(--accent);
-			color:#fff
-		}
-		.nav-icon{
-			width:18px;
-			height:18px;
-			flex-shrink:0;
-			stroke:currentColor;
-			fill:none;
-			stroke-width:1.8;
-			stroke-linecap:round;
-			stroke-linejoin:round
-		}
-		.sidebar-footer{
-			border-top:1px solid #2a3d2a;
-			padding-top:14px;
-			margin-top:10px;
-			flex-shrink:0
-		}
-		.user-chip{
-			display:flex;
-			align-items:center;
-			gap:10px;
-			padding:6px 8px 14px 8px
-		}
-		.avatar{
-			width:36px;
-			height:36px;
-			border-radius:50%;
-			background:var(--accent);
-			display:flex;
-			align-items:center;
-			justify-content:center;
-			font-weight:700;
-			color:#fff;
-			font-size:13px;
-			flex-shrink:0
-		}
-		.user-chip .name{
-			font-size:13.5px;
-			font-weight:600;
-			color:#fff
-		}
-		.user-chip .role{
-			font-size:11px;
-			color:#8fa88f
-		}
-		.logout-btn{
-			display:flex;
-			align-items:center;
-			gap:8px;width:100%;
-			background:transparent;
-			border:1px solid #33472f;
-			color:#c4d1c4;
-			padding:9px 12px;
-			border-radius:8px;
-			font-size:13px;
-			font-weight:500
-		}
-		.logout-btn:hover{
-			background:var(--sidebar-bg-light)
-		}
-
-		.main{
-			flex:1;
-			padding:26px 32px;
-			min-width:0
-		}
-		.topbar{
-			display:flex;
-			justify-content:space-between;
-			align-items:flex-start;
-			margin-bottom:22px
-		}
-		.topbar h1{
-			font-size:22px;
-			font-weight:700;
-			margin-bottom:4px
-		}
-		.topbar p{
-			color:var(--text-secondary);
-			font-size:13.5px
-			}
-		.topbar-right{
-			display:flex;
-			align-items:center;
-			gap:18px
-		}
-		.button{
-			display:inline-flex;
-			align-items:center;
-			justify-content:center;
-			padding:8px 12px;
-			border-radius:8px;
-			border:none;
-			font-weight:700
-		}
-		.button-green{
-			background:var(--accent);
-			color:#fff
-		}
-
-		.content-grid{
-			display:grid;
-			grid-template-columns:1.7fr 1fr;
-			gap:18px;
-			align-items:start
-		}
-		.panel{
-			background:var(--card-bg);
-			border:1px solid var(--border);
-			border-radius:var(--radius);
-			padding:18px 20px;
-			margin-bottom:18px
-		}
-		.panel-title{
-			font-size:15px;
-			font-weight:700;
-			margin-bottom:14px;
-			color:var(--accent-dark)
-		}
-
-		.toolbar{
-			display:flex;
-			gap:10px;
-			margin-bottom:14px;
-			flex-wrap:wrap
-		}
-		.search-box{
-			flex:1;
-			min-width:160px;
-			display:flex;
-			align-items:center;
-			gap:8px;
-			border:1px solid var(--border);
-			border-radius:8px;
-			padding:8px 12px;
-			background:#fbfcfa
-		}	
-		.search-box input{
-			border:none;
-			background:transparent;
-			outline:none;
-			font-size:13px;
-			width:100%;
-			color:var(--text-primary)
-		}
-		select.filter{
-			border:1px solid var(--border);
-			border-radius:8px;
-			padding:8px 10px;
-			font-size:13px;
-			background:#fbfcfa;
-			color:var(--text-secondary)
-		}
-
-		table{
-			width:100%;
-			border-collapse:collapse
-		}
-		thead th{
-			text-align:left;
-			font-size:11px;
-			text-transform:uppercase;
-			letter-spacing:.03em;
-			color:var(--text-muted);
-			padding:8px 6px;
-			border-bottom:1px solid var(--border);
-			font-weight:600
-		}
-		tbody td{
-			padding:10px 6px;
-			border-bottom:1px solid var(--border);
-			font-size:13px;
-			vertical-align:middle
-		}
-		tbody tr{
-			cursor:pointer;
-			transition:background .12s
-		}
-		tbody tr:hover{
-			background:#f6f8f4
-		}
-		tbody tr.selected{
-			background:var(--accent-light)
-		}
-
-		.thumb{
-			width:44px;
-			height:44px;
-			border-radius:8px;
-			flex-shrink:0;
-			background:linear-gradient(160deg,#7fbf8f,#2f6b45);
-			display:flex;
-			align-items:center;
-			justify-content:center;
-			color:#fff
-		}
-		.badge{
-			display:inline-block;
-			padding:6px 10px;
-			border-radius:16px;
-			font-size:12px;
-			font-weight:700
-			}
-		.badge.advisory{
-			background:var(--danger-light);
-			color:var(--danger)
-		}
-		.badge.weather{
-			background:#e6f0ff;
-			color:#2a63b5
-		}
-		.badge.update{
-			background:#fff6e8;
-			color:#c9821f
-		}
-		.badge.announcement{
-			background:#eaf7ee;
-			color:var(--accent)
-		}
-
-		/* RIGHT DETAIL (match photo) */
-		.detail{
-			background:var(--card-bg);
-			border:1px solid var(--border);
-			border-radius:var(--radius);
-			padding:18px
-		}
-		.detail-top{
-			display:flex;
-			gap:14px;
-			align-items:center;
-			margin-bottom:12px
-		}
-		.detail-icon{
-			width:64px;
-			height:64px;
-			border-radius:50%;
-			background:linear-gradient(160deg,#ffdede,#f6b4b4);
-			display:flex;
-			align-items:center;
-			justify-content:center;
-			font-size:28px;
-			color:#a33
-		}
-		.detail-head{
-			flex:1
-		}
-		.detail-head h3{
-			margin:0 0 6px;
-			font-size:18px
-			}
-		.pill{
-			display:inline-block;
-			padding:6px 10px;
-			border-radius:8px;
-			font-weight:700;
-			font-size:12px
-		}
-		.pill.active{
-			background:#ecf7ee;
-			color:var(--accent)
-		}
-		.detail-meta{
-			font-size:13px;
-			color:var(--text-secondary);
-			margin: bottom 12px;
-		}
-		.detail-desc{
-			line-height:1.6;
-			color:var(--text-secondary);
-			margin-bottom:12px
-		}
-		.actions-row{
-			display:flex;
-			gap:10px;
-			margin-top:10px
-		}
-		.btn-edit{
-			background:var(--accent);
-			color:#fff;
-			border:none;
-			padding:10px 14px;
-			border-radius:8px;
-			font-weight:700
-			}
-		.btn-end{
-		background:var(--danger);
-		color:#fff;
-		border:none;
-		padding:10px 14px;
-		border-radius:8px;
-		font-weight:700
-	}
-
-		@media(max-width:980px){
-			.content-grid{
-				grid-template-columns:1fr
-			}.sidebar{
-				display:none
-			}
-			}
+		*{box-sizing:border-box;margin:0;padding:0}
+		body{background:var(--page-bg);color:var(--text-primary);font-size:14px}
+		a{text-decoration:none;color:inherit}
+		button{font-family:inherit;cursor:pointer}
+		.app{display:flex;min-height:100vh}
+		.sidebar{width:236px;flex-shrink:0;background:var(--sidebar-bg);display:flex;flex-direction:column;padding:22px 16px;color:#dfe8df;position:sticky;top:0;height:100vh;overflow:hidden}
+		.brand{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:4px 8px 20px 8px;text-align:center;flex-shrink:0}
+		.brand-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(160deg,#3fa860,#1f6b39);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:0 auto}
+		.brand-name{font-size:17px;font-weight:700;color:#fff;line-height:1.1;margin-top:4px}
+		.brand-sub{font-size:11px;color:#8fa88f}
+		.nav{list-style:none;display:flex;flex-direction:column;gap:2px;flex:1;margin-top:6px;overflow-y:auto;min-height:0}
+		.nav li a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;font-size:13.5px;color:#c4d1c4;font-weight:500;transition:background .15s}
+		.nav li a:hover{background:var(--sidebar-bg-light);color:#fff}
+		.nav li a.active{background:var(--accent);color:#fff}
+		.nav-icon{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+		.sidebar-footer{border-top:1px solid #2a3d2a;padding-top:14px;margin-top:10px;flex-shrink:0}
+		.user-chip{display:flex;align-items:center;gap:10px;padding:6px 8px 14px 8px}
+		.avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;flex-shrink:0}
+		.user-chip .name{font-size:13.5px;font-weight:600;color:#fff}
+		.user-chip .role{font-size:11px;color:#8fa88f}
+		.logout-btn{display:flex;align-items:center;gap:8px;width:100%;background:transparent;border:1px solid #33472f;color:#c4d1c4;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:500}
+		.logout-btn:hover{background:var(--sidebar-bg-light)}
+		.main{flex:1;padding:26px 32px;min-width:0}
+		.topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px}
+		.topbar h1{font-size:22px;font-weight:700;margin-bottom:4px}
+		.topbar p{color:var(--text-secondary);font-size:13.5px}
+		.topbar-right{display:flex;align-items:center;gap:16px}
+		.bell-wrap{position:relative;width:38px;height:38px;border-radius:9px;background:var(--card-bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
+		.bell-badge{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:var(--danger);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+		.bell-icon{font-size:20px;line-height:1}
+		.profile-chip{display:flex;align-items:center;gap:9px;cursor:pointer;position:relative}
+		.profile-chip .avatar{width:34px;height:34px;font-size:12px}
+		.profile-chip .name{font-size:13px;font-weight:700}
+		.profile-chip .role{font-size:11px;color:var(--text-secondary)}
+		.profile-menu{position:absolute;top:46px;right:0;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 22px rgba(0,0,0,.12);min-width:150px;display:none;overflow:hidden;z-index:30}
+		.profile-menu.open{display:block}
+		.profile-menu a{display:block;padding:10px 14px;font-size:13px;color:var(--text-primary)}
+		.profile-menu a:hover{background:var(--accent-light)}
+		.button{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;border-radius:8px;border:none;font-weight:700;font-size:13px}
+		.button-green{background:var(--accent);color:#fff}
+		.content-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:18px;align-items:start}
+		.panel{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px}
+		.panel-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--accent-dark)}
+		.toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+		.search-box{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:#fbfcfa}
+		.search-box input{border:none;background:transparent;outline:none;font-size:13px;width:100%;color:var(--text-primary)}
+		select.filter{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;background:#fbfcfa;color:var(--text-secondary)}
+		table{width:100%;border-collapse:collapse}
+		thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);padding:8px 6px;border-bottom:1px solid var(--border);font-weight:600}
+		tbody td{padding:10px 6px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+		tbody tr{cursor:pointer;transition:background .12s}
+		tbody tr:hover{background:#f6f8f4}
+		tbody tr.selected{background:var(--accent-light)}
+		.thumb{width:40px;height:40px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+		.thumb svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+		.trail-name{font-weight:600}
+		.trail-loc{font-size:12px;color:var(--text-muted);margin-top:1px}
+		.badge{display:inline-block;padding:6px 10px;border-radius:16px;font-size:12px;font-weight:700}
+		.badge.advisory{background:var(--danger-light);color:var(--danger)}
+		.badge.weather{background:var(--blue-light);color:var(--blue)}
+		.badge.update{background:var(--warning-light);color:var(--warning)}
+		.badge.announcement{background:var(--accent-light);color:var(--accent)}
+		.badge.alert{background:#fbeae7;color:#a33}
+		.status-badge{display:inline-block;padding:5px 10px;border-radius:16px;font-size:12px;font-weight:700}
+		.status-badge.active{background:var(--accent-light);color:var(--accent)}
+		.status-badge.scheduled{background:var(--warning-light);color:var(--warning)}
+		.status-badge.expired{background:#f1f1ee;color:var(--text-muted)}
+		.detail{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+		.detail-top{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}
+		.detail-icon{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+		.detail-icon svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+		.detail-head{flex:1}
+		.detail-head h3{margin:0 0 4px;font-size:17px}
+		.detail-head .sub{font-size:12.5px;color:var(--text-secondary)}
+		.pill{display:inline-block;padding:5px 10px;border-radius:8px;font-weight:700;font-size:11px}
+		.pill.active{background:var(--accent-light);color:var(--accent)}
+		.pill.scheduled{background:var(--warning-light);color:var(--warning)}
+		.pill.expired{background:#f1f1ee;color:var(--text-muted)}
+		.detail-row{display:flex;justify-content:space-between;padding:7px 0;font-size:13px;border-bottom:1px solid var(--border)}
+		.detail-row .k{color:var(--text-muted)}
+		.detail-row .v{font-weight:600;text-align:right}
+		.detail-section{margin-top:14px}
+		.detail-section .label{font-weight:700;margin-bottom:6px;font-size:13px}
+		.detail-desc{line-height:1.6;color:var(--text-secondary);font-size:13px}
+		.chan-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:4px}
+		.chan-item{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-secondary)}
+		.chan-dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+		.actions-row{display:flex;gap:10px;margin-top:16px}
+		.btn-edit{flex:1;background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-weight:700;font-size:13px}
+		.btn-end{flex:1;background:var(--danger);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-weight:700;font-size:13px}
+		.btn-edit[disabled],.btn-end[disabled]{cursor:not-allowed}
+		.empty-state{padding:24px;text-align:center;color:var(--text-muted);font-size:13px}
+		.row-actions{display:flex;align-items:center;gap:2px}
+		.icon-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:none;background:transparent;border-radius:7px;color:var(--text-secondary)}
+		.icon-btn:hover{background:var(--accent-light);color:var(--accent-dark)}
+		.icon-btn.danger:hover{background:var(--danger-light);color:var(--danger)}
+		.icon-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+		.icon-btn[disabled]{opacity:.35;cursor:not-allowed}
+		.icon-btn[disabled]:hover{background:transparent;color:var(--text-secondary)}
+		.pagination{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+		.page-controls{display:flex;align-items:center;gap:6px}
+		.page-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--card-bg);display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+		.page-btn[disabled]{opacity:.4;cursor:default}
+		.page-btn.current{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
+		.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+		.stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px}
+		.stat-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+		.stat-icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+		.stat-num{font-size:19px;font-weight:700;line-height:1.1}
+		.stat-label{font-size:12px;color:var(--text-secondary);margin-top:2px}
+		/* Modal */
+		.modal-overlay{position:fixed;inset:0;background:rgba(15,25,15,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;z-index:100}
+		.modal-overlay.open{display:flex}
+		.modal{background:var(--card-bg);border-radius:12px;width:100%;max-width:560px;padding:22px 24px 24px}
+		.modal h2{font-size:17px;margin-bottom:16px}
+		.field{margin-bottom:13px}
+		.field label{display:block;font-size:12.5px;font-weight:600;color:var(--text-secondary);margin-bottom:5px}
+		.field input,.field select,.field textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:13px;font-family:inherit;background:#fbfcfa;color:var(--text-primary)}
+		.field textarea{resize:vertical;min-height:60px}
+		.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+		.checks{display:flex;gap:16px;flex-wrap:wrap;padding-top:2px}
+		.checks label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--text-primary)}
+		.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+		.btn-secondary{background:#f1f3ef;color:var(--text-primary);border:none;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13px}
+		.btn-primary{background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13px}
+		@media(max-width:980px){.content-grid{grid-template-columns:1fr}.sidebar{display:none}.stats-grid{grid-template-columns:1fr 1fr}}
 	</style>
 </head>
 <body>
 	<div class="app">
-		<!-- SIDEBAR -->
 		<div class="sidebar">
 			<div class="brand">
-				<div class="brand-icon">
-        		<img src="assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
-        		</div>
-				<div>
-					<div class="brand-name">PeakPath</div>
-					<div class="brand-sub">Admin Portal</div>
-				</div>
+				<div class="brand-icon"><img src="assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;"></div>
+				<div><div class="brand-name">PeakPath</div><div class="brand-sub">Admin Portal</div></div>
 			</div>
-
 			<ul class="nav">
 				<li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
 				<li><a href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
@@ -450,20 +174,12 @@
 				<li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
 				<li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
 			</ul>
-
 			<div class="sidebar-footer">
-				<div class="user-chip">
-					<div class="avatar">AU</div>
-					<div>
-						<div class="name">Admin User</div>
-						<div class="role">Super Administrator</div>
-					</div>
-				</div>
+				<div class="user-chip"><div class="avatar">AU</div><div><div class="name">Admin User</div><div class="role">Super Administrator</div></div></div>
 				<a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
 			</div>
 		</div>
 
-		<!-- MAIN -->
 		<div class="main">
 			<div class="topbar">
 				<div>
@@ -471,56 +187,82 @@
 					<p>Create, manage, and publish advisories and announcements for hikers.</p>
 				</div>
 				<div class="topbar-right">
+					<div class="bell-wrap">
+						<span class="bell-icon">🔔</span>
+						<div class="bell-badge">3</div>
+					</div>
+					<div class="profile-chip" id="profileChip">
+						<div class="avatar">AU</div>
+						<div><div class="name">Admin User</div><div class="role">Super Administrator</div></div>
+						<div class="profile-menu" id="profileMenu"><a href="Home.html">Logout</a></div>
+					</div>
 					<button class="button button-green" id="createBtn">+ Create New</button>
 				</div>
 			</div>
 
 			<div class="content-grid">
-				<!-- Left: list -->
 				<div>
 					<div class="panel">
 						<div class="panel-title">Advisories & Announcements</div>
 						<div class="toolbar">
 							<div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#98a094" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Search advisories..."></div>
-							<select id="typeFilter" class="filter"><option value="">All Types</option><option>Advisory</option><option>Weather</option><option>Update</option><option>Announcement</option></select>
+							<select id="typeFilter" class="filter"><option value="">All Types</option><option>Advisory</option><option>Weather</option><option>Update</option><option>Alert</option><option>Announcement</option></select>
 							<select id="statusFilter" class="filter"><option value="">All Status</option><option>Active</option><option>Scheduled</option><option>Expired</option></select>
+							<select id="dateFilter" class="filter"><option value="">All Dates</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select>
 						</div>
-
 						<table>
-							<thead>
-								<tr><th>Title</th><th>Type</th><th>Target</th><th>Status</th><th>Published</th></tr>
-							</thead>
+							<thead><tr><th>Title</th><th>Type</th><th>Target</th><th>Status</th><th>Published / Scheduled</th><th>Actions</th></tr></thead>
 							<tbody id="listBody"></tbody>
 						</table>
+						<div class="pagination">
+							<div id="pageInfo">Loading…</div>
+							<div class="page-controls" id="pageControls"></div>
+						</div>
+					</div>
 
-						<div class="pagination" style="margin-top:12px"><div id="pageInfo">Showing 1 to 7 of 7 advisories</div></div>
+					<div class="panel">
+						<div class="panel-title">Advisory Statistics (This Month)</div>
+						<div class="stats-grid" id="statsGrid"></div>
 					</div>
 				</div>
 
-				<!-- Right: detail panel -->
 				<div>
 					<div class="panel detail">
 						<div class="detail-top">
-							<div class="detail-icon" id="detailIcon">!</div>
+							<div class="detail-icon" id="detailIcon" style="background:var(--danger-light);color:var(--danger)"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg></div>
 							<div class="detail-head">
 								<h3 id="detailTitle">Select an advisory</h3>
-								<div class="detail-meta" id="detailMeta">Type · Target · Effective</div>
+								<div class="sub" id="detailSub">Choose an item from the list to see full details here.</div>
 							</div>
+							<span class="pill" id="detailStatusPill" style="display:none"></span>
 						</div>
-						<div class="detail-desc" id="detailDesc">Select an advisory from the list to see full details here. The right panel matches the layout shown in the design with type, target, dates, publisher, channels, and recommended actions.</div>
+						<div id="detailBody" style="display:none">
+							<div class="detail-row"><div class="k">Type</div><div class="v" id="dType">—</div></div>
+							<div class="detail-row"><div class="k">Target</div><div class="v" id="dTarget">—</div></div>
+							<div class="detail-row"><div class="k">Effective Date</div><div class="v" id="dEffective">—</div></div>
+							<div class="detail-row"><div class="k">Expires On</div><div class="v" id="dExpires">—</div></div>
+							<div class="detail-row"><div class="k">Published By</div><div class="v" id="dPublishedBy">—</div></div>
+							<div class="detail-row" style="border-bottom:none"><div class="k">Visibility</div><div class="v" id="dVisibility">—</div></div>
 
-						<div>
-							<div style="font-weight:700;margin-bottom:8px">Recommended Actions</div>
-							<ul id="recommendations" style="color:var(--text-secondary);margin-left:18px;line-height:1.6">
-								<li>Avoid the area until further notice.</li>
-								<li>Take alternative routes.</li>
-								<li>Stay updated for announcements.</li>
-							</ul>
-						</div>
+							<div class="detail-section">
+								<div class="label">Channels</div>
+								<div class="chan-row" id="dChannels"></div>
+							</div>
 
-						<div class="actions-row">
-							<button class="btn-edit" id="editBtn">Edit Advisory</button>
-							<button class="btn-end" id="endBtn">End Advisory</button>
+							<div class="detail-section">
+								<div class="label">Description</div>
+								<div class="detail-desc" id="dDesc">—</div>
+							</div>
+
+							<div class="detail-section">
+								<div class="label">Recommended Actions</div>
+								<ul id="recommendations" style="color:var(--text-secondary);margin-left:18px;line-height:1.6;font-size:13px"></ul>
+							</div>
+
+							<div class="actions-row">
+								<button class="btn-edit" id="editBtn">✎ Edit Advisory</button>
+								<button class="btn-end" id="endBtn">⦻ End Advisory</button>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -528,73 +270,497 @@
 		</div>
 	</div>
 
-	<script>
-		const data = [
-			{id:1,title:'Trail Closure: Sipit Trail (Section 2)',type:'Advisory',target:'Sipit Trail (Section 2)',status:'Active',published:'May 20, 2025 09:15 AM',desc:'Due to recent rainfall, a landslide risk has been identified in the steep section of Sipit Trail (Section 2). The trail is temporarily closed for your safety. Please take alternative routes.',channels:['In-App','Push Notification','Email'],publishedBy:'Admin User',views:1248},
-			{id:2,title:'Weather Advisory: Mt. Makiling',type:'Weather',target:'Mount Makiling (Entire Area)',status:'Active',published:'May 20, 2025 08:30 AM',desc:'Light to moderate rains expected across Mount Makiling area. Hikers should prepare for wet conditions.',channels:['In-App'],publishedBy:'Admin User',views:412},
-			{id:3,title:'Checkpoint 2 Maintenance',type:'Update',target:'Makaling Rainforest Trail',status:'Scheduled',published:'May 21, 2025 07:00 AM',desc:'Maintenance work at checkpoint 2, temporary closure expected for 2 hours.',channels:['In-App'],publishedBy:'Admin User',views:88},
-			{id:4,title:'Forest Fire Warning',type:'Alert',target:'Mount Makiling (Entire Area)',status:'Active',published:'May 19, 2025 02:45 PM',desc:'Avoid open flames and smoking.',channels:['In-App','Email'],publishedBy:'Admin User',views:220},
-			{id:5,title:'New Campsite Available',type:'Announcement',target:'Forestry Trail (UPLB Area)',status:'Active',published:'May 18, 2025 11:20 AM',desc:'Campsite 5 is now open for booking.',channels:['In-App','Email'],publishedBy:'Admin User',views:301},
-			{id:6,title:'Trail Condition Update',type:'Update',target:'Landslide Risk Area (Upper)',status:'Expired',published:'May 17, 2025 05:10 PM',desc:'Muddy sections after heavy rain.',channels:['In-App'],publishedBy:'Admin User',views:142},
-			{id:7,title:'Hiking Safety Tips',type:'Announcement',target:'All Trails',status:'Active',published:'May 16, 2025 09:00 AM',desc:'Stay safe and be prepared.',channels:['In-App','Email'],publishedBy:'Admin User',views:56}
-		];
+	<!-- Create / Edit Modal -->
+	<div class="modal-overlay" id="modalOverlay">
+		<div class="modal">
+			<h2 id="modalTitle">Create New Advisory</h2>
+			<div class="field"><label>Title</label><input id="mTitle" placeholder="e.g. Trail Closure: Sipit Trail"></div>
+			<div class="field-row">
+				<div class="field"><label>Type</label>
+					<select id="mType"><option>Advisory</option><option>Weather</option><option>Update</option><option>Alert</option><option>Announcement</option></select>
+				</div>
+				<div class="field"><label>Status</label>
+					<select id="mStatus"><option>Active</option><option>Scheduled</option><option>Expired</option></select>
+				</div>
+			</div>
+			<div class="field"><label>Target</label><input id="mTarget" placeholder="e.g. Sipit Trail (Section 2) or All Trails"></div>
+			<div class="field-row">
+				<div class="field"><label>Effective Date</label><input type="datetime-local" id="mEffective"></div>
+				<div class="field"><label>Expires On (optional)</label><input type="datetime-local" id="mExpires"></div>
+			</div>
+			<div class="field-row">
+				<div class="field"><label>Published By</label><input id="mPublishedBy" value="Admin User"></div>
+				<div class="field"><label>Visibility</label>
+					<select id="mVisibility"><option>All Users</option><option>Registered Users</option><option>Premium Users</option></select>
+				</div>
+			</div>
+			<div class="field"><label>Channels</label>
+				<div class="checks">
+					<label><input type="checkbox" id="mChanInApp" checked> In-App</label>
+					<label><input type="checkbox" id="mChanPush"> Push Notification</label>
+					<label><input type="checkbox" id="mChanEmail"> Email</label>
+				</div>
+			</div>
+			<div class="field"><label>Description</label><textarea id="mDesc" placeholder="Full details shown to hikers"></textarea></div>
+			<div class="field"><label>Recommended Actions (one per line)</label><textarea id="mActions" placeholder="Avoid the area until further notice.&#10;Take alternative trails."></textarea></div>
+			<div class="modal-actions">
+				<button class="btn-secondary" id="modalCancel">Cancel</button>
+				<button class="btn-primary" id="modalSave">Save Advisory</button>
+			</div>
+		</div>
+	</div>
 
-		function el(t,cls){const e=document.createElement(t);if(cls)e.className=cls;return e}
+	<!-- Alert / Warning Modal -->
+	<div class="modal-overlay" id="alertOverlay">
+		<div class="modal" style="max-width:340px;text-align:center;padding:28px 24px">
+			<div style="width:44px;height:44px;border-radius:50%;background:var(--warning-light);color:var(--warning);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+			</div>
+			<div id="alertMsg" style="font-size:14px;font-weight:600;margin-bottom:18px;color:var(--text-primary)">Something needs your attention.</div>
+			<button class="btn-primary" id="alertOk" style="width:100%">OK</button>
+		</div>
+	</div>
 
-		function renderList(items){
-			const tbody=document.getElementById('listBody');tbody.innerHTML='';
-			items.forEach(it=>{
-				const tr=document.createElement('tr');
-				tr.onclick=()=>selectAdvisory(it.id);
-				const tdTitle=document.createElement('td');
-				const wrap=document.createElement('div');wrap.style.display='flex';wrap.style.alignItems='center';wrap.style.gap='12px';
-				const thumb=document.createElement('div');thumb.className='thumb';thumb.textContent=it.title.charAt(0);
-				const titleWrap=document.createElement('div');
-				const t=el('div','trail-name');t.textContent=it.title;
-				const s=el('div','trail-loc');s.textContent=it.desc.slice(0,60)+'...';
-				titleWrap.appendChild(t);titleWrap.appendChild(s);
-				wrap.appendChild(thumb);wrap.appendChild(titleWrap);
+	<!-- Confirmation Modal -->
+	<div class="modal-overlay" id="confirmOverlay">
+		<div class="modal" style="max-width:340px;text-align:center;padding:28px 24px">
+			<div style="width:44px;height:44px;border-radius:50%;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+			</div>
+			<div id="confirmMsg" style="font-size:15px;font-weight:700;margin-bottom:18px">Advisory Created</div>
+			<button class="btn-primary" id="confirmOk" style="width:100%">OK</button>
+		</div>
+	</div>
+
+	<script type="module">
+		import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+		import {
+			getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, getDoc,
+			serverTimestamp, orderBy, query, Timestamp
+		} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+		import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+		// PeakPath Firebase project config
+		const firebaseConfig = {
+			apiKey: "AIzaSyAUHQe9hXSF3wI-et48Km5fs23eSEjMyW0",
+			authDomain: "peakpath-ccd4a.firebaseapp.com",
+			projectId: "peakpath-ccd4a",
+			storageBucket: "peakpath-ccd4a.firebasestorage.app",
+			messagingSenderId: "153325648552",
+			appId: "1:153325648552:web:637b98f31cab359923a09d",
+			measurementId: "G-1EEW8LSELB"
+		};
+
+		const app = initializeApp(firebaseConfig);
+		const db = getFirestore(app);
+		const auth = getAuth(app);
+		const advisoryCol = collection(db, 'Advisory');
+
+		// Auth guard — this page requires a signed-in admin. Without this,
+		// writes fail with "Missing or insufficient permissions" and it's
+		// not obvious why, because request.auth is silently null.
+		let isVerifiedAdmin = false;
+		onAuthStateChanged(auth, async (user) => {
+			if (!user) {
+				window.location.href = 'Home.html';
+				return;
+			}
+			try {
+				const adminSnap = await getDoc(doc(db, 'admins', user.uid));
+				isVerifiedAdmin = adminSnap.exists();
+				if (!isVerifiedAdmin) {
+					document.getElementById('pageInfo').textContent =
+						'Signed in, but this account is not listed in the admins collection — writes will fail. UID: ' + user.uid;
+				}
+			} catch (err) {
+				console.warn('Could not verify admin status:', err.message);
+			}
+		});
+
+		let allItems = [];
+		let selectedId = null;
+		let editingId = null;
+		let currentPage = 1;
+		const PAGE_SIZE = 5;
+
+		const TYPE_META = {
+			Advisory:     { cls:'advisory',     bg:'var(--danger-light)',  fg:'var(--danger)', icon:'<path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/>' },
+			Weather:      { cls:'weather',      bg:'var(--blue-light)',    fg:'var(--blue)',   icon:'<path d="M17.5 19a4.5 4.5 0 000-9 6 6 0 00-11.4 2.2A4 4 0 007 19h10.5z"/>' },
+			Update:       { cls:'update',       bg:'var(--warning-light)', fg:'var(--warning)', icon:'<path d="M14.7 6.3a4 4 0 01-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 015.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/>' },
+			Alert:        { cls:'alert',        bg:'#fbeae7',              fg:'#a33',          icon:'<path d="M12 2c2 4-3 5-1 9 3-1 3-4 3-4 2 2 2 6-1 8-3 2-7 1-8-2-1-2 0-4 1-5-1 3 1 4 2 3-1-2 0-6 4-9z"/>' },
+			Announcement: { cls:'announcement', bg:'var(--accent-light)',  fg:'var(--accent)', icon:'<path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/>' }
+		};
+		function typeMeta(t){ return TYPE_META[t] || TYPE_META.Announcement; }
+
+		function el(t, cls) { const e = document.createElement(t); if (cls) e.className = cls; return e; }
+		function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+		function toDate(v){
+			if (!v) return null;
+			if (typeof v.toDate === 'function') return v.toDate();
+			if (v instanceof Date) return v;
+			if (typeof v === 'string') { const d = new Date(v); return isNaN(d) ? null : d; }
+			return null;
+		}
+		function fmtDateTime(v){
+			const d = toDate(v);
+			if (!d) return typeof v === 'string' && v ? v : '—';
+			return d.toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true });
+		}
+		function toLocalInputValue(v){
+			const d = toDate(v);
+			if (!d) return '';
+			const pad = n => String(n).padStart(2,'0');
+			return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+		}
+
+		function inDateRange(it, rangeKey){
+			if (!rangeKey) return true;
+			const d = toDate(it.effectiveDate || it.publishedAt || it.createdAt);
+			if (!d) return false;
+			const now = new Date();
+			if (rangeKey === 'today') return d.toDateString() === now.toDateString();
+			if (rangeKey === 'week') { const weekAgo = new Date(now); weekAgo.setDate(now.getDate()-7); return d >= weekAgo && d <= now; }
+			if (rangeKey === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+			return true;
+		}
+
+		function applyFiltersAndRender() {
+			const q = document.getElementById('search').value.toLowerCase();
+			const typeVal = document.getElementById('typeFilter').value;
+			const statusVal = document.getElementById('statusFilter').value;
+			const dateVal = document.getElementById('dateFilter').value;
+
+			let items = allItems;
+			if (q) items = items.filter(d => (d.title || '').toLowerCase().includes(q) || (d.desc || '').toLowerCase().includes(q));
+			if (typeVal) items = items.filter(d => d.type === typeVal);
+			if (statusVal) items = items.filter(d => d.status === statusVal);
+			if (dateVal) items = items.filter(d => inDateRange(d, dateVal));
+
+			const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+			if (currentPage > totalPages) currentPage = totalPages;
+			const start = (currentPage - 1) * PAGE_SIZE;
+			const pageItems = items.slice(start, start + PAGE_SIZE);
+
+			renderList(pageItems);
+			renderStats();
+
+			document.getElementById('pageInfo').textContent = items.length
+				? `Showing ${start + 1} to ${Math.min(start + PAGE_SIZE, items.length)} of ${items.length} advisories`
+				: 'No advisories found';
+			renderPagination(totalPages);
+		}
+
+		function renderPagination(totalPages){
+			const wrap = document.getElementById('pageControls');
+			wrap.innerHTML = '';
+			const prev = el('button','page-btn'); prev.textContent = '‹';
+			prev.disabled = currentPage <= 1;
+			prev.onclick = () => { currentPage--; applyFiltersAndRender(); };
+			wrap.appendChild(prev);
+
+			const cur = el('button','page-btn current'); cur.textContent = currentPage;
+			wrap.appendChild(cur);
+
+			const next = el('button','page-btn'); next.textContent = '›';
+			next.disabled = currentPage >= totalPages;
+			next.onclick = () => { currentPage++; applyFiltersAndRender(); };
+			wrap.appendChild(next);
+		}
+
+		function renderStats(){
+			const active = allItems.filter(d => d.status === 'Active').length;
+			const scheduled = allItems.filter(d => d.status === 'Scheduled').length;
+			const expired = allItems.filter(d => d.status === 'Expired').length;
+			const totalViews = allItems.reduce((sum, d) => sum + (Number(d.views) || 0), 0);
+
+			const cards = [
+				{ label:'Active Advisories', num:active, bg:'var(--accent-light)', fg:'var(--accent)', icon:'<path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/>' },
+				{ label:'Scheduled', num:scheduled, bg:'var(--warning-light)', fg:'var(--warning)', icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' },
+				{ label:'Expired', num:expired, bg:'#f1f1ee', fg:'var(--text-muted)', icon:'<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>' },
+				{ label:'Total Views', num:totalViews.toLocaleString(), bg:'var(--blue-light)', fg:'var(--blue)', icon:'<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>' }
+			];
+			const grid = document.getElementById('statsGrid');
+			grid.innerHTML = '';
+			cards.forEach(c => {
+				const card = el('div','stat-card');
+				card.innerHTML = `<div class="stat-icon" style="background:${c.bg};color:${c.fg}"><svg viewBox="0 0 24 24">${c.icon}</svg></div>
+					<div><div class="stat-num">${c.num}</div><div class="stat-label">${c.label}</div></div>`;
+				grid.appendChild(card);
+			});
+		}
+
+		function renderList(items) {
+			const tbody = document.getElementById('listBody');
+			tbody.innerHTML = '';
+			if (!items.length) {
+				const tr = document.createElement('tr');
+				const td = document.createElement('td');
+				td.colSpan = 6;
+				td.className = 'empty-state';
+				td.textContent = 'No advisories yet.';
+				tr.appendChild(td);
+				tbody.appendChild(tr);
+				return;
+			}
+			items.forEach(it => {
+				const meta = typeMeta(it.type);
+				const tr = document.createElement('tr');
+				if (it.id === selectedId) tr.classList.add('selected');
+				tr.onclick = () => selectAdvisory(it.id);
+
+				const tdTitle = document.createElement('td');
+				const wrap = document.createElement('div');
+				wrap.style.display = 'flex'; wrap.style.alignItems = 'center'; wrap.style.gap = '12px';
+				const thumb = document.createElement('div');
+				thumb.className = 'thumb';
+				thumb.style.background = meta.bg; thumb.style.color = meta.fg;
+				thumb.innerHTML = `<svg viewBox="0 0 24 24">${meta.icon}</svg>`;
+				const titleWrap = document.createElement('div');
+				const t = el('div', 'trail-name'); t.textContent = it.title || 'Untitled';
+				const s = el('div', 'trail-loc'); s.textContent = (it.desc || '').slice(0, 60) + ((it.desc || '').length > 60 ? '...' : '');
+				titleWrap.appendChild(t); titleWrap.appendChild(s);
+				wrap.appendChild(thumb); wrap.appendChild(titleWrap);
 				tdTitle.appendChild(wrap);
 
-				const tdType=document.createElement('td');tdType.innerHTML='<span class="badge '+(it.type.toLowerCase())+'">'+it.type+'</span>';
-				const tdTarget=document.createElement('td');tdTarget.textContent=it.target;
-				const tdStatus=document.createElement('td');tdStatus.textContent=it.status;
-				const tdPub=document.createElement('td');tdPub.textContent=it.published;
-				tr.appendChild(tdTitle);tr.appendChild(tdType);tr.appendChild(tdTarget);tr.appendChild(tdStatus);tr.appendChild(tdPub);
+				const tdType = document.createElement('td');
+				tdType.innerHTML = `<span class="badge ${meta.cls}">${escapeHtml(it.type || '')}</span>`;
+				const tdTarget = document.createElement('td'); tdTarget.textContent = it.target || '';
+				const tdStatus = document.createElement('td');
+				const statusCls = (it.status || '').toLowerCase();
+				tdStatus.innerHTML = it.status ? `<span class="status-badge ${statusCls}">${escapeHtml(it.status)}</span>` : '';
+				const tdPub = document.createElement('td'); tdPub.textContent = fmtDateTime(it.effectiveDate || it.publishedAt || it.createdAt);
+
+				const tdActions = document.createElement('td');
+				const actWrap = el('div', 'row-actions');
+
+				const isVisible = it.visible !== false; // default to visible when field is absent
+
+				const viewBtn = el('button', 'icon-btn');
+				viewBtn.title = isVisible ? 'Visible — click to hide' : 'Hidden — click to show';
+				viewBtn.innerHTML = isVisible
+					? '<svg viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>'
+					: '<svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.94 10.94 0 0112 19c-7 0-11-7-11-7a18.6 18.6 0 015.06-5.94M9.9 4.24A10.94 10.94 0 0112 4c7 0 11 7 11 7a18.5 18.5 0 01-2.16 3.19M14.12 14.12a3 3 0 11-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
+				viewBtn.onclick = async (e) => {
+					e.stopPropagation();
+					try {
+						await updateDoc(doc(db, 'Advisory', it.id), { visible: !isVisible });
+					} catch (err) {
+						showAlert('Failed to update visibility: ' + err.message);
+					}
+				};
+
+				const editIconBtn = el('button', 'icon-btn'); editIconBtn.title = isVisible ? 'Edit' : 'Make it visible first to edit';
+				editIconBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+				if (!isVisible) editIconBtn.disabled = true;
+				editIconBtn.onclick = (e) => { e.stopPropagation(); if (!isVisible) return; openModal(it.id); };
+
+				const endIconBtn = el('button', 'icon-btn danger'); endIconBtn.title = isVisible ? 'End Advisory' : 'Make it visible first to end';
+				endIconBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>';
+				if (!isVisible) endIconBtn.disabled = true;
+				endIconBtn.onclick = (e) => { e.stopPropagation(); if (!isVisible) return; endAdvisoryById(it.id); };
+
+				actWrap.appendChild(viewBtn); actWrap.appendChild(editIconBtn); actWrap.appendChild(endIconBtn);
+				tdActions.appendChild(actWrap);
+
+				tr.appendChild(tdTitle); tr.appendChild(tdType); tr.appendChild(tdTarget); tr.appendChild(tdStatus); tr.appendChild(tdPub); tr.appendChild(tdActions);
 				tbody.appendChild(tr);
 			});
 		}
 
-		function selectAdvisory(id){
-			const it=data.find(d=>d.id===id);if(!it)return;
-			document.getElementById('detailTitle').textContent=it.title;
-			document.getElementById('detailMeta').textContent=it.type+' · '+it.target+' · '+it.published;
-			document.getElementById('detailDesc').textContent=it.desc;
-			document.getElementById('detailIcon').textContent=it.type==='Advisory'?'!':'i';
+		function selectAdvisory(id) {
+			const it = allItems.find(d => d.id === id);
+			if (!it) return;
+			selectedId = id;
+			const meta = typeMeta(it.type);
+
+			document.getElementById('detailTitle').textContent = it.title || 'Untitled';
+			document.getElementById('detailSub').textContent = it.desc ? (it.desc.length > 80 ? it.desc.slice(0,80)+'…' : it.desc) : '';
+			document.getElementById('detailIcon').style.background = meta.bg;
+			document.getElementById('detailIcon').style.color = meta.fg;
+			document.getElementById('detailIcon').innerHTML = `<svg viewBox="0 0 24 24">${meta.icon}</svg>`;
+
+			const pill = document.getElementById('detailStatusPill');
+			pill.style.display = 'inline-block';
+			pill.textContent = it.status || '—';
+			pill.className = 'pill ' + ((it.status || '').toLowerCase());
+
+			document.getElementById('detailBody').style.display = 'block';
+			document.getElementById('dType').textContent = it.type || '—';
+			document.getElementById('dTarget').textContent = it.target || '—';
+			document.getElementById('dEffective').textContent = fmtDateTime(it.effectiveDate || it.publishedAt || it.createdAt);
+			document.getElementById('dExpires').textContent = it.expiresAt ? fmtDateTime(it.expiresAt) : '—';
+			document.getElementById('dPublishedBy').textContent = it.publishedBy || 'Admin User';
+			document.getElementById('dVisibility').textContent = it.visibility || 'All Users';
+			document.getElementById('dDesc').textContent = it.desc || 'No description provided.';
+
+			const chanEl = document.getElementById('dChannels');
+			chanEl.innerHTML = '';
+			const channels = (it.channels && it.channels.length) ? it.channels : [];
+			if (!channels.length) {
+				chanEl.innerHTML = '<span style="color:var(--text-muted);font-size:12.5px">No channels selected.</span>';
+			} else {
+				channels.forEach(c => {
+					const item = el('div','chan-item');
+					item.innerHTML = `<span class="chan-dot"></span>${escapeHtml(c)}`;
+					chanEl.appendChild(item);
+				});
+			}
+
+			const recEl = document.getElementById('recommendations');
+			recEl.innerHTML = '';
+			(it.recommendedActions && it.recommendedActions.length ? it.recommendedActions : ['No recommended actions listed.'])
+				.forEach(txt => { const li = document.createElement('li'); li.textContent = txt; recEl.appendChild(li); });
+
+			const isVisible = it.visible !== false;
+
+			const editBtnEl = document.getElementById('editBtn');
+			editBtnEl.disabled = !isVisible;
+			editBtnEl.style.opacity = isVisible ? '1' : '.45';
+			editBtnEl.style.cursor = isVisible ? 'pointer' : 'not-allowed';
+			editBtnEl.title = isVisible ? '' : 'This advisory is hidden — make it visible to edit';
+
+			const endBtnEl = document.getElementById('endBtn');
+			endBtnEl.disabled = !isVisible;
+			endBtnEl.style.opacity = isVisible ? '1' : '.45';
+			endBtnEl.style.cursor = isVisible ? 'pointer' : 'not-allowed';
+			endBtnEl.title = isVisible ? '' : 'This advisory is hidden — make it visible to end it';
+
+			applyFiltersAndRender();
 		}
 
-		document.addEventListener('DOMContentLoaded',()=>{
-			renderList(data);
-			selectAdvisory(1);
-			document.getElementById('search').addEventListener('input',e=>{
-				const q=e.target.value.toLowerCase();
-				const filtered=data.filter(d=>d.title.toLowerCase().includes(q)||d.desc.toLowerCase().includes(q));
-				renderList(filtered);
-			});
-			document.getElementById('typeFilter').addEventListener('change',e=>{
-				const v=e.target.value;renderList(v?data.filter(d=>d.type===v):data);
-			});
-			document.getElementById('statusFilter').addEventListener('change',e=>{
-				const v=e.target.value;renderList(v?data.filter(d=>d.status===v):data);
-			});
-			document.getElementById('createBtn').addEventListener('click',()=>{
-				const title=prompt('Title for new advisory');if(!title)return;const id=Date.now();
-				const newItem={id,title,type:'Announcement',target:'All Trails',status:'Scheduled',published:new Date().toLocaleString(),desc:'New announcement.'};
-				data.unshift(newItem);renderList(data);selectAdvisory(newItem.id);
-			});
-			document.getElementById('editBtn').addEventListener('click',()=>{alert('Edit form not implemented — stub.');});
-			document.getElementById('endBtn').addEventListener('click',()=>{alert('End advisory — stub.');});
+		// Live Firestore listener
+		const advisoryQuery = query(advisoryCol, orderBy('createdAt', 'desc'));
+		onSnapshot(advisoryQuery, (snapshot) => {
+			allItems = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+			applyFiltersAndRender();
+			if (selectedId) {
+				const still = allItems.find(d => d.id === selectedId);
+				if (still) selectAdvisory(selectedId);
+			} else if (allItems.length) {
+				selectAdvisory(allItems[0].id);
+			}
+		}, (err) => {
+			document.getElementById('pageInfo').textContent = 'Error loading advisories: ' + err.message;
 		});
+
+		document.getElementById('search').addEventListener('input', () => { currentPage = 1; applyFiltersAndRender(); });
+		document.getElementById('typeFilter').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
+		document.getElementById('statusFilter').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
+		document.getElementById('dateFilter').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
+
+		// ---- Modal (Create / Edit) ----
+		const overlay = document.getElementById('modalOverlay');
+		function openModal(id){
+			editingId = id || null;
+			const it = id ? allItems.find(d => d.id === id) : null;
+			document.getElementById('modalTitle').textContent = it ? 'Edit Advisory' : 'Create New Advisory';
+			document.getElementById('modalSave').textContent = it ? 'Edit Advisory' : 'Create Advisory';
+			document.getElementById('mTitle').value = it?.title || '';
+			document.getElementById('mType').value = it?.type || 'Advisory';
+			document.getElementById('mStatus').value = it?.status || 'Active';
+			document.getElementById('mTarget').value = it?.target || '';
+			document.getElementById('mEffective').value = toLocalInputValue(it?.effectiveDate || it?.publishedAt) || toLocalInputValue(new Date());
+			document.getElementById('mExpires').value = toLocalInputValue(it?.expiresAt);
+			document.getElementById('mPublishedBy').value = it?.publishedBy || 'Admin User';
+			document.getElementById('mVisibility').value = it?.visibility || 'All Users';
+			const channels = it?.channels || ['In-App'];
+			document.getElementById('mChanInApp').checked = channels.includes('In-App');
+			document.getElementById('mChanPush').checked = channels.includes('Push Notification');
+			document.getElementById('mChanEmail').checked = channels.includes('Email');
+			document.getElementById('mDesc').value = it?.desc || '';
+			document.getElementById('mActions').value = (it?.recommendedActions || []).join('\n');
+			overlay.classList.add('open');
+		}
+		function closeModal(){ overlay.classList.remove('open'); editingId = null; }
+		document.getElementById('createBtn').addEventListener('click', () => openModal(null));
+		document.getElementById('modalCancel').addEventListener('click', closeModal);
+		overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+
+		document.getElementById('modalSave').addEventListener('click', async () => {
+			const title = document.getElementById('mTitle').value.trim();
+			if (!title) return showAlert('Title is required.');
+
+			const channels = [];
+			if (document.getElementById('mChanInApp').checked) channels.push('In-App');
+			if (document.getElementById('mChanPush').checked) channels.push('Push Notification');
+			if (document.getElementById('mChanEmail').checked) channels.push('Email');
+
+			const effVal = document.getElementById('mEffective').value;
+			const expVal = document.getElementById('mExpires').value;
+			const actions = document.getElementById('mActions').value.split('\n').map(s => s.trim()).filter(Boolean);
+
+			const payload = {
+				title,
+				type: document.getElementById('mType').value,
+				status: document.getElementById('mStatus').value,
+				target: document.getElementById('mTarget').value.trim() || 'All Trails',
+				effectiveDate: effVal ? Timestamp.fromDate(new Date(effVal)) : null,
+				expiresAt: expVal ? Timestamp.fromDate(new Date(expVal)) : null,
+				publishedBy: document.getElementById('mPublishedBy').value.trim() || 'Admin User',
+				visibility: document.getElementById('mVisibility').value,
+				channels,
+				desc: document.getElementById('mDesc').value.trim(),
+				recommendedActions: actions
+			};
+
+			try {
+				const wasEditing = !!editingId;
+				if (editingId) {
+					await updateDoc(doc(db, 'Advisory', editingId), payload);
+				} else {
+					await addDoc(advisoryCol, { ...payload, views: 0, visible: true, createdAt: serverTimestamp() });
+				}
+				closeModal();
+				showConfirm(wasEditing ? 'Successfully Edited' : 'Advisory Created');
+			} catch (err) {
+				showAlert('Failed to save advisory: ' + err.message);
+			}
+		});
+
+		const confirmOverlay = document.getElementById('confirmOverlay');
+		function showConfirm(msg){
+			document.getElementById('confirmMsg').textContent = msg;
+			confirmOverlay.classList.add('open');
+		}
+		document.getElementById('confirmOk').addEventListener('click', () => confirmOverlay.classList.remove('open'));
+		confirmOverlay.addEventListener('click', (e) => { if (e.target === confirmOverlay) confirmOverlay.classList.remove('open'); });
+
+		const alertOverlay = document.getElementById('alertOverlay');
+		function showAlert(msg){
+			document.getElementById('alertMsg').textContent = msg;
+			alertOverlay.classList.add('open');
+		}
+		document.getElementById('alertOk').addEventListener('click', () => alertOverlay.classList.remove('open'));
+		alertOverlay.addEventListener('click', (e) => { if (e.target === alertOverlay) alertOverlay.classList.remove('open'); });
+
+		async function endAdvisoryById(id) {
+			if (!confirm('End this advisory? Its status will be set to Expired.')) return;
+			try {
+				await updateDoc(doc(db, 'Advisory', id), { status: 'Expired' });
+			} catch (err) {
+				showAlert('Failed to end advisory: ' + err.message);
+			}
+		}
+
+		document.getElementById('editBtn').addEventListener('click', () => {
+			if (!selectedId) return showAlert('Select an advisory first.');
+			const it = allItems.find(d => d.id === selectedId);
+			if (it && it.visible === false) return;
+			openModal(selectedId);
+		});
+		document.getElementById('endBtn').addEventListener('click', () => {
+			if (!selectedId) return showAlert('Select an advisory first.');
+			const it = allItems.find(d => d.id === selectedId);
+			if (it && it.visible === false) return;
+			endAdvisoryById(selectedId);
+		});
+
+		// Profile dropdown
+		const profileChip = document.getElementById('profileChip');
+		const profileMenu = document.getElementById('profileMenu');
+		profileChip.addEventListener('click', (e) => { e.stopPropagation(); profileMenu.classList.toggle('open'); });
+		document.addEventListener('click', () => profileMenu.classList.remove('open'));
 	</script>
 </body>
 </html>
