@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script type="module" src="dashboard-guard.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PeakPath Admin — Hazard Reports</title>
@@ -50,9 +49,9 @@
   .app{
     display:flex;
     min-height:100vh;
-}
+  }
 
-  /* ---------------- Sidebar (matches Geomap Monitoring page exactly) ---------------- */
+  /* SIDEBAR */
   .sidebar{
     width: 236px;
     flex-shrink: 0;
@@ -107,6 +106,7 @@
     margin-top:6px;
   }
   .nav li a{
+    text-decoration: none;
     display:flex;
     align-items:center;
     gap:11px;
@@ -115,7 +115,6 @@
     font-size:13.5px;
     color:#c4d1c4;
     font-weight:500;
-    text-decoration:none;
     transition:background .15s ease,color .15s ease;
   }
   .nav li a:hover{
@@ -155,13 +154,20 @@
     display:flex;
     align-items:center;
     justify-content:center;
+    font-weight:700;
     color:#fff;
     font-size:13px;
-    font-weight:700;
     flex-shrink:0;
   }
-  .user-chip .name{font-size:13.5px;font-weight:600;color:#fff;}
-  .user-chip .role{font-size:11px;color:#8fa88f;}
+  .user-chip .name{
+    font-size:13.5px;
+    font-weight:600;
+    color:#fff;
+  }
+  .user-chip .role{
+    font-size:11px;
+    color:#8fa88f;
+  }
   .logout-btn{
     display:flex;
     align-items:center;
@@ -174,14 +180,12 @@
     border-radius:8px;
     font-size:13px;
     font-weight:500;
-    text-decoration:none;
   }
   .logout-btn:hover{
     background:var(--sidebar-bg-light);
-    color:#fff;
   }
 
-  /* ---------------- Main ---------------- */
+  /* Main */
   .main{
     display:flex;
     flex-direction:column;
@@ -270,7 +274,7 @@
     gap:18px;
   }
 
-  /* ---------------- Stat cards ---------------- */
+  /* Stat cards */
   .stats{
     display:grid;
     grid-template-columns:repeat(4,1fr);
@@ -301,7 +305,7 @@
   .stat-info .value{font-size:24px;font-weight:700;margin:2px 0 3px 0;color:var(--text-900);}
   .stat-info .meta{font-size:11.5px;color:var(--text-400);}
 
-  /* ---------------- Panels ---------------- */
+  /* Panels */
   .panels{
     display:grid;
     grid-template-columns: 1.55fr 1fr;
@@ -316,7 +320,7 @@
     box-shadow:var(--shadow-card);
   }
 
-  /* --- Reports list card --- */
+  /* Reports list card */
   .list-card-header{
     padding:18px 20px 12px 20px;
     border-bottom:1px solid var(--border);
@@ -458,12 +462,19 @@
     font-weight:700;
   }
 
-  /* --- Report details card --- */
+  /* Report details card */
   .details-card{
     padding:18px 20px 22px 20px;
     display:flex;
     flex-direction:column;
     gap:16px;
+    overflow-y:auto;
+    max-height:calc(100vh - 200px);
+  }
+  .details-card.empty{
+    align-items:center;
+    justify-content:center;
+    color:var(--text-600);
   }
   .details-top{
     display:flex;
@@ -485,8 +496,6 @@
   .details-title h3{margin:0;font-size:15.5px;font-weight:700;}
   .details-title .sub-id{font-size:11.5px;color:var(--text-400);}
   .status-pill{
-    background:var(--pending-bg);
-    color:var(--pending-text);
     font-size:11px;
     font-weight:600;
     padding:5px 11px;
@@ -600,6 +609,161 @@
   .history-text strong{font-size:12.5px;font-weight:600;display:block;color:var(--text-900);}
   .history-text span{font-size:11px;color:var(--text-400);}
 
+
+  /* Confirmation Modal */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(15,28,18,.52);
+    backdrop-filter:blur(3px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    padding:20px;
+  }
+  .modal-overlay.show{
+    display:flex;
+    animation:modalFadeIn .18s ease;
+  }
+  .confirm-modal{
+    width:min(460px,100%);
+    background:#fff;
+    border-radius:16px;
+    box-shadow:0 20px 60px rgba(15,35,20,.22);
+    overflow:hidden;
+    transform:translateY(8px);
+    animation:modalSlideIn .2s ease forwards;
+  }
+  .modal-header{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:20px 22px 12px;
+  }
+  .modal-icon{
+    width:42px;
+    height:42px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:19px;
+    flex-shrink:0;
+  }
+  .modal-icon.verify{background:var(--green-bg);color:var(--green-text);}
+  .modal-icon.reject{background:var(--red-bg);color:var(--red-text);}
+  .modal-header h3{
+    margin:0;
+    font-size:17px;
+    color:var(--text-900);
+  }
+  .modal-header p{
+    margin:3px 0 0;
+    font-size:12px;
+    color:var(--text-600);
+  }
+  .modal-body{
+    padding:4px 22px 20px;
+  }
+  .modal-report-box{
+    background:#f7f9f7;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px 14px;
+    margin-bottom:14px;
+  }
+  .modal-report-box .modal-report-id{
+    font-size:11px;
+    color:var(--text-400);
+    margin-bottom:3px;
+  }
+  .modal-report-box strong{
+    display:block;
+    font-size:13px;
+    color:var(--text-900);
+  }
+  .modal-report-box span{
+    display:block;
+    font-size:11.5px;
+    color:var(--text-600);
+    margin-top:2px;
+  }
+  .modal-label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    color:var(--text-900);
+    margin-bottom:6px;
+  }
+  .modal-textarea{
+    width:100%;
+    min-height:78px;
+    resize:vertical;
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:9px 10px;
+    font-family:inherit;
+    font-size:12.5px;
+    color:var(--text-900);
+    outline:none;
+  }
+  .modal-textarea:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(47,143,78,.10);
+  }
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    padding:14px 22px 20px;
+    border-top:1px solid var(--border);
+    background:#fafbfa;
+  }
+  .modal-btn{
+    border:0;
+    border-radius:9px;
+    padding:9px 16px;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .modal-btn.cancel{
+    background:#fff;
+    border:1px solid var(--border);
+    color:var(--text-600);
+  }
+  .modal-btn.cancel:hover{background:#f2f4f2;}
+  .modal-btn.confirm-verify{background:#2f8f4e;color:#fff;}
+  .modal-btn.confirm-reject{background:#d1453b;color:#fff;}
+  .modal-btn:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+  }
+  @keyframes modalFadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes modalSlideIn{to{transform:translateY(0)}}
+
+  .loading{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:200px;
+    color:var(--text-600);
+  }
+
+  .spinner{
+    border:2px solid var(--border);
+    border-top:2px solid var(--accent);
+    border-radius:50%;
+    width:24px;
+    height:24px;
+    animation:spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
   @media (max-width: 1150px){
     .panels{grid-template-columns:1fr;}
     .stats{grid-template-columns:repeat(2,1fr);}
@@ -614,43 +778,41 @@
 <body>
 <div class="app">
 
-  <!-- ============ SIDEBAR ============ -->
+  <!-- SIDEBAR -->
   <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-icon">
+      <div class="brand">
+        <div class="brand-icon">
         <img src="assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
         </div>
-      <div>
-        <div class="brand-name">PeakPath</div>
-        <div class="brand-sub">Admin Portal</div>
-      </div>
-    </div>
-
-    <ul class="nav">
-      <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
-      <li><a href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
-      <li><a class="active" href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a></li>
-      <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a></li>
-      <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>Geomap Monitoring</a></li>
-      <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
-      <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
-      <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
-      <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
-    </ul>
-
-    <div class="sidebar-footer">
-      <div class="user-chip">
-        <div class="avatar">AU</div>
         <div>
-          <div class="name">Admin User</div>
-          <div class="role">Super Administrator</div>
+          <div class="brand-name">PeakPath</div>
+          <div class="brand-sub">Admin Portal</div>
         </div>
       </div>
-      <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
-    </div>
-  </aside>
+      <ul class="nav">
+        <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
+        <li><a href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
+        <li><a class="active" href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a></li>
+        <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a></li>
+        <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>Geomap Monitoring</a></li>
+        <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
+        <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
+        <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
+        <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar" id="userInitials">AU</div>
+          <div>
+            <div class="name" id="userName">Admin User</div>
+            <div class="role">Super Administrator</div>
+          </div>
+        </div>
+        <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
+      </div>
+    </aside>
 
-  <!-- ============ MAIN ============ -->
+  <!-- MAIN -->
   <div class="main">
 
     <div class="topbar">
@@ -661,12 +823,12 @@
       <div class="topbar-right">
         <div class="bell-wrap">
           <span class="bell-icon">🔔</span>
-          <div class="bell-badge">5</div>
+          <div class="bell-badge" id="notificationCount">0</div>
         </div>
         <div class="admin-mini">
-          <div class="avatar">AU</div>
+          <div class="avatar" id="adminInitials">AU</div>
           <div>
-            <div class="name">Admin User</div>
+            <div class="name" id="adminName">Admin User</div>
             <div class="role">Super Administrator</div>
           </div>
         </div>
@@ -675,13 +837,13 @@
 
     <div class="content">
 
-      <!-- ===== Stat cards ===== -->
+      <!-- Stat cards -->
       <div class="stats">
         <div class="stat-card">
           <div class="stat-icon total">👥</div>
           <div class="stat-info">
             <div class="label">Total Reports</div>
-            <div class="value">24</div>
+            <div class="value" id="totalReports">0</div>
             <div class="meta">All Time</div>
           </div>
         </div>
@@ -689,29 +851,29 @@
           <div class="stat-icon pending">🕐</div>
           <div class="stat-info">
             <div class="label">Pending Review</div>
-            <div class="value">7</div>
-            <div class="meta">29% of total</div>
+            <div class="value" id="pendingReports">0</div>
+            <div class="meta" id="pendingMeta">0% of total</div>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon verified">✔</div>
           <div class="stat-info">
             <div class="label">Verified</div>
-            <div class="value">15</div>
-            <div class="meta">63% of total</div>
+            <div class="value" id="verifiedReports">0</div>
+            <div class="meta" id="verifiedMeta">0% of total</div>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon rejected">✖</div>
           <div class="stat-info">
             <div class="label">Rejected</div>
-            <div class="value">2</div>
-            <div class="meta">8% of total</div>
+            <div class="value" id="rejectedReports">0</div>
+            <div class="meta" id="rejectedMeta">0% of total</div>
           </div>
         </div>
       </div>
 
-      <!-- ===== Panels ===== -->
+      <!-- Panels -->
       <div class="panels">
 
         <!-- LEFT: Reports list -->
@@ -721,21 +883,19 @@
             <div class="filters-row">
               <div class="search-box">
                 <span class="ic">🔍</span>
-                <input type="text" placeholder="Search reports...">
+                <input type="text" placeholder="Search reports..." id="searchInput">
               </div>
-              <select class="filter-select">
-                <option>Status: All</option>
+              <select class="filter-select" id="statusFilter">
+                <option value="">Status: All</option>
+                <option value="pending">Pending</option>
+                <option value="verified">Verified</option>
               </select>
-              <select class="filter-select">
-                <option>Hazard Type: All</option>
-              </select>
-              <select class="filter-select">
-                <option>Trail / Location: All</option>
+              <select class="filter-select" id="hazardFilter">
+                <option value="">Hazard Type: All</option>
               </select>
             </div>
             <div class="date-range-row">
-              <button class="btn-outline">📅 Date Range</button>
-              <button class="btn-outline btn-clear">✕ Clear Filters</button>
+              <button class="btn-outline" id="clearFilters">✕ Clear Filters</button>
             </div>
           </div>
 
@@ -751,213 +911,687 @@
                 <th></th>
               </tr>
             </thead>
-            <tbody>
-              <tr class="selected">
-                <td>HR-2025-024</td>
-                <td><div class="hazard-cell"><span class="hazard-icon">⛰️</span>Rockfall</div></td>
-                <td>Spirit Trail (Section 2)</td>
-                <td>Hiker_0211</td>
-                <td><span class="badge pending">Pending</span></td>
-                <td>May 20, 2025<span class="sub">09:15 AM</span></td>
-                <td><button class="actions-btn">⋮</button></td>
-              </tr>
+            <tbody id="reportsTable">
               <tr>
-                <td>HR-2025-023</td>
-                <td><div class="hazard-cell"><span class="hazard-icon">🏔️</span>Landslide</div></td>
-                <td>Mariang Makiling Trail (Upper Section)</td>
-                <td>User_0741</td>
-                <td><span class="badge pending">Pending</span></td>
-                <td>May 19, 2025<span class="sub">04:30 PM</span></td>
-                <td><button class="actions-btn">⋮</button></td>
-              </tr>
-              <tr>
-                <td>HR-2025-022</td>
-                <td><div class="hazard-cell"><span class="hazard-icon">🌲</span>Fallen Tree</div></td>
-                <td>Makiling Rainforest Trail (Section 1)</td>
-                <td>User_0432</td>
-                <td><span class="badge verified">Verified</span></td>
-                <td>May 19, 2025<span class="sub">11:20 AM</span></td>
-                <td><button class="actions-btn">⋮</button></td>
-              </tr>
-              <tr>
-                <td>HR-2025-021</td>
-                <td><div class="hazard-cell"><span class="hazard-icon">〰️</span>Mud Path / Slippery Area</div></td>
-                <td>Forestry Trail (UPLB Area)</td>
-                <td>Hiker_0108</td>
-                <td><span class="badge verified">Verified</span></td>
-                <td>May 18, 2025<span class="sub">03:45 PM</span></td>
-                <td><button class="actions-btn">⋮</button></td>
-              </tr>
-              <tr>
-                <td>HR-2025-020</td>
-                <td><div class="hazard-cell"><span class="hazard-icon">⚠️</span>Damaged Signage</div></td>
-                <td>Mariang Makiling Trail (Near Ranger Station)</td>
-                <td>User_0922</td>
-                <td><span class="badge pending">Pending</span></td>
-                <td>May 18, 2025<span class="sub">10:05 AM</span></td>
-                <td><button class="actions-btn">⋮</button></td>
-              </tr>
-              <tr>
-                <td>HR-2025-019</td>
-                <td><div class="hazard-cell"><span class="hazard-icon">⛰️</span>Rockfall</div></td>
-                <td>Forestry Trail (UPLB Area)</td>
-                <td>Hiker_0505</td>
-                <td><span class="badge rejected">Rejected</span></td>
-                <td>May 17, 2025<span class="sub">05:25 PM</span></td>
-                <td><button class="actions-btn">⋮</button></td>
-              </tr>
-              <tr>
-                <td>HR-2025-018</td>
-                <td><div class="hazard-cell"><span class="hazard-icon">🏔️</span>Landslide</div></td>
-                <td>Spirit Trail (Section 1)</td>
-                <td>User_0387</td>
-                <td><span class="badge verified">Verified</span></td>
-                <td>May 17, 2025<span class="sub">02:10 PM</span></td>
-                <td><button class="actions-btn">⋮</button></td>
-              </tr>
-              <tr>
-                <td>HR-2025-017</td>
-                <td><div class="hazard-cell"><span class="hazard-icon">〰️</span>Flooded Area</div></td>
-                <td>Makiling Rainforest Trail (Near Camp 2)</td>
-                <td>Hiker_0663</td>
-                <td><span class="badge verified">Verified</span></td>
-                <td>May 16, 2025<span class="sub">09:30 AM</span></td>
-                <td><button class="actions-btn">⋮</button></td>
+                <td colspan="7" class="loading">
+                  <div class="spinner"></div>
+                </td>
               </tr>
             </tbody>
           </table>
 
           <div class="table-footer">
-            <span>Showing 1 to 8 of 24 reports</span>
-            <div class="pagination">
-              <button>‹</button>
-              <button class="active">1</button>
-              <button>2</button>
-              <button>3</button>
-              <button>›</button>
-            </div>
+            <span id="reportCount">Loading...</span>
           </div>
         </div>
 
-        <!-- RIGHT: Report details -->
-        <div class="card details-card">
-
-          <div class="details-top">
-            <div class="details-title">
-              <div class="ic-circle">⛰️</div>
-              <div>
-                <h3>Rockfall</h3>
-                <div class="sub-id">HR-2025-024</div>
-              </div>
-            </div>
-            <span class="status-pill">Pending Review</span>
-          </div>
-
-          <div class="info-row">
-            <span class="ic">📍</span>
-            <div>
-              <strong>Spirit Trail (Section 2)</strong>
-              <span>Near the rocky portion before the steep ascent</span>
-            </div>
-          </div>
-
-          <div>
-            <p class="section-label">Description</p>
-            <p class="desc-text">There are loose rocks along the trail. Small rocks are falling occasionally. Please be careful when passing through.</p>
-          </div>
-
-          <div class="map-wrap">
-            <svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
-              <rect width="480" height="300" fill="#dfead9"/>
-              <path d="M0 40 L480 20 L480 90 L0 110 Z" fill="#d3e2cb" opacity="0.6"/>
-              <path d="M0 180 L480 160 L480 300 L0 300 Z" fill="#d3e2cb" opacity="0.5"/>
-              <path d="M40 250 Q140 80 260 60 Q360 45 440 120" stroke="#4a7a44" stroke-width="2" stroke-dasharray="5 4" fill="none"/>
-              <path d="M60 260 Q160 220 220 150" stroke="#c25c50" stroke-width="2" stroke-dasharray="5 4" fill="none"/>
-              <path d="M260 60 Q300 140 260 230" stroke="#4a7a44" stroke-width="2" stroke-dasharray="5 4" fill="none"/>
-              <circle cx="260" cy="60" r="5" fill="#3a7a3a"/>
-              <circle cx="150" cy="95" r="5" fill="#2f6fed"/>
-              <circle cx="220" cy="150" r="9" fill="#e0483f" stroke="#fff" stroke-width="2"/>
-              <text x="228" y="154" font-size="11" fill="#fff" font-family="Arial">!</text>
-              <text x="270" y="55" font-size="11" fill="#33482f" font-family="Arial">Mariang Makiling Trail</text>
-              <text x="175" y="90" font-size="11" fill="#33482f" font-family="Arial">Spirit Trail</text>
-              <text x="330" y="150" font-size="11" fill="#33482f" font-family="Arial">Makiling Rainforest Trail</text>
-              <text x="330" y="230" font-size="11" fill="#33482f" font-family="Arial">Forestry Trail (UPLB Area)</text>
-              <rect x="16" y="180" width="120" height="90" fill="#ffffff" opacity="0.9" rx="6"/>
-              <text x="24" y="196" font-size="10" font-weight="bold" fill="#1f2a22" font-family="Arial">Legend</text>
-              <text x="24" y="212" font-size="9" fill="#33482f" font-family="Arial">-- Open Trail</text>
-              <text x="24" y="225" font-size="9" fill="#33482f" font-family="Arial">-- Closed Trail</text>
-              <text x="24" y="238" font-size="9" fill="#33482f" font-family="Arial">▲ Checkpoint</text>
-              <text x="24" y="251" font-size="9" fill="#33482f" font-family="Arial">● Campsite</text>
-              <text x="24" y="264" font-size="9" fill="#33482f" font-family="Arial">● Ranger Station</text>
-            </svg>
-          </div>
-
-          <div class="reporter-block">
-            <p class="section-label">Reported By</p>
-            <div class="reporter-row">
-              <div class="reporter-col">
-                <div class="lbl">Name</div>
-                <div class="val">Hiker_0211</div>
-              </div>
-            </div>
-            <div class="reporter-row">
-              <div class="reporter-col">
-                <div class="lbl">Contact</div>
-                <div class="val">0917-123-4567</div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <p class="section-label">Attachments</p>
-            <div class="attachments">
-              <div class="attach-thumb">🪨</div>
-              <div class="attach-thumb">🌄</div>
-              <div class="attach-more">+2<br>More</div>
-            </div>
-          </div>
-
-          <div class="admin-actions">
-            <p class="section-label">Admin Actions</p>
-            <div class="row">
-              <button class="btn btn-verify">✔ Verify Hazard</button>
-              <button class="btn btn-reject">✖ Reject Report</button>
-            </div>
-            <button class="btn btn-info">✉ Request More Info</button>
-          </div>
-
-          <div>
-            <p class="section-label">Report History</p>
-            <div class="history-list">
-              <div class="history-item">
-                <span class="history-dot"></span>
-                <div class="history-text">
-                  <strong>Report submitted by Hiker_0211</strong>
-                  <span>May 20, 2025 09:15 AM</span>
-                </div>
-              </div>
-              <div class="history-item pending">
-                <span class="history-dot"></span>
-                <div class="history-text">
-                  <strong>Report received and pending review</strong>
-                  <span>May 20, 2025 09:15 AM</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-        <!-- /details -->
-
+        <!-- RIGHT: Report details + Rejected list -->
+      <div>
+      <div class="card details-card empty" id="detailsCard">
+      <p>Select a report to view details</p>
       </div>
-      <!-- /panels -->
 
+      <div class="card" id="rejectedPanel" style="margin-top:18px;padding:18px 20px">
+      <h2 style="font-size:16px;font-weight:700;margin-bottom:12px">Rejected Reports</h2>
+      <div id="rejectedList" style="display:flex;flex-direction:column;gap:2px"></div>
+      </div>
+      </div>
+      </div>
     </div>
-    <!-- /content -->
-
   </div>
-  <!-- /main -->
-
 </div>
+
+
+<!-- Confirm status modal -->
+<div class="modal-overlay" id="statusModal" aria-hidden="true">
+  <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="statusModalTitle">
+    <div class="modal-header">
+      <div class="modal-icon" id="statusModalIcon">?</div>
+      <div>
+        <h3 id="statusModalTitle">Update Report</h3>
+        <p id="statusModalSubtitle">Confirm this action.</p>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-report-box">
+        <div class="modal-report-id" id="modalReportId">Report</div>
+        <strong id="modalHazardType">Hazard Report</strong>
+        <span id="modalLocation">Location</span>
+      </div>
+
+      <label class="modal-label" for="statusReason" id="statusReasonLabel">Note (optional)</label>
+      <textarea
+        class="modal-textarea"
+        id="statusReason"
+        placeholder="Add a note for this action..."
+      ></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="modal-btn cancel" id="modalCancelBtn">Cancel</button>
+      <button type="button" class="modal-btn" id="modalConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit-confirm modal (styled) -->
+<div class="modal-overlay" id="editConfirmModal" aria-hidden="true">
+  <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="editConfirmTitle">
+    <div class="modal-header">
+      <div class="modal-icon" style="background:var(--amber-bg);color:var(--amber-icon);">?</div>
+      <div>
+        <h3 class="modal-title" id="editConfirmTitle">Confirm Edit</h3>
+        <p class="modal-subtitle">Are you sure you want to edit this report?</p>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="justify-content:flex-end;">
+      <button type="button" class="modal-btn cancel" id="editModalCancelBtn">Cancel</button>
+      <button type="button" class="modal-btn confirm-verify modal-proceed" id="editModalProceedBtn">Proceed</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAUHQe9hXSF3wI-et48Km5fs23eSEjMyW0",
+  authDomain: "peakpath-ccd4a.firebaseapp.com",
+  projectId: "peakpath-ccd4a",
+  storageBucket: "peakpath-ccd4a.firebasestorage.app",
+  messagingSenderId: "153325648552",
+  appId: "1:153325648552:web:637b98f31cab359923a09d",
+  measurementId: "G-1EEW8LSELB"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// State management
+let allReports = [];
+let selectedReport = null;
+let hazardTypes = new Set();
+
+// Hazard type icons mapping
+const hazardIcons = {
+  'rockfall': '⛰️',
+  'landslide': '🏔️',
+  'fallen tree': '🌲',
+  'mud path': '〰️',
+  'slippery': '〰️',
+  'damaged signage': '⚠️',
+  'flooded area': '〰️'
+};
+
+// Get hazard icon
+function getHazardIcon(type) {
+  const key = type.toLowerCase();
+  for (const [k, v] of Object.entries(hazardIcons)) {
+    if (key.includes(k)) return v;
+  }
+  return '⚠️';
+}
+
+// Format status badge
+function getStatusBadgeClass(status) {
+  return status.toLowerCase();
+}
+
+// Format date
+function formatDate(timestamp) {
+  if (!timestamp) return 'N/A';
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  const formatted = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  return `${formatted}<span class="sub">${time}</span>`;
+}
+
+// Get status pill class and color
+function getStatusPillStyle(status) {
+  const statusLower = status.toLowerCase();
+  const styles = {
+    'pending': 'background:var(--pending-bg);color:var(--pending-text);',
+    'verified': 'background:var(--verified-bg);color:var(--verified-text);',
+    'rejected': 'background:var(--rejected-bg);color:var(--rejected-text);'
+  };
+  return styles[statusLower] || styles['pending'];
+}
+
+// Render reports table
+function renderReportsTable(reports) {
+  const tbody = document.getElementById('reportsTable');
+  
+  if (reports.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="loading" style="padding:20px;">No reports found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = reports.map((report, index) => `
+    <tr class="${selectedReport?.id === report.id ? 'selected' : ''}" data-report-id="${report.id}" onclick="selectReport('${report.id}')">
+      <td>${report.reportId || `HR-${index + 1}`}</td>
+      <td><div class="hazard-cell"><span class="hazard-icon">${getHazardIcon(report.hazardType)}</span>${report.hazardType}</div></td>
+      <td>${report.location || 'N/A'}</td>
+      <td>${report.reportedBy || 'Anonymous'}</td>
+      <td><span class="badge ${getStatusBadgeClass(report.status)}">${report.status.charAt(0).toUpperCase() + report.status.slice(1)}</span></td>
+      <td>${formatDate(report.timestamp)}</td>
+      <td><button class="actions-btn">⋮</button></td>
+    </tr>
+  `).join('');
+}
+
+function renderRejectedList() {
+  const wrap = document.getElementById('rejectedList');
+  const rejected = allReports.filter(r => r.status === 'rejected');
+  wrap.innerHTML = '';
+
+  if (!rejected.length) {
+    wrap.innerHTML = '<div style="padding:10px 0;color:var(--text-400);font-size:12.5px">No rejected reports.</div>';
+    return;
+  }
+
+  rejected.forEach((report, index) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
+    row.onclick = () => selectReport(report.id);
+    row.innerHTML = `
+      <span class="hazard-icon" style="flex-shrink:0">${getHazardIcon(report.hazardType)}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:12.5px">${report.hazardType || 'Unknown'}</div>
+        <div style="font-size:11px;color:var(--text-400);margin-top:1px">${report.location || 'N/A'} · ${report.reportId || `HR-${index + 1}`}</div>
+      </div>
+      <span class="badge rejected" style="flex-shrink:0">Rejected</span>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+// Render report details
+function renderReportDetails(report) {
+  const detailsCard = document.getElementById('detailsCard');
+  
+  if (!report) {
+    detailsCard.className = 'card details-card empty';
+    detailsCard.innerHTML = '<p>Select a report to view details</p>';
+    return;
+  }
+
+  const statusStyle = getStatusPillStyle(report.status);
+  const hazardIcon = getHazardIcon(report.hazardType);
+  
+  detailsCard.className = 'card details-card';
+  detailsCard.innerHTML = `
+    <div class="details-top">
+      <div class="details-title">
+        <div class="ic-circle">${hazardIcon}</div>
+        <div>
+          <h3>${report.hazardType}</h3>
+          <div class="sub-id">${report.reportId || 'N/A'}</div>
+        </div>
+      </div>
+      <span class="status-pill" style="${statusStyle}">${report.status.charAt(0).toUpperCase() + report.status.slice(1)}</span>
+    </div>
+
+    <div class="info-row">
+      <span class="ic">📍</span>
+      <div>
+        <strong>${report.location || 'Unknown Location'}</strong>
+        <span>${report.trail || 'No trail specified'}</span>
+      </div>
+    </div>
+
+    <div>
+      <p class="section-label">Description</p>
+      <p class="desc-text">${report.description || 'No description provided'}</p>
+    </div>
+
+    <div class="reporter-block">
+      <p class="section-label">Reported By</p>
+      <div class="reporter-row">
+        <div class="reporter-col">
+          <div class="lbl">Name</div>
+          <div class="val">${report.reportedBy || 'Anonymous'}</div>
+        </div>
+      </div>
+      <div class="reporter-row">
+        <div class="reporter-col">
+          <div class="lbl">Contact</div>
+          <div class="val">${report.contact || 'Not provided'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-actions">
+      <p class="section-label">Admin Actions</p>
+      <div class="row">
+          <button class="btn btn-verify" onclick="updateReportStatus('${report.id}', 'verified')">✔ Verify Hazard</button>
+          ${report.status === 'rejected' ?
+            `<button class="btn btn-reject" disabled style="opacity:.6;cursor:not-allowed">✖ Reject Report</button>` :
+            `<button class="btn btn-reject" onclick="updateReportStatus('${report.id}', 'rejected')">✖ Reject Report</button>`
+          }
+      </div>
+    </div>
+
+    <div>
+      <p class="section-label">Report History</p>
+      <div class="history-list">
+        <div class="history-item">
+          <span class="history-dot"></span>
+          <div class="history-text">
+            <strong>Report submitted</strong>
+            <span>${formatDate(report.timestamp)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// -----------------------------
+// Report status confirmation modal
+// -----------------------------
+let pendingStatusAction = null;
+
+function openStatusModal(reportId, newStatus) {
+  const report = allReports.find(r => r.id === reportId);
+
+  if (!report) {
+    console.error('Report not found:', reportId);
+    showStatusModalMessage('Unable to find this report. Please refresh the page and try again.');
+    return;
+  }
+
+  pendingStatusAction = { reportId, newStatus, report };
+
+  const modal = document.getElementById('statusModal');
+  const icon = document.getElementById('statusModalIcon');
+  const title = document.getElementById('statusModalTitle');
+  const subtitle = document.getElementById('statusModalSubtitle');
+  const confirmBtn = document.getElementById('modalConfirmBtn');
+  const reason = document.getElementById('statusReason');
+  const reasonLabel = document.getElementById('statusReasonLabel');
+
+  document.getElementById('modalReportId').textContent =
+    report.reportId || report.id;
+  document.getElementById('modalHazardType').textContent =
+    report.hazardType || 'Hazard Report';
+  document.getElementById('modalLocation').textContent =
+    report.location || 'Unknown Location';
+
+  reason.value = '';
+
+  if (newStatus === 'verified') {
+    icon.className = 'modal-icon verify';
+    icon.textContent = '✓';
+    title.textContent = 'Verify Hazard Report';
+    subtitle.textContent = 'Are you sure you want to verify this report?';
+    confirmBtn.className = 'modal-btn confirm-verify';
+    confirmBtn.textContent = 'Verify Report';
+    reasonLabel.textContent = 'Verification note (optional)';
+    reason.placeholder = 'Add a note about why this hazard was verified...';
+  } else {
+    icon.className = 'modal-icon reject';
+    icon.textContent = '✕';
+    title.textContent = 'Reject Hazard Report';
+    subtitle.textContent = 'Are you sure you want to reject this report?';
+    confirmBtn.className = 'modal-btn confirm-reject';
+    confirmBtn.textContent = 'Reject Report';
+    reasonLabel.textContent = 'Rejection reason (optional)';
+    reason.placeholder = 'Explain why this report is being rejected...';
+  }
+
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+
+  setTimeout(() => reason.focus(), 50);
+}
+
+function closeStatusModal() {
+  const modal = document.getElementById('statusModal');
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden', 'true');
+  pendingStatusAction = null;
+}
+
+function showStatusModalMessage(message) {
+  // Reuse the modal as an error/info dialog instead of using browser alert().
+  const modal = document.getElementById('statusModal');
+  const icon = document.getElementById('statusModalIcon');
+  const title = document.getElementById('statusModalTitle');
+  const subtitle = document.getElementById('statusModalSubtitle');
+  const box = document.querySelector('.modal-report-box');
+  const reason = document.getElementById('statusReason');
+  const reasonLabel = document.getElementById('statusReasonLabel');
+  const confirmBtn = document.getElementById('modalConfirmBtn');
+
+  icon.className = 'modal-icon reject';
+  icon.textContent = '!';
+  title.textContent = 'Update Failed';
+  subtitle.textContent = message;
+  box.style.display = 'none';
+  reasonLabel.style.display = 'none';
+  reason.style.display = 'none';
+
+  confirmBtn.className = 'modal-btn cancel';
+  confirmBtn.textContent = 'Close';
+
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+
+  // Temporarily make the confirm button close the error dialog.
+  confirmBtn.onclick = () => {
+    box.style.display = '';
+    reasonLabel.style.display = '';
+    reason.style.display = '';
+    confirmBtn.onclick = confirmStatusUpdate;
+    closeStatusModal();
+  };
+}
+
+async function confirmStatusUpdate() {
+  if (!pendingStatusAction) return;
+
+  const { reportId, newStatus } = pendingStatusAction;
+  const reason = document.getElementById('statusReason').value.trim();
+  const confirmBtn = document.getElementById('modalConfirmBtn');
+
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = newStatus === 'verified'
+    ? 'Verifying...'
+    : 'Rejecting...';
+
+  try {
+    // reportId here is the Firestore document ID (docSnapshot.id).
+    const reportRef = doc(db, 'reports', reportId);
+
+    const updateData = {
+      status: newStatus,
+      updatedAt: new Date()
+    };
+
+    // Save an admin note when one was entered.
+    if (reason) {
+      updateData.statusNote = reason;
+    }
+
+    await updateDoc(reportRef, updateData);
+
+    closeStatusModal();
+
+    // onSnapshot() will refresh the table, statistics, and selected details.
+    console.log(`Report ${reportId} successfully updated to ${newStatus}.`);
+  } catch (error) {
+    console.error('Error updating report status:', error);
+
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = newStatus === 'verified'
+      ? 'Verify Report'
+      : 'Reject Report';
+
+    showStatusModalMessage(
+      error?.code === 'permission-denied'
+        ? 'Firebase denied this update. Check your Firestore security rules and admin permissions.'
+        : `Could not update the report: ${error.message || 'Unknown error'}`
+    );
+  }
+}
+
+// This is called by the Verify and Reject buttons in the report details.
+window.updateReportStatus = (reportId, newStatus) => {
+  if (!['verified', 'rejected'].includes(newStatus)) {
+    console.error('Invalid report status:', newStatus);
+    return;
+  }
+
+  const report = allReports.find(r => r.id === reportId);
+  // If verifying a rejected report, show styled edit-confirm modal first
+  if (newStatus === 'verified' && report && report.status === 'rejected') {
+    openEditConfirmModal(reportId);
+    return;
+  }
+
+  openStatusModal(reportId, newStatus);
+};
+
+// Edit-confirm modal flow (styled modal instead of browser confirm)
+let editConfirmTarget = null;
+
+function openEditConfirmModal(reportId) {
+  editConfirmTarget = reportId;
+  const modal = document.getElementById('editConfirmModal');
+  const title = modal.querySelector('.modal-title');
+  const subtitle = modal.querySelector('.modal-subtitle');
+
+  title.textContent = 'Confirm Edit';
+  subtitle.textContent = 'Are you sure you want to edit this report?';
+
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+
+  setTimeout(() => modal.querySelector('.modal-proceed')?.focus(), 50);
+}
+
+function closeEditConfirmModal() {
+  const modal = document.getElementById('editConfirmModal');
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden', 'true');
+  editConfirmTarget = null;
+}
+
+function proceedEditVerify() {
+  if (!editConfirmTarget) return;
+  const id = editConfirmTarget;
+  closeEditConfirmModal();
+  openStatusModal(id, 'verified');
+}
+
+// Select report
+window.selectReport = (reportId) => {
+  selectedReport = allReports.find(r => r.id === reportId);
+  // Re-apply current filters so rejected reports remain in the Rejected panel
+  filterReports();
+  renderReportDetails(selectedReport);
+};
+
+// Update statistics
+function updateStats() {
+  const total = allReports.length;
+  const pending = allReports.filter(r => r.status === 'pending').length;
+  const verified = allReports.filter(r => r.status === 'verified').length;
+  const rejected = allReports.filter(r => r.status === 'rejected').length;
+
+  document.getElementById('totalReports').textContent = total;
+  document.getElementById('pendingReports').textContent = pending;
+  document.getElementById('verifiedReports').textContent = verified;
+  document.getElementById('rejectedReports').textContent = rejected;
+  
+  const pendingPercent = total ? Math.round((pending / total) * 100) : 0;
+  const verifiedPercent = total ? Math.round((verified / total) * 100) : 0;
+  const rejectedPercent = total ? Math.round((rejected / total) * 100) : 0;
+
+  document.getElementById('pendingMeta').textContent = pendingPercent + '% of total';
+  document.getElementById('verifiedMeta').textContent = verifiedPercent + '% of total';
+  document.getElementById('rejectedMeta').textContent = rejectedPercent + '% of total';
+
+  document.getElementById('reportCount').textContent = `Showing 1 to ${Math.min(8, total)} of ${total} reports`;
+  document.getElementById('notificationCount').textContent = pending;
+}
+
+// Filter reports
+function filterReports() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+  const statusFilter = document.getElementById('statusFilter').value;
+  const hazardFilter = document.getElementById('hazardFilter').value;
+
+  let filtered = allReports.filter(r => r.status !== 'rejected');
+
+  if (searchTerm) {
+    filtered = filtered.filter(r =>
+      String(r.reportId || '').toLowerCase().includes(searchTerm) ||
+      String(r.hazardType || '').toLowerCase().includes(searchTerm) ||
+      String(r.location || '').toLowerCase().includes(searchTerm) ||
+      String(r.reportedBy || '').toLowerCase().includes(searchTerm)
+    );
+  }
+
+  if (statusFilter) {
+    filtered = filtered.filter(r => r.status === statusFilter);
+  }
+
+  if (hazardFilter) {
+    filtered = filtered.filter(r => r.hazardType === hazardFilter);
+  }
+
+  renderReportsTable(filtered);
+}
+
+// Load hazard types for filter
+function populateHazardFilter() {
+  const filter = document.getElementById('hazardFilter');
+  const currentValue = filter.value;
+
+  filter.innerHTML = '<option value="">Hazard Type: All</option>';
+
+  [...hazardTypes]
+    .sort((a, b) => a.localeCompare(b))
+    .forEach(type => {
+      const option = document.createElement('option');
+      option.value = type;
+      option.textContent = type;
+      filter.appendChild(option);
+    });
+
+  if ([...hazardTypes].includes(currentValue)) {
+    filter.value = currentValue;
+  }
+}
+
+// Real-time listener for reports
+function loadReports() {
+  const reportsRef = collection(db, 'reports');
+  
+  onSnapshot(reportsRef, (snapshot) => {
+    allReports = [];
+    hazardTypes.clear();
+
+    snapshot.forEach((docSnapshot) => {
+      const data = docSnapshot.data();
+      allReports.push({
+        id: docSnapshot.id,
+        reportId: data.reportId || `HR-${Date.now()}`,
+        hazardType: data.hazardType || 'Unknown',
+        location: data.location || 'N/A',
+        trail: data.trail || '',
+        reportedBy: data.reportedBy || 'Anonymous',
+        contact: data.contact || '',
+        description: data.description || '',
+        status: data.status || 'pending',
+        timestamp: data.timestamp || null,
+        ...data
+      });
+      
+      hazardTypes.add(data.hazardType || 'Unknown');
+    });
+
+    // Sort by timestamp (newest first)
+    allReports.sort((a, b) => {
+      const timeA = a.timestamp?.toDate?.() || new Date(0);
+      const timeB = b.timestamp?.toDate?.() || new Date(0);
+      return timeB - timeA;
+    });
+
+    populateHazardFilter();
+    filterReports();
+    updateStats();
+    renderRejectedList();
+
+    if (allReports.length > 0 && !selectedReport) {
+      selectedReport = allReports[0];
+      renderReportDetails(selectedReport);
+    }
+  }, (error) => {
+    console.error('Error loading reports:', error);
+    document.getElementById('reportsTable').innerHTML = `
+      <tr><td colspan="7" class="loading" style="padding:20px;color:red;">Error loading reports: ${error.message}</td></tr>
+    `;
+  });
+}
+
+// Event listeners
+document.getElementById('searchInput').addEventListener('input', filterReports);
+document.getElementById('statusFilter').addEventListener('change', filterReports);
+document.getElementById('hazardFilter').addEventListener('change', filterReports); 
+  
+
+document.getElementById('clearFilters').addEventListener('click', () => {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('statusFilter').value = '';
+  document.getElementById('hazardFilter').value = '';
+  filterReports();
+});
+
+
+// Modal event handlers
+document.getElementById('modalCancelBtn').addEventListener('click', closeStatusModal);
+document.getElementById('modalConfirmBtn').addEventListener('click', confirmStatusUpdate);
+
+document.getElementById('statusModal').addEventListener('click', (event) => {
+  if (event.target.id === 'statusModal') {
+    closeStatusModal();
+  }
+});
+
+// Edit-confirm modal listeners
+document.getElementById('editModalCancelBtn').addEventListener('click', closeEditConfirmModal);
+document.getElementById('editModalProceedBtn').addEventListener('click', proceedEditVerify);
+document.getElementById('editConfirmModal').addEventListener('click', (event) => {
+  if (event.target.id === 'editConfirmModal') {
+    closeEditConfirmModal();
+  }
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    const modal = document.getElementById('statusModal');
+    if (modal.classList.contains('show')) {
+      closeStatusModal();
+    }
+  }
+});
+
+// Auth state listener
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    const initials = user.displayName 
+      ? user.displayName.split(' ').map(n => n[0]).join('')
+      : user.email.substring(0, 2);
+    
+    document.getElementById('userInitials').textContent = initials.toUpperCase();
+    document.getElementById('userName').textContent = user.displayName || user.email;
+    document.getElementById('adminInitials').textContent = initials.toUpperCase();
+    document.getElementById('adminName').textContent = user.displayName || user.email;
+    
+    loadReports();
+  } else {
+    window.location.href = 'login.html';
+  }
+});
+
+// Logout
+document.querySelector('.logout-btn').addEventListener('click', (e) => {
+  e.preventDefault();
+  signOut(auth).then(() => {
+    window.location.href = 'Home.html';
+  });
+});
+</script>
+
 </body>
 </html>

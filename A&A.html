@@ -203,11 +203,16 @@
 			<div class="content-grid">
 				<div>
 					<div class="panel">
+						<div class="panel-title">Advisory Statistics (This Month)</div>
+						<div class="stats-grid" id="statsGrid"></div>
+					</div>
+
+					<div class="panel">
 						<div class="panel-title">Advisories & Announcements</div>
 						<div class="toolbar">
 							<div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#98a094" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Search advisories..."></div>
 							<select id="typeFilter" class="filter"><option value="">All Types</option><option>Advisory</option><option>Weather</option><option>Update</option><option>Alert</option><option>Announcement</option></select>
-							<select id="statusFilter" class="filter"><option value="">All Status</option><option>Active</option><option>Scheduled</option><option>Expired</option></select>
+							<select id="statusFilter" class="filter"><option value="">All Status</option><option>Active</option><option>Scheduled</option></select>
 							<select id="dateFilter" class="filter"><option value="">All Dates</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select>
 						</div>
 						<table>
@@ -218,11 +223,6 @@
 							<div id="pageInfo">Loading…</div>
 							<div class="page-controls" id="pageControls"></div>
 						</div>
-					</div>
-
-					<div class="panel">
-						<div class="panel-title">Advisory Statistics (This Month)</div>
-						<div class="stats-grid" id="statsGrid"></div>
 					</div>
 				</div>
 
@@ -264,7 +264,10 @@
 								<button class="btn-end" id="endBtn">⦻ End Advisory</button>
 							</div>
 						</div>
-					</div>
+					</div>		
+					<div class="panel" id="expiredPanel">
+					<div class="panel-title">Expired Advisories</div>
+					<div id="expiredList" style="display:flex;flex-direction:column;gap:2px"></div>
 				</div>
 			</div>
 		</div>
@@ -331,6 +334,35 @@
 			<button class="btn-primary" id="confirmOk" style="width:100%">OK</button>
 		</div>
 	</div>
+
+	<!-- End Advisory Confirmation Modal -->
+<div class="modal-overlay" id="endConfirmOverlay">
+	<div class="modal" style="max-width:360px;text-align:center;padding:28px 24px">
+		<div style="width:44px;height:44px;border-radius:50%;background:var(--danger-light);color:var(--danger);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+		</div>
+		<div style="font-size:15px;font-weight:700;margin-bottom:6px">End this advisory?</div>
+		<div style="font-size:13px;color:var(--text-secondary);margin-bottom:18px">Its status will be set to Expired.</div>
+		<div style="display:flex;gap:10px">
+			<button class="btn-secondary" id="endConfirmCancel" style="flex:1">Cancel</button>
+			<button class="btn-primary" id="endConfirmOk" style="flex:1;background:var(--danger)">End Advisory</button>
+		</div>
+	</div>
+</div>
+
+<!-- Restore Expired Advisory Modal -->
+<div class="modal-overlay" id="restoreConfirmOverlay">
+	<div class="modal" style="max-width:380px;text-align:center;padding:28px 24px">
+		<div style="width:44px;height:44px;border-radius:50%;background:var(--warning-light);color:var(--warning);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+		</div>
+		<div style="font-size:14px;font-weight:600;margin-bottom:18px;color:var(--text-primary)">This advisory has been expired or deleted, do you want to edit it and place it again in the Advisory and Announcement?</div>
+		<div style="display:flex;gap:10px">
+			<button class="btn-secondary" id="restoreConfirmNo" style="flex:1">No</button>
+			<button class="btn-primary" id="restoreConfirmYes" style="flex:1">Yes</button>
+		</div>
+	</div>
+</div>
 
 	<script type="module">
 		import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
@@ -431,7 +463,7 @@
 			const statusVal = document.getElementById('statusFilter').value;
 			const dateVal = document.getElementById('dateFilter').value;
 
-			let items = allItems;
+			let items = allItems.filter(d => d.status !== 'Expired');
 			if (q) items = items.filter(d => (d.title || '').toLowerCase().includes(q) || (d.desc || '').toLowerCase().includes(q));
 			if (typeVal) items = items.filter(d => d.type === typeVal);
 			if (statusVal) items = items.filter(d => d.status === statusVal);
@@ -449,6 +481,7 @@
 				? `Showing ${start + 1} to ${Math.min(start + PAGE_SIZE, items.length)} of ${items.length} advisories`
 				: 'No advisories found';
 			renderPagination(totalPages);
+			renderExpiredList();
 		}
 
 		function renderPagination(totalPages){
@@ -568,6 +601,33 @@
 			});
 		}
 
+		function renderExpiredList(){
+			const wrap = document.getElementById('expiredList');
+			const expired = allItems.filter(d => d.status === 'Expired');
+			wrap.innerHTML = '';
+			if (!expired.length) {
+			wrap.innerHTML = '<div class="empty-state" style="padding:10px 0">No expired advisories.</div>';
+			return;
+		}
+			expired.forEach(it => {
+			const meta = typeMeta(it.type);
+			const row = document.createElement('div');
+			row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
+			row.onclick = () => showRestorePrompt(it.id);
+			row.innerHTML = `
+			<div class="thumb" style="background:${meta.bg};color:${meta.fg};width:32px;height:32px;flex-shrink:0">
+				<svg viewBox="0 0 24 24" style="width:15px;height:15px">${meta.icon}</svg>
+			</div>
+			<div style="flex:1;min-width:0">
+				<div style="font-weight:600;font-size:12.5px">${escapeHtml(it.title || 'Untitled')}</div>
+				<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${escapeHtml(it.target || '')} · Expired ${fmtDateTime(it.expiresAt || it.effectiveDate)}</div>
+			</div>
+			<span class="badge ${meta.cls}" style="flex-shrink:0">${escapeHtml(it.type || '')}</span>
+		`;
+		wrap.appendChild(row);
+	});
+}
+
 		function selectAdvisory(id) {
 			const it = allItems.find(d => d.id === id);
 			if (!it) return;
@@ -620,11 +680,14 @@
 			editBtnEl.style.cursor = isVisible ? 'pointer' : 'not-allowed';
 			editBtnEl.title = isVisible ? '' : 'This advisory is hidden — make it visible to edit';
 
+			const alreadyExpired = it.status === 'Expired';
 			const endBtnEl = document.getElementById('endBtn');
-			endBtnEl.disabled = !isVisible;
-			endBtnEl.style.opacity = isVisible ? '1' : '.45';
-			endBtnEl.style.cursor = isVisible ? 'pointer' : 'not-allowed';
-			endBtnEl.title = isVisible ? '' : 'This advisory is hidden — make it visible to end it';
+			endBtnEl.disabled = !isVisible || alreadyExpired;
+			endBtnEl.style.opacity = (isVisible && !alreadyExpired) ? '1' : '.45';
+			endBtnEl.style.cursor = (isVisible && !alreadyExpired) ? 'pointer' : 'not-allowed';
+			endBtnEl.title = alreadyExpired
+				? 'This advisory has already expired'
+				: (isVisible ? '' : 'This advisory is hidden — make it visible to end it');	
 
 			applyFiltersAndRender();
 		}
@@ -734,14 +797,62 @@
 		document.getElementById('alertOk').addEventListener('click', () => alertOverlay.classList.remove('open'));
 		alertOverlay.addEventListener('click', (e) => { if (e.target === alertOverlay) alertOverlay.classList.remove('open'); });
 
-		async function endAdvisoryById(id) {
-			if (!confirm('End this advisory? Its status will be set to Expired.')) return;
-			try {
-				await updateDoc(doc(db, 'Advisory', id), { status: 'Expired' });
-			} catch (err) {
-				showAlert('Failed to end advisory: ' + err.message);
-			}
+		let pendingEndId = null;
+		const endConfirmOverlay = document.getElementById('endConfirmOverlay');
+
+		function endAdvisoryById(id) {
+		pendingEndId = id;
+		endConfirmOverlay.classList.add('open');
 		}
+
+		async function confirmEndAdvisory() {
+		if (!pendingEndId) return;
+		const id = pendingEndId;
+		endConfirmOverlay.classList.remove('open');
+		pendingEndId = null;
+		try {
+		await updateDoc(doc(db, 'Advisory', id), { status: 'Expired' });
+		} catch (err) {
+		showAlert('Failed to end advisory: ' + err.message);
+		}
+	}
+
+		document.getElementById('endConfirmOk').addEventListener('click', confirmEndAdvisory);
+		document.getElementById('endConfirmCancel').addEventListener('click', () => {
+		endConfirmOverlay.classList.remove('open');
+		pendingEndId = null;
+	});
+		endConfirmOverlay.addEventListener('click', (e) => {
+		if (e.target === endConfirmOverlay) {
+		endConfirmOverlay.classList.remove('open');
+		pendingEndId = null;
+	}
+});
+
+		let pendingRestoreId = null;
+		const restoreConfirmOverlay = document.getElementById('restoreConfirmOverlay');
+
+		function showRestorePrompt(id) {
+		pendingRestoreId = id;
+		restoreConfirmOverlay.classList.add('open');
+	}
+
+		document.getElementById('restoreConfirmYes').addEventListener('click', () => {
+		const id = pendingRestoreId;
+		restoreConfirmOverlay.classList.remove('open');
+		pendingRestoreId = null;
+		if (id) openModal(id);
+	});
+		document.getElementById('restoreConfirmNo').addEventListener('click', () => {
+		restoreConfirmOverlay.classList.remove('open');
+		pendingRestoreId = null;
+	});
+		restoreConfirmOverlay.addEventListener('click', (e) => {
+		if (e.target === restoreConfirmOverlay) {
+		restoreConfirmOverlay.classList.remove('open');
+		pendingRestoreId = null;
+	}
+});
 
 		document.getElementById('editBtn').addEventListener('click', () => {
 			if (!selectedId) return showAlert('Select an advisory first.');
