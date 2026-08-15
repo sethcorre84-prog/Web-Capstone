@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PeakPath Admin — Hazard Reports</title>
 <style>
+  @view-transition {
+  navigation: auto;
+}
   :root{
     --sidebar-bg:#132313;
     --sidebar-bg-light:#1c341c;
@@ -1580,7 +1583,7 @@ onAuthStateChanged(auth, (user) => {
     
     loadReports();
   } else {
-    window.location.href = 'login.html';
+    window.location.href = 'Home.html';
   }
 });
 

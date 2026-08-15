@@ -1,6 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <style>
+    @view-transition {
+      navigation: auto;
+    }
+    html {
+      /* Always painted (never hidden/faded), so this shows during the crossfade
+         and while the auth check runs — no white gap underneath. */
+      background: #eef1ec;
+    }
+    body {
+      visibility: hidden;
+    }
+    body.authorized {
+      visibility: visible;
+    }
+  </style>
   <script type="module" src="dashboard-guard.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">

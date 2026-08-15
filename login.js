@@ -72,6 +72,35 @@ function handleLoginError(code) {
 document.addEventListener("DOMContentLoaded", () => {
   const closeBtn = document.getElementById("errorModalClose");
   const overlay = document.getElementById("errorModal");
+  const loginForm = document.getElementById("loginForm");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+
+  if (loginForm) {
+    loginForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      login();
+    });
+  }
+
+  [emailInput, passwordInput].forEach((input) => {
+    if (!input) return;
+
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.keyCode === 13) {
+        event.preventDefault();
+        login();
+      }
+    });
+  });
+
+  document.addEventListener("keydown", (event) => {
+    const active = document.activeElement;
+    if ((event.key === "Enter" || event.keyCode === 13) && active && (active.id === "email" || active.id === "password")) {
+      event.preventDefault();
+      login();
+    }
+  });
 
   closeBtn.addEventListener("click", () => {
     overlay.classList.remove("show");
@@ -85,5 +114,4 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// Make login() available to the inline onclick in the HTML
 window.login = login;

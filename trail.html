@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<style>
+  @view-transition {
+  navigation: auto;
+}
+  html, body {
+    visibility: hidden;
+    opacity: 0;
+    background: #eef1ec;
+    transition: opacity 0.15s ease;
+  }
+  html.authorized, body.authorized {
+    visibility: visible;
+    opacity: 1;
+  }
+</style>
 <script type="module" src="dashboard-guard.js"></script>
 <meta charset="UTF-8">
 <title>PeakPath — Trail Management</title>
