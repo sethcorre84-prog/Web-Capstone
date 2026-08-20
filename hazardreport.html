@@ -743,6 +743,47 @@
     opacity:.65;
     cursor:not-allowed;
   }
+  .report-form{
+    display:grid;
+    gap:12px;
+  }
+  .report-form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .report-form label{
+    display:grid;
+    gap:5px;
+    font-size:12px;
+    font-weight:600;
+    color:var(--text-900);
+  }
+  .report-form input,
+  .report-form select,
+  .report-form textarea{
+    width:100%;
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:9px 10px;
+    font:inherit;
+    font-size:12.5px;
+    color:var(--text-900);
+    background:#fff;
+  }
+  .report-form textarea{min-height:84px;resize:vertical;}
+  .report-form input:focus,
+  .report-form select:focus,
+  .report-form textarea:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(47,143,78,.10);
+  }
+  .form-error{
+    color:var(--red-text);
+    font-size:12px;
+    min-height:16px;
+  }
   @keyframes modalFadeIn{from{opacity:0}to{opacity:1}}
   @keyframes modalSlideIn{to{transform:translateY(0)}}
 
@@ -824,6 +865,7 @@
         <p>Review, verify, and manage hazard reports in Mount Makiling.</p>
       </div>
       <div class="topbar-right">
+        <button class="btn btn-verify" id="addReportBtn" type="button" style="flex:0 0 auto;padding:10px 14px;">+ Add Report</button>
         <div class="bell-wrap">
           <span class="bell-icon">🔔</span>
           <div class="bell-badge" id="notificationCount">0</div>
@@ -832,6 +874,50 @@
           <div class="avatar" id="adminInitials">AU</div>
           <div>
             <div class="name" id="adminName">Admin User</div>
+          <!-- Add hazard report modal -->
+          <div class="modal-overlay" id="addReportModal" aria-hidden="true">
+            <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="addReportTitle">
+              <div class="modal-header">
+                <div class="modal-icon verify">+</div>
+                <div>
+                  <h3 id="addReportTitle">Add Hazard Report</h3>
+                  <p>Save a new report to the hazard reports database.</p>
+                </div>
+              </div>
+              <form class="report-form" id="addReportForm">
+                <div class="modal-body">
+                  <div class="report-form-grid">
+                    <label>Hazard type
+                      <input name="hazardType" required placeholder="e.g. Landslide">
+                    </label>
+                    <label>Trail
+                      <input name="trail" required placeholder="e.g. Makiling Trail">
+                    </label>
+                  </div>
+                  <label>Location
+                    <input name="location" required placeholder="Describe the location">
+                  </label>
+                  <div class="report-form-grid">
+                    <label>Reported by
+                      <input name="reportedBy" required placeholder="Name or Anonymous">
+                    </label>
+                    <label>Contact
+                      <input name="contact" placeholder="Phone or email (optional)">
+                    </label>
+                  </div>
+                  <label>Description
+                    <textarea name="description" required placeholder="Describe the hazard"></textarea>
+                  </label>
+                  <div class="form-error" id="addReportError" role="alert"></div>
+                </div>
+                <div class="modal-actions">
+                  <button type="button" class="modal-btn cancel" id="addReportCancelBtn">Cancel</button>
+                  <button type="submit" class="modal-btn confirm-verify" id="addReportSubmitBtn">Save Report</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
             <div class="role">Super Administrator</div>
           </div>
         </div>
@@ -999,7 +1085,7 @@
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, query, where, getDocs, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // Firebase Configuration
@@ -1301,7 +1387,7 @@ function showStatusModalMessage(message) {
 async function confirmStatusUpdate() {
   if (!pendingStatusAction) return;
 
-  const { reportId, newStatus } = pendingStatusAction;
+  const { reportId, newStatus, report } = pendingStatusAction;
   const reason = document.getElementById('statusReason').value.trim();
   const confirmBtn = document.getElementById('modalConfirmBtn');
 
@@ -1324,7 +1410,27 @@ async function confirmStatusUpdate() {
       updateData.statusNote = reason;
     }
 
-    await updateDoc(reportRef, updateData);
+    const batch = writeBatch(db);
+    batch.update(reportRef, updateData);
+
+    if (newStatus === 'verified') {
+      const notificationRef = doc(collection(db, 'notifications'));
+      batch.set(notificationRef, {
+        type: 'hazard_verified',
+        title: 'Hazard report verified',
+        message: `${report.hazardType || 'Hazard'} at ${report.location || 'reported location'} was verified by an administrator.`,
+        reportId: report.reportId || reportId,
+        reportDocumentId: reportId,
+        hazardType: report.hazardType || 'Unknown',
+        location: report.location || '',
+        recipientId: report.userId || report.reportedById || null,
+        read: false,
+        createdBy: auth.currentUser?.uid || null,
+        createdAt: serverTimestamp()
+      });
+    }
+
+    await batch.commit();
 
     closeStatusModal();
 
@@ -1538,6 +1644,61 @@ document.getElementById('clearFilters').addEventListener('click', () => {
   document.getElementById('statusFilter').value = '';
   document.getElementById('hazardFilter').value = '';
   filterReports();
+});
+
+const addReportModal = document.getElementById('addReportModal');
+const addReportForm = document.getElementById('addReportForm');
+const addReportError = document.getElementById('addReportError');
+const addReportSubmitBtn = document.getElementById('addReportSubmitBtn');
+
+function closeAddReportModal() {
+  addReportModal.classList.remove('show');
+  addReportModal.setAttribute('aria-hidden', 'true');
+  addReportForm.reset();
+  addReportError.textContent = '';
+}
+
+document.getElementById('addReportBtn').addEventListener('click', () => {
+  addReportModal.classList.add('show');
+  addReportModal.setAttribute('aria-hidden', 'false');
+  addReportForm.elements.reportedBy.value = auth.currentUser?.displayName || 'Anonymous';
+  addReportForm.elements.hazardType.focus();
+});
+
+document.getElementById('addReportCancelBtn').addEventListener('click', closeAddReportModal);
+addReportModal.addEventListener('click', (event) => {
+  if (event.target === addReportModal) closeAddReportModal();
+});
+
+addReportForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  addReportError.textContent = '';
+  addReportSubmitBtn.disabled = true;
+  addReportSubmitBtn.textContent = 'Saving...';
+
+  const formData = new FormData(addReportForm);
+  try {
+    await addDoc(collection(db, 'reports'), {
+      reportId: `HR-${Date.now()}`,
+      hazardType: formData.get('hazardType').trim(),
+      trail: formData.get('trail').trim(),
+      location: formData.get('location').trim(),
+      reportedBy: formData.get('reportedBy').trim(),
+      contact: formData.get('contact').trim(),
+      description: formData.get('description').trim(),
+      status: 'pending',
+      timestamp: serverTimestamp()
+    });
+    closeAddReportModal();
+  } catch (error) {
+    console.error('Error adding hazard report:', error);
+    addReportError.textContent = error?.code === 'permission-denied'
+      ? 'Firebase denied this report. Check your Firestore security rules.'
+      : `Could not save the report: ${error.message || 'Unknown error'}`;
+  } finally {
+    addReportSubmitBtn.disabled = false;
+    addReportSubmitBtn.textContent = 'Save Report';
+  }
 });
 
 

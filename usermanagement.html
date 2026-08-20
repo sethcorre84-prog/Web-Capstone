@@ -913,35 +913,35 @@ tbody tr:last-child td{
         <div class="stat-top">
           <div class="stat-icon" style="background:#e7f5eb;color:#2f8f4e;">👥</div>
         </div>
-        <div class="stat-value">48</div>
+        <div class="stat-value" id="totalUsersValue">—</div>
         <div class="stat-label">Total Users</div>
       </div>
       <div class="stat-card">
         <div class="stat-top">
           <div class="stat-icon" style="background:#e7f5eb;color:#2f8f4e;">✅</div>
         </div>
-        <div class="stat-value">39</div>
+        <div class="stat-value" id="activeUsersValue">—</div>
         <div class="stat-label">Active Users</div>
       </div>
       <div class="stat-card">
         <div class="stat-top">
           <div class="stat-icon" style="background:#fdf3e0;color:#c9821f;">👥</div>
         </div>
-        <div class="stat-value">12</div>
+        <div class="stat-value" id="teamCountValue">—</div>
         <div class="stat-label">Teams</div>
       </div>
       <div class="stat-card">
         <div class="stat-top">
           <div class="stat-icon" style="background:#fbeae7;color:#c8402f;">🚨</div>
         </div>
-        <div class="stat-value">5</div>
+        <div class="stat-value" id="emergencyAlertsValue">—</div>
         <div class="stat-label">Emergency Alerts</div>
       </div>
       <div class="stat-card">
         <div class="stat-top">
           <div class="stat-icon" style="background:#fdf3e0;color:#c9821f;">🛡️</div>
         </div>
-        <div class="stat-value">9</div>
+        <div class="stat-value" id="adminCountValue">—</div>
         <div class="stat-label">Administrator</div>
       </div>
     </section>
@@ -953,13 +953,20 @@ tbody tr:last-child td{
           <div class="toolbar">
             <div class="search-box">
               <span>🔎</span>
-              <input type="text" placeholder="Search user or email" />
+              <input type="text" id="userSearchInput" placeholder="Search user or email" />
             </div>
-            <select class="filter">
+            <select class="filter" id="userRoleFilter">
               <option>All Roles</option>
               <option>Admin</option>
               <option>Manager</option>
               <option>Operator</option>
+              <option>Hiker</option>
+            </select>
+            <select class="filter" id="userStatusFilter">
+              <option>All Statuses</option>
+              <option>Active</option>
+              <option>Blocked</option>
+              <option>Pending</option>
             </select>
             <button class="clear-btn">Clear</button>
           </div>
@@ -974,88 +981,7 @@ tbody tr:last-child td{
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <div class="user-cell">
-                    <div class="thumb">AR</div>
-                    <div>
-                      <div class="user-name">Aira Reyes</div>
-                      <div class="user-email">aira@peakpath.org</div>
-                    </div>
-                  </div>
-                </td>
-                <td><span class="badge admin">Admin</span></td>
-                <td><span class="badge active">Active</span></td>
-                <td>2 mins ago</td>
-                <td>
-                  <div class="row-actions">
-                    <button class="icon-btn">✎</button>
-                    <button class="icon-btn">🗑</button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <div class="user-cell">
-                    <div class="thumb">JT</div>
-                    <div>
-                      <div class="user-name">Jasper Tan</div>
-                      <div class="user-email">jasper@peakpath.org</div>
-                    </div>
-                  </div>
-                </td>
-                <td><span class="badge manager">Manager</span></td>
-                <td><span class="badge active">Active</span></td>
-                <td>14 mins ago</td>
-                <td>
-                  <div class="row-actions">
-                    <button class="icon-btn">✎</button>
-                    <button class="icon-btn">🗑</button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <div class="user-cell">
-                    <div class="thumb">LN</div>
-                    <div>
-                      <div class="user-name">Liana Navarro</div>
-                      <div class="user-email">liana@peakpath.org</div>
-                    </div>
-                  </div>
-                </td>
-                <td><span class="badge operator">Operator</span></td>
-                <td><span class="badge active">Active</span></td>
-                <td>1 hour ago</td>
-                <td>
-                  <div class="row-actions">
-                    <button class="icon-btn">✎</button>
-                    <button class="icon-btn">🗑</button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <div class="user-cell">
-                    <div class="thumb">PM</div>
-                    <div>
-                      <div class="user-name">Paul Mercado</div>
-                      <div class="user-email">paul@peakpath.org</div>
-                    </div>
-                  </div>
-                </td>
-                <td><span class="badge manager">Manager</span></td>
-                <td><span class="badge blocked">Blocked</span></td>
-                <td>2 days ago</td>
-                <td>
-                  <div class="row-actions">
-                    <button class="icon-btn">✎</button>
-                    <button class="icon-btn">🗑</button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
+            <tbody id="usersTableBody"><tr><td colspan="5">Loading users...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1066,19 +992,20 @@ tbody tr:last-child td{
           <div class="detail-grid">
             <div class="field full">
               <label>Full Name</label>
-              <input type="text" value="Aira Reyes" />
+              <input type="text" id="detailUserName" value="Select a user" readonly />
             </div>
             <div class="field">
               <label>Role</label>
-              <select>
-                <option selected>Admin</option>
+              <select id="detailUserRole" disabled>
+                <option selected>Hiker</option>
                 <option>Manager</option>
                 <option>Operator</option>
+                <option>Admin</option>
               </select>
             </div>
             <div class="field">
               <label>Status</label>
-              <select>
+              <select id="detailUserStatus" disabled>
                 <option selected>Active</option>
                 <option>Blocked</option>
                 <option>Pending</option>
@@ -1086,44 +1013,22 @@ tbody tr:last-child td{
             </div>
             <div class="field full">
               <label>Email Address</label>
-              <input type="email" value="aira@peakpath.org" />
+              <input type="email" id="detailUserEmail" value="—" readonly />
             </div>
             <div class="field">
               <label>Department</label>
-              <input type="text" value="Operations" />
+              <input type="text" id="detailDepartment" value="—" readonly />
             </div>
             <div class="field">
               <label>Last Login</label>
-              <input type="text" value="2 mins ago" />
+              <input type="text" id="detailLastLogin" value="—" readonly />
             </div>
           </div>
         </div>
 
         <div class="panel detail-card">
           <div class="panel-title">User Activities</div>
-          <div class="activity-list">
-            <div class="activity-item">
-              <div class="activity-dot"></div>
-              <div class="activity-content">
-                <div class="activity-title">Updated trail access permissions</div>
-                <div class="activity-time">Today • 09:15 AM</div>
-              </div>
-            </div>
-            <div class="activity-item">
-              <div class="activity-dot"></div>
-              <div class="activity-content">
-                <div class="activity-title">Reviewed emergency alert status</div>
-                <div class="activity-time">Yesterday • 04:42 PM</div>
-              </div>
-            </div>
-            <div class="activity-item">
-              <div class="activity-dot"></div>
-              <div class="activity-content">
-                <div class="activity-title">Reset password request approved</div>
-                <div class="activity-time">2 days ago • 11:30 AM</div>
-              </div>
-            </div>
-          </div>
+          <div class="activity-list" id="userActivities"><div class="activity-item"><div class="activity-content"><div class="activity-title">No activity data available.</div></div></div></div>
         </div>
 
         <div class="panel detail-card">
@@ -1131,36 +1036,206 @@ tbody tr:last-child td{
           <div class="contact-list">
             <div class="contact-row">
               <strong>Emergency Contact</strong>
-              <span>+63 912 345 6789</span>
+              <span id="detailEmergencyContact">—</span>
             </div>
             <div class="contact-row">
               <strong>Local Rescue Unit</strong>
-              <span>RPU-104</span>
+              <span>—</span>
             </div>
             <div class="contact-row">
               <strong>Primary Contact</strong>
-              <span>aira.reyes@peakpath.org</span>
+              <span id="detailPrimaryContact">—</span>
             </div>
           </div>
         </div>
 
         <div class="panel summary-card">
           <div class="panel-title">Quick Actions</div>
-          <button class="primary-btn">+ Add New User</button>
-          <button class="secondary-btn">Manage Roles</button>
-          <button class="secondary-btn">Reset Password Requests</button>
+          <button class="primary-btn" id="addUserAction" type="button">+ Add New User</button>
+          <button class="secondary-btn" id="manageRolesAction" type="button">Manage Roles</button>
+          <button class="secondary-btn" id="resetPasswordAction" type="button">Reset Password Requests</button>
         </div>
 
         <div class="panel summary-card">
           <div class="panel-title">Access Summary</div>
-          <div class="summary-item"><strong>Super Admin</strong><span>1</span></div>
-          <div class="summary-item"><strong>Trail Managers</strong><span>7</span></div>
-          <div class="summary-item"><strong>Field Operators</strong><span>18</span></div>
-          <div class="summary-item"><strong>Pending Approvals</strong><span>5</span></div>
+          <div class="summary-item"><strong>Super Admin</strong><span id="superAdminCount">0</span></div>
+          <div class="summary-item"><strong>Trail Managers</strong><span id="managerCount">0</span></div>
+          <div class="summary-item"><strong>Field Operators</strong><span id="operatorCount">0</span></div>
+          <div class="summary-item"><strong>Pending Approvals</strong><span id="pendingCount">0</span></div>
         </div>
       </aside>
     </section>
   </main>
 </div>
+<dialog id="addUserDialog" style="border:0;border-radius:12px;padding:24px;max-width:420px;width:calc(100% - 32px);box-shadow:0 18px 48px rgba(15,23,42,.2);">
+  <form id="addUserForm" method="dialog">
+    <h2 style="margin:0 0 16px;font-size:18px;">Add New User</h2>
+    <label style="display:block;margin-bottom:12px;font-size:12px;font-weight:600;">Full Name
+      <input name="fullName" required style="display:block;width:100%;margin-top:5px;padding:9px;border:1px solid var(--border);border-radius:7px;">
+    </label>
+    <label style="display:block;margin-bottom:12px;font-size:12px;font-weight:600;">Email Address
+      <input name="email" type="email" required style="display:block;width:100%;margin-top:5px;padding:9px;border:1px solid var(--border);border-radius:7px;">
+    </label>
+    <label style="display:block;margin-bottom:12px;font-size:12px;font-weight:600;">Role
+      <select name="role" style="display:block;width:100%;margin-top:5px;padding:9px;border:1px solid var(--border);border-radius:7px;"><option selected>Hiker</option><option>Admin</option><option>Manager</option><option>Operator</option></select>
+    </label>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+      <button type="button" class="secondary-btn" id="cancelAddUser">Cancel</button>
+      <button type="submit" class="primary-btn" id="saveAddUser">Save User</button>
+    </div>
+  </form>
+</dialog>
+<script type="module">
+  import { db } from "./firebase-config.js";
+  import { collection, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  let users = [];
+  let selectedUser = null;
+
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[character]));
+
+  const getUser = (document) => {
+    const data = document.data();
+    const storedName = data.fullName || data.fullname || data.displayName || data.name
+      || [data.firstName, data.lastName].filter(Boolean).join(' ')
+      || 'Unnamed user';
+    return {
+      id: document.id,
+      ...data,
+      name: storedName,
+      email: data.email || 'Email not stored',
+      role: data.role || data.Role || 'Hiker',
+      status: data.status || data.Status || 'Active',
+      department: data.department || data.Department || '—',
+      lastLogin: data.lastLogin || data.lastActive || data.LastLogin || '—',
+      emergencyContact: data.emergencyContact || data.primaryContact || '—'
+    };
+  };
+
+  const initials = (name) => name.split(/\s+/).filter(Boolean).map(part => part[0]).join('').slice(0, 2).toUpperCase() || 'U';
+
+  function renderUsers() {
+    const search = document.getElementById('userSearchInput').value.toLowerCase().trim();
+    const role = document.getElementById('userRoleFilter').value;
+    const status = document.getElementById('userStatusFilter').value;
+    const filtered = users.filter(user => {
+      const matchesSearch = !search || `${user.name} ${user.email}`.toLowerCase().includes(search);
+      const matchesRole = !role || role === 'All Roles' || user.role.toLowerCase() === role.toLowerCase();
+      const matchesStatus = !status || status === 'All Statuses' || user.status.toLowerCase() === status.toLowerCase();
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+    const body = document.getElementById('usersTableBody');
+    body.innerHTML = filtered.length ? filtered.map(user => `
+      <tr data-user-id="${escapeHtml(user.id)}" class="${selectedUser?.id === user.id ? 'selected' : ''}">
+        <td><div class="user-cell"><div class="thumb">${escapeHtml(initials(user.name))}</div><div><div class="user-name">${escapeHtml(user.name)}</div><div class="user-email">${escapeHtml(user.email)}</div></div></div></td>
+        <td><span class="badge ${escapeHtml(user.role.toLowerCase())}">${escapeHtml(user.role)}</span></td>
+        <td><span class="badge ${escapeHtml(user.status.toLowerCase())}">${escapeHtml(user.status)}</span></td>
+        <td>${escapeHtml(user.lastLogin)}</td>
+        <td><div class="row-actions"><button class="icon-btn" type="button" title="View details">▸</button></div></td>
+      </tr>`).join('') : '<tr><td colspan="5">No users found.</td></tr>';
+    body.querySelectorAll('tr[data-user-id]').forEach(row => row.addEventListener('click', () => {
+      selectedUser = users.find(user => user.id === row.dataset.userId) || null;
+      renderUsers();
+      renderDetails();
+    }));
+  }
+
+  function renderDetails() {
+    if (!selectedUser) return;
+    document.getElementById('detailUserName').value = selectedUser.name;
+    document.getElementById('detailUserEmail').value = selectedUser.email;
+    document.getElementById('detailDepartment').value = selectedUser.department;
+    document.getElementById('detailLastLogin').value = selectedUser.lastLogin;
+    document.getElementById('detailUserRole').value = selectedUser.role;
+    document.getElementById('detailUserStatus').value = selectedUser.status;
+    document.getElementById('detailEmergencyContact').textContent = selectedUser.emergencyContact;
+    document.getElementById('detailPrimaryContact').textContent = selectedUser.email;
+  }
+
+  onSnapshot(collection(db, 'users'), (snapshot) => {
+    users = snapshot.docs.map(getUser);
+    selectedUser = selectedUser && users.find(user => user.id === selectedUser.id) || users[0] || null;
+    const roleFilter = document.getElementById('userRoleFilter');
+    const selectedRole = roleFilter.value;
+    const roles = [...new Set(users.map(user => user.role).filter(Boolean))].sort((first, second) => first.localeCompare(second));
+    roleFilter.innerHTML = '<option value="All Roles">All Roles</option>'
+      + roles.map(role => `<option value="${escapeHtml(role)}">${escapeHtml(role)}</option>`).join('');
+    roleFilter.value = roles.some(role => role.toLowerCase() === selectedRole.toLowerCase()) ? selectedRole : 'All Roles';
+    const activeUsers = users.filter(user => user.status.toLowerCase() === 'active').length;
+    const roleCount = (role) => users.filter(user => user.role.toLowerCase() === role.toLowerCase()).length;
+    document.getElementById('totalUsersValue').textContent = users.length;
+    document.getElementById('activeUsersValue').textContent = activeUsers;
+    document.getElementById('emergencyAlertsValue').textContent = '—';
+    document.getElementById('adminCountValue').textContent = users.filter(user => ['admin', 'super admin'].includes(user.role.toLowerCase())).length;
+    document.getElementById('superAdminCount').textContent = roleCount('Super Admin');
+    document.getElementById('managerCount').textContent = roleCount('Manager');
+    document.getElementById('operatorCount').textContent = roleCount('Operator');
+    document.getElementById('pendingCount').textContent = roleCount('Pending');
+    renderUsers();
+    renderDetails();
+  }, (error) => {
+    console.error('Error loading users:', error);
+    document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="5">Unable to load users from the database.</td></tr>';
+  });
+
+  onSnapshot(collection(db, 'teams'), (snapshot) => {
+    document.getElementById('teamCountValue').textContent = snapshot.size;
+  }, (error) => {
+    console.error('Error loading teams:', error);
+    document.getElementById('teamCountValue').textContent = '—';
+  });
+
+  document.getElementById('userSearchInput').addEventListener('input', renderUsers);
+  document.getElementById('userRoleFilter').addEventListener('change', renderUsers);
+  document.getElementById('userStatusFilter').addEventListener('change', renderUsers);
+  document.querySelector('.clear-btn').addEventListener('click', () => {
+    document.getElementById('userSearchInput').value = '';
+    document.getElementById('userRoleFilter').value = 'All Roles';
+    document.getElementById('userStatusFilter').value = 'All Statuses';
+    renderUsers();
+  });
+
+  const addUserDialog = document.getElementById('addUserDialog');
+  const addUserForm = document.getElementById('addUserForm');
+  document.getElementById('addUserAction').addEventListener('click', () => addUserDialog.showModal());
+  document.getElementById('cancelAddUser').addEventListener('click', () => addUserDialog.close());
+  addUserDialog.addEventListener('click', (event) => {
+    if (event.target === addUserDialog) addUserDialog.close();
+  });
+  addUserForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const formData = new FormData(addUserForm);
+    const saveButton = document.getElementById('saveAddUser');
+    saveButton.disabled = true;
+    try {
+      await addDoc(collection(db, 'users'), {
+        fullName: formData.get('fullName').trim(),
+        email: formData.get('email').trim(),
+        role: formData.get('role'),
+        status: 'Pending',
+        createdAt: serverTimestamp()
+      });
+      addUserForm.reset();
+      addUserDialog.close();
+    } catch (error) {
+      console.error('Error adding user:', error);
+      alert(`Could not add user: ${error.message || 'Unknown error'}`);
+    } finally {
+      saveButton.disabled = false;
+    }
+  });
+  document.getElementById('manageRolesAction').addEventListener('click', () => {
+    document.getElementById('userRoleFilter').focus();
+    document.getElementById('userRoleFilter').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  document.getElementById('resetPasswordAction').addEventListener('click', () => {
+    document.getElementById('userSearchInput').value = '';
+    document.getElementById('userRoleFilter').value = 'All Roles';
+    document.getElementById('userStatusFilter').value = 'Pending';
+    renderUsers();
+  });
+</script>
 </body>
 </html>

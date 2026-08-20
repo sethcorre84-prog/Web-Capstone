@@ -521,23 +521,23 @@
             <section class="hero-grid">
                 <article class="hero-card">
                     <div class="hero-card-title"><i class="fa-solid fa-person-hiking"></i><h3>Active Hikers Today</h3></div>
-                    <p>162</p><span>+18% vs yesterday</span>
+                    <p id="activeHikersValue">—</p><span>Hiker activity data unavailable</span>
                 </article>
                 <article class="hero-card">
                     <div class="hero-card-title"><i class="fa-solid fa-route"></i><h3>Open Trails</h3></div>
-                    <p>3 / 4</p><span>75% of trails</span>
+                    <p id="openTrailsValue">—</p><span id="openTrailsMeta">Loading trail data...</span>
                 </article>
                 <article class="hero-card alert-card">
                     <div class="hero-card-title"><i class="fa-solid fa-triangle-exclamation"></i><h3>Active Hazard Alerts</h3></div>
-                    <p>2</p><span>View all alerts</span>
+                    <p id="activeHazardsValue">—</p><span>Pending hazard reports</span>
                 </article>
                 <article class="hero-card weather-card">
                     <div class="hero-card-title"><i class="fa-solid fa-cloud-rain"></i><h3>Weather (Mt. Makiling)</h3></div>
-                    <p>22°C</p><span>Light Rain</span>
+                    <p id="weatherTemperature">Loading...</p><span id="weatherCondition">Getting current conditions...</span>
                 </article>
                 <article class="hero-card">
                     <div class="hero-card-title"><i class="fa-solid fa-users"></i><h3>Total Visitors</h3></div>
-                    <p>1,248</p><span>This month</span>
+                    <p id="totalVisitorsValue">—</p><span>Visitor data unavailable</span>
                 </article>
             </section>
             <section class="dashboard-grid">
@@ -552,42 +552,23 @@
                     </div>
                     <div class="card">
                         <h2>Trail Status Overview</h2>
-                        <ul class="pill-list">
-                            <li class="pill-item"><strong>Mariang Makiling Trail</strong><span class="pill-chip pill-green">Open</span></li>
-                            <li class="pill-item"><strong>Sipit Trail</strong><span class="pill-chip pill-green">Open</span></li>
-                            <li class="pill-item"><strong>Makiling Rainforest Trail</strong><span class="pill-chip pill-green">Open</span></li>
-                            <li class="pill-item"><strong>Forestry Trail (UPLB Area)</strong><span class="pill-chip pill-red">Closed</span></li>
-                        </ul>
+                        <ul class="pill-list" id="trailStatusList"><li class="pill-item"><span>Loading trails...</span></li></ul>
                     </div>
                 </div>
                 <div class="right-column">
                     <div class="card">
-                        <div class="card-top"><h2>Visitors per Trail (This Month)</h2><span>Total 1,248</span></div>
+                        <div class="card-top"><h2>Visitors per Trail (This Month)</h2><span>Visitor data unavailable</span></div>
                         <div class="chart-placeholder">Pie chart placeholder</div>
-                        <div class="mini-grid">
-                            <div class="summary-item"><span class="summary-icon"><i class="fa-solid fa-circle"></i></span><div class="summary-info"><strong>Mariang Makiling Trail</strong><span>38% (474)</span></div></div>
-                            <div class="summary-item"><span class="summary-icon"><i class="fa-solid fa-circle"></i></span><div class="summary-info"><strong>Sipit Trail</strong><span>26% (325)</span></div></div>
-                            <div class="summary-item"><span class="summary-icon"><i class="fa-solid fa-circle"></i></span><div class="summary-info"><strong>Makiling Rainforest Trail</strong><span>20% (250)</span></div></div>
-                            <div class="summary-item"><span class="summary-icon"><i class="fa-solid fa-circle"></i></span><div class="summary-info"><strong>Forestry Trail</strong><span>16% (199)</span></div></div>
-                        </div>
+                        <div class="mini-grid"><div class="summary-item"><div class="summary-info"><span>Visitor collection is not configured.</span></div></div></div>
                     </div>
                     <div class="side-panel">
                         <div class="side-card">
                             <h3>Recent Hazard Reports</h3>
-                            <ul class="pill-list">
-                                <li class="pill-item"><strong>Rockfall</strong><span class="pill-chip pill-yellow">Pending</span></li>
-                                <li class="pill-item"><strong>Landslide Risk</strong><span class="pill-chip pill-green">Verified</span></li>
-                                <li class="pill-item"><strong>Fallen Tree</strong><span class="pill-chip pill-green">Verified</span></li>
-                                <li class="pill-item"><strong>Mud Path</strong><span class="pill-chip pill-green">Resolved</span></li>
-                            </ul>
+                            <ul class="pill-list" id="recentHazardsList"><li class="pill-item"><span>Loading hazard reports...</span></li></ul>
                         </div>
                         <div class="side-card">
                             <h3>Recent Announcements</h3>
-                            <ul class="pill-list">
-                                <li class="pill-item"><strong>Trail Closure: Forestry Trail</strong><span>May 20, 2025</span></li>
-                                <li class="pill-item"><strong>Weather Advisory</strong><span>May 19, 2025</span></li>
-                                <li class="pill-item"><strong>Checkpoint Update</strong><span>May 18, 2025</span></li>
-                            </ul>
+                            <ul class="pill-list" id="recentAnnouncementsList"><li class="pill-item"><span>Loading announcements...</span></li></ul>
                         </div>
                         <div class="side-card">
                             <h3>Quick Actions</h3>
@@ -604,7 +585,111 @@
             </section>
         </main>
     </div>
-    <script>
+    <script type="module">
+        import { db } from "./firebase-config.js";
+        import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[character]));
+
+        const formatReportDate = (timestamp) => {
+            if (!timestamp) return 'Date unavailable';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleDateString();
+        };
+
+        onSnapshot(collection(db, 'trails'), (snapshot) => {
+            const trails = snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
+            const openTrails = trails.filter(trail => (trail.Status || 'Open') === 'Open');
+            document.getElementById('openTrailsValue').textContent = `${openTrails.length} / ${trails.length}`;
+            document.getElementById('openTrailsMeta').textContent = trails.length
+                ? `${Math.round((openTrails.length / trails.length) * 100)}% of trails`
+                : 'No trails found';
+            document.getElementById('trailStatusList').innerHTML = trails.length
+                ? trails.map(trail => {
+                    const status = trail.Status || 'Open';
+                    const chipClass = status === 'Open' ? 'pill-green' : status === 'Closed' ? 'pill-red' : 'pill-yellow';
+                    return `<li class="pill-item"><strong>${escapeHtml(trail.Trail || 'Untitled Trail')}</strong><span class="pill-chip ${chipClass}">${escapeHtml(status)}</span></li>`;
+                }).join('')
+                : '<li class="pill-item"><span>No trails found.</span></li>';
+        }, (error) => {
+            console.error('Error loading dashboard trails:', error);
+            document.getElementById('trailStatusList').innerHTML = '<li class="pill-item"><span>Unable to load trail data.</span></li>';
+        });
+
+        onSnapshot(collection(db, 'reports'), (snapshot) => {
+            const reports = snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
+            const pendingReports = reports.filter(report => (report.status || 'pending') === 'pending');
+            const recentReports = reports
+                .filter(report => (report.status || 'pending') !== 'rejected')
+                .sort((first, second) => {
+                    const firstDate = first.timestamp?.toDate?.() || new Date(0);
+                    const secondDate = second.timestamp?.toDate?.() || new Date(0);
+                    return secondDate - firstDate;
+                })
+                .slice(0, 4);
+            document.getElementById('activeHazardsValue').textContent = pendingReports.length;
+            document.getElementById('recentHazardsList').innerHTML = recentReports.length
+                ? recentReports.map(report => {
+                    const status = report.status || 'pending';
+                    const chipClass = status === 'verified' ? 'pill-green' : 'pill-yellow';
+                    return `<li class="pill-item"><strong>${escapeHtml(report.hazardType || 'Unknown hazard')}</strong><span class="pill-chip ${chipClass}">${escapeHtml(status)} · ${escapeHtml(formatReportDate(report.timestamp))}</span></li>`;
+                }).join('')
+                : '<li class="pill-item"><span>No hazard reports found.</span></li>';
+        }, (error) => {
+            console.error('Error loading dashboard reports:', error);
+            document.getElementById('recentHazardsList').innerHTML = '<li class="pill-item"><span>Unable to load hazard data.</span></li>';
+        });
+
+        onSnapshot(collection(db, 'Advisory'), (snapshot) => {
+            const advisories = snapshot.docs
+                .map(document => ({ id: document.id, ...document.data() }))
+                .filter(advisory => advisory.visible !== false)
+                .sort((first, second) => {
+                    const firstDate = first.createdAt?.toDate?.() || first.effectiveDate?.toDate?.() || new Date(0);
+                    const secondDate = second.createdAt?.toDate?.() || second.effectiveDate?.toDate?.() || new Date(0);
+                    return secondDate - firstDate;
+                })
+                .slice(0, 3);
+            document.getElementById('recentAnnouncementsList').innerHTML = advisories.length
+                ? advisories.map(advisory => `<li class="pill-item"><strong>${escapeHtml(advisory.title || 'Untitled advisory')}</strong><span>${escapeHtml(formatReportDate(advisory.effectiveDate || advisory.createdAt))}</span></li>`).join('')
+                : '<li class="pill-item"><span>No announcements found.</span></li>';
+        }, (error) => {
+            console.error('Error loading dashboard announcements:', error);
+            document.getElementById('recentAnnouncementsList').innerHTML = '<li class="pill-item"><span>Unable to load announcements.</span></li>';
+        });
+
+        const weatherCodes = {
+            0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+            45: 'Foggy', 48: 'Rime fog', 51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
+            61: 'Light rain', 63: 'Rain', 65: 'Heavy rain', 71: 'Light snow', 73: 'Snow', 75: 'Heavy snow',
+            80: 'Light showers', 81: 'Showers', 82: 'Heavy showers', 95: 'Thunderstorm',
+            96: 'Thunderstorm with hail', 99: 'Severe thunderstorm with hail'
+        };
+
+        async function updateWeather() {
+            const temperature = document.getElementById('weatherTemperature');
+            const condition = document.getElementById('weatherCondition');
+            const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=14.136&longitude=121.197&current=temperature_2m,weather_code,precipitation,wind_speed_10m&temperature_unit=celsius&wind_speed_unit=kmh&timezone=Asia%2FManila';
+
+            try {
+                const response = await fetch(weatherUrl, { cache: 'no-store' });
+                if (!response.ok) throw new Error(`Weather request failed with ${response.status}`);
+                const data = await response.json();
+                const current = data.current;
+                temperature.textContent = `${Math.round(current.temperature_2m)}°C`;
+                condition.textContent = `${weatherCodes[current.weather_code] || 'Current conditions'} · Updated ${new Date(current.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+            } catch (error) {
+                console.error('Error loading Mount Makiling weather:', error);
+                temperature.textContent = '—';
+                condition.textContent = 'Weather service unavailable';
+            }
+        }
+
+        updateWeather();
+        setInterval(updateWeather, 5 * 60 * 1000);
+
         function updateClock() {
             const clock = document.getElementById('live-clock');
             const day = document.getElementById('live-day');
