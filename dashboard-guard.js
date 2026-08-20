@@ -3,22 +3,11 @@ import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const guardStyle = document.createElement("style");
-guardStyle.id = "dashboard-guard-style";
-guardStyle.textContent = `
-  html {
-    visibility: hidden;
-    opacity: 0;
-    background: #f1f5f9;
-    transition: opacity 0.15s ease;
-  }
-  html.authorized {
-    visibility: visible;
-    opacity: 1;
-  }
-`;
-
-document.head.appendChild(guardStyle);
+// Show page immediately (no splash or fade)
+document.documentElement.style.visibility = "visible";
+document.documentElement.style.opacity = "1";
+document.body.style.visibility = "visible";
+document.body.style.opacity = "1";
 
 // Runs on every page load / refresh of protected pages
 onAuthStateChanged(auth, async (user) => {
@@ -41,6 +30,4 @@ onAuthStateChanged(auth, async (user) => {
 
   // User is a verified admin — safe to show the page
   console.log("Access granted:", user.email);
-  document.documentElement.classList.add("authorized");
-  document.body.classList.add("authorized");
 });
