@@ -15,6 +15,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PeakPath — Geomap Monitoring</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <style>
     :root{
       --sidebar-bg:#132313;
@@ -232,6 +234,12 @@
       border:1px solid var(--border);
       min-height:320px
     }
+    #makilingMap{
+      width:100%;
+      height:320px;
+      border-radius:8px;
+      overflow:hidden
+    }
     .content-grid{
       display:grid;
       grid-template-columns:1fr 320px;
@@ -309,25 +317,17 @@
       </div>
 
       <div class="summary-cards">
-        <div class="card"><div style="flex:1"><div class="value">162</div><div class="label">Active Hikers Today</div></div></div>
-        <div class="card"><div style="flex:1"><div class="value">3 / 4</div><div class="label">Open Trails</div></div></div>
-        <div class="card"><div style="flex:1"><div class="value">2</div><div class="label">Active Hazard Alerts</div></div></div>
-        <div class="card"><div style="flex:1"><div class="value">22°C</div><div class="label">Weather (Mt. Makiling)</div></div></div>
+        <div class="card"><div style="flex:1"><div class="value" id="activeHikersValue">—</div><div class="label">Active Hikers Today</div></div></div>
+        <div class="card"><div style="flex:1"><div class="value" id="openTrailsValue">—</div><div class="label">Open Trails</div></div></div>
+        <div class="card"><div style="flex:1"><div class="value" id="activeHazardsValue">—</div><div class="label">Active Hazard Alerts</div></div></div>
+        <div class="card"><div style="flex:1"><div class="value" id="weatherTemperature">—</div><div class="label">Weather (Mt. Makiling)</div><div id="weatherCondition" style="font-size:11px;color:var(--text-muted);margin-top:4px">Loading current conditions...</div></div></div>
       </div>
 
       <div class="content-grid">
         <div class="left-column">
           <div class="map-area">
-            <!-- simplified illustrative map -->
-            <svg width="100%" height="320" viewBox="0 0 900 320">
-              <rect width="900" height="320" fill="#e6efe0"/>
-              <path d="M20 210 Q150 150 280 190 T520 170 T820 200 V320 H20 Z" fill="#d7ead2"/>
-              <path d="M80 240 Q180 100 300 90 T480 130 T760 170" stroke="#2f8f4e" stroke-width="3" stroke-dasharray="8 6" fill="none"/>
-              <circle cx="480" cy="130" r="8" fill="#2f6b45"/>
-              <circle cx="300" cy="90" r="6" fill="#2f8f4e"/>
-              <circle cx="760" cy="170" r="6" fill="#c8402f"/>
-            </svg>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:8px">Legend: Open Trail · Closed Trail · Hazard Area</div>
+            <div id="makilingMap" aria-label="Map of Mount Makiling"></div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:8px">Live OpenStreetMap data · Trail and verified hazard markers come from Firestore</div>
           </div>
 
           <div class="panel" style="padding:12px">
@@ -370,6 +370,130 @@
       </div>
     </main>
   </div>
+  <script type="module">
+    import { db } from "./firebase-config.js";
+    import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const setSummaryValue = (id, value) => {
+      document.getElementById(id).textContent = value;
+    };
+
+    const makilingCenter = [14.136, 121.197];
+    const map = L.map('makilingMap').setView(makilingCenter, 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    const trailLayer = L.layerGroup().addTo(map);
+    const hazardLayer = L.layerGroup().addTo(map);
+
+    const getCoordinates = (data) => {
+      const latitude = Number(data.latitude ?? data.lat ?? data.coordinates?.latitude);
+      const longitude = Number(data.longitude ?? data.lng ?? data.coordinates?.longitude);
+      return Number.isFinite(latitude) && Number.isFinite(longitude)
+        && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180
+        ? [latitude, longitude]
+        : null;
+    };
+
+    onSnapshot(collection(db, 'trails'), (snapshot) => {
+      trailLayer.clearLayers();
+      snapshot.docs.forEach(document => {
+        const data = document.data();
+        const coordinates = getCoordinates(data);
+        if (!coordinates) return;
+        const status = data.Status || 'Open';
+        L.marker(coordinates)
+          .bindPopup(`<strong>${escapeHtml(data.Trail || 'Trail')}</strong><br>Status: ${escapeHtml(status)}`)
+          .addTo(trailLayer);
+      });
+    }, (error) => console.error('Error loading trail map markers:', error));
+
+    onSnapshot(collection(db, 'reports'), (snapshot) => {
+      hazardLayer.clearLayers();
+      snapshot.docs.forEach(document => {
+        const data = document.data();
+        if ((data.status || 'pending') !== 'verified') return;
+        const coordinates = getCoordinates(data);
+        if (!coordinates) return;
+        L.circleMarker(coordinates, {
+          radius: 8,
+          color: '#c8402f',
+          fillColor: '#c8402f',
+          fillOpacity: 0.8
+        }).bindPopup(`<strong>${escapeHtml(data.hazardType || 'Verified hazard')}</strong><br>${escapeHtml(data.location || 'Mount Makiling')}`)
+          .addTo(hazardLayer);
+      });
+    }, (error) => console.error('Error loading hazard map markers:', error));
+
+    L.control.layers(null, {
+      'Trails': trailLayer,
+      'Verified hazards': hazardLayer
+    }).addTo(map);
+
+    onSnapshot(collection(db, 'users'), (snapshot) => {
+      const activeHikers = snapshot.docs.filter(document => {
+        const data = document.data();
+        const role = String(data.role || data.Role || 'Hiker').toLowerCase();
+        const status = String(data.status || data.Status || 'Active').toLowerCase();
+        return role === 'hiker' && status === 'active';
+      });
+      setSummaryValue('activeHikersValue', activeHikers.length);
+    }, (error) => {
+      console.error('Error loading active hikers:', error);
+      setSummaryValue('activeHikersValue', '—');
+    });
+
+    onSnapshot(collection(db, 'trails'), (snapshot) => {
+      const trails = snapshot.docs.map(document => document.data());
+      const openTrails = trails.filter(trail => (trail.Status || 'Open') === 'Open');
+      setSummaryValue('openTrailsValue', `${openTrails.length} / ${trails.length}`);
+    }, (error) => {
+      console.error('Error loading trail summary:', error);
+      setSummaryValue('openTrailsValue', '—');
+    });
+
+    onSnapshot(collection(db, 'reports'), (snapshot) => {
+      const activeHazards = snapshot.docs.filter(document => {
+        const data = document.data();
+        return (data.status || 'pending') === 'verified';
+      });
+      setSummaryValue('activeHazardsValue', activeHazards.length);
+    }, (error) => {
+      console.error('Error loading active hazards:', error);
+      setSummaryValue('activeHazardsValue', '—');
+    });
+
+    const weatherCodes = {
+      0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+      45: 'Foggy', 48: 'Rime fog', 51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
+      61: 'Light rain', 63: 'Rain', 65: 'Heavy rain', 71: 'Light snow', 73: 'Snow', 75: 'Heavy snow',
+      80: 'Light showers', 81: 'Showers', 82: 'Heavy showers', 95: 'Thunderstorm',
+      96: 'Thunderstorm with hail', 99: 'Severe thunderstorm with hail'
+    };
+
+    async function updateWeather() {
+      const temperature = document.getElementById('weatherTemperature');
+      const condition = document.getElementById('weatherCondition');
+      const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=14.136&longitude=121.197&current=temperature_2m,weather_code&temperature_unit=celsius&timezone=Asia%2FManila';
+
+      try {
+        const response = await fetch(weatherUrl, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Weather request failed with ${response.status}`);
+        const data = await response.json();
+        const current = data.current;
+        temperature.textContent = `${Math.round(current.temperature_2m)}°C`;
+        condition.textContent = `${weatherCodes[current.weather_code] || 'Current conditions'} · Updated ${new Date(current.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+      } catch (error) {
+        console.error('Error loading Mount Makiling weather:', error);
+        temperature.textContent = '—';
+        condition.textContent = 'Weather service unavailable';
+      }
+    }
+
+    updateWeather();
+    setInterval(updateWeather, 5 * 60 * 1000);
+  </script>
   <script>
 function updateTime() {
     const now = new Date();

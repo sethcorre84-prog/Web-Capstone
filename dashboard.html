@@ -522,7 +522,7 @@
                 </article>
                 <article class="hero-card alert-card">
                     <div class="hero-card-title"><i class="fa-solid fa-triangle-exclamation"></i><h3>Active Hazard Alerts</h3></div>
-                    <p id="activeHazardsValue">—</p><span>Pending hazard reports</span>
+                    <p id="activeHazardsValue">—</p><span>Verified hazard reports</span>
                 </article>
                 <article class="hero-card weather-card">
                     <div class="hero-card-title"><i class="fa-solid fa-cloud-rain"></i><h3>Weather (Mt. Makiling)</h3></div>
@@ -613,7 +613,7 @@
 
         onSnapshot(collection(db, 'reports'), (snapshot) => {
             const reports = snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
-            const pendingReports = reports.filter(report => (report.status || 'pending') === 'pending');
+            const activeHazards = reports.filter(report => (report.status || 'pending') === 'verified');
             const recentReports = reports
                 .filter(report => (report.status || 'pending') !== 'rejected')
                 .sort((first, second) => {
@@ -622,7 +622,7 @@
                     return secondDate - firstDate;
                 })
                 .slice(0, 4);
-            document.getElementById('activeHazardsValue').textContent = pendingReports.length;
+            document.getElementById('activeHazardsValue').textContent = activeHazards.length;
             document.getElementById('recentHazardsList').innerHTML = recentReports.length
                 ? recentReports.map(report => {
                     const status = report.status || 'pending';
