@@ -865,7 +865,6 @@
         <p>Review, verify, and manage hazard reports in Mount Makiling.</p>
       </div>
       <div class="topbar-right">
-        <button class="btn btn-verify" id="addReportBtn" type="button" style="flex:0 0 auto;padding:10px 14px;">+ Add Report</button>
         <div class="bell-wrap">
           <span class="bell-icon">🔔</span>
           <div class="bell-badge" id="notificationCount">0</div>
@@ -874,50 +873,6 @@
           <div class="avatar" id="adminInitials">AU</div>
           <div>
             <div class="name" id="adminName">Admin User</div>
-          <!-- Add hazard report modal -->
-          <div class="modal-overlay" id="addReportModal" aria-hidden="true">
-            <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="addReportTitle">
-              <div class="modal-header">
-                <div class="modal-icon verify">+</div>
-                <div>
-                  <h3 id="addReportTitle">Add Hazard Report</h3>
-                  <p>Save a new report to the hazard reports database.</p>
-                </div>
-              </div>
-              <form class="report-form" id="addReportForm">
-                <div class="modal-body">
-                  <div class="report-form-grid">
-                    <label>Hazard type
-                      <input name="hazardType" required placeholder="e.g. Landslide">
-                    </label>
-                    <label>Trail
-                      <input name="trail" required placeholder="e.g. Makiling Trail">
-                    </label>
-                  </div>
-                  <label>Location
-                    <input name="location" required placeholder="Describe the location">
-                  </label>
-                  <div class="report-form-grid">
-                    <label>Reported by
-                      <input name="reportedBy" required placeholder="Name or Anonymous">
-                    </label>
-                    <label>Contact
-                      <input name="contact" placeholder="Phone or email (optional)">
-                    </label>
-                  </div>
-                  <label>Description
-                    <textarea name="description" required placeholder="Describe the hazard"></textarea>
-                  </label>
-                  <div class="form-error" id="addReportError" role="alert"></div>
-                </div>
-                <div class="modal-actions">
-                  <button type="button" class="modal-btn cancel" id="addReportCancelBtn">Cancel</button>
-                  <button type="submit" class="modal-btn confirm-verify" id="addReportSubmitBtn">Save Report</button>
-                </div>
-              </form>
-            </div>
-          </div>
-
             <div class="role">Super Administrator</div>
           </div>
         </div>
@@ -984,7 +939,7 @@
               </select>
             </div>
             <div class="date-range-row">
-              <button class="btn-outline" id="clearFilters">✕ Clear Filters</button>
+              <button class="btn-outline" id="clearFiltersBtn">✕ Clear Filters</button>
             </div>
           </div>
 
@@ -1082,10 +1037,35 @@
   </div>
 </div>
 
+<!-- Delete confirmation modal -->
+<div class="modal-overlay" id="deleteConfirmModal" aria-hidden="true">
+  <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
+    <div class="modal-header">
+      <div class="modal-icon reject">🗑</div>
+      <div>
+        <h3 id="deleteConfirmTitle">Delete Report</h3>
+        <p>This action cannot be undone.</p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-report-box">
+        <div class="modal-report-id" id="deleteModalReportId">Report</div>
+        <strong id="deleteModalHazardType">Hazard Report</strong>
+        <span id="deleteModalLocation">Location</span>
+      </div>
+      <div class="form-error" id="deleteReportError" role="alert"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn cancel" id="deleteModalCancelBtn">Cancel</button>
+      <button type="button" class="modal-btn confirm-reject" id="deleteModalConfirmBtn">Delete Report</button>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // Firebase Configuration
@@ -1171,7 +1151,7 @@ function renderReportsTable(reports) {
       <td>${report.reportedBy || 'Anonymous'}</td>
       <td><span class="badge ${getStatusBadgeClass(report.status)}">${report.status.charAt(0).toUpperCase() + report.status.slice(1)}</span></td>
       <td>${formatDate(report.timestamp)}</td>
-      <td><button class="actions-btn">⋮</button></td>
+      <td><button class="actions-btn" onclick="event.stopPropagation(); openDeleteModal('${report.id}')">⋮</button></td>
     </tr>
   `).join('');
 }
@@ -1494,6 +1474,77 @@ function closeEditConfirmModal() {
   editConfirmTarget = null;
 }
 
+// -----------------------------
+// Delete report confirmation modal
+// -----------------------------
+let deleteTargetId = null;
+
+function openDeleteModal(reportId) {
+  const report = allReports.find(r => r.id === reportId);
+  if (!report) {
+    console.error('Report not found:', reportId);
+    return;
+  }
+  deleteTargetId = reportId;
+
+  document.getElementById('deleteModalReportId').textContent = report.reportId || report.id;
+  document.getElementById('deleteModalHazardType').textContent = report.hazardType || 'Hazard Report';
+  document.getElementById('deleteModalLocation').textContent = report.location || 'Unknown Location';
+  document.getElementById('deleteReportError').textContent = '';
+
+  const confirmBtn = document.getElementById('deleteModalConfirmBtn');
+  confirmBtn.disabled = false;
+  confirmBtn.textContent = 'Delete Report';
+
+  const modal = document.getElementById('deleteConfirmModal');
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+}
+window.openDeleteModal = openDeleteModal; // needed since it's called from inline onclick
+
+function closeDeleteModal() {
+  const modal = document.getElementById('deleteConfirmModal');
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden', 'true');
+  deleteTargetId = null;
+}
+
+async function confirmDeleteReport() {
+  if (!deleteTargetId) return;
+  const confirmBtn = document.getElementById('deleteModalConfirmBtn');
+  const errorEl = document.getElementById('deleteReportError');
+
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Deleting...';
+  errorEl.textContent = '';
+
+  try {
+    await deleteDoc(doc(db, 'reports', deleteTargetId));
+
+    // Clear details panel if the deleted report was selected
+    if (selectedReport?.id === deleteTargetId) {
+      selectedReport = null;
+      renderReportDetails(null);
+    }
+
+    closeDeleteModal();
+    // onSnapshot() will refresh the table, stats, and rejected list automatically.
+  } catch (error) {
+    console.error('Error deleting report:', error);
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Delete Report';
+    errorEl.textContent = error?.code === 'permission-denied'
+      ? 'Firebase denied this delete. Check your Firestore security rules.'
+      : `Could not delete the report: ${error.message || 'Unknown error'}`;
+  }
+}
+
+document.getElementById('deleteModalCancelBtn').addEventListener('click', closeDeleteModal);
+document.getElementById('deleteModalConfirmBtn').addEventListener('click', confirmDeleteReport);
+document.getElementById('deleteConfirmModal').addEventListener('click', (event) => {
+  if (event.target.id === 'deleteConfirmModal') closeDeleteModal();
+});
+
 function proceedEditVerify() {
   if (!editConfirmTarget) return;
   const id = editConfirmTarget;
@@ -1639,68 +1690,12 @@ document.getElementById('statusFilter').addEventListener('change', filterReports
 document.getElementById('hazardFilter').addEventListener('change', filterReports); 
   
 
-document.getElementById('clearFilters').addEventListener('click', () => {
+document.getElementById('clearFiltersBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
   document.getElementById('statusFilter').value = '';
   document.getElementById('hazardFilter').value = '';
   filterReports();
 });
-
-const addReportModal = document.getElementById('addReportModal');
-const addReportForm = document.getElementById('addReportForm');
-const addReportError = document.getElementById('addReportError');
-const addReportSubmitBtn = document.getElementById('addReportSubmitBtn');
-
-function closeAddReportModal() {
-  addReportModal.classList.remove('show');
-  addReportModal.setAttribute('aria-hidden', 'true');
-  addReportForm.reset();
-  addReportError.textContent = '';
-}
-
-document.getElementById('addReportBtn').addEventListener('click', () => {
-  addReportModal.classList.add('show');
-  addReportModal.setAttribute('aria-hidden', 'false');
-  addReportForm.elements.reportedBy.value = auth.currentUser?.displayName || 'Anonymous';
-  addReportForm.elements.hazardType.focus();
-});
-
-document.getElementById('addReportCancelBtn').addEventListener('click', closeAddReportModal);
-addReportModal.addEventListener('click', (event) => {
-  if (event.target === addReportModal) closeAddReportModal();
-});
-
-addReportForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  addReportError.textContent = '';
-  addReportSubmitBtn.disabled = true;
-  addReportSubmitBtn.textContent = 'Saving...';
-
-  const formData = new FormData(addReportForm);
-  try {
-    await addDoc(collection(db, 'reports'), {
-      reportId: `HR-${Date.now()}`,
-      hazardType: formData.get('hazardType').trim(),
-      trail: formData.get('trail').trim(),
-      location: formData.get('location').trim(),
-      reportedBy: formData.get('reportedBy').trim(),
-      contact: formData.get('contact').trim(),
-      description: formData.get('description').trim(),
-      status: 'pending',
-      timestamp: serverTimestamp()
-    });
-    closeAddReportModal();
-  } catch (error) {
-    console.error('Error adding hazard report:', error);
-    addReportError.textContent = error?.code === 'permission-denied'
-      ? 'Firebase denied this report. Check your Firestore security rules.'
-      : `Could not save the report: ${error.message || 'Unknown error'}`;
-  } finally {
-    addReportSubmitBtn.disabled = false;
-    addReportSubmitBtn.textContent = 'Save Report';
-  }
-});
-
 
 // Modal event handlers
 document.getElementById('modalCancelBtn').addEventListener('click', closeStatusModal);
@@ -1726,6 +1721,14 @@ document.addEventListener('keydown', (event) => {
     const modal = document.getElementById('statusModal');
     if (modal.classList.contains('show')) {
       closeStatusModal();
+    }
+    const deleteModal = document.getElementById('deleteConfirmModal');
+    if (deleteModal.classList.contains('show')) {
+      closeDeleteModal();
+    }
+    const editModal = document.getElementById('editConfirmModal');
+    if (editModal.classList.contains('show')) {
+      closeEditConfirmModal();
     }
   }
 });

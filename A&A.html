@@ -216,7 +216,13 @@
 					</div>
 
 					<div class="panel">
-						<div class="panel-title">Advisories & Announcements</div>
+						<div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+    				<span>Advisories &amp; Announcements</span>
+    				<button id="clearFiltersBtn" class="btn-secondary" style="padding:6px 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px">
+    					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/><path d="M18 4l3 3M21 4l-3 3"/></svg>
+    					Clear Filters
+					</button>
+					</div>
 						<div class="toolbar">
 							<div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#98a094" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Search advisories..."></div>
 							<select id="typeFilter" class="filter"><option value="">All Types</option><option>Advisory</option><option>Weather</option><option>Update</option><option>Alert</option><option>Announcement</option></select>
@@ -720,6 +726,15 @@
 		document.getElementById('statusFilter').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
 		document.getElementById('dateFilter').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
 
+		document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+    		document.getElementById('search').value = '';
+    		document.getElementById('typeFilter').value = '';
+    		document.getElementById('statusFilter').value = '';
+    		document.getElementById('dateFilter').value = '';
+    		currentPage = 1;
+    		applyFiltersAndRender();
+		});
+
 		// ---- Modal (Create / Edit) ----
 		const overlay = document.getElementById('modalOverlay');
 		function openModal(id){
@@ -747,6 +762,23 @@
 		document.getElementById('createBtn').addEventListener('click', () => openModal(null));
 		document.getElementById('modalCancel').addEventListener('click', closeModal);
 		overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+
+		document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (overlay.classList.contains('open')) return closeModal();
+    if (alertOverlay.classList.contains('open')) return alertOverlay.classList.remove('open');
+    if (confirmOverlay.classList.contains('open')) return confirmOverlay.classList.remove('open');
+    if (endConfirmOverlay.classList.contains('open')) {
+        endConfirmOverlay.classList.remove('open');
+        pendingEndId = null;
+        return;
+    }
+    if (restoreConfirmOverlay.classList.contains('open')) {
+        restoreConfirmOverlay.classList.remove('open');
+        pendingRestoreId = null;
+        return;
+    }
+});
 
 		document.getElementById('modalSave').addEventListener('click', async () => {
 			const title = document.getElementById('mTitle').value.trim();
