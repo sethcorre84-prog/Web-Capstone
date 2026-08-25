@@ -1065,7 +1065,7 @@
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch, deleteDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // Firebase Configuration
@@ -1509,6 +1509,33 @@ function closeDeleteModal() {
   deleteTargetId = null;
 }
 
+// Reassigns reportId sequentially per year, based on original submission order (timestamp).
+// Run after any delete so gaps close and there are never duplicate IDs.
+async function renumberReports() {
+  const snapshot = await getDocs(query(collection(db, 'reports'), orderBy('timestamp', 'asc')));
+  const batch = writeBatch(db);
+  const countersByYear = {};
+  let changes = 0;
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    const date = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || Date.now());
+    const year = date.getFullYear();
+
+    countersByYear[year] = (countersByYear[year] || 0) + 1;
+    const newReportId = `HR-${year}-${String(countersByYear[year]).padStart(3, '0')}`;
+
+    if (data.reportId !== newReportId) {
+      batch.update(docSnap.ref, { reportId: newReportId });
+      changes++;
+    }
+  });
+
+  if (changes > 0) {
+    await batch.commit();
+  }
+}
+
 async function confirmDeleteReport() {
   if (!deleteTargetId) return;
   const confirmBtn = document.getElementById('deleteModalConfirmBtn');
@@ -1520,8 +1547,8 @@ async function confirmDeleteReport() {
 
   try {
     await deleteDoc(doc(db, 'reports', deleteTargetId));
+    await renumberReports(); // re-sequence reportIds after delete
 
-    // Clear details panel if the deleted report was selected
     if (selectedReport?.id === deleteTargetId) {
       selectedReport = null;
       renderReportDetails(null);
