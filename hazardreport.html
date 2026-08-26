@@ -1182,6 +1182,33 @@ function renderRejectedList() {
   });
 }
 
+// Renders photo attachments for a report. Currently your Firestore docs
+// store a single `photoUrl` string, but this also supports a future
+// `photoUrls` array (multiple photos) without any other changes needed.
+function renderAttachments(report) {
+  const urls = Array.isArray(report.photoUrls)
+    ? report.photoUrls.filter(Boolean)
+    : (report.photoUrl ? [report.photoUrl] : []);
+
+  if (urls.length === 0) {
+    return '<div class="attach-thumb" style="background:#eef2ee;"></div>';
+  }
+
+  const maxShown = 3;
+  const shown = urls.slice(0, maxShown);
+  const remaining = urls.length - maxShown;
+
+  const thumbs = shown.map(url => `
+    <div class="attach-thumb" onclick="window.open('${url}', '_blank')" style="cursor:pointer;background-image:url('${url}');background-size:cover;background-position:center;"></div>
+  `).join('');
+
+  const more = remaining > 0
+    ? `<div class="attach-more">+${remaining}<br>More</div>`
+    : '';
+
+  return thumbs + more;
+}
+
 // Render report details
 function renderReportDetails(report) {
   const detailsCard = document.getElementById('detailsCard');
@@ -1234,6 +1261,13 @@ function renderReportDetails(report) {
           <div class="lbl">Contact</div>
           <div class="val">${report.contact || 'Not provided'}</div>
         </div>
+      </div>
+    </div>
+
+        <div>
+      <p class="section-label">Attachments</p>
+      <div class="attachments">
+        ${renderAttachments(report)}
       </div>
     </div>
 

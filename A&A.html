@@ -204,7 +204,6 @@
 						<div><div class="name">Admin User</div><div class="role">Super Administrator</div></div>
 						<div class="profile-menu" id="profileMenu"><a href="Home.html">Logout</a></div>
 					</div>
-					<button class="button button-green" id="createBtn">+ Create New</button>
 				</div>
 			</div>
 
@@ -216,29 +215,30 @@
 					</div>
 
 					<div class="panel">
-						<div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
-    				<span>Advisories &amp; Announcements</span>
-    				<button id="clearFiltersBtn" class="btn-secondary" style="padding:6px 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px">
-    					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/><path d="M18 4l3 3M21 4l-3 3"/></svg>
+        			<div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+            		<span>Advisories &amp; Announcements</span>
+            		<button class="button button-green" id="createBtn" style="padding:8px 14px;font-size:12.5px">+ Create New</button>
+        			</div>
+        			<div class="toolbar">
+            			<div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#98a094" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Search advisories..."></div>
+            			<select id="typeFilter" class="filter"><option value="">All Types</option><option>Advisory</option><option>Weather</option><option>Update</option><option>Alert</option><option>Announcement</option></select>
+            			<select id="statusFilter" class="filter"><option value="">All Status</option><option>Active</option><option>Scheduled</option></select>
+            			<select id="dateFilter" class="filter"><option value="">All Dates</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select>
+            			<button id="clearFiltersBtn" class="btn-outline" style="display:inline-flex;align-items:center;gap:6px;background:#ffffff;border:1px solid #e6ddc9;color:#7a7568;border-radius:999px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;">
+    					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.0" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/><path d="M18 4l3 3M21 4l-3 3"/></svg>
     					Clear Filters
 					</button>
-					</div>
-						<div class="toolbar">
-							<div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#98a094" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Search advisories..."></div>
-							<select id="typeFilter" class="filter"><option value="">All Types</option><option>Advisory</option><option>Weather</option><option>Update</option><option>Alert</option><option>Announcement</option></select>
-							<select id="statusFilter" class="filter"><option value="">All Status</option><option>Active</option><option>Scheduled</option></select>
-							<select id="dateFilter" class="filter"><option value="">All Dates</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select>
-						</div>
-						<table>
-							<thead><tr><th>Title</th><th>Type</th><th>Target</th><th>Status</th><th>Published / Scheduled</th><th>Actions</th></tr></thead>
-							<tbody id="listBody"></tbody>
-						</table>
-						<div class="pagination">
-							<div id="pageInfo">Loading…</div>
-							<div class="page-controls" id="pageControls"></div>
-						</div>
-					</div>
-				</div>
+        		</div>
+        		<table>
+            		<thead><tr><th>Title</th><th>Type</th><th>Target</th><th>Status</th><th>Published / Scheduled</th><th>Actions</th></tr></thead>
+            		<tbody id="listBody"></tbody>
+        		</table>
+        		<div class="pagination">
+            		<div id="pageInfo">Loading…</div>
+            		<div class="page-controls" id="pageControls"></div>
+        		</div>
+    		</div>
+		</div>
 
 				<div>
 					<div class="panel detail">
@@ -459,7 +459,21 @@
 			const pad = n => String(n).padStart(2,'0');
 			return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 		}
+		function isPastExpiry(it){
+    		if (!it.expiresAt) return false;
+    		const d = toDate(it.expiresAt);
+    		if (!d) return false;
+    		return d.getTime() <= Date.now();
+		}
 
+// Effective status for display/filtering — an advisory whose expiresAt
+// has passed is treated as Expired immediately, even before Firestore's
+// stored status field is updated by syncExpiredAdvisories() below.
+		function getEffectiveStatus(it){
+    		if (it.status === 'Expired') return 'Expired';
+    		if (isPastExpiry(it)) return 'Expired';
+    		return it.status;
+		}
 		function inDateRange(it, rangeKey){
 			if (!rangeKey) return true;
 			const d = toDate(it.effectiveDate || it.publishedAt || it.createdAt);
@@ -471,16 +485,32 @@
 			return true;
 		}
 
+		// Best-effort: while this admin page is open, persist "Expired" for any
+// advisory whose expiresAt has passed, so other consumers of this data
+// (e.g. a future mobile app reading `status` directly) stay accurate.
+// This only runs while someone has this page open — for guaranteed
+// real-time expiry with nobody watching, you'd need a scheduled Cloud
+// Function, which requires the Blaze plan.
+async function syncExpiredAdvisories(){
+    const toExpire = allItems.filter(d => getEffectiveStatus(d) !== 'Expired' && isPastExpiry(d));
+    if (!toExpire.length) return;
+    try {
+        await Promise.all(toExpire.map(d => updateDoc(doc(db, 'Advisory', d.id), { status: 'Expired' })));
+    } catch (err) {
+        console.warn('Could not sync expired advisories:', err.message);
+    }
+}
+
 		function applyFiltersAndRender() {
 			const q = document.getElementById('search').value.toLowerCase();
 			const typeVal = document.getElementById('typeFilter').value;
 			const statusVal = document.getElementById('statusFilter').value;
 			const dateVal = document.getElementById('dateFilter').value;
 
-			let items = allItems.filter(d => d.status !== 'Expired');
+			let items = allItems.filter(d => getEffectiveStatus(d) !== 'Expired');
 			if (q) items = items.filter(d => (d.title || '').toLowerCase().includes(q) || (d.desc || '').toLowerCase().includes(q));
 			if (typeVal) items = items.filter(d => d.type === typeVal);
-			if (statusVal) items = items.filter(d => d.status === statusVal);
+			if (statusVal) items = items.filter(d => getEffectiveStatus(d) === statusVal);
 			if (dateVal) items = items.filter(d => inDateRange(d, dateVal));
 
 			const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
@@ -516,9 +546,9 @@
 		}
 
 		function renderStats(){
-			const active = allItems.filter(d => d.status === 'Active').length;
-			const scheduled = allItems.filter(d => d.status === 'Scheduled').length;
-			const expired = allItems.filter(d => d.status === 'Expired').length;
+			const active = allItems.filter(d => getEffectiveStatus(d) === 'Active').length;
+			const scheduled = allItems.filter(d => getEffectiveStatus(d) === 'Scheduled').length;
+			const expired = allItems.filter(d => getEffectiveStatus(d) === 'Expired').length;
 			const totalViews = allItems.reduce((sum, d) => sum + (Number(d.views) || 0), 0);
 
 			const cards = [
@@ -552,6 +582,7 @@
 			}
 			items.forEach(it => {
 				const meta = typeMeta(it.type);
+				const effectiveStatus = getEffectiveStatus(it);
 				const tr = document.createElement('tr');
 				if (it.id === selectedId) tr.classList.add('selected');
 				tr.onclick = () => selectAdvisory(it.id);
@@ -574,8 +605,7 @@
 				tdType.innerHTML = `<span class="badge ${meta.cls}">${escapeHtml(it.type || '')}</span>`;
 				const tdTarget = document.createElement('td'); tdTarget.textContent = it.target || '';
 				const tdStatus = document.createElement('td');
-				const statusCls = (it.status || '').toLowerCase();
-				tdStatus.innerHTML = it.status ? `<span class="status-badge ${statusCls}">${escapeHtml(it.status)}</span>` : '';
+				tdStatus.innerHTML = effectiveStatus ? `<span class="status-badge ${effectiveStatus.toLowerCase()}">${escapeHtml(effectiveStatus)}</span>` : '';
 				const tdPub = document.createElement('td'); tdPub.textContent = fmtDateTime(it.effectiveDate || it.publishedAt || it.createdAt);
 
 				const tdActions = document.createElement('td');
@@ -617,7 +647,7 @@
 
 		function renderExpiredList(){
 			const wrap = document.getElementById('expiredList');
-			const expired = allItems.filter(d => d.status === 'Expired');
+			const expired = allItems.filter(d => getEffectiveStatus(d) === 'Expired');
 			wrap.innerHTML = '';
 			if (!expired.length) {
 			wrap.innerHTML = '<div class="empty-state" style="padding:10px 0">No expired advisories.</div>';
@@ -656,8 +686,9 @@
 
 			const pill = document.getElementById('detailStatusPill');
 			pill.style.display = 'inline-block';
-			pill.textContent = it.status || '—';
-			pill.className = 'pill ' + ((it.status || '').toLowerCase());
+			const effStatus = getEffectiveStatus(it);
+			pill.textContent = effStatus || '—';
+			pill.className = 'pill ' + ((effStatus || '').toLowerCase());
 
 			document.getElementById('detailBody').style.display = 'block';
 			document.getElementById('dType').textContent = it.type || '—';
@@ -694,7 +725,7 @@
 			editBtnEl.style.cursor = isVisible ? 'pointer' : 'not-allowed';
 			editBtnEl.title = isVisible ? '' : 'This advisory is hidden — make it visible to edit';
 
-			const alreadyExpired = it.status === 'Expired';
+			const alreadyExpired = effStatus === 'Expired';
 			const endBtnEl = document.getElementById('endBtn');
 			endBtnEl.disabled = !isVisible || alreadyExpired;
 			endBtnEl.style.opacity = (isVisible && !alreadyExpired) ? '1' : '.45';
@@ -708,18 +739,26 @@
 
 		// Live Firestore listener
 		const advisoryQuery = query(advisoryCol, orderBy('createdAt', 'desc'));
-		onSnapshot(advisoryQuery, (snapshot) => {
-			allItems = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-			applyFiltersAndRender();
-			if (selectedId) {
-				const still = allItems.find(d => d.id === selectedId);
-				if (still) selectAdvisory(selectedId);
-			} else if (allItems.length) {
-				selectAdvisory(allItems[0].id);
-			}
-		}, (err) => {
-			document.getElementById('pageInfo').textContent = 'Error loading advisories: ' + err.message;
-		});
+onSnapshot(advisoryQuery, (snapshot) => {
+    allItems = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    applyFiltersAndRender();
+    syncExpiredAdvisories();
+    if (selectedId) {
+        const still = allItems.find(d => d.id === selectedId);
+        if (still) selectAdvisory(selectedId);
+    } else if (allItems.length) {
+        selectAdvisory(allItems[0].id);
+    }
+}, (err) => {
+    document.getElementById('pageInfo').textContent = 'Error loading advisories: ' + err.message;
+});
+
+// Re-check every minute so an advisory flips to Expired on-screen even
+// if nothing else changes in Firestore to trigger onSnapshot.
+setInterval(() => {
+    applyFiltersAndRender();
+    syncExpiredAdvisories();
+}, 60000);
 
 		document.getElementById('search').addEventListener('input', () => { currentPage = 1; applyFiltersAndRender(); });
 		document.getElementById('typeFilter').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
@@ -878,10 +917,13 @@
 	}
 
 		document.getElementById('restoreConfirmYes').addEventListener('click', () => {
-		const id = pendingRestoreId;
-		restoreConfirmOverlay.classList.remove('open');
-		pendingRestoreId = null;
-		if (id) openModal(id);
+    	const id = pendingRestoreId;
+    	restoreConfirmOverlay.classList.remove('open');
+    	pendingRestoreId = null;
+    	if (id) {
+        openModal(id);
+        document.getElementById('mStatus').value = 'Active'; // reset from stale "Expired"
+    	}
 	});
 		document.getElementById('restoreConfirmNo').addEventListener('click', () => {
 		restoreConfirmOverlay.classList.remove('open');
