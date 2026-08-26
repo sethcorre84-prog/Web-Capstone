@@ -1,0 +1,86 @@
+/* ==========================================================================
+   pages.css
+   Shared collapsible-sidebar styles for the PeakPath admin portal.
+   Link this on every page that includes the sidebar (dashboard.html,
+   trail.html, hazardreport.html, A&A.html, geomap.html, usermanagement.html,
+   analytics.html, emergency.html, Setting.html).
+   ========================================================================== */
+
+/* Toggle button (three-line icon button at the top of the sidebar) */
+.sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: transparent;
+    border: 1px solid #2a3d2a;
+    border-radius: 8px;
+    color: #c4d1c4;
+    cursor: pointer;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+    transition: background .15s;
+}
+.sidebar-toggle:hover {
+    background: var(--sidebar-bg-light);
+    color: #fff;
+}
+
+/* Smooth width transition when collapsing/expanding */
+.sidebar {
+    transition: width .22s ease, padding .22s ease;
+}
+
+/* Collapsed state, applied by sidebar.js after the toggle is clicked */
+.sidebar.collapsed {
+    width: 76px;
+    padding: 22px 10px;
+}
+.sidebar.collapsed .sidebar-toggle {
+    margin-left: auto;
+    margin-right: auto;
+}
+.sidebar.collapsed .brand {
+    padding-bottom: 14px;
+}
+.sidebar.collapsed .brand-name,
+.sidebar.collapsed .brand-sub,
+.sidebar.collapsed .nav-text,
+.sidebar.collapsed .user-chip .name,
+.sidebar.collapsed .user-chip .role,
+.sidebar.collapsed .logout-btn .nav-text {
+    display: none;
+}
+.sidebar.collapsed .nav li a {
+    justify-content: center;
+    padding: 10px;
+}
+.sidebar.collapsed .user-chip {
+    justify-content: center;
+    padding: 6px 0 14px 0;
+}
+.sidebar.collapsed .logout-btn {
+    justify-content: center;
+    padding: 9px;
+}
+
+/* Hide the nav list's scrollbar visually (keeps scrolling functional,
+   just removes the visible scrollbar track/thumb). */
+.nav {
+    scrollbar-width: none;      /* Firefox */
+    -ms-overflow-style: none;   /* old Edge/IE */
+}
+.nav::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;              /* Chrome, Edge, Safari */
+}
+
+/* Applied instantly by the inline <head> script (before paint) so the
+   sidebar renders at the correct width immediately on page load, with no
+   flash of the expanded sidebar before sidebar.js runs. */
+.sidebar-was-collapsed .sidebar {
+    width: 76px;
+    padding: 22px 10px;
+}
