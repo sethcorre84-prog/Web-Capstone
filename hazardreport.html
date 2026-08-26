@@ -6,6 +6,7 @@
 <script src="sidebar.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="pages.css">
+<script type="module" src="notification.js"></script>
 <title>PeakPath Admin — Hazard Reports</title>
 <style>
   @view-transition {
@@ -869,8 +870,8 @@
       </div>
       <div class="topbar-right">
         <div class="bell-wrap">
-          <span class="bell-icon">🔔</span>
-          <div class="bell-badge" id="notificationCount">0</div>
+          <button class="bell-btn" type="button" aria-label="Open notifications"></button>
+          <span class="bell-badge" id="notificationCount" hidden>0</span>
         </div>
         <div class="admin-mini">
           <div class="avatar" id="adminInitials">AU</div>
@@ -1645,7 +1646,6 @@ function updateStats() {
   document.getElementById('rejectedMeta').textContent = rejectedPercent + '% of total';
 
   document.getElementById('reportCount').textContent = `Showing 1 to ${Math.min(8, total)} of ${total} reports`;
-  document.getElementById('notificationCount').textContent = pending;
 }
 
 // Filter reports

@@ -15,6 +15,7 @@
   }
 </style>
 <script type="module" src="dashboard-guard.js"></script>
+<script type="module" src="notification.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PeakPath Admin — User Reports</title>
@@ -283,8 +284,8 @@
       <div class="topbar-right">
         <div class="location-pill">🏔️ Location: Mount Makiling <span class="chev">▾</span></div>
         <div class="bell-wrap">
-          <span class="bell-icon">🔔</span>
-          <div class="bell-badge">5</div>
+          <button class="bell-btn" type="button" aria-label="Open notifications"></button>
+          <span class="bell-badge" hidden>0</span>
         </div>
         <div class="admin-mini">
           <div class="avatar">AU</div>

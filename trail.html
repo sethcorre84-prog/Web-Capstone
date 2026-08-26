@@ -15,6 +15,7 @@
   }
 </style>
 <script type="module" src="dashboard-guard.js"></script>
+<script type="module" src="notification.js"></script>
 <meta charset="UTF-8">
 <title>PeakPath — Trail Management</title>
 <style>
@@ -824,8 +825,8 @@ tbody tr:last-child td{
       </div>
       <div class="topbar-right">
         <div class="bell-wrap">
-    <span class="bell-icon">🔔</span>
-    <div class="bell-badge">3</div>
+          <button class="bell-btn" type="button" aria-label="Open notifications"></button>
+          <span class="bell-badge" hidden>0</span>
 </div>
         <div class="admin-mini">
           <div class="avatar">AU</div>

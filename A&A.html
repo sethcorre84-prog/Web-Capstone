@@ -6,6 +6,7 @@
 	<script src="sidebar.js"></script>
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 	<link rel="stylesheet" href="pages.css">
+	<script type="module" src="notification.js"></script>
 	<title>PeakPath — Advisories & Announcements</title>
 <style>
 		html, body {
@@ -199,8 +200,8 @@
 				</div>
 				<div class="topbar-right">
 					<div class="bell-wrap">
-						<span class="bell-icon">🔔</span>
-						<div class="bell-badge">3</div>
+						<button class="bell-btn" type="button" aria-label="Open notifications"></button>
+						<span class="bell-badge" hidden>0</span>
 					</div>
 					<div class="profile-chip" id="profileChip">
 						<div class="avatar">AU</div>
