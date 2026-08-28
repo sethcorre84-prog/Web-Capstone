@@ -61,17 +61,17 @@ body{
 }
 
 .logo h1{
-    color: #ffffff;
+    color: #104213;
     font-size: 32px;
     line-height: 1;
 }
 
 .logo span{
-    color: #72d07e;
+    color: #062f0c;
 }
 
 .logo p{
-    color: rgba(255,255,255,0.88);
+    color: rgba(12, 64, 25, 0.88);
     font-size: 14px;
     line-height: 1.7;
 }
