@@ -8,6 +8,8 @@
     <title>PeakPath Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link rel="stylesheet" href="pages.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <style>
         @view-transition {
             navigation: auto;
@@ -305,6 +307,15 @@
             border: 1px solid #e2e8f0;
             border-radius: 8px;
         }
+        #dashboardMap {
+            width: 100%;
+            height: 100%;
+            flex: 1;
+            min-height: 260px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
         .chart-row {
             display: grid;
             grid-template-columns: 1.2fr 0.8fr;
@@ -486,7 +497,7 @@
               <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
               <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
               <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
-              <li><a href="Settings.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
+              <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Setting</a></li>
             </ul>
 
             <div class="sidebar-footer">
@@ -543,7 +554,7 @@
                     </div>
                     <div class="card map-card">
                         <div class="card-top"><h2>Mount Makiling Map Overview</h2><span>Legend: Open Trail, Closed Trail, Checkpoint, Campsite, Ranger Station, Hazard Area</span></div>
-                        <div class="chart-placeholder">Map overview placeholder</div>
+                        <div id="dashboardMap" aria-label="Interactive map of Mount Makiling"></div>
                     </div>
                     <div class="card">
                         <h2>Trail Status Overview</h2>
@@ -594,8 +605,44 @@
             return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleDateString();
         };
 
+        const getRecordDate = (...values) => {
+            for (const value of values) {
+                if (!value) continue;
+                const date = value.toDate ? value.toDate() : new Date(value);
+                if (!Number.isNaN(date.getTime())) return date;
+            }
+            return new Date(0);
+        };
+
+        const makilingCenter = [14.136, 121.197];
+        const dashboardMap = L.map('dashboardMap').setView(makilingCenter, 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(dashboardMap);
+        L.marker(makilingCenter)
+            .bindPopup('<strong>Mount Makiling</strong><br>1,096 m')
+            .addTo(dashboardMap);
+        const trailLayer = L.layerGroup().addTo(dashboardMap);
+
+        const getCoordinates = (trail) => {
+            const latitude = Number(trail.latitude ?? trail.lat ?? trail.coordinates?.latitude);
+            const longitude = Number(trail.longitude ?? trail.lng ?? trail.coordinates?.longitude);
+            return Number.isFinite(latitude) && Number.isFinite(longitude)
+                ? [latitude, longitude]
+                : null;
+        };
+
         onSnapshot(collection(db, 'trails'), (snapshot) => {
             const trails = snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
+            trailLayer.clearLayers();
+            trails.forEach(trail => {
+                const coordinates = getCoordinates(trail);
+                if (!coordinates) return;
+                L.marker(coordinates)
+                    .bindPopup(`<strong>${escapeHtml(trail.Trail || 'Trail')}</strong><br>${escapeHtml(trail.Status || 'Open')}`)
+                    .addTo(trailLayer);
+            });
             const openTrails = trails.filter(trail => (trail.Status || 'Open') === 'Open');
             document.getElementById('openTrailsValue').textContent = `${openTrails.length} / ${trails.length}`;
             document.getElementById('openTrailsMeta').textContent = trails.length
@@ -619,9 +666,8 @@
             const recentReports = reports
                 .filter(report => (report.status || 'pending') !== 'rejected')
                 .sort((first, second) => {
-                    const firstDate = first.timestamp?.toDate?.() || new Date(0);
-                    const secondDate = second.timestamp?.toDate?.() || new Date(0);
-                    return secondDate - firstDate;
+                    return getRecordDate(second.timestamp, second.createdAt)
+                        - getRecordDate(first.timestamp, first.createdAt);
                 })
                 .slice(0, 4);
             document.getElementById('activeHazardsValue').textContent = activeHazards.length;
@@ -629,7 +675,7 @@
                 ? recentReports.map(report => {
                     const status = report.status || 'pending';
                     const chipClass = status === 'verified' ? 'pill-green' : 'pill-yellow';
-                    return `<li class="pill-item"><strong>${escapeHtml(report.hazardType || 'Unknown hazard')}</strong><span class="pill-chip ${chipClass}">${escapeHtml(status)} · ${escapeHtml(formatReportDate(report.timestamp))}</span></li>`;
+                    return `<li class="pill-item"><strong>${escapeHtml(report.hazardType || 'Unknown hazard')}</strong><span class="pill-chip ${chipClass}">${escapeHtml(status)} · ${escapeHtml(formatReportDate(report.timestamp || report.createdAt))}</span></li>`;
                 }).join('')
                 : '<li class="pill-item"><span>No hazard reports found.</span></li>';
         }, (error) => {
@@ -642,13 +688,12 @@
                 .map(document => ({ id: document.id, ...document.data() }))
                 .filter(advisory => advisory.visible !== false)
                 .sort((first, second) => {
-                    const firstDate = first.createdAt?.toDate?.() || first.effectiveDate?.toDate?.() || new Date(0);
-                    const secondDate = second.createdAt?.toDate?.() || second.effectiveDate?.toDate?.() || new Date(0);
-                    return secondDate - firstDate;
+                    return getRecordDate(second.createdAt, second.effectiveDate, second.publishedAt)
+                        - getRecordDate(first.createdAt, first.effectiveDate, first.publishedAt);
                 })
                 .slice(0, 3);
             document.getElementById('recentAnnouncementsList').innerHTML = advisories.length
-                ? advisories.map(advisory => `<li class="pill-item"><strong>${escapeHtml(advisory.title || 'Untitled advisory')}</strong><span>${escapeHtml(formatReportDate(advisory.effectiveDate || advisory.createdAt))}</span></li>`).join('')
+                ? advisories.map(advisory => `<li class="pill-item"><strong>${escapeHtml(advisory.title || 'Untitled advisory')}</strong><span>${escapeHtml(formatReportDate(advisory.effectiveDate || advisory.createdAt || advisory.publishedAt))}</span></li>`).join('')
                 : '<li class="pill-item"><span>No announcements found.</span></li>';
         }, (error) => {
             console.error('Error loading dashboard announcements:', error);

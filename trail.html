@@ -4,6 +4,8 @@
 <script src="sidebar.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
   @view-transition {
   navigation: auto;
@@ -284,7 +286,7 @@
 
 .stats{
     display:grid;
-    grid-template-columns:repeat(6,1fr);
+  grid-template-columns:repeat(5,1fr);
     gap:14px;
     margin-bottom:22px;
 }
@@ -331,7 +333,7 @@
 
 .content-grid{
     display:grid;
-    grid-template-columns:1.7fr 1fr;
+    grid-template-columns:1.55fr 1.15fr;
     gap:18px;
     align-items:start;
 }
@@ -595,6 +597,11 @@ tbody tr:last-child td{
     border-radius:8px;
     background:#dfeed9;
 }
+
+  #trailMap{
+    width:100%;
+    height:100%;
+  }
 
 .map-legend{
     position:absolute;
@@ -864,14 +871,6 @@ tbody tr:last-child td{
     </div>
     <div class="stat-label" id="statClosedLabel">Closed Trails · 0%</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-top"><span class="stat-value" id="statIllegalTrails">0</span>
-      <div class="stat-icon" style="background:var(--warning-light);">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2.2"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>
-      </div>
-    </div>
-    <div class="stat-label" id="statIllegalLabel">Illegal Entry · 0%</div>
-</div>
       <div class="stat-card">
         <div class="stat-top"><span class="stat-value">15</span>
           <div class="stat-icon" style="background:#e6eefb;">
@@ -902,7 +901,7 @@ tbody tr:last-child td{
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
               <input id="searchInput" placeholder="Search trails...">
             </div>
-            <select class="filter" id="statusFilter"><option value="">Status: All</option><option>Open</option><option>Closed</option><option>Illegal Entry</option></select>
+            <select class="filter" id="statusFilter"><option value="">Status: All</option><option>Open</option><option>Closed</option></select>
             <select class="filter" id="diffFilter"><option value="">Difficulty: All</option><option>Easy</option><option>Moderate</option><option>Hard</option><option>Undefined</option></select>
             <select class="filter" id="typeFilter"><option value="">Trail Type: All</option><option>Major Trail</option><option>Side Trail</option><option>Undefined</option></select>
             <button class="clear-btn" id="clearBtn">
@@ -914,7 +913,7 @@ tbody tr:last-child td{
           <table>
             <thead>
               <tr>
-                <th>Trail Name</th><th>Difficulty</th><th>Distance</th><th>Elevation Gain</th><th>Est. Duration</th><th>Status</th><th>Actions</th>
+                <th>Trail Name</th><th>Difficulty</th><th>Distance</th><th>Elevation Gain</th><th>Est. Duration</th><th>Entry Type</th><th>Status</th><th>Actions</th>
               </tr>
             </thead>
             <tbody id="trailBody"></tbody>
@@ -929,24 +928,7 @@ tbody tr:last-child td{
         <div class="panel">
           <div class="panel-title">Trail Map Overview (Mount Makiling)</div>
           <div class="map-box">
-            <svg width="100%" height="100%" viewBox="0 0 600 290">
-              <rect width="600" height="290" fill="#dfeed9"/>
-              <path d="M0 210 Q100 160 200 190 T400 170 T600 200 V290 H0 Z" fill="#cfe4c3"/>
-              <path d="M60 240 Q150 100 260 90 T430 130" stroke="#2f8f4e" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
-              <path d="M260 90 Q320 110 360 170" stroke="#c9821f" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
-              <path d="M360 170 Q420 190 470 230" stroke="#c8402f" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
-              <path d="M260 90 Q220 60 150 55" stroke="#2a63b5" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
-              <circle cx="260" cy="90" r="9" fill="#2f6b45"/>
-              <circle cx="150" cy="55" r="6" fill="#2f8f4e"/>
-              <circle cx="470" cy="230" r="6" fill="#c8402f"/>
-              <circle cx="60" cy="240" r="6" fill="#2f8f4e"/>
-              <circle cx="360" cy="170" r="6" fill="#c9821f"/>
-              <text x="150" y="45" font-size="10" fill="#3a4a3a" font-family="sans-serif">Mariang Makiling Trail</text>
-              <text x="255" y="76" font-size="10" fill="#3a4a3a" font-family="sans-serif">Makiling Rainforest Trail</text>
-              <text x="255" y="106" font-size="10" fill="#3a4a3a" font-family="sans-serif">Mount Makiling (1,096 m)</text>
-              <text x="30" y="255" font-size="10" fill="#3a4a3a" font-family="sans-serif">Sipit Trail</text>
-              <text x="400" y="245" font-size="10" fill="#3a4a3a" font-family="sans-serif">Forestry Trail (UPLB Area)</text>
-            </svg>
+            <div id="trailMap" aria-label="Interactive map of Mount Makiling"></div>
             <div class="map-legend">
               <div><span class="legend-dot" style="background:#2f8f4e"></span>Open Trail</div>
               <div><span class="legend-dot" style="background:#c8402f"></span>Closed Trail</div>
@@ -973,6 +955,7 @@ tbody tr:last-child td{
             <div class="detail-row"><span>Elevation Gain</span><span id="detailElev">1,200 m</span></div>
             <div class="detail-row"><span>Highest Point</span><span id="detailPeak">1,096 m (Peak 2)</span></div>
             <div class="detail-row"><span>Trail Type</span><span id="detailType">—</span></div>
+            <div class="detail-row"><span>Entry Type</span><span id="detailEntryType">—</span></div>
             <div class="detail-row"><span>Last Updated</span><span id="detailUpdated">—</span></div>
           </div>
           <button class="btn-secondary" id="editTrailBtn">✎ Edit Trail Information</button>
@@ -993,18 +976,17 @@ tbody tr:last-child td{
             <option>Select Status</option>
             <option>Open</option>
             <option>Closed</option>
-            <option>Illegal Entry</option>
           </select>
           <button class="btn-primary" id="updateStatusBtn">Update Status</button>
         </div>
 
         <div class="panel">
-          <div class="panel-title">Quick Actions</div>
+          <div class="panel-title">Actions</div>
           <div class="quick-grid">
             <button class="quick-btn" id="addTrailBtn">+ Add Trail</button>
-            <button class="quick-btn">+ Add Checkpoint</button>
-            <button class="quick-btn">+ Add Campsite</button>
-            <button class="quick-btn outline">📍 View on Map</button>
+            <button class="quick-btn outline" id="viewMapBtn" type="button">📍 View on Map</button>
+            <button class="quick-btn outline" type="button">+ Add Checkpoints</button>
+            <button class="quick-btn outline" type="button">+ Add Campsites</button>
           </div>
           <button class="quick-btn outline" style="width:100%;">📊 View Reports</button>
         </div>
@@ -1071,18 +1053,27 @@ tbody tr:last-child td{
         </div>
       </div>
 
-      <div style="display:flex;gap:10px;">
+            <div style="display:flex;gap:10px;">
         <div style="flex:1;">
           <label style="font-size:12px;color:var(--text-secondary);">Status</label>
           <select id="newTrailStatus" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
             <option>Open</option>
             <option>Closed</option>
-            <option>Illegal Entry</option>
           </select>
         </div>
         <div style="flex:1;">
           <label style="font-size:12px;color:var(--text-secondary);">Ratings</label>
           <input type="text" id="newTrailRatings" placeholder="e.g. 4.8" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label style="font-size:12px;color:var(--text-secondary);">Entry Type</label>
+          <select id="newTrailEntryType" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
+            <option>Legal Entry</option>
+            <option>Illegal Entry</option>
+          </select>
         </div>
       </div>
     </div>
@@ -1133,6 +1124,32 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+const makilingCenter = [14.136, 121.197];
+const trailMap = L.map('trailMap').setView(makilingCenter, 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(trailMap);
+L.marker(makilingCenter)
+  .bindPopup('<strong>Mount Makiling</strong><br>1,096 m')
+  .addTo(trailMap);
+let selectedTrailMarker = null;
+const trailCoordinateFallbacks = {
+  "Sipit Trail": [14.1150551, 121.186634],
+  "Makiling Traverse (MakTrav)": [14.1352241, 121.1944517],
+  "Makiling Botanic Gardens Trail": [14.1407, 121.2025],
+  "Mariang Makiling Trail": [14.1352241, 121.1944517],
+  "Maria Makiling Trail": [14.1352241, 121.1944517]
+};
+
+function getTrailCoordinates(trail) {
+  const latitude = Number(trail.latitude ?? trail.lat ?? trail.coordinates?.latitude);
+  const longitude = Number(trail.longitude ?? trail.lng ?? trail.coordinates?.longitude);
+  return Number.isFinite(latitude) && Number.isFinite(longitude)
+    ? [latitude, longitude]
+    : trailCoordinateFallbacks[trail.Trail] || makilingCenter;
+}
+
 let trails = [];
 let selectedId = null;
 let editing = false;
@@ -1173,6 +1190,18 @@ function getSelected() {
   return trails.find(t => t.id === selectedId);
 }
 
+function showSelectedTrailOnMap() {
+  const trail = getSelected();
+  if (!trail) return;
+
+  const coordinates = getTrailCoordinates(trail);
+  if (selectedTrailMarker) trailMap.removeLayer(selectedTrailMarker);
+  selectedTrailMarker = L.marker(coordinates).addTo(trailMap);
+  selectedTrailMarker.bindPopup(`<strong>${trail.Trail || 'Selected trail'}</strong><br>${trail.Status || 'Open'}`).openPopup();
+  trailMap.setView(coordinates, 15);
+  document.getElementById('trailMap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function render() {
   const q = document.getElementById('searchInput').value.toLowerCase();
   const st = document.getElementById('statusFilter').value;
@@ -1209,6 +1238,7 @@ tr.innerHTML = `
   <td>${t["Approximate Distance"] || "—"}</td>
   <td>${t.Elevation || "—"}</td>
   <td>${t.Duration || "—"}</td>
+  <td>${t.EntryType || "—"}</td>
   <td><span class="badge ${status.toLowerCase()}">${status}</span></td>
   <td><div class="row-actions">
     <button class="icon-btn visibility-btn" title="${visible ? 'Visible — click to hide' : 'Hidden — click to show'}">${visible ? '👁' : '🚫'}</button>
@@ -1288,19 +1318,16 @@ function updateStats() {
   const total = trails.length;
   const open = trails.filter(t => (t.Status || "Open") === "Open").length;
   const closed = trails.filter(t => t.Status === "Closed").length;
-  const illegal = trails.filter(t => t.Status === "Illegal Entry").length;
 
   document.getElementById('statTotalTrails').textContent = total;
   document.getElementById('statOpenTrails').textContent = open;
   document.getElementById('statClosedTrails').textContent = closed;
-  document.getElementById('statIllegalTrails').textContent = illegal;
 
   const openPct = total ? Math.round((open / total) * 100) : 0;
   const closedPct = total ? Math.round((closed / total) * 100) : 0;
-  const illegalPct = total ? Math.round((illegal / total) * 100) : 0;
   document.getElementById('statOpenLabel').textContent = `Open Trails · ${openPct}%`;
   document.getElementById('statClosedLabel').textContent = `Closed Trails · ${closedPct}%`;
-  document.getElementById('statIllegalLabel').textContent = `Illegal Entry · ${illegalPct}%`;
+
 }
 
 function renderDetail() {
@@ -1320,6 +1347,7 @@ function renderDetail() {
   document.getElementById('detailElev').textContent = t.Elevation || "—";
   document.getElementById('detailPeak').textContent = t.Municipality || "—";
   document.getElementById('detailType').textContent = t.Type || "Undefined";
+  document.getElementById('detailEntryType').textContent = t.EntryType || "Undefined";
   document.getElementById('detailStatus').textContent = status;
   document.getElementById('detailStatus').className = 'badge ' + status.toLowerCase();
 
@@ -1367,12 +1395,19 @@ function openEditMode() {
   document.getElementById('detailPeak').innerHTML =
     `<input type="text" id="editMunicipality" value="${(t.Municipality || '').replace(/"/g, '&quot;')}" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;text-align:right;">`;
 
-  const currentType = t.Type || "Undefined";
+    const currentType = t.Type || "Undefined";
   document.getElementById('detailType').innerHTML = `
     <select id="editType" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;">
       <option ${currentType === "Major Trail" ? "selected" : ""}>Major Trail</option>
       <option ${currentType === "Side Trail" ? "selected" : ""}>Side Trail</option>
       <option ${currentType === "Undefined" ? "selected" : ""}>Undefined</option>
+    </select>`;
+
+  const currentEntryType = t.EntryType || "Undefined";
+  document.getElementById('detailEntryType').innerHTML = `
+    <select id="editEntryType" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;">
+      <option ${currentEntryType === "Legal Entry" ? "selected" : ""}>Legal Entry</option>
+      <option ${currentEntryType === "Illegal Entry" ? "selected" : ""}>Illegal Entry</option>
     </select>`;
 
   const currentDiff = t.Difficulty || "Undefined";
@@ -1395,7 +1430,7 @@ async function saveEdit() {
   const t = getSelected();
   if (!t) return;
 
-  const updated = {
+    const updated = {
     Trail: document.getElementById('editName').value,
     Description: document.getElementById('editDesc').value,
     "Approximate Distance": document.getElementById('editDist').value,
@@ -1403,6 +1438,7 @@ async function saveEdit() {
     Elevation: document.getElementById('editElev').value,
     Municipality: document.getElementById('editMunicipality').value,
     Type: document.getElementById('editType').value,
+    EntryType: document.getElementById('editEntryType').value,
     Difficulty: document.getElementById('editDiff').value,
     UpdatedAt: serverTimestamp()
   };
@@ -1432,6 +1468,8 @@ document.getElementById('updateStatusBtn').addEventListener('click', async () =>
   }
 });
 
+document.getElementById('viewMapBtn').addEventListener('click', showSelectedTrailOnMap);
+
 ['searchInput', 'statusFilter', 'diffFilter', 'typeFilter'].forEach(id => {
   document.getElementById(id).addEventListener('input', () => { currentPage = 1; render(); });
   document.getElementById(id).addEventListener('change', () => { currentPage = 1; render(); });
@@ -1460,6 +1498,12 @@ addTrailModal.addEventListener('click', (e) => {
   if (e.target === addTrailModal) addTrailModal.style.display = 'none';
 });
 
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && addTrailModal.style.display === 'flex') {
+    addTrailModal.style.display = 'none';
+  }
+});
+
 document.getElementById('submitAddTrail').addEventListener('click', async () => {
   const name = document.getElementById('newTrailName').value.trim();
   if (!name) {
@@ -1467,11 +1511,12 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     return;
   }
 
-  const newTrail = {
+    const newTrail = {
     Trail: name,
     Description: document.getElementById('newTrailDesc').value,
     Difficulty: document.getElementById('newTrailDiff').value,
     Type: document.getElementById('newTrailType').value,
+    EntryType: document.getElementById('newTrailEntryType').value,
     "Approximate Distance": document.getElementById('newTrailDist').value,
     Duration: document.getElementById('newTrailDur').value,
     Elevation: document.getElementById('newTrailElev').value,
