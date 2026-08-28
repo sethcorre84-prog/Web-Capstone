@@ -272,6 +272,35 @@
   .switch input:checked + .slider::before{transform:translateX(18px);}
 
   /* Footer bar */
+  .settings-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:18px;
+    padding:14px 18px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-card);
+  }
+  .settings-toolbar .status{
+    font-size:12px;
+    color:var(--text-600);
+  }
+  .settings-toolbar .status strong{color:var(--accent-dark);}
+  .primary-btn{
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    padding:9px 16px;
+    border-radius:8px;
+    font-size:12.5px;
+    font-weight:600;
+    box-shadow:0 10px 18px rgba(47,143,78,.2);
+  }
+  .primary-btn:hover{background:var(--accent-dark);}
+
   .settings-footer{
     display:flex;
     align-items:center;
@@ -291,6 +320,65 @@
     font-size:11px;
     margin-left:6px;
   }
+
+  .modal-backdrop{
+    position:fixed;
+    inset:0;
+    background:rgba(18,28,20,.45);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:20;
+  }
+  .modal-backdrop.visible{display:flex;}
+  .modal-card{
+    width:min(460px, 100%);
+    background:#fff;
+    border-radius:16px;
+    border:1px solid var(--border);
+    box-shadow:0 18px 40px rgba(22,34,24,.2);
+    overflow:hidden;
+  }
+  .modal-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 20px 10px;
+    border-bottom:1px solid var(--border);
+  }
+  .modal-header h3{font-size:17px;}
+  .close-btn{
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+    background:#f6f8f6;font-size:18px;color:var(--text-600);
+  }
+  .modal-body{padding:18px 20px 20px;}
+  .form-grid{display:grid;gap:12px;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--text-600);margin-bottom:6px;}
+  .field input, .field textarea, .field select{
+    width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:#fbfcfa;color:var(--text-900);
+  }
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:14px;}
+  .ghost-btn{
+    border:1px solid var(--border);background:#fff;border-radius:8px;padding:9px 14px;color:var(--text-900);
+  }
+  .toast{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    background:#16331b;
+    color:#fff;
+    padding:12px 16px;
+    border-radius:10px;
+    box-shadow:0 12px 24px rgba(0,0,0,.14);
+    opacity:0;
+    transform:translateY(10px);
+    transition:.2s ease;
+    pointer-events:none;
+    z-index:30;
+    font-size:12.5px;
+  }
+  .toast.show{opacity:1;transform:translateY(0);}
 
   @media (max-width:980px){
     .settings-grid{grid-template-columns:1fr;}
@@ -355,12 +443,17 @@
       </div>
     </section>
 
+    <div class="settings-toolbar">
+      <div class="status"><strong>Preferences active:</strong> <span id="settingsStatusText">Saved locally</span></div>
+      <button class="primary-btn" id="saveSettingsBtn">Save Settings</button>
+    </div>
+
     <!-- Row 1: General + Notification -->
     <div class="settings-grid">
       <div class="panel">
         <div class="panel-title">General Settings</div>
 
-        <div class="setting-row">
+        <div class="setting-row" data-action="profile">
           <div class="setting-left">
             <div class="setting-icon">👤</div>
             <div class="setting-text">
@@ -371,7 +464,7 @@
           <div class="setting-right"><span class="chevron">›</span></div>
         </div>
 
-        <div class="setting-row">
+        <div class="setting-row" data-action="password">
           <div class="setting-left">
             <div class="setting-icon">🔒</div>
             <div class="setting-text">
@@ -391,14 +484,15 @@
             </div>
           </div>
           <div class="setting-right">
-            <select class="inline-select">
-              <option>English</option>
-              <option>Filipino</option>
+            <select id="languageSelect" class="inline-select">
+              <option value="English">English</option>
+              <option value="Filipino">Filipino</option>
+              <option value="Spanish">Spanish</option>
             </select>
           </div>
         </div>
 
-        <div class="setting-row">
+        <div class="setting-row" data-action="timezone">
           <div class="setting-left">
             <div class="setting-icon">🕐</div>
             <div class="setting-text">
@@ -423,7 +517,7 @@
           </div>
           <div class="setting-right">
             <label class="switch">
-              <input type="checkbox" checked>
+              <input type="checkbox" data-setting-toggle="emailNotifications" checked>
               <span class="slider"></span>
             </label>
           </div>
@@ -439,7 +533,7 @@
           </div>
           <div class="setting-right">
             <label class="switch">
-              <input type="checkbox" checked>
+              <input type="checkbox" data-setting-toggle="pushNotifications" checked>
               <span class="slider"></span>
             </label>
           </div>
@@ -455,7 +549,7 @@
           </div>
           <div class="setting-right">
             <label class="switch">
-              <input type="checkbox">
+              <input type="checkbox" data-setting-toggle="smsNotifications">
               <span class="slider"></span>
             </label>
           </div>
@@ -468,7 +562,7 @@
       <div class="panel">
         <div class="panel-title">Role &amp; Permission Settings</div>
 
-        <div class="setting-row">
+        <div class="setting-row" data-action="roleManagement">
           <div class="setting-left">
             <div class="setting-icon">🧑‍🤝‍🧑</div>
             <div class="setting-text">
@@ -479,7 +573,7 @@
           <div class="setting-right"><span class="chevron">›</span></div>
         </div>
 
-        <div class="setting-row">
+        <div class="setting-row" data-action="accessControl">
           <div class="setting-left">
             <div class="setting-icon">🛡️</div>
             <div class="setting-text">
@@ -494,7 +588,7 @@
       <div class="panel">
         <div class="panel-title">System Settings</div>
 
-        <div class="setting-row">
+        <div class="setting-row" data-action="systemPreferences">
           <div class="setting-left">
             <div class="setting-icon">⚙️</div>
             <div class="setting-text">
@@ -505,7 +599,7 @@
           <div class="setting-right"><span class="chevron">›</span></div>
         </div>
 
-        <div class="setting-row">
+        <div class="setting-row" data-action="dataBackup">
           <div class="setting-left">
             <div class="setting-icon">🗄️</div>
             <div class="setting-text">
@@ -516,7 +610,7 @@
           <div class="setting-right"><span class="chevron">›</span></div>
         </div>
 
-        <div class="setting-row">
+        <div class="setting-row" data-action="auditLogs">
           <div class="setting-left">
             <div class="setting-icon">📄</div>
             <div class="setting-text">
@@ -544,13 +638,13 @@
           </div>
           <div class="setting-right">
             <label class="switch">
-              <input type="checkbox">
+              <input type="checkbox" data-setting-toggle="twoFactor">
               <span class="slider"></span>
             </label>
           </div>
         </div>
 
-        <div class="setting-row">
+        <div class="setting-row" data-action="loginSessions">
           <div class="setting-left">
             <div class="setting-icon">🖥️</div>
             <div class="setting-text">
@@ -569,5 +663,355 @@
     </div>
   </main>
 </div>
+
+<div id="settingsModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-header">
+      <h3 id="modalTitle">Settings Detail</h3>
+      <button type="button" class="close-btn" aria-label="Close settings dialog">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div id="settingsToast" class="toast" aria-live="polite"></div>
+
+<script>
+  (function () {
+    const STORAGE_KEY = 'peakpath-settings';
+    const defaultSettings = {
+      emailNotifications: true,
+      pushNotifications: true,
+      smsNotifications: false,
+      twoFactor: false,
+      language: 'English'
+    };
+
+    const storedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const settings = { ...defaultSettings, ...storedSettings };
+
+    const saveButton = document.getElementById('saveSettingsBtn');
+    const statusText = document.getElementById('settingsStatusText');
+    const modal = document.getElementById('settingsModal');
+    const modalBody = document.getElementById('modalBody');
+    const modalTitle = document.getElementById('modalTitle');
+    const toast = document.getElementById('settingsToast');
+    const languageSelect = document.getElementById('languageSelect');
+
+    function persistSettings() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      statusText.textContent = 'Changes saved locally';
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(showToast.timeoutId);
+      showToast.timeoutId = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2200);
+    }
+
+    function syncInputs() {
+      document.querySelectorAll('[data-setting-toggle]').forEach((input) => {
+        input.checked = !!settings[input.dataset.settingToggle];
+      });
+
+      if (languageSelect) {
+        languageSelect.value = settings.language || 'English';
+      }
+    }
+
+    function updateStatusFromCheckboxes() {
+      const enabled = [];
+      document.querySelectorAll('[data-setting-toggle]').forEach((input) => {
+        settings[input.dataset.settingToggle] = input.checked;
+        if (input.checked) {
+          enabled.push(input.dataset.settingToggle);
+        }
+      });
+
+      statusText.textContent = enabled.length ? 'Preferences updated' : 'No alerts enabled';
+    }
+
+    function closeModal() {
+      modal.classList.remove('visible');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    function openModal(action) {
+      const actionMap = {
+        profile: {
+          title: 'Profile Information',
+          content: `
+            <div class="form-grid">
+              <div class="field">
+                <label for="profileName">Full Name</label>
+                <input id="profileName" type="text" value="Admin User">
+              </div>
+              <div class="field">
+                <label for="profileEmail">Email Address</label>
+                <input id="profileEmail" type="email" value="admin@peakpath.com">
+              </div>
+              <div class="field">
+                <label for="profileRole">Role</label>
+                <select id="profileRole">
+                  <option selected>Super Administrator</option>
+                  <option>Administrator</option>
+                  <option>Manager</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
+              <button type="button" class="primary-btn" data-save-modal="profile">Save</button>
+            </div>
+          `
+        },
+        password: {
+          title: 'Change Password',
+          content: `
+            <div class="form-grid">
+              <div class="field">
+                <label for="currentPassword">Current Password</label>
+                <input id="currentPassword" type="password" placeholder="Enter current password">
+              </div>
+              <div class="field">
+                <label for="newPassword">New Password</label>
+                <input id="newPassword" type="password" placeholder="Enter new password">
+              </div>
+              <div class="field">
+                <label for="confirmPassword">Confirm Password</label>
+                <input id="confirmPassword" type="password" placeholder="Re-enter new password">
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
+              <button type="button" class="primary-btn" data-save-modal="password">Update Password</button>
+            </div>
+          `
+        },
+        timezone: {
+          title: 'Date & Time',
+          content: `
+            <div class="form-grid">
+              <div class="field">
+                <label for="timezoneSelect">Time Zone</label>
+                <select id="timezoneSelect">
+                  <option selected>(UTC+08:00) Philippine Time</option>
+                  <option>(UTC+00:00) Greenwich Mean Time</option>
+                  <option>(UTC-05:00) Eastern Time</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="dateFormat">Date Format</label>
+                <select id="dateFormat">
+                  <option selected>MM/DD/YYYY</option>
+                  <option>DD/MM/YYYY</option>
+                  <option>YYYY-MM-DD</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
+              <button type="button" class="primary-btn" data-save-modal="timezone">Save</button>
+            </div>
+          `
+        },
+        roleManagement: {
+          title: 'Role Management',
+          content: `
+            <div class="form-grid">
+              <div class="field">
+                <label for="rolePreset">Current Access Level</label>
+                <select id="rolePreset">
+                  <option selected>Super Administrator</option>
+                  <option>Administrator</option>
+                  <option>Analyst</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="permissionNote">Permission Summary</label>
+                <textarea id="permissionNote" rows="4">Full access to dashboard, reports, user management, and emergency monitoring.</textarea>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
+              <button type="button" class="primary-btn" data-save-modal="roleManagement">Apply</button>
+            </div>
+          `
+        },
+        accessControl: {
+          title: 'Access Control',
+          content: `
+            <div class="form-grid">
+              <div class="field">
+                <label for="moduleAccess">Module Access</label>
+                <select id="moduleAccess">
+                  <option selected>All modules enabled</option>
+                  <option>Restricted mode</option>
+                  <option>Read-only mode</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="accessNote">Notes</label>
+                <textarea id="accessNote" rows="4">Limit access to sensitive admin functions for selected roles.</textarea>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
+              <button type="button" class="primary-btn" data-save-modal="accessControl">Update Access</button>
+            </div>
+          `
+        },
+        systemPreferences: {
+          title: 'System Preferences',
+          content: `
+            <div class="form-grid">
+              <div class="field">
+                <label for="themeSelect">Theme</label>
+                <select id="themeSelect">
+                  <option selected>Light</option>
+                  <option>Dark</option>
+                  <option>System Default</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="defaultPage">Default Landing Page</label>
+                <select id="defaultPage">
+                  <option selected>Dashboard</option>
+                  <option>Hazard Reports</option>
+                  <option>Analytics</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
+              <button type="button" class="primary-btn" data-save-modal="systemPreferences">Apply</button>
+            </div>
+          `
+        },
+        dataBackup: {
+          title: 'Data & Backup',
+          content: `
+            <div class="form-grid">
+              <div class="field">
+                <label for="backupSchedule">Backup Schedule</label>
+                <select id="backupSchedule">
+                  <option selected>Daily at 02:00 AM</option>
+                  <option>Weekly on Sundays</option>
+                  <option>Monthly on the 1st</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="storageStatus">Storage Status</label>
+                <input id="storageStatus" type="text" value="Healthy - 76% available" readonly>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
+              <button type="button" class="primary-btn" data-save-modal="dataBackup">Save Settings</button>
+            </div>
+          `
+        },
+        auditLogs: {
+          title: 'Audit Logs',
+          content: `
+            <div class="form-grid">
+              <div class="field">
+                <label for="logRetention">Retention Period</label>
+                <select id="logRetention">
+                  <option selected>180 days</option>
+                  <option>90 days</option>
+                  <option>365 days</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="lastAudit">Last Audit</label>
+                <input id="lastAudit" type="text" value="May 20, 2025 10:30 AM" readonly>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
+              <button type="button" class="primary-btn" data-save-modal="auditLogs">Apply</button>
+            </div>
+          `
+        },
+        loginSessions: {
+          title: 'Login Sessions',
+          content: `
+            <div class="form-grid">
+              <div class="field">
+                <label for="sessionDevice">Current Device</label>
+                <input id="sessionDevice" type="text" value="Windows 11 • Chrome" readonly>
+              </div>
+              <div class="field">
+                <label for="sessionLocation">Location</label>
+                <input id="sessionLocation" type="text" value="Cebu City, Philippines" readonly>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
+              <button type="button" class="primary-btn" data-save-modal="loginSessions">Terminate Session</button>
+            </div>
+          `
+        }
+      };
+
+      const config = actionMap[action] || actionMap.profile;
+      modalTitle.textContent = config.title;
+      modalBody.innerHTML = config.content;
+      modal.classList.add('visible');
+      modal.setAttribute('aria-hidden', 'false');
+
+      modalBody.querySelectorAll('[data-close-modal]').forEach((button) => {
+        button.addEventListener('click', closeModal);
+      });
+
+      modalBody.querySelectorAll('[data-save-modal]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const key = button.dataset.saveModal;
+          showToast(`${config.title} updated successfully`);
+          closeModal();
+          if (key === 'profile') {
+            statusText.textContent = 'Profile updated';
+          }
+        });
+      });
+    }
+
+    document.querySelectorAll('.setting-row[data-action]').forEach((row) => {
+      row.addEventListener('click', () => openModal(row.dataset.action));
+    });
+
+    document.querySelector('.close-btn').addEventListener('click', closeModal);
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) closeModal();
+    });
+
+    document.querySelectorAll('[data-setting-toggle]').forEach((input) => {
+      input.addEventListener('change', () => {
+        updateStatusFromCheckboxes();
+        persistSettings();
+      });
+    });
+
+    if (languageSelect) {
+      languageSelect.addEventListener('change', () => {
+        settings.language = languageSelect.value;
+        persistSettings();
+        showToast(`Language set to ${settings.language}`);
+      });
+    }
+
+    saveButton.addEventListener('click', () => {
+      persistSettings();
+      showToast('Settings saved successfully');
+    });
+
+    syncInputs();
+    persistSettings();
+  })();
+</script>
 </body>
 </html>
