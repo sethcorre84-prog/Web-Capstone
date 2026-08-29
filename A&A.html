@@ -317,7 +317,6 @@
 			<div class="field"><label>Channels</label>
 				<div class="checks">
 					<label><input type="checkbox" id="mChanInApp" checked> In-App</label>
-					<label><input type="checkbox" id="mChanPush"> Push Notification</label>
 					<label><input type="checkbox" id="mChanEmail"> Email</label>
 				</div>
 			</div>
@@ -766,14 +765,16 @@ setInterval(() => {
 		document.getElementById('statusFilter').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
 		document.getElementById('dateFilter').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
 
-		document.getElementById('clearFiltersBtn').addEventListener('click', () => {
-    		document.getElementById('search').value = '';
-    		document.getElementById('typeFilter').value = '';
-    		document.getElementById('statusFilter').value = '';
-    		document.getElementById('dateFilter').value = '';
-    		currentPage = 1;
-    		applyFiltersAndRender();
-		});
+		function resetAllAdvisoryFilters() {
+			document.getElementById('search').value = '';
+			document.getElementById('typeFilter').value = '';
+			document.getElementById('statusFilter').value = '';
+			document.getElementById('dateFilter').value = '';
+			currentPage = 1;
+			applyFiltersAndRender();
+		}
+
+		document.getElementById('clearFiltersBtn').addEventListener('click', resetAllAdvisoryFilters);
 
 		// ---- Modal (Create / Edit) ----
 		const overlay = document.getElementById('modalOverlay');
@@ -792,7 +793,6 @@ setInterval(() => {
 			document.getElementById('mVisibility').value = it?.visibility || 'All Users';
 			const channels = it?.channels || ['In-App'];
 			document.getElementById('mChanInApp').checked = channels.includes('In-App');
-			document.getElementById('mChanPush').checked = channels.includes('Push Notification');
 			document.getElementById('mChanEmail').checked = channels.includes('Email');
 			document.getElementById('mDesc').value = it?.desc || '';
 			document.getElementById('mActions').value = (it?.recommendedActions || []).join('\n');
@@ -826,7 +826,6 @@ setInterval(() => {
 
 			const channels = [];
 			if (document.getElementById('mChanInApp').checked) channels.push('In-App');
-			if (document.getElementById('mChanPush').checked) channels.push('Push Notification');
 			if (document.getElementById('mChanEmail').checked) channels.push('Email');
 
 			const effVal = document.getElementById('mEffective').value;

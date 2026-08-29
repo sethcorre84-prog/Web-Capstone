@@ -1744,14 +1744,15 @@ function loadReports() {
 document.getElementById('searchInput').addEventListener('input', filterReports);
 document.getElementById('statusFilter').addEventListener('change', filterReports);
 document.getElementById('hazardFilter').addEventListener('change', filterReports); 
-  
 
-document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+function resetAllHazardFilters() {
   document.getElementById('searchInput').value = '';
   document.getElementById('statusFilter').value = '';
   document.getElementById('hazardFilter').value = '';
   filterReports();
-});
+}
+
+document.getElementById('clearFiltersBtn').addEventListener('click', resetAllHazardFilters);
 
 // Modal event handlers
 document.getElementById('modalCancelBtn').addEventListener('click', closeStatusModal);

@@ -4,6 +4,7 @@ import { collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12
 const notificationLimit = 20;
 let notifications = [];
 let pendingReports = [];
+let activeAdvisories = [];
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -31,8 +32,10 @@ const sortNotifications = (items) => items
   .slice(0, notificationLimit);
 
 const pendingReadKey = (id) => `peakpath:pending-hazard-read:${id}`;
+const advisoryReadKey = (id) => `peakpath:advisory-read:${id}`;
 
 const isPendingRead = (id) => localStorage.getItem(pendingReadKey(id)) === 'true';
+const isAdvisoryRead = (id) => localStorage.getItem(advisoryReadKey(id)) === 'true';
 
 const refreshNotifications = () => {
   const pendingNotifications = pendingReports.map((report) => ({
@@ -45,7 +48,18 @@ const refreshNotifications = () => {
     reportDocumentId: report.id
   }));
 
-  notifications = sortNotifications(pendingNotifications);
+  const advisoryNotifications = activeAdvisories.map((advisory) => ({
+    id: `advisory-${advisory.id}`,
+    type: 'advisory',
+    title: advisory.title || 'New advisory',
+    message: advisory.desc || `${advisory.type || 'Advisory'} for ${advisory.target || 'all trails'} is now available.`,
+    createdAt: advisory.effectiveDate || advisory.createdAt || advisory.publishedAt,
+    read: isAdvisoryRead(advisory.id),
+    advisoryDocumentId: advisory.id,
+    link: 'A&A.html'
+  }));
+
+  notifications = sortNotifications([...pendingNotifications, ...advisoryNotifications]);
   render();
 };
 
@@ -59,27 +73,40 @@ const render = () => {
     badge.hidden = unreadCount === 0;
 
     if (!notifications.length) {
-      list.innerHTML = '<div class="notification-empty">No hazard reports to review.</div>';
+      list.innerHTML = '<div class="notification-empty">No alerts to review.</div>';
       return;
     }
 
-    list.innerHTML = notifications.map((item) => `
-      <a class="notification-item${item.read === true ? '' : ' unread'}" href="hazardreport.html" data-notification-id="${escapeHtml(item.id)}">
-        <span class="notification-mark" aria-hidden="true">!</span>
-        <span class="notification-copy">
-          <strong>${escapeHtml(item.title || 'Hazard report update')}</strong>
-          <span>${escapeHtml(item.message || `${item.hazardType || 'Hazard'} at ${item.location || 'reported location'} is awaiting verification.`)}</span>
-          <small>${escapeHtml(formatDate(item.createdAt))}</small>
-        </span>
-      </a>
-    `).join('');
+    list.innerHTML = notifications.map((item) => {
+      const href = item.type === 'advisory' ? (item.link || 'A&A.html') : 'hazardreport.html';
+      const fallbackText = item.type === 'advisory'
+        ? (item.message || 'A new advisory is available.')
+        : (item.hazardType ? `${item.hazardType} at ${item.location || 'reported location'} is awaiting verification.` : 'Hazard report update');
+
+      return `
+        <a class="notification-item${item.read === true ? '' : ' unread'}" href="${href}" data-notification-id="${escapeHtml(item.id)}">
+          <span class="notification-mark" aria-hidden="true">!</span>
+          <span class="notification-copy">
+            <strong>${escapeHtml(item.title || 'Update')}</strong>
+            <span>${escapeHtml(item.message || fallbackText)}</span>
+            <small>${escapeHtml(formatDate(item.createdAt))}</small>
+          </span>
+        </a>
+      `;
+    }).join('');
   });
 };
 
 const markAsRead = (notificationId) => {
   const notification = notifications.find((item) => item.id === notificationId);
   if (!notification || notification.read === true) return;
-  localStorage.setItem(pendingReadKey(notification.reportDocumentId), 'true');
+
+  if (notification.type === 'hazard_pending') {
+    localStorage.setItem(pendingReadKey(notification.reportDocumentId), 'true');
+  } else if (notification.type === 'advisory') {
+    localStorage.setItem(advisoryReadKey(notification.advisoryDocumentId), 'true');
+  }
+
   notification.read = true;
   render();
 };
@@ -138,5 +165,17 @@ onSnapshot(collection(db, 'reports'), (snapshot) => {
   refreshNotifications();
 }, (error) => {
   console.error('Unable to load pending hazard reports:', error);
+  refreshNotifications();
+});
+
+onSnapshot(collection(db, 'Advisory'), (snapshot) => {
+  activeAdvisories = snapshot.docs
+    .map((advisory) => ({ id: advisory.id, ...advisory.data() }))
+    .filter((advisory) => advisory.visible !== false)
+    .filter((advisory) => (advisory.status || 'Active').toLowerCase() !== 'expired')
+    .filter((advisory) => Array.isArray(advisory.channels) && advisory.channels.includes('In-App'));
+  refreshNotifications();
+}, (error) => {
+  console.error('Unable to load advisory notifications:', error);
   refreshNotifications();
 });
