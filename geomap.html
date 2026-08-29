@@ -243,6 +243,25 @@
       border-radius:8px;
       overflow:hidden
     }
+    .location-control{
+      background:#fff;
+      border:1px solid rgba(0,0,0,.2);
+      border-radius:4px;
+      box-shadow:0 1px 5px rgba(0,0,0,.25);
+      color:var(--text-primary);
+      cursor:pointer;
+      font:600 12px/1.2 inherit;
+      padding:8px 10px;
+    }
+    .location-control:hover,
+    .location-control.is-tracking{
+      background:var(--accent-light);
+      color:var(--accent-dark);
+    }
+    .location-control:disabled{
+      cursor:wait;
+      opacity:.7;
+    }
     .content-grid{
       display:grid;
       grid-template-columns:1fr 320px;
@@ -434,6 +453,76 @@
       'Trails': trailLayer,
       'Verified hazards': hazardLayer
     }).addTo(map);
+
+    let locationWatchId = null;
+    let userLocationMarker = null;
+    let userLocationAccuracy = null;
+
+    const locationControl = L.control({ position: 'topright' });
+    locationControl.onAdd = () => {
+      const button = L.DomUtil.create('button', 'location-control');
+      button.type = 'button';
+      button.textContent = 'Locate me';
+      button.title = 'Track my current location';
+      button.setAttribute('aria-label', 'Track my current location');
+
+      L.DomEvent.disableClickPropagation(button);
+      L.DomEvent.on(button, 'click', () => {
+        if (locationWatchId !== null) {
+          navigator.geolocation.clearWatch(locationWatchId);
+          locationWatchId = null;
+          button.textContent = 'Locate me';
+          button.classList.remove('is-tracking');
+          return;
+        }
+
+        if (!navigator.geolocation) {
+          button.textContent = 'Location unavailable';
+          return;
+        }
+
+        button.disabled = true;
+        button.textContent = 'Finding location...';
+        locationWatchId = navigator.geolocation.watchPosition((position) => {
+          const coordinates = [position.coords.latitude, position.coords.longitude];
+          const accuracy = position.coords.accuracy;
+
+          if (!userLocationMarker) {
+            userLocationMarker = L.circleMarker(coordinates, {
+              radius: 7,
+              color: '#1f6b39',
+              fillColor: '#3fa860',
+              fillOpacity: 1,
+              weight: 3
+            }).bindPopup('Your current location').addTo(map);
+            userLocationAccuracy = L.circle(coordinates, {
+              radius: accuracy,
+              color: '#2f8f4e',
+              fillColor: '#2f8f4e',
+              fillOpacity: 0.12,
+              weight: 1
+            }).addTo(map);
+            map.setView(coordinates, Math.max(map.getZoom(), 15));
+          } else {
+            userLocationMarker.setLatLng(coordinates);
+            userLocationAccuracy.setLatLng(coordinates).setRadius(accuracy);
+          }
+
+          button.disabled = false;
+          button.textContent = 'Stop tracking';
+          button.classList.add('is-tracking');
+        }, () => {
+          if (locationWatchId !== null) navigator.geolocation.clearWatch(locationWatchId);
+          locationWatchId = null;
+          button.disabled = false;
+          button.textContent = 'Location blocked';
+          button.classList.remove('is-tracking');
+        }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 });
+      });
+
+      return button;
+    };
+    locationControl.addTo(map);
 
     onSnapshot(collection(db, 'users'), (snapshot) => {
       const activeHikers = snapshot.docs.filter(document => {
