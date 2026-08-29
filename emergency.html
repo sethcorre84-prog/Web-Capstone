@@ -524,8 +524,9 @@ tbody td{
         <h1>Emergency Monitoring</h1>
         <p>Monitor emergency alerts, live locations, and response status in real-time.</p>
       </div>
-      <div class="topbar-right">
-        <div class="meta">May 20, 2025</div>
+      <div class="topbar-right" style="flex-direction:column;align-items:flex-end;gap:2px;">
+        <div class="meta" id="live-date">May 20, 2025</div>
+        <div class="meta" id="live-time" style="font-weight:700;color:var(--text-primary);">10:30 AM</div>
       </div>
     </div>
     <div class="cards-row">
@@ -600,5 +601,27 @@ tbody td{
     </div>
   </main>
 </div>
+<script>
+    function updateEmergencyClock() {
+        const dateEl = document.getElementById('live-date');
+        const timeEl = document.getElementById('live-time');
+        if (!dateEl || !timeEl) return;
+
+        const now = new Date();
+        dateEl.textContent = now.toLocaleDateString([], {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        timeEl.textContent = now.toLocaleTimeString([], {
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+
+    updateEmergencyClock();
+    setInterval(updateEmergencyClock, 1000);
+</script>
 </body>
 </html>

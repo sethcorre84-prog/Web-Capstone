@@ -314,8 +314,9 @@
           <h1>Geomap Monitoring</h1>
           <p>Real-time monitoring of trails, hazards, and environmental conditions.</p>
         </div>
-        <div>
-          <div id="liveTime" style="color:var(--text-secondary);font-size:13px"></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+          <div id="liveDate" style="color:var(--text-secondary);font-size:13px"></div>
+          <div id="liveTime" style="color:var(--text-primary);font-weight:700;font-size:13px"></div>
         </div>
       </div>
 
@@ -496,10 +497,15 @@
 
     updateWeather();
     setInterval(updateWeather, 5 * 60 * 1000);
-  </script>
-  <script>
+
 function updateTime() {
     const now = new Date();
+
+    const date = now.toLocaleDateString([], {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
 
     const time = now.toLocaleTimeString([], {
         hour: '2-digit',
@@ -508,6 +514,7 @@ function updateTime() {
         hour12: true
     });
 
+    document.getElementById('liveDate').textContent = date;
     document.getElementById('liveTime').textContent = time;
 }
 

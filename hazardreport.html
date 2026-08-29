@@ -851,10 +851,6 @@
       <div class="sidebar-footer">
         <div class="user-chip">
           <div class="avatar" id="userInitials">AU</div>
-          <div>
-            <div class="name" id="userName">Admin User</div>
-            <div class="role">Super Administrator</div>
-          </div>
         </div>
         <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
       </div>
@@ -875,10 +871,6 @@
         </div>
         <div class="admin-mini">
           <div class="avatar" id="adminInitials">AU</div>
-          <div>
-            <div class="name" id="adminName">Admin User</div>
-            <div class="role">Super Administrator</div>
-          </div>
         </div>
       </div>
     </div>
@@ -1805,10 +1797,7 @@ onAuthStateChanged(auth, (user) => {
       : user.email.substring(0, 2);
     
     document.getElementById('userInitials').textContent = initials.toUpperCase();
-    document.getElementById('userName').textContent = user.displayName || user.email;
     document.getElementById('adminInitials').textContent = initials.toUpperCase();
-    document.getElementById('adminName').textContent = user.displayName || user.email;
-    
     loadReports();
   } else {
     window.location.href = 'Home.html';
