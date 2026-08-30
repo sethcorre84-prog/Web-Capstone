@@ -519,9 +519,10 @@
     };
 
     const getRiskBucket = (item) => {
-      const value = (item?.severity || item?.priority || item?.riskLevel || item?.type || '').toString().trim().toLowerCase();
-      if (['high', 'critical', 'severe', 'alert'].includes(value)) return 'high';
-      if (['moderate', 'medium', 'warning'].includes(value)) return 'moderate';
+      const value = String(item?.riskLevel ?? item?.severity ?? item?.priority ?? item?.type ?? '').trim().toLowerCase();
+      if (/high|critical|severe|urgent|alert/.test(value)) return 'high';
+      if (/moderate|medium|warning|elevated/.test(value)) return 'moderate';
+      if (/low|minor|info|normal/.test(value)) return 'low';
       return 'low';
     };
 
@@ -608,9 +609,10 @@
       }
 
       list.innerHTML = verifiedHazards.map((item) => {
-        const level = (item.severity || item.riskLevel || '').toLowerCase();
-        const riskText = level === 'high' || level === 'critical' ? 'High Risk' : 'Moderate';
-        const riskColor = riskText === 'High Risk' ? '#c8402f' : '#c9821f';
+        const bucket = getRiskBucket(item);
+        const riskText = getRiskLabel(item);
+        const riskColor = bucket === 'high' ? '#c8402f' : bucket === 'moderate' ? '#c9821f' : '#3d6ec8';
+
         return `
           <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
             <div>${escapeHtml(item.hazardType || item.title || 'Hazard')}<br><small style="color:var(--text-secondary)">${escapeHtml(item.location || item.area || 'Mount Makiling')}</small></div>
