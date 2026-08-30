@@ -452,6 +452,10 @@
   .badge.pending{background:var(--pending-bg);color:var(--pending-text);}
   .badge.verified{background:var(--verified-bg);color:var(--verified-text);}
   .badge.rejected{background:var(--rejected-bg);color:var(--rejected-text);}
+  .badge.high{background:#fde9e8;color:#c8402f;}
+  .badge.moderate{background:#fff5df;color:#b9791b;}
+  .badge.low{background:#eaf5ff;color:#2d6ab3;}
+  .badge.unknown{background:#eef2ee;color:#5b6b60;}
 
   .actions-btn{
     background:none;border:none;color:var(--text-400);
@@ -975,6 +979,7 @@
                 <th>Hazard Type</th>
                 <th>Location / Trail</th>
                 <th>Reported By</th>
+                <th>Risk Level</th>
                 <th>Status</th>
                 <th>Reported On</th>
                 <th></th>
@@ -982,7 +987,7 @@
             </thead>
             <tbody id="reportsTable">
               <tr>
-                <td colspan="7" class="loading">
+                <td colspan="8" class="loading">
                   <div class="spinner"></div>
                 </td>
               </tr>
@@ -1159,6 +1164,19 @@ function getStatusPillStyle(status) {
   return styles[statusLower] || styles['pending'];
 }
 
+function getRiskLevel(report) {
+  const raw = report?.riskLevel ?? '';
+  const value = String(raw).trim();
+  const normalized = value.toLowerCase().replace(/[_-]/g, ' ');
+
+  if (!value) return { label: 'Unknown', className: 'unknown' };
+  if (/high|critical|severe|urgent|alert/.test(normalized)) return { label: 'High', className: 'high' };
+  if (/moderate|medium|warning|elevated/.test(normalized)) return { label: 'Moderate', className: 'moderate' };
+  if (/low|minor|info|normal/.test(normalized)) return { label: 'Low', className: 'low' };
+
+  return { label: value, className: 'unknown' };
+}
+
 // Render reports table
 function renderReportsTable(reports) {
   const tbody = document.getElementById('reportsTable');
@@ -1166,21 +1184,25 @@ function renderReportsTable(reports) {
   const paginatedReports = reports.slice(0, itemsPerPage);
   
   if (reports.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="loading" style="padding:20px;">No reports found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="loading" style="padding:20px;">No reports found</td></tr>';
     return;
   }
 
-  tbody.innerHTML = paginatedReports.map((report, index) => `
-    <tr class="${selectedReport?.id === report.id ? 'selected' : ''}" data-report-id="${report.id}" onclick="selectReport('${report.id}')">
-      <td>${report.reportId || `HR-${index + 1}`}</td>
-      <td><div class="hazard-cell"><span class="hazard-icon">${getHazardIcon(report.hazardType)}</span>${report.hazardType}</div></td>
-      <td>${report.location || 'N/A'}</td>
-      <td>${report.reportedBy || 'Anonymous'}</td>
-      <td><span class="badge ${getStatusBadgeClass(report.status)}">${report.status.charAt(0).toUpperCase() + report.status.slice(1)}</span></td>
-      <td>${formatDate(report.timestamp)}</td>
-      <td><button class="actions-btn" onclick="event.stopPropagation(); openDeleteModal('${report.id}')">⋮</button></td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = paginatedReports.map((report, index) => {
+    const risk = getRiskLevel(report);
+    return `
+      <tr class="${selectedReport?.id === report.id ? 'selected' : ''}" data-report-id="${report.id}" onclick="selectReport('${report.id}')">
+        <td>${report.reportId || `HR-${index + 1}`}</td>
+        <td><div class="hazard-cell"><span class="hazard-icon">${getHazardIcon(report.hazardType)}</span>${report.hazardType}</div></td>
+        <td>${report.location || 'N/A'}</td>
+        <td>${report.reportedBy || 'Anonymous'}</td>
+        <td><span class="badge ${risk.className}">${risk.label}</span></td>
+        <td><span class="badge ${getStatusBadgeClass(report.status)}">${report.status.charAt(0).toUpperCase() + report.status.slice(1)}</span></td>
+        <td>${formatDate(report.timestamp)}</td>
+        <td><button class="actions-btn" onclick="event.stopPropagation(); openDeleteModal('${report.id}')">⋮</button></td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function renderRejectedList() {
@@ -1248,6 +1270,7 @@ function renderReportDetails(report) {
 
   const statusStyle = getStatusPillStyle(report.status);
   const hazardIcon = getHazardIcon(report.hazardType);
+  const risk = getRiskLevel(report);
   
   detailsCard.className = 'card details-card';
   detailsCard.innerHTML = `
@@ -1267,6 +1290,16 @@ function renderReportDetails(report) {
       <div>
         <strong>${report.location || 'Unknown Location'}</strong>
         <span>${report.trail || 'No trail specified'}</span>
+      </div>
+    </div>
+
+    <div>
+      <p class="section-label">Risk Level</p>
+      <div class="reporter-row">
+        <div class="reporter-col">
+          <div class="lbl">Level</div>
+          <div class="val"><span class="badge ${risk.className}">${risk.label}</span></div>
+        </div>
       </div>
     </div>
 

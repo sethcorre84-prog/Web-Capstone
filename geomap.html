@@ -525,6 +525,13 @@
       return 'low';
     };
 
+    const getRiskLabel = (item) => {
+      const bucket = getRiskBucket(item);
+      if (bucket === 'high') return 'High Risk';
+      if (bucket === 'moderate') return 'Moderate Risk';
+      return 'Low Risk';
+    };
+
     const renderAlertOverview = (advisories, reports) => {
       const highRiskCount = document.getElementById('highRiskCount');
       const moderateRiskCount = document.getElementById('moderateRiskCount');
@@ -569,13 +576,11 @@
       }
 
       list.innerHTML = activeAdvisories.map((item) => {
-        const type = (item.type || '').toLowerCase();
-        const severity = (item.severity || item.priority || '').toLowerCase();
-        const isHigh = type === 'alert' || severity === 'high' || severity === 'critical';
-        const riskLabel = isHigh ? 'High Risk' : 'Moderate Risk';
-        const icon = isHigh ? '!' : '⚠';
-        const bg = isHigh ? '#fdecea' : '#fff7e6';
-        const color = isHigh ? '#c8402f' : '#c9821f';
+        const riskLabel = getRiskLabel(item);
+        const bucket = getRiskBucket(item);
+        const icon = bucket === 'high' ? '!' : bucket === 'moderate' ? '⚠' : 'ℹ';
+        const bg = bucket === 'high' ? '#fdecea' : bucket === 'moderate' ? '#fff7e6' : '#edf7ff';
+        const color = bucket === 'high' ? '#c8402f' : bucket === 'moderate' ? '#c9821f' : '#3d6ec8';
 
         return `
           <div style="display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid var(--border)">
