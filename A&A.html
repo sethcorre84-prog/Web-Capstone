@@ -269,6 +269,7 @@
 						</div>
 						<div id="detailBody" style="display:none">
 							<div class="detail-row"><div class="k">Type</div><div class="v" id="dType">—</div></div>
+							<div class="detail-row"><div class="k">Risk Level</div><div class="v" id="dRiskLevel">—</div></div>
 							<div class="detail-row"><div class="k">Target</div><div class="v" id="dTarget">—</div></div>
 							<div class="detail-row"><div class="k">Effective Date</div><div class="v" id="dEffective">—</div></div>
 							<div class="detail-row"><div class="k">Expires On</div><div class="v" id="dExpires">—</div></div>
@@ -324,6 +325,9 @@
 				<div class="field"><label>Status</label>
 					<select id="mStatus"><option>Active</option><option>Scheduled</option><option>Expired</option></select>
 				</div>
+			</div>
+			<div class="field"><label>Risk Level</label>
+				<select id="mRiskLevel"><option>Easy</option><option>Moderate</option><option>High</option></select>
 			</div>
 			<div class="field"><label>Target</label><input id="mTarget" placeholder="e.g. Sipit Trail (Section 2) or All Trails"></div>
 			<div class="field-row">
@@ -775,6 +779,7 @@ async function syncExpiredAdvisories(){
 
 			document.getElementById('detailBody').style.display = 'block';
 			document.getElementById('dType').textContent = it.type || '—';
+			document.getElementById('dRiskLevel').textContent = it.riskLevel || '—';
 			document.getElementById('dTarget').textContent = it.target || '—';
 			document.getElementById('dEffective').textContent = fmtDateTime(it.effectiveDate || it.publishedAt || it.createdAt);
 			document.getElementById('dExpires').textContent = it.expiresAt ? fmtDateTime(it.expiresAt) : '—';
@@ -869,6 +874,7 @@ setInterval(() => {
 			document.getElementById('mTitle').value = it?.title || '';
 			document.getElementById('mType').value = it?.type || 'Advisory';
 			document.getElementById('mStatus').value = it?.status || 'Active';
+			document.getElementById('mRiskLevel').value = it?.riskLevel || 'Moderate';
 			document.getElementById('mTarget').value = it?.target || '';
 			document.getElementById('mEffective').value = toLocalInputValue(it?.effectiveDate || it?.publishedAt) || toLocalInputValue(new Date());
 			document.getElementById('mExpires').value = toLocalInputValue(it?.expiresAt);
@@ -919,6 +925,7 @@ setInterval(() => {
 				title,
 				type: document.getElementById('mType').value,
 				status: document.getElementById('mStatus').value,
+				riskLevel: document.getElementById('mRiskLevel').value,
 				target: document.getElementById('mTarget').value.trim() || 'All Trails',
 				effectiveDate: effVal ? Timestamp.fromDate(new Date(effVal)) : null,
 				expiresAt: expVal ? Timestamp.fromDate(new Date(expVal)) : null,

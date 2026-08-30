@@ -1572,18 +1572,22 @@ function closeDeleteModal() {
 
 // Reassigns reportId sequentially per year, based on submission order (newest first).
 // Run after any delete so gaps close and there are never duplicate IDs.
-// was: orderBy('timestamp', 'desc')
 async function renumberReports() {
-  const snapshot = await getDocs(query(collection(db, 'reports'), orderBy('timestamp', 'asc')));
+  const snapshot = await getDocs(collection(db, 'reports'));
   const batch = writeBatch(db);
   const countersByYear = {};
   let changes = 0;
 
-  snapshot.forEach(docSnap => {
-    const data = docSnap.data();
-    const date = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || Date.now());
-    const year = date.getFullYear();
+  const docs = snapshot.docs
+    .map(docSnap => {
+      const data = docSnap.data();
+      const date = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
+      return { docSnap, data, date };
+    })
+    .sort((a, b) => b.date - a.date); // newest first, no docs excluded
 
+  docs.forEach(({ docSnap, data, date }) => {
+    const year = date.getFullYear();
     countersByYear[year] = (countersByYear[year] || 0) + 1;
     const newReportId = `HR-${year}-${String(countersByYear[year]).padStart(3, '0')}`;
 
@@ -1597,6 +1601,7 @@ async function renumberReports() {
     await batch.commit();
   }
 }
+window.renumberReports = renumberReports; // temporary, for manual resync
 
 async function confirmDeleteReport() {
   if (!deleteTargetId) return;
@@ -1609,7 +1614,7 @@ async function confirmDeleteReport() {
 
   try {
     await deleteDoc(doc(db, 'reports', deleteTargetId));
-    await renumberReports(); // re-sequence reportIds after delete
+    await window.renumberReports(); // re-sequence reportIds after delete
 
     if (selectedReport?.id === deleteTargetId) {
       selectedReport = null;
