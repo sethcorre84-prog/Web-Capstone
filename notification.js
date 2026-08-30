@@ -136,7 +136,7 @@ document.querySelectorAll('.bell-wrap').forEach((bell) => {
     </button>
     <span class="bell-badge" aria-live="polite" hidden>0</span>
     <div class="notification-panel" role="region" aria-label="Notifications">
-      <div class="notification-header"><strong>Notifications</strong><span>New hazard reports</span></div>
+      <div class="notification-header"><strong>Notifications</strong></div>
       <div class="notification-list"><div class="notification-empty">Loading notifications...</div></div>
     </div>
   `;
