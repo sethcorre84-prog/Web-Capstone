@@ -339,37 +339,49 @@
   }
   .filters-row{
     display:flex;
-    gap:10px;
-    flex-wrap:wrap;
+    gap:8px;
+    flex-wrap:nowrap;
     align-items:center;
   }
+  #hazardFilter{
+  min-width:118px;
+}
   .search-box{
-    position:relative;
-    flex:1;
-    min-width:150px;
-  }
+  flex:2 1 260px;
+  min-width:260px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:8px 12px;
+  background:#fbfcfa;
+  overflow:hidden;
+}
   .search-box input{
     width:100%;
-    padding:8px 12px 8px 30px;
-    border:1px solid var(--border);
-    border-radius:8px;
-    font-size:12.5px;
-    background:#fafbfa;
+    border:none;
+    outline:none;
+    background:transparent;
+    font-size:13px;
     color:var(--text-900);
   }
   .search-box .ic{
-    position:absolute;left:10px;top:50%;transform:translateY(-50%);
-    font-size:12px;color:var(--text-400);
+    font-size:14px;
+    color:var(--text-400);
+    flex-shrink:0;
   }
   select.filter-select{
-    padding:8px 26px 8px 12px;
-    border:1px solid var(--border);
-    border-radius:8px;
-    font-size:12.5px;
-    background:#fafbfa;
-    color:var(--text-900);
-    min-width:110px;
-  }
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:8px 8px;
+  background:#fbfcfa;
+  font-size:12.5px;
+  color:var(--text-600);
+  min-width:auto;
+  flex-shrink:0;
+  white-space:nowrap;
+}
   .date-range-row{
     display:flex;
     gap:10px;
@@ -378,13 +390,19 @@
   }
   .btn-outline{
     display:flex;align-items:center;gap:6px;
-    padding:8px 14px;
+    padding:8px 12px;
     border:1px solid var(--border);
     border-radius:8px;
-    background:#fafbfa;
+    background:#fff;
     font-size:12.5px;
-    color:var(--text-700,#3a463d);
+    font-weight:500;
+    color:var(--text-600);
     cursor:pointer;
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+  .btn-outline:hover{
+    background:#f5f5f2;
   }
   .btn-clear{
     color:#c0453c;
@@ -420,7 +438,7 @@
   tbody tr.selected{background:#eef6ee;}
 
   .hazard-cell{display:flex;align-items:center;gap:8px;}
-  .hazard-icon{font-size:15px;width:18px;text-align:center;}
+  .hazard-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0;}
   .sub{display:block;font-size:11px;color:var(--text-400);margin-top:1px;}
 
   .badge{
@@ -851,6 +869,10 @@
       <div class="sidebar-footer">
         <div class="user-chip">
           <div class="avatar" id="userInitials">AU</div>
+          <div class="user-info">
+            <div class="name" id="userName">Admin User</div>
+            <div class="role" id="userRole">Super Administrator</div>
+          </div>
         </div>
         <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
       </div>
@@ -933,9 +955,16 @@
               <select class="filter-select" id="hazardFilter">
                 <option value="">Hazard Type: All</option>
               </select>
+              <select class="filter-select" id="dateFilter">
+                <option value="">Date Reported: All</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="older">Older</option>
+              </select>
+              <button class="btn-outline" id="clearFiltersBtn">✕ Clear</button>
             </div>
-            <div class="date-range-row">
-              <button class="btn-outline" id="clearFiltersBtn">✕ Clear Filters</button>
+            <div class="date-range-row" style="display:none;">
             </div>
           </div>
 
@@ -1133,13 +1162,15 @@ function getStatusPillStyle(status) {
 // Render reports table
 function renderReportsTable(reports) {
   const tbody = document.getElementById('reportsTable');
+  const itemsPerPage = 10;
+  const paginatedReports = reports.slice(0, itemsPerPage);
   
   if (reports.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" class="loading" style="padding:20px;">No reports found</td></tr>';
     return;
   }
 
-  tbody.innerHTML = reports.map((report, index) => `
+  tbody.innerHTML = paginatedReports.map((report, index) => `
     <tr class="${selectedReport?.id === report.id ? 'selected' : ''}" data-report-id="${report.id}" onclick="selectReport('${report.id}')">
       <td>${report.reportId || `HR-${index + 1}`}</td>
       <td><div class="hazard-cell"><span class="hazard-icon">${getHazardIcon(report.hazardType)}</span>${report.hazardType}</div></td>
@@ -1539,8 +1570,9 @@ function closeDeleteModal() {
   deleteTargetId = null;
 }
 
-// Reassigns reportId sequentially per year, based on original submission order (timestamp).
+// Reassigns reportId sequentially per year, based on submission order (newest first).
 // Run after any delete so gaps close and there are never duplicate IDs.
+// was: orderBy('timestamp', 'desc')
 async function renumberReports() {
   const snapshot = await getDocs(query(collection(db, 'reports'), orderBy('timestamp', 'asc')));
   const batch = writeBatch(db);
@@ -1637,7 +1669,7 @@ function updateStats() {
   document.getElementById('verifiedMeta').textContent = verifiedPercent + '% of total';
   document.getElementById('rejectedMeta').textContent = rejectedPercent + '% of total';
 
-  document.getElementById('reportCount').textContent = `Showing 1 to ${Math.min(8, total)} of ${total} reports`;
+  document.getElementById('reportCount').textContent = `Showing 1 to ${Math.min(10, total)} of ${total} reports`;
 }
 
 // Filter reports
@@ -1645,6 +1677,7 @@ function filterReports() {
   const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
   const statusFilter = document.getElementById('statusFilter').value;
   const hazardFilter = document.getElementById('hazardFilter').value;
+  const dateFilter = document.getElementById('dateFilter').value;
 
   let filtered = allReports.filter(r => r.status !== 'rejected');
 
@@ -1663,6 +1696,28 @@ function filterReports() {
 
   if (hazardFilter) {
     filtered = filtered.filter(r => r.hazardType === hazardFilter);
+  }
+
+  if (dateFilter) {
+    const now = new Date();
+    filtered = filtered.filter(r => {
+      const reportDate = r.timestamp ? (r.timestamp.toDate ? r.timestamp.toDate() : new Date(r.timestamp)) : null;
+      if (!reportDate) return false;
+      
+      if (dateFilter === 'today') {
+        return reportDate.toDateString() === now.toDateString();
+      } else if (dateFilter === 'week') {
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return reportDate >= sevenDaysAgo;
+      } else if (dateFilter === 'month') {
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        return reportDate >= thirtyDaysAgo;
+      } else if (dateFilter === 'older') {
+        const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+        return reportDate < sixtyDaysAgo;
+      }
+      return true;
+    });
   }
 
   renderReportsTable(filtered);
@@ -1743,16 +1798,16 @@ function loadReports() {
 // Event listeners
 document.getElementById('searchInput').addEventListener('input', filterReports);
 document.getElementById('statusFilter').addEventListener('change', filterReports);
-document.getElementById('hazardFilter').addEventListener('change', filterReports); 
+document.getElementById('hazardFilter').addEventListener('change', filterReports);
+document.getElementById('dateFilter').addEventListener('change', filterReports);
 
-function resetAllHazardFilters() {
+document.getElementById('clearFiltersBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
   document.getElementById('statusFilter').value = '';
   document.getElementById('hazardFilter').value = '';
+  document.getElementById('dateFilter').value = '';
   filterReports();
-}
-
-document.getElementById('clearFiltersBtn').addEventListener('click', resetAllHazardFilters);
+});
 
 // Modal event handlers
 document.getElementById('modalCancelBtn').addEventListener('click', closeStatusModal);
