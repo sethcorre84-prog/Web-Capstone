@@ -383,10 +383,7 @@
 
           <div class="recent">
             <strong>Recent Hazards</strong>
-            <div style="margin-top:10px;font-size:13px;color:var(--text-secondary)">
-              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><div>Landslide<br><small style="color:var(--text-secondary)">Forestry Trail</small></div><div style="color:#c8402f;font-weight:700">High Risk</div></div>
-              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><div>Fallen Tree<br><small style="color:var(--text-secondary)">Makiling Rainforest</small></div><div style="color:#c9821f;font-weight:700">Moderate</div></div>
-            </div>
+            <div id="recentHazardsList" style="margin-top:10px;font-size:13px;color:var(--text-secondary);max-height:220px;overflow-y:auto;padding-right:4px"></div>
           </div>
         </aside>
       </div>
@@ -473,6 +470,32 @@
       }).join('');
     };
 
+    const renderRecentHazards = (reports) => {
+      const list = document.getElementById('recentHazardsList');
+      if (!list) return;
+
+      const verifiedHazards = reports
+        .filter((item) => (item.status || 'pending').toLowerCase() === 'verified')
+        .sort((a, b) => (toDate(b.createdAt) || toDate(b.timestamp) || new Date(0)).getTime() - (toDate(a.createdAt) || toDate(a.timestamp) || new Date(0)).getTime());
+
+      if (!verifiedHazards.length) {
+        list.innerHTML = '<div style="padding:8px 0;color:var(--text-secondary)">No verified hazards.</div>';
+        return;
+      }
+
+      list.innerHTML = verifiedHazards.map((item) => {
+        const level = (item.severity || item.riskLevel || '').toLowerCase();
+        const riskText = level === 'high' || level === 'critical' ? 'High Risk' : 'Moderate';
+        const riskColor = riskText === 'High Risk' ? '#c8402f' : '#c9821f';
+        return `
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div>${escapeHtml(item.hazardType || item.title || 'Hazard')}<br><small style="color:var(--text-secondary)">${escapeHtml(item.location || item.area || 'Mount Makiling')}</small></div>
+            <div style="color:${riskColor};font-weight:700">${riskText}</div>
+          </div>
+        `;
+      }).join('');
+    };
+
     onSnapshot(collection(db, 'Advisory'), (snapshot) => {
       const advisories = snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
       renderActiveAlerts(advisories);
@@ -498,9 +521,11 @@
     }, (error) => console.error('Error loading trail map markers:', error));
 
     onSnapshot(collection(db, 'reports'), (snapshot) => {
+      const reports = snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
+      renderRecentHazards(reports);
+
       hazardLayer.clearLayers();
-      snapshot.docs.forEach(document => {
-        const data = document.data();
+      reports.forEach((data) => {
         if ((data.status || 'pending') !== 'verified') return;
         const coordinates = getCoordinates(data);
         if (!coordinates) return;
@@ -512,7 +537,13 @@
         }).bindPopup(`<strong>${escapeHtml(data.hazardType || 'Verified hazard')}</strong><br>${escapeHtml(data.location || 'Mount Makiling')}`)
           .addTo(hazardLayer);
       });
-    }, (error) => console.error('Error loading hazard map markers:', error));
+    }, (error) => {
+      console.error('Error loading hazard map markers:', error);
+      const list = document.getElementById('recentHazardsList');
+      if (list) {
+        list.innerHTML = '<div style="padding:8px 0;color:var(--text-secondary)">Unable to load verified hazards.</div>';
+      }
+    });
 
     L.control.layers(null, {
       'Trails': trailLayer,
