@@ -503,34 +503,6 @@
           <div class="setting-right"><span class="chevron">›</span></div>
         </div>
 
-        <div class="setting-row" data-action="expiredAdvisoryArchive">
-          <div class="setting-left">
-            <div class="setting-icon">🗂️</div>
-            <div class="setting-text">
-              <div class="label">Expired Advisories Archive</div>
-              <div class="desc">Review expired advisories stored in the archive.</div>
-            </div>
-          </div>
-          <div class="setting-right"><span class="chevron">›</span></div>
-        </div>
-
-        <div class="setting-row">
-          <div class="setting-left">
-            <div class="setting-icon">🌐</div>
-            <div class="setting-text">
-              <div class="label">Language</div>
-              <div class="desc">Choose your preferred language.</div>
-            </div>
-          </div>
-          <div class="setting-right">
-            <select id="languageSelect" class="inline-select">
-              <option value="English">English</option>
-              <option value="Filipino">Filipino</option>
-              <option value="Spanish">Spanish</option>
-            </select>
-          </div>
-        </div>
-
         <div class="setting-row" data-action="timezone">
           <div class="setting-left">
             <div class="setting-icon">🕐</div>
@@ -545,6 +517,17 @@
 
       <div class="panel">
         <div class="panel-title">Notification Settings</div>
+
+        <div class="setting-row" data-action="expiredAdvisoryArchive">
+          <div class="setting-left">
+            <div class="setting-icon">🗂️</div>
+            <div class="setting-text">
+              <div class="label">Expired Advisories Archive</div>
+              <div class="desc">Review expired advisories stored in the archive.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
 
         <div class="setting-row">
           <div class="setting-left">
@@ -724,8 +707,7 @@
     emailNotifications: true,
     pushNotifications: true,
     smsNotifications: false,
-    twoFactor: false,
-    language: 'English'
+    twoFactor: false
   };
 
   const storedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
@@ -737,7 +719,6 @@
   const modalBody = document.getElementById('modalBody');
   const modalTitle = document.getElementById('modalTitle');
   const toast = document.getElementById('settingsToast');
-  const languageSelect = document.getElementById('languageSelect');
 
   function persistSettings() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -757,10 +738,6 @@
     document.querySelectorAll('[data-setting-toggle]').forEach((input) => {
       input.checked = !!settings[input.dataset.settingToggle];
     });
-
-    if (languageSelect) {
-      languageSelect.value = settings.language || 'English';
-    }
   }
 
   function updateStatusFromCheckboxes() {
@@ -1104,14 +1081,6 @@
       persistSettings();
     });
   });
-
-  if (languageSelect) {
-    languageSelect.addEventListener('change', () => {
-      settings.language = languageSelect.value;
-      persistSettings();
-      showToast(`Language set to ${settings.language}`);
-    });
-  }
 
   saveButton.addEventListener('click', () => {
     persistSettings();
