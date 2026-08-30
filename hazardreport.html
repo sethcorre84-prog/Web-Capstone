@@ -1831,11 +1831,11 @@ function loadReports() {
       hazardTypes.add(data.hazardType || 'Unknown');
     });
 
-    // Sort by timestamp (newest first)
+    // Sort by reportId (descending, e.g. HR-2026-010, HR-2026-009, ...)
     allReports.sort((a, b) => {
-      const timeA = a.timestamp?.toDate?.() || new Date(0);
-      const timeB = b.timestamp?.toDate?.() || new Date(0);
-      return timeB - timeA;
+      const idA = String(a.reportId || '');
+      const idB = String(b.reportId || '');
+      return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: 'base' });
     });
 
     populateHazardFilter();
