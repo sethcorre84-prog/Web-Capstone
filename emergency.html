@@ -219,20 +219,26 @@ margin-bottom:18px;
   background:var(--card-bg);
   border:1px solid var(--border);
   border-radius:var(--radius);
-  padding:18px;
+  padding:16px 18px;
   display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.card-top{
+  display:flex;
+  justify-content:space-between;
   align-items:center;
-  gap:14px;
 }
 .card-icon{
-  width:42px;
-  height:42px;
-  border-radius:12px;
+  width:32px;
+  height:32px;
+  border-radius:8px;
   display:grid;
   place-items:center;
   background:#f7faf7;
   color:var(--accent);
-  font-size:18px;
+  font-size:14px;
+  flex-shrink:0;
 }
 .card-icon.danger{
   color:var(--danger);
@@ -246,21 +252,19 @@ margin-bottom:18px;
   color:var(--blue);
   background:rgba(37,99,235,.12);
 }
-.card-content .label{
-  font-size:12px;
-  color:var(--text-muted);
-  text-transform:uppercase;
-  letter-spacing:.04em;
-  margin-bottom:6px;
-}
 .card-content .value{
-  font-size:20px;
+  font-size:22px;
   font-weight:700;
 }
-.card-content .hint{
+.card-content .label{
   font-size:12px;
   color:var(--text-secondary);
-  margin-top:4px;
+  margin-top:2px;
+}
+.card-content .hint{
+  font-size:11px;
+  color:var(--text-muted);
+  margin-top:2px;
 }
 .grid-2{
   display:grid;
@@ -529,12 +533,42 @@ tbody td{
         <div class="meta" id="live-time" style="font-weight:700;color:var(--text-primary);">10:30 AM</div>
       </div>
     </div>
-    <div class="cards-row">
-      <div class="card"><div class="card-icon danger">SOS</div><div class="card-content"><div class="label">Active Emergencies</div><div class="value">23</div><div class="hint">15% vs yesterday</div></div></div>
-      <div class="card"><div class="card-icon orange">⏳</div><div class="card-content"><div class="label">Responding</div><div class="value">12</div><div class="hint">9% vs yesterday</div></div></div>
-      <div class="card"><div class="card-icon blue">✔</div><div class="card-content"><div class="label">Resolved Today</div><div class="value">18</div><div class="hint">20% vs yesterday</div></div></div>
-      <div class="card"><div class="card-icon">👥</div><div class="card-content"><div class="label">People Assisted</div><div class="value">37</div><div class="hint">18% vs yesterday</div></div></div>
-      <div class="card"><div class="card-icon blue">⏱</div><div class="card-content"><div class="label">Avg. Response Time</div><div class="value">25m 18s</div><div class="hint">8% vs yesterday</div></div></div>
+        <div class="cards-row">
+      <div class="card">
+        <div class="card-top">
+          <span class="card-content"><div class="value">23</div></span>
+          <div class="card-icon danger">SOS</div>
+        </div>
+        <div class="card-content"><div class="label">Active Emergencies</div><div class="hint">15% vs yesterday</div></div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-content"><div class="value">12</div></span>
+          <div class="card-icon orange">⏳</div>
+        </div>
+        <div class="card-content"><div class="label">Responding</div><div class="hint">9% vs yesterday</div></div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-content"><div class="value">18</div></span>
+          <div class="card-icon blue">✔</div>
+        </div>
+        <div class="card-content"><div class="label">Resolved Today</div><div class="hint">20% vs yesterday</div></div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-content"><div class="value">37</div></span>
+          <div class="card-icon">👥</div>
+        </div>
+        <div class="card-content"><div class="label">People Assisted</div><div class="hint">18% vs yesterday</div></div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-content"><div class="value">25m 18s</div></span>
+          <div class="card-icon blue">⏱</div>
+        </div>
+        <div class="card-content"><div class="label">Avg. Response Time</div><div class="hint">8% vs yesterday</div></div>
+      </div>
     </div>
     <div class="grid-2">
       <div class="panel">

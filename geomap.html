@@ -207,52 +207,50 @@
       color:var(--text-secondary);
       font-size:13px
     }
-    .summary-cards{
+        .summary-cards{
       display:grid;
       grid-template-columns:repeat(4,1fr);
-      gap:12px;
+      gap:14px;
       margin:12px 0 18px
     }
     .card{
       background:var(--card-bg);
       border:1px solid var(--border);
-      border-radius:14px;
-      padding:18px 18px 16px;
+      border-radius:var(--radius);
+      padding:16px 18px;
       display:flex;
-      align-items:center;
+      flex-direction:column;
+      gap:10px;
+    }
+    .card-top{
+      display:flex;
       justify-content:space-between;
-      gap:12px;
-      min-height:120px;
+      align-items:center;
     }
     .card-content{
-      flex:1;
       min-width:0;
     }
     .card .value{
-      font-size:28px;
+      font-size:24px;
       font-weight:700;
       line-height:1.2;
-      margin-bottom:8px;
     }
     .card .label{
-      font-size:13px;
+      font-size:12px;
       color:var(--text-secondary);
       line-height:1.4;
     }
     .card-icon{
-      width:54px;
-      height:54px;
-      border-radius:12px;
+      width:32px;
+      height:32px;
+      border-radius:8px;
       display:grid;
       place-items:center;
       flex-shrink:0;
-      background:#f3f7f3;
-      border:1px solid rgba(31,58,38,0.08);
-      color:#1d3b2e;
     }
     .card-icon svg{
-      width:24px;
-      height:24px;
+      width:16px;
+      height:16px;
       stroke:currentColor;
       fill:none;
       stroke-width:2.2;
@@ -368,47 +366,49 @@
         </div>
       </div>
 
-      <div class="summary-cards">
+            <div class="summary-cards">
         <div class="card">
-          <div class="card-content">
-            <div class="value" id="activeHikersValue">—</div>
-            <div class="label">Active Hikers Today</div>
+          <div class="card-top">
+            <span class="value" id="activeHikersValue">—</span>
+            <div class="card-icon" aria-hidden="true" style="background:#dff4e5;color:#1f7a45;">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="5.5" r="2.8"/>
+                <path d="M9 10.5c1.2-1 2.4-1.5 3.7-1.5 1.3 0 2.5.5 3.7 1.5"/>
+                <path d="M7.5 18.5c.9-2.2 2.5-3.4 4.5-3.4s3.6 1.2 4.5 3.4"/>
+                <path d="M6.3 9.7l2.3 2.3M17.7 9.7l-2.3 2.3"/>
+              </svg>
+            </div>
           </div>
-          <div class="card-icon" aria-hidden="true" style="background:#dff4e5;color:#1f7a45;">
-            <svg viewBox="0 0 24 24">
-              <circle cx="12" cy="5.5" r="2.8"/>
-              <path d="M9 10.5c1.2-1 2.4-1.5 3.7-1.5 1.3 0 2.5.5 3.7 1.5"/>
-              <path d="M7.5 18.5c.9-2.2 2.5-3.4 4.5-3.4s3.6 1.2 4.5 3.4"/>
-              <path d="M6.3 9.7l2.3 2.3M17.7 9.7l-2.3 2.3"/>
-            </svg>
-          </div>
+          <div class="card-content"><div class="label">Active Hikers Today</div></div>
         </div>
         <div class="card">
-          <div class="card-content">
-            <div class="value" id="openTrailsValue">—</div>
-            <div class="label">Open Trails</div>
+          <div class="card-top">
+            <span class="value" id="openTrailsValue">—</span>
+            <div class="card-icon" aria-hidden="true" style="background:#eaf7ee;color:#1f7a45;">
+              <svg viewBox="0 0 24 24"><path d="M4 18l5-9 4 6 3-5 4 8"/><path d="M3 18h18"/></svg>
+            </div>
           </div>
-          <div class="card-icon" aria-hidden="true" style="background:#eaf7ee;color:#1f7a45;">
-            <svg viewBox="0 0 24 24"><path d="M4 18l5-9 4 6 3-5 4 8"/><path d="M3 18h18"/></svg>
-          </div>
+          <div class="card-content"><div class="label">Open Trails</div></div>
         </div>
         <div class="card">
-          <div class="card-content">
-            <div class="value" id="activeHazardsValue">—</div>
-            <div class="label">Active Hazard Alerts</div>
+          <div class="card-top">
+            <span class="value" id="activeHazardsValue">—</span>
+            <div class="card-icon" aria-hidden="true" style="background:#fdecea;color:#c8402f;">
+              <svg viewBox="0 0 24 24"><path d="M12 4l8 14H4l8-14z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            </div>
           </div>
-          <div class="card-icon" aria-hidden="true" style="background:#fdecea;color:#c8402f;">
-            <svg viewBox="0 0 24 24"><path d="M12 4l8 14H4l8-14z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-          </div>
+          <div class="card-content"><div class="label">Active Hazard Alerts</div></div>
         </div>
         <div class="card">
+          <div class="card-top">
+            <span class="value" id="weatherTemperature">—</span>
+            <div class="card-icon" aria-hidden="true" style="background:#edf5ff;color:#3d6ec8;">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            </div>
+          </div>
           <div class="card-content">
-            <div class="value" id="weatherTemperature">—</div>
             <div class="label">Weather (Mt. Makiling)</div>
             <div id="weatherCondition" style="font-size:11px;color:var(--text-muted);margin-top:4px">Loading current conditions...</div>
-          </div>
-          <div class="card-icon" aria-hidden="true" style="background:#edf5ff;color:#3d6ec8;">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
           </div>
         </div>
       </div>
