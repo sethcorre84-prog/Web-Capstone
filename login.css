@@ -290,6 +290,36 @@ label{
     background: transparent;
 }
 
+.password-box {
+    position: relative;
+}
+
+.password-box input {
+    flex: 1;
+}
+
+.password-toggle {
+    width: auto;
+    padding: 0;
+    background: transparent;
+    color: #7f8c99;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 0;
+    min-width: 20px;
+}
+
+.password-toggle:hover {
+    background: transparent;
+}
+
+.password-toggle i {
+    pointer-events: none;
+}
+
 .input-box input::placeholder{
     color: #a3afbc;
 }

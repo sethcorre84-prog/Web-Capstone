@@ -75,6 +75,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
   const emailInput = document.getElementById("email");
   const passwordInput = document.getElementById("password");
+  const passwordToggle = document.querySelector(".password-toggle");
+
+  if (passwordToggle && passwordInput) {
+    passwordToggle.addEventListener("click", () => {
+      const isPasswordHidden = passwordInput.type === "password";
+      passwordInput.type = isPasswordHidden ? "text" : "password";
+      const toggleIcon = passwordToggle.querySelector("i");
+
+      passwordToggle.setAttribute("aria-label", isPasswordHidden ? "Hide password" : "Show password");
+      passwordToggle.title = isPasswordHidden ? "Hide password" : "Show password";
+
+      toggleIcon.classList.toggle("fa-eye", !isPasswordHidden);
+      toggleIcon.classList.toggle("fa-eye-slash", isPasswordHidden);
+    });
+  }
 
   if (loginForm) {
     loginForm.addEventListener("submit", (event) => {
