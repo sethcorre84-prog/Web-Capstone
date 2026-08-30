@@ -353,9 +353,15 @@
             <div style="font-size:12px;color:var(--text-secondary);margin-top:8px">Live OpenStreetMap data · Trail and verified hazard markers come from Firestore</div>
           </div>
 
-          <div class="panel" style="padding:12px">
-            <div style="display:flex;justify-content:space-between;align-items:center"><strong>Active Alerts</strong><a href="A&A.html">View All</a></div>
-            <div id="activeAlertsList" style="margin-top:12px"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
+            <div class="panel" style="padding:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Active Alerts</strong><a href="A&A.html">View All</a></div>
+              <div id="activeAlertsList" style="margin-top:12px"></div>
+            </div>
+            <div class="panel" style="padding:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Trail Status</strong><a href="trail.html">View All</a></div>
+              <div id="trailStatusList" style="margin-top:12px;font-size:13px;color:var(--text-secondary)"></div>
+            </div>
           </div>
         </div>
 
@@ -377,12 +383,16 @@
             <strong>Alerts Overview</strong>
             <div style="display:flex;gap:8px;margin-top:10px">
               <div style="flex:1;background:#fff6f6;border:1px solid #f3d6d6;border-radius:8px;padding:10px;text-align:center">
-                <div id="totalHazardCount" style="font-weight:700">0</div>
-                <div style="font-size:12px;color:var(--text-secondary)">Total Hazards</div>
+                <div id="highRiskCount" style="font-weight:700">0</div>
+                <div style="font-size:12px;color:var(--text-secondary)">High Risk</div>
               </div>
               <div style="flex:1;background:#fff7e6;border:1px solid #f6e2c8;border-radius:8px;padding:10px;text-align:center">
-                <div id="totalAlertCount" style="font-weight:700">0</div>
-                <div style="font-size:12px;color:var(--text-secondary)">Total Alerts</div>
+                <div id="moderateRiskCount" style="font-weight:700">0</div>
+                <div style="font-size:12px;color:var(--text-secondary)">Moderate Risk</div>
+              </div>
+              <div style="flex:1;background:#edf7ff;border:1px solid #cfe4f8;border-radius:8px;padding:10px;text-align:center">
+                <div id="lowRiskCount" style="font-weight:700">0</div>
+                <div style="font-size:12px;color:var(--text-secondary)">Low Risk</div>
               </div>
             </div>
           </div>
@@ -441,10 +451,18 @@
       return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
+    const getRiskBucket = (item) => {
+      const value = (item?.severity || item?.priority || item?.riskLevel || item?.type || '').toString().trim().toLowerCase();
+      if (['high', 'critical', 'severe', 'alert'].includes(value)) return 'high';
+      if (['moderate', 'medium', 'warning'].includes(value)) return 'moderate';
+      return 'low';
+    };
+
     const renderAlertOverview = (advisories, reports) => {
-      const totalHazardCount = document.getElementById('totalHazardCount');
-      const totalAlertCount = document.getElementById('totalAlertCount');
-      if (!totalHazardCount || !totalAlertCount) return;
+      const highRiskCount = document.getElementById('highRiskCount');
+      const moderateRiskCount = document.getElementById('moderateRiskCount');
+      const lowRiskCount = document.getElementById('lowRiskCount');
+      if (!highRiskCount || !moderateRiskCount || !lowRiskCount) return;
 
       const activeAdvisories = (advisories || [])
         .filter((item) => item.visible !== false)
@@ -454,8 +472,19 @@
       const verifiedHazards = (reports || [])
         .filter((item) => (item.status || 'pending').toLowerCase() === 'verified');
 
-      totalAlertCount.textContent = String(activeAdvisories.length);
-      totalHazardCount.textContent = String(verifiedHazards.length);
+      const counts = { high: 0, moderate: 0, low: 0 };
+
+      activeAdvisories.forEach((item) => {
+        counts[getRiskBucket(item)] += 1;
+      });
+
+      verifiedHazards.forEach((item) => {
+        counts[getRiskBucket(item)] += 1;
+      });
+
+      highRiskCount.textContent = String(counts.high);
+      moderateRiskCount.textContent = String(counts.moderate);
+      lowRiskCount.textContent = String(counts.low);
     };
 
     const renderActiveAlerts = (advisories) => {
@@ -519,6 +548,31 @@
       }).join('');
     };
 
+    const renderTrailStatus = (trails) => {
+      const list = document.getElementById('trailStatusList');
+      if (!list) return;
+
+      if (!trails.length) {
+        list.innerHTML = '<div style="padding:8px 0;color:var(--text-secondary)">No trail data available.</div>';
+        return;
+      }
+
+      list.innerHTML = trails.map((trail) => {
+        const name = trail.Trail || trail.name || trail.trailName || 'Trail';
+        const status = (trail.Status || trail.status || 'Open').toString();
+        const isOpen = status.toLowerCase() === 'open';
+        const badgeColor = isOpen ? '#dff5e8' : '#fdecea';
+        const textColor = isOpen ? '#1b7f4a' : '#c8402f';
+
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="font-weight:600;word-break:break-word">${escapeHtml(name)}</div>
+            <span style="background:${badgeColor};color:${textColor};padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700">${escapeHtml(status)}</span>
+          </div>
+        `;
+      }).join('');
+    };
+
     let advisoryData = [];
     let hazardData = [];
 
@@ -535,17 +589,24 @@
     });
 
     onSnapshot(collection(db, 'trails'), (snapshot) => {
+      const trails = snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
       trailLayer.clearLayers();
-      snapshot.docs.forEach(document => {
-        const data = document.data();
+      trails.forEach((data) => {
         const coordinates = getCoordinates(data);
         if (!coordinates) return;
-        const status = data.Status || 'Open';
+        const status = data.Status || data.status || 'Open';
         L.marker(coordinates)
-          .bindPopup(`<strong>${escapeHtml(data.Trail || 'Trail')}</strong><br>Status: ${escapeHtml(status)}`)
+          .bindPopup(`<strong>${escapeHtml(data.Trail || data.name || 'Trail')}</strong><br>Status: ${escapeHtml(status)}`)
           .addTo(trailLayer);
       });
-    }, (error) => console.error('Error loading trail map markers:', error));
+      renderTrailStatus(trails);
+    }, (error) => {
+      console.error('Error loading trail map markers:', error);
+      const list = document.getElementById('trailStatusList');
+      if (list) {
+        list.innerHTML = '<div style="padding:8px 0;color:var(--text-secondary)">Unable to load trail status.</div>';
+      }
+    });
 
     onSnapshot(collection(db, 'reports'), (snapshot) => {
       hazardData = snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
