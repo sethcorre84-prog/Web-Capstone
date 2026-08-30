@@ -354,11 +354,8 @@
           </div>
 
           <div class="panel" style="padding:12px">
-            <div style="display:flex;justify-content:space-between;align-items:center"><strong>Active Alerts</strong><a href="#">View All</a></div>
-            <div style="margin-top:12px">
-              <div style="display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid var(--border)"><div style="width:36px;height:36;border-radius:50%;background:#fdecea;display:grid;place-items:center;color:#c8402f">!</div><div><div style="font-weight:700">Trail Closure: Forestry Trail (UPLB Area)</div><div style="font-size:12px;color:var(--text-secondary)">May 20, 2025 — High Risk</div></div></div>
-              <div style="display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid var(--border)"><div style="width:36px;height:36;border-radius:50%;background:#fff7e6;display:grid;place-items:center;color:#c9821f">⚠</div><div><div style="font-weight:700">Weather Advisory: Mt. Makiling</div><div style="font-size:12px;color:var(--text-secondary)">May 20, 2025 — Moderate Risk</div></div></div>
-            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><strong>Active Alerts</strong><a href="A&A.html">View All</a></div>
+            <div id="activeAlertsList" style="margin-top:12px"></div>
           </div>
         </div>
 
@@ -366,11 +363,13 @@
           <div class="legend">
             <strong>Map Legend</strong>
             <div style="margin-top:8px;font-size:13px;color:var(--text-secondary)">
+              <div>• Trail Station</div>
               <div>• Contour Line</div>
               <div>• River/Creek</div>
-              <div>• Trail Station</div>
               <div>• Monitoring Station</div>
               <div>• Campsite</div>
+              <div>• First Aid Station</div>
+              <div>• Food Station</div>
             </div>
           </div>
 
@@ -401,6 +400,13 @@
       document.getElementById(id).textContent = value;
     };
 
+    const escapeHtml = (value) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
     const makilingCenter = [14.136, 121.197];
     const map = L.map('makilingMap').setView(makilingCenter, 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -418,6 +424,65 @@
         ? [latitude, longitude]
         : null;
     };
+
+    const toDate = (value) => {
+      if (!value) return null;
+      if (typeof value.toDate === 'function') return value.toDate();
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    };
+
+    const formatAlertDate = (value) => {
+      const date = toDate(value);
+      if (!date) return 'Recent';
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
+    const renderActiveAlerts = (advisories) => {
+      const list = document.getElementById('activeAlertsList');
+      if (!list) return;
+
+      const activeAdvisories = advisories
+        .filter((item) => item.visible !== false)
+        .filter((item) => (item.status || 'Active').toLowerCase() !== 'expired')
+        .filter((item) => (item.status || 'Active').toLowerCase() !== 'archived');
+
+      if (!activeAdvisories.length) {
+        list.innerHTML = '<div style="padding:10px 0;color:var(--text-secondary);font-size:13px">No active advisories.</div>';
+        return;
+      }
+
+      list.innerHTML = activeAdvisories.map((item) => {
+        const type = (item.type || '').toLowerCase();
+        const severity = (item.severity || item.priority || '').toLowerCase();
+        const isHigh = type === 'alert' || severity === 'high' || severity === 'critical';
+        const riskLabel = isHigh ? 'High Risk' : 'Moderate Risk';
+        const icon = isHigh ? '!' : '⚠';
+        const bg = isHigh ? '#fdecea' : '#fff7e6';
+        const color = isHigh ? '#c8402f' : '#c9821f';
+
+        return `
+          <div style="display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid var(--border)">
+            <div style="width:36px;height:36;border-radius:50%;background:${bg};display:grid;place-items:center;color:${color}">${icon}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;word-break:break-word">${escapeHtml(item.title || 'Advisory')}</div>
+              <div style="font-size:12px;color:var(--text-secondary)">${formatAlertDate(item.effectiveDate || item.publishedAt || item.createdAt)} — ${riskLabel}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
+
+    onSnapshot(collection(db, 'Advisory'), (snapshot) => {
+      const advisories = snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
+      renderActiveAlerts(advisories);
+    }, (error) => {
+      console.error('Error loading advisory alerts:', error);
+      const list = document.getElementById('activeAlertsList');
+      if (list) {
+        list.innerHTML = '<div style="padding:10px 0;color:var(--text-secondary);font-size:13px">Unable to load active advisories.</div>';
+      }
+    });
 
     onSnapshot(collection(db, 'trails'), (snapshot) => {
       trailLayer.clearLayers();
