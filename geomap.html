@@ -430,6 +430,11 @@
               <div id="trailStatusList" style="margin-top:12px;font-size:13px;color:var(--text-secondary)"></div>
             </div>
           </div>
+
+          <div class="panel" style="padding:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;margin-top:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center"><strong>Active Emergency Alerts</strong></div>
+            <div id="emergencyAlertsList" style="margin-top:12px"></div>
+          </div>
         </div>
 
         <aside class="right-column">
@@ -647,8 +652,49 @@
       }).join('');
     };
 
+    const renderEmergencyAlerts = (emergencies) => {
+      const list = document.getElementById('emergencyAlertsList');
+      if (!list) return;
+
+      const activeEmergencies = (emergencies || [])
+        .filter((item) => {
+          const status = String(item?.status || item?.Status || item?.state || 'active').toLowerCase();
+          return !['resolved', 'closed', 'completed'].includes(status);
+        })
+        .slice(0, 5);
+
+      if (!activeEmergencies.length) {
+        list.innerHTML = '<div style="padding:8px 0;color:var(--text-secondary)">No active emergency alerts.</div>';
+        return;
+      }
+
+      list.innerHTML = activeEmergencies.map((item) => {
+        const title = item.title || item.Title || item.type || item.Type || 'Emergency Alert';
+        const location = item.location || item.Location || item.area || item.Area || 'Mount Makiling';
+        const status = String(item.status || item.Status || item.state || 'Active');
+        const severity = String(item.severity || item.Severity || item.priority || item.Priority || 'Moderate');
+        const severityLower = severity.toLowerCase();
+        const badgeColor = /high|critical|urgent/.test(severityLower) ? '#fdecea' : /moderate|medium|warning/.test(severityLower) ? '#fff7e6' : '#edf7ff';
+        const textColor = /high|critical|urgent/.test(severityLower) ? '#c8402f' : /moderate|medium|warning/.test(severityLower) ? '#c9821f' : '#3d6ec8';
+
+        return `
+          <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;word-break:break-word">${escapeHtml(title)}</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">${escapeHtml(location)}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+              <span style="background:${badgeColor};color:${textColor};padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;">${escapeHtml(status)}</span>
+              <span style="font-size:11px;color:var(--text-secondary);font-weight:600;">${escapeHtml(severity)}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
+
     let advisoryData = [];
     let hazardData = [];
+    let emergencyData = [];
 
     onSnapshot(collection(db, 'Advisory'), (snapshot) => {
       advisoryData = snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
@@ -705,6 +751,17 @@
       const list = document.getElementById('recentHazardsList');
       if (list) {
         list.innerHTML = '<div style="padding:8px 0;color:var(--text-secondary)">Unable to load verified hazards.</div>';
+      }
+    });
+
+    onSnapshot(collection(db, 'emergency'), (snapshot) => {
+      emergencyData = snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
+      renderEmergencyAlerts(emergencyData);
+    }, (error) => {
+      console.error('Error loading emergency alerts:', error);
+      const list = document.getElementById('emergencyAlertsList');
+      if (list) {
+        list.innerHTML = '<div style="padding:8px 0;color:var(--text-secondary)">Unable to load emergency alerts.</div>';
       }
     });
 
