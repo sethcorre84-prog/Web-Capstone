@@ -96,6 +96,8 @@
 		.search-box{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:#fbfcfa}
 		.search-box input{border:none;background:transparent;outline:none;font-size:13px;width:100%;color:var(--text-primary)}
 		select.filter{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;background:#fbfcfa;color:var(--text-secondary)}
+		.clear-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12.5px;font-weight:500;color:var(--text-secondary)}
+		.clear-btn:hover{background:#f5f5f2}
 		table{width:100%;border-collapse:collapse}
 		thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);padding:8px 6px;border-bottom:1px solid var(--border);font-weight:600}
 		tbody td{padding:10px 6px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
@@ -154,11 +156,12 @@
 		.page-btn[disabled]{opacity:.4;cursor:default}
 		.page-btn.current{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
 		.stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-		.stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px}
-		.stat-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-		.stat-icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-		.stat-num{font-size:19px;font-weight:700;line-height:1.1}
-		.stat-label{font-size:12px;color:var(--text-secondary);margin-top:2px}
+		.stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+		.stat-top{display:flex;justify-content:space-between;align-items:center}
+		.stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+		.stat-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+		.stat-num{font-size:24px;font-weight:700;color:var(--text-primary);line-height:1.1}
+		.stat-label{font-size:12px;color:var(--text-secondary)}
 		/* Modal */
 		.modal-overlay{position:fixed;inset:0;background:rgba(15,25,15,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;z-index:100}
 		.modal-overlay.open{display:flex}
@@ -241,9 +244,9 @@
             			<select id="typeFilter" class="filter"><option value="">All Types</option><option>Advisory</option><option>Weather</option><option>Update</option><option>Alert</option><option>Announcement</option></select>
             			<select id="statusFilter" class="filter"><option value="">All Status</option><option>Active</option><option>Scheduled</option></select>
             			<select id="dateFilter" class="filter"><option value="">All Dates</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select>
-            			<button id="clearFiltersBtn" class="btn-outline" style="display:inline-flex;align-items:center;gap:6px;background:#ffffff;border:1px solid #e6ddc9;color:#7a7568;border-radius:999px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;">
-    					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.0" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/><path d="M18 4l3 3M21 4l-3 3"/></svg>
-    					Clear Filters
+        			<button class="clear-btn" id="clearFiltersBtn">
+    					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    					 Clear Filters
 					</button>
         		</div>
         		<table>
@@ -327,7 +330,7 @@
 				</div>
 			</div>
 			<div class="field"><label>Risk Level</label>
-				<select id="mRiskLevel"><option>Easy</option><option>Moderate</option><option>High</option></select>
+				<select id="mRiskLevel"><option>Low</option><option>Moderate</option><option>High</option></select>
 			</div>
 			<div class="field"><label>Target</label><input id="mTarget" placeholder="e.g. Sipit Trail (Section 2) or All Trails"></div>
 			<div class="field-row">
@@ -607,8 +610,11 @@ async function syncExpiredAdvisories(){
 			grid.innerHTML = '';
 			cards.forEach(c => {
 				const card = el('div','stat-card');
-				card.innerHTML = `<div class="stat-icon" style="background:${c.bg};color:${c.fg}"><svg viewBox="0 0 24 24">${c.icon}</svg></div>
-					<div><div class="stat-num">${c.num}</div><div class="stat-label">${c.label}</div></div>`;
+				card.innerHTML = `<div class="stat-top">
+						<span class="stat-num">${c.num}</span>
+						<div class="stat-icon" style="background:${c.bg};color:${c.fg}"><svg viewBox="0 0 24 24">${c.icon}</svg></div>
+					</div>
+					<div class="stat-label">${c.label}</div>`;
 				grid.appendChild(card);
 			});
 		}
