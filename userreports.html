@@ -110,13 +110,15 @@
 
   /* ---------------- Stat cards ---------------- */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
-  .stat-card{display:flex;align-items:flex-start;gap:12px;padding:16px 18px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);box-shadow:var(--shadow-card);}
-  .stat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
-  .stat-info .label{font-size:12.5px;color:var(--text-600);font-weight:500;margin-bottom:2px;}
-  .stat-info .value{font-size:22px;font-weight:700;margin-bottom:3px;}
-  .stat-info .meta{font-size:11px;font-weight:600;}
-  .meta.up{color:var(--green-text);}
-  .meta.down{color:var(--red-text);}
+  .stat-card{display:flex;flex-direction:column;gap:10px;padding:16px 18px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);}
+  .stat-top{display:flex;justify-content:space-between;align-items:center;}
+  .stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .stat-icon svg{width:16px;height:16px;}
+  .stat-value{font-size:24px;font-weight:700;color:var(--text-900);}
+  .stat-label{font-size:12px;color:var(--text-600);}
+  .stat-meta{font-size:11px;font-weight:600;margin-top:2px;}
+  .stat-meta.up{color:var(--green-text);}
+  .stat-meta.down{color:var(--red-text);}
 
   /* ---------------- Content layout ---------------- */
   .content-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:18px;align-items:start;}
@@ -300,36 +302,44 @@
     <!-- Stat cards -->
     <section class="stats">
       <div class="stat-card">
-        <div class="stat-icon" style="background:var(--red-bg);color:var(--red-text);">🚩</div>
-        <div class="stat-info">
-          <div class="label">Total Reports</div>
-          <div class="value">34</div>
-          <div class="meta up">▲ 18% vs last month</div>
+        <div class="stat-top">
+          <span class="stat-value">34</span>
+          <div class="stat-icon" style="background:var(--red-bg);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--red-text)" stroke-width="2"><path d="M4 21V4"/><path d="M4 4h13l-2.5 4L17 12H4"/></svg>
+          </div>
         </div>
+        <div class="stat-label">Total Reports</div>
+        <div class="stat-meta up">▲ 18% vs last month</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:var(--orange-bg);color:var(--orange-text);">🕐</div>
-        <div class="stat-info">
-          <div class="label">Pending Review</div>
-          <div class="value">12</div>
-          <div class="meta up">▲ 33% vs last month</div>
+        <div class="stat-top">
+          <span class="stat-value">12</span>
+          <div class="stat-icon" style="background:var(--orange-bg);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange-text)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </div>
         </div>
+        <div class="stat-label">Pending Review</div>
+        <div class="stat-meta up">▲ 33% vs last month</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:var(--blue-bg);color:var(--blue-text);">👁️</div>
-        <div class="stat-info">
-          <div class="label">Under Review</div>
-          <div class="value">17</div>
-          <div class="meta down">▼ 6% vs last month</div>
+        <div class="stat-top">
+          <span class="stat-value">17</span>
+          <div class="stat-icon" style="background:var(--blue-bg);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue-text)" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
         </div>
+        <div class="stat-label">Under Review</div>
+        <div class="stat-meta down">▼ 6% vs last month</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:var(--green-bg);color:var(--green-text);">✅</div>
-        <div class="stat-info">
-          <div class="label">Resolved</div>
-          <div class="value">5</div>
-          <div class="meta up">▲ 25% vs last month</div>
+        <div class="stat-top">
+          <span class="stat-value">5</span>
+          <div class="stat-icon" style="background:var(--green-bg);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--green-text)" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
         </div>
+        <div class="stat-label">Resolved</div>
+        <div class="stat-meta up">▲ 25% vs last month</div>
       </div>
     </section>
 
