@@ -354,16 +354,13 @@
   }
   .filters-row{
     display:flex;
-    gap:8px;
-    flex-wrap:nowrap;
+    gap:10px;
+    flex-wrap:wrap;
     align-items:center;
   }
-  #hazardFilter{
-  min-width:118px;
-}
   .search-box{
-  flex:2 1 260px;
-  min-width:260px;
+  flex:1;
+  min-width:160px;
   display:flex;
   align-items:center;
   gap:8px;
@@ -371,7 +368,6 @@
   border-radius:8px;
   padding:8px 12px;
   background:#fbfcfa;
-  overflow:hidden;
 }
   .search-box input{
     width:100%;
@@ -382,20 +378,17 @@
     color:var(--text-900);
   }
   .search-box .ic{
-    font-size:14px;
+    display:flex;
     color:var(--text-400);
     flex-shrink:0;
   }
   select.filter-select{
   border:1px solid var(--border);
   border-radius:8px;
-  padding:8px 8px;
+  padding:8px 10px;
   background:#fbfcfa;
-  font-size:12.5px;
+  font-size:13px;
   color:var(--text-600);
-  min-width:auto;
-  flex-shrink:0;
-  white-space:nowrap;
 }
   .date-range-row{
     display:flex;
@@ -970,7 +963,7 @@
             <h2>Hazard Reports List</h2>
             <div class="filters-row">
               <div class="search-box">
-                <span class="ic">🔍</span>
+                <span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></span>
                 <input type="text" placeholder="Search reports..." id="searchInput">
               </div>
               <select class="filter-select" id="statusFilter">
@@ -988,7 +981,10 @@
                 <option value="month">This Month</option>
                 <option value="older">Older</option>
               </select>
-              <button class="btn-outline" id="clearFiltersBtn">✕ Clear</button>
+              <button class="btn-outline" id="clearFiltersBtn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                Clear Filters
+              </button>
             </div>
             <div class="date-range-row" style="display:none;">
             </div>
