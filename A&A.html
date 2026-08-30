@@ -83,6 +83,15 @@
 		.content-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:18px;align-items:start}
 		.panel{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px}
 		.panel-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--accent-dark)}
+		.panel-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+		.archive-action-wrap{position:relative;display:flex;align-items:center}
+		.archive-action{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--border);border-radius:10px;background:#ffffff;color:var(--text-primary);transition:all .15s ease;cursor:pointer}
+		.archive-action:hover{background:var(--accent-light);border-color:rgba(47,143,78,.25);color:var(--accent-dark)}
+		.archive-action:disabled{cursor:not-allowed;opacity:.45}
+		.archive-action svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+		.archive-tooltip{position:absolute;top:calc(100% + 8px);right:0;white-space:nowrap;padding:6px 8px;border-radius:8px;background:#1d2b1d;color:#fff;font-size:11px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:all .15s ease;box-shadow:0 8px 18px rgba(0,0,0,.12)}
+		.archive-action:hover .archive-tooltip,
+		.archive-action:focus-visible .archive-tooltip{opacity:1;transform:translateY(0)}
 		.toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 		.search-box{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:#fbfcfa}
 		.search-box input{border:none;background:transparent;outline:none;font-size:13px;width:100%;color:var(--text-primary)}
@@ -283,7 +292,15 @@
 						</div>
 					</div>		
 					<div class="panel" id="expiredPanel">
-					<div class="panel-title">Expired Advisories</div>
+					<div class="panel-title panel-header">
+						<span>Expired Advisories</span>
+						<div class="archive-action-wrap">
+							<button class="archive-action" id="archiveSelectedBtn" type="button" aria-label="Archive selected advisory">
+								<svg viewBox="0 0 24 24"><path d="M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M8 7V4h8v3"/><path d="M9 12h6"/></svg>
+								<span class="archive-tooltip">Archive</span>
+							</button>
+						</div>
+					</div>
 					<div id="expiredList" style="display:flex;flex-direction:column;gap:2px"></div>
 				</div>
 			</div>
@@ -366,6 +383,21 @@
 	</div>
 </div>
 
+<!-- Archive Advisory Confirmation Modal -->
+<div class="modal-overlay" id="archiveConfirmOverlay">
+	<div class="modal" style="max-width:360px;text-align:center;padding:28px 24px">
+		<div style="width:44px;height:44px;border-radius:50%;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M8 7V4h8v3"/><path d="M9 12h6"/></svg>
+		</div>
+		<div style="font-size:15px;font-weight:700;margin-bottom:6px">Archive this advisory?</div>
+		<div id="archiveConfirmText" style="font-size:13px;color:var(--text-secondary);margin-bottom:18px">This item will be moved to the settings archive.</div>
+		<div style="display:flex;gap:10px">
+			<button class="btn-secondary" id="archiveConfirmCancel" style="flex:1">Cancel</button>
+			<button class="btn-primary" id="archiveConfirmOk" style="flex:1">Archive</button>
+		</div>
+	</div>
+</div>
+
 <!-- Restore Expired Advisory Modal -->
 <div class="modal-overlay" id="restoreConfirmOverlay">
 	<div class="modal" style="max-width:380px;text-align:center;padding:28px 24px">
@@ -427,6 +459,7 @@
 
 		let allItems = [];
 		let selectedId = null;
+		let selectedArchiveIds = new Set();
 		let editingId = null;
 		let currentPage = 1;
 		const PAGE_SIZE = 5;
@@ -472,6 +505,7 @@
 // has passed is treated as Expired immediately, even before Firestore's
 // stored status field is updated by syncExpiredAdvisories() below.
 		function getEffectiveStatus(it){
+    		if ((it.status || '').toLowerCase() === 'archived') return 'Archived';
     		if (it.status === 'Expired') return 'Expired';
     		if (isPastExpiry(it)) return 'Expired';
     		return it.status;
@@ -509,7 +543,10 @@ async function syncExpiredAdvisories(){
 			const statusVal = document.getElementById('statusFilter').value;
 			const dateVal = document.getElementById('dateFilter').value;
 
-			let items = allItems.filter(d => getEffectiveStatus(d) !== 'Expired');
+			let items = allItems.filter(d => {
+				const status = getEffectiveStatus(d);
+				return status !== 'Expired' && status !== 'Archived';
+			});
 			if (q) items = items.filter(d => (d.title || '').toLowerCase().includes(q) || (d.desc || '').toLowerCase().includes(q));
 			if (typeVal) items = items.filter(d => d.type === typeVal);
 			if (statusVal) items = items.filter(d => getEffectiveStatus(d) === statusVal);
@@ -645,37 +682,78 @@ async function syncExpiredAdvisories(){
 			});
 		}
 
+		function updateArchiveButtonState() {
+			const expiredSelected = Array.from(selectedArchiveIds).some(id => {
+				const item = allItems.find(d => d.id === id);
+				return item && getEffectiveStatus(item) === 'Expired';
+			});
+			archiveSelectedBtn.disabled = !expiredSelected;
+			archiveSelectedBtn.style.opacity = expiredSelected ? '1' : '.45';
+		}
+
 		function renderExpiredList(){
 			const wrap = document.getElementById('expiredList');
 			const expired = allItems.filter(d => getEffectiveStatus(d) === 'Expired');
 			wrap.innerHTML = '';
 			if (!expired.length) {
-			wrap.innerHTML = '<div class="empty-state" style="padding:10px 0">No expired advisories.</div>';
-			return;
-		}
+				selectedArchiveIds.clear();
+				updateArchiveButtonState();
+				wrap.innerHTML = '<div class="empty-state" style="padding:10px 0">No expired advisories.</div>';
+				return;
+			}
 			expired.forEach(it => {
-			const meta = typeMeta(it.type);
-			const row = document.createElement('div');
-			row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
-			row.onclick = () => showRestorePrompt(it.id);
-			row.innerHTML = `
-			<div class="thumb" style="background:${meta.bg};color:${meta.fg};width:32px;height:32px;flex-shrink:0">
-				<svg viewBox="0 0 24 24" style="width:15px;height:15px">${meta.icon}</svg>
-			</div>
-			<div style="flex:1;min-width:0">
-				<div style="font-weight:600;font-size:12.5px">${escapeHtml(it.title || 'Untitled')}</div>
-				<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${escapeHtml(it.target || '')} · Expired ${fmtDateTime(it.expiresAt || it.effectiveDate)}</div>
-			</div>
-			<span class="badge ${meta.cls}" style="flex-shrink:0">${escapeHtml(it.type || '')}</span>
-		`;
-		wrap.appendChild(row);
-	});
-}
+				const meta = typeMeta(it.type);
+				const row = document.createElement('div');
+				row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
+				row.onclick = (e) => {
+					e.stopPropagation();
+					if (selectedArchiveIds.has(it.id)) {
+						selectedArchiveIds.delete(it.id);
+					} else {
+						selectedArchiveIds.add(it.id);
+					}
+					if (selectedArchiveIds.size === 0) {
+						selectedId = null;
+						document.getElementById('detailTitle').textContent = 'Select an advisory';
+						document.getElementById('detailSub').textContent = 'Choose an item from the list to see full details here.';
+						document.getElementById('detailBody').style.display = 'none';
+						document.getElementById('detailStatusPill').style.display = 'none';
+					} else {
+						selectedId = [...selectedArchiveIds].slice(-1)[0];
+						selectAdvisory(selectedId);
+					}
+					updateArchiveButtonState();
+				};
+				row.oncontextmenu = (e) => {
+					e.preventDefault();
+					showRestorePrompt(it.id);
+				};
+				row.innerHTML = `
+				<div class="thumb" style="background:${meta.bg};color:${meta.fg};width:32px;height:32px;flex-shrink:0">
+					<svg viewBox="0 0 24 24" style="width:15px;height:15px">${meta.icon}</svg>
+				</div>
+				<div style="flex:1;min-width:0">
+					<div style="font-weight:600;font-size:12.5px">${escapeHtml(it.title || 'Untitled')}</div>
+					<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${escapeHtml(it.target || '')} · Expired ${fmtDateTime(it.expiresAt || it.effectiveDate)}</div>
+				</div>
+				<span class="badge ${meta.cls}" style="flex-shrink:0">${escapeHtml(it.type || '')}</span>
+			`;
+				if (selectedArchiveIds.has(it.id) || selectedId === it.id) {
+					row.style.background = 'var(--accent-light)';
+					row.style.borderRadius = '8px';
+					row.style.paddingLeft = '8px';
+					row.style.paddingRight = '8px';
+				}
+				wrap.appendChild(row);
+			});
+			updateArchiveButtonState();
+		}
 
 		function selectAdvisory(id) {
 			const it = allItems.find(d => d.id === id);
 			if (!it) return;
 			selectedId = id;
+			updateArchiveButtonState();
 			const meta = typeMeta(it.type);
 
 			document.getElementById('detailTitle').textContent = it.title || 'Untitled';
@@ -895,6 +973,61 @@ setInterval(() => {
 		showAlert('Failed to end advisory: ' + err.message);
 		}
 	}
+
+		let pendingArchiveIds = [];
+		const archiveConfirmOverlay = document.getElementById('archiveConfirmOverlay');
+		const archiveSelectedBtn = document.getElementById('archiveSelectedBtn');
+
+		function openArchivePrompt(ids = null) {
+			const targetIds = ids || Array.from(selectedArchiveIds);
+			const expiredItems = allItems.filter(item => targetIds.includes(item.id) && getEffectiveStatus(item) === 'Expired');
+			if (!expiredItems.length) {
+				showAlert('Select at least one expired advisory before archiving it.');
+				return;
+			}
+			pendingArchiveIds = expiredItems.map(item => item.id);
+			selectedArchiveIds = new Set(pendingArchiveIds);
+			selectedId = pendingArchiveIds[pendingArchiveIds.length - 1];
+			document.getElementById('archiveConfirmText').textContent = expiredItems.length === 1
+				? `"${expiredItems[0].title || 'Untitled advisory'}" will be moved to the settings archive.`
+				: `${expiredItems.length} advisories will be moved to the settings archive.`;
+			archiveConfirmOverlay.classList.add('open');
+		}
+
+		async function confirmArchiveAdvisory() {
+			if (!pendingArchiveIds.length) return;
+			const ids = [...pendingArchiveIds];
+			archiveConfirmOverlay.classList.remove('open');
+			pendingArchiveIds = [];
+			try {
+				await Promise.all(ids.map(id => updateDoc(doc(db, 'Advisory', id), {
+					status: 'Archived',
+					archivedAt: serverTimestamp(),
+					archivedBy: 'Admin User',
+					visible: false,
+					expiresAt: null
+				})));
+				selectedArchiveIds.clear();
+				updateArchiveButtonState();
+				showConfirm(ids.length > 1 ? 'Advisories Archived Successfully' : 'Archived Successfully');
+			} catch (err) {
+				showAlert('Failed to archive advisory: ' + err.message);
+			}
+		}
+
+		archiveSelectedBtn.addEventListener('click', () => openArchivePrompt());
+		archiveSelectedBtn.disabled = true;
+		document.getElementById('archiveConfirmOk').addEventListener('click', confirmArchiveAdvisory);
+		document.getElementById('archiveConfirmCancel').addEventListener('click', () => {
+			archiveConfirmOverlay.classList.remove('open');
+			pendingArchiveIds = [];
+		});
+		archiveConfirmOverlay.addEventListener('click', (e) => {
+			if (e.target === archiveConfirmOverlay) {
+				archiveConfirmOverlay.classList.remove('open');
+				pendingArchiveIds = [];
+			}
+		});
 
 		document.getElementById('endConfirmOk').addEventListener('click', confirmEndAdvisory);
 		document.getElementById('endConfirmCancel').addEventListener('click', () => {

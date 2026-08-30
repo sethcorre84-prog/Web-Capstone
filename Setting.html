@@ -798,10 +798,12 @@
       const expired = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((item) => {
-          const isExpiredByStatus = (item.status || '').toLowerCase() === 'expired';
+          const status = (item.status || '').toLowerCase();
+          const isExpiredByStatus = status === 'expired';
+          const isArchivedByStatus = status === 'archived';
           const expDate = item.expiresAt ? (item.expiresAt.toDate ? item.expiresAt.toDate() : new Date(item.expiresAt)) : null;
           const isPastExpiry = expDate ? expDate < new Date() : false;
-          return isExpiredByStatus || isPastExpiry;
+          return isExpiredByStatus || isArchivedByStatus || isPastExpiry;
         });
 
       if (!expired.length) {
@@ -817,7 +819,7 @@
             <span>•</span>
             <span>${item.target || 'All Trails'}</span>
             <span>•</span>
-            <span>${formatArchiveDate(item.expiresAt || item.effectiveDate || item.publishedAt || item.createdAt)}</span>
+            <span>${formatArchiveDate(item.archivedAt || item.expiresAt || item.effectiveDate || item.publishedAt || item.createdAt)}</span>
           </div>
         </div>
       `).join('');
