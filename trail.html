@@ -280,6 +280,60 @@ body[data-theme="dark"] .settings-submenu{
     background:var(--sidebar-bg-light);
   }
   
+  /* Collapsible sidebar (works with sidebar.js) */
+.sidebar-toggle{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:34px;
+    height:34px;
+    margin:0 auto 14px 0;
+    border:1px solid #2a3d2a;
+    border-radius:8px;
+    background:transparent;
+    color:#c4d1c4;
+    flex-shrink:0;
+}
+.sidebar-toggle:hover{
+    background:var(--sidebar-bg-light);
+    color:#fff;
+}
+
+.sidebar.collapsed{
+    width:76px;
+    padding:22px 10px;
+}
+.sidebar.collapsed .brand{
+    padding:4px 0 20px 0;
+}
+.sidebar.collapsed .brand-name,
+.sidebar.collapsed .brand-sub,
+.sidebar.collapsed .nav-text,
+.sidebar.collapsed .user-chip .name,
+.sidebar.collapsed .user-chip .role,
+.sidebar.collapsed .user-chip .name-role{
+    display:none;
+}
+.sidebar.collapsed .nav li a{
+    justify-content:center;
+    padding:10px;
+    gap:0;
+}
+.sidebar.collapsed .user-chip{
+    justify-content:center;
+    padding:6px 0 14px 0;
+}
+.sidebar.collapsed .logout-btn{
+    justify-content:center;
+    padding:9px;
+}
+
+/* Pre-paint helper class set by sidebar.js on <html>, avoids a flash of the
+   expanded sidebar while the page is still loading */
+html.sidebar-was-collapsed .sidebar{
+    width:76px;
+    padding:22px 10px;
+}
 
 /* ==========================================
    MAIN CONTENT
@@ -954,37 +1008,37 @@ tbody tr:last-child td{
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-icon">
+    <div class="brand">
+      <div class="brand-icon">
         <img src="assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
-        </div>
-        <div>
-          <div class="brand-name">PeakPath</div>
-          <div class="brand-sub">Admin Portal</div>
+      </div>
+      <div>
+        <div class="brand-name">PeakPath</div>
+        <div class="brand-sub">Admin Portal</div>
+      </div>
+    </div>
+    <ul class="nav">
+      <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span class="nav-text" data-i18n="nav_dashboard">Dashboard</span></a></li>
+      <li><a class="active" href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg><span class="nav-text" data-i18n="nav_trail">Trail Management</span></a></li>
+      <li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg><span class="nav-text" data-i18n="nav_hazard">Hazard Reports</span></a></li>
+      <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg><span class="nav-text" data-i18n="nav_aa">Advisories &amp; Announcements</span></a></li>
+      <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg><span class="nav-text" data-i18n="nav_geomap">Geomap Monitoring</span></a></li>
+      <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg><span class="nav-text" data-i18n="nav_users">User Management</span></a></li>
+      <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg><span class="nav-text" data-i18n="nav_analytics">Analytics &amp; Reports</span></a></li>
+      <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg><span class="nav-text" data-i18n="nav_emergency">Emergency Monitoring</span></a></li>
+      <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span class="nav-text" data-i18n="nav_settings">Settings</span></a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="avatar">AU</div>
+        <div class="name-role">
+          <div class="name">Admin User</div>
+          <div class="role">Super Administrator</div>
         </div>
       </div>
-      <ul class="nav">
-        <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_dashboard">Dashboard</span></a></li>
-        <li><a class="active" href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_trail">Trail Management</span></a></li>
-        <li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_hazard">Hazard Reports</span></a></li>
-        <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_aa">Advisories &amp; Announcements</span></a></li>
-        <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_geomap">Geomap Monitoring</span></a></li>
-        <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_users">User Management</span></a></li>
-        <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_analytics">Analytics &amp; Reports</span></a></li>
-        <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_emergency">Emergency Monitoring</span></a></li>
-        <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_settings">Settings</span></a></li>
-      </ul>
-      <div class="sidebar-footer">
-        <div class="user-chip">
-          <div class="avatar">AU</div>
-          <div class="name-role">
-            <div class="name">Admin User</div>
-            <div class="role">Super Administrator</div>
-          </div>
-        </div>
-        <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
-      </div>
-    </aside>
+      <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
+    </div>
+  </aside>
 
   <main class="main">
     <section class="topbar">

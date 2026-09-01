@@ -18,7 +18,7 @@
     border-radius: 8px;
     color: #c4d1c4;
     cursor: pointer;
-    margin-bottom: 14px;
+    margin: 0 auto 14px 0;   /* was: margin-bottom: 14px; */
     flex-shrink: 0;
     transition: background .15s;
 }

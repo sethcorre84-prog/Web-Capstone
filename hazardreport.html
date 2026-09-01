@@ -187,6 +187,7 @@
     border-radius:8px;
     font-size:13px;
     font-weight:500;
+    text-decoration:none; 
   }
   .logout-btn:hover{
     background:var(--sidebar-bg-light);
@@ -274,6 +275,165 @@
     color:var(--text-600);
   }
 
+  /* Top-right admin menu */
+.admin-menu-wrap{
+    position:relative;
+}
+.admin-menu-btn{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:transparent;
+    border:none;
+    padding:0;
+    cursor:pointer;
+}
+.admin-dropdown{
+    display:none;
+    position:absolute;
+    top:calc(100% + 10px);
+    right:0;
+    width:200px;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:10px;
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+    overflow:hidden;
+    z-index:50;
+}
+.admin-dropdown.open{
+    display:block;
+}
+.admin-dropdown a{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:11px 14px;
+    font-size:13px;
+    font-weight:500;
+    color:var(--text-900);
+    text-decoration:none;
+}
+.admin-dropdown a:hover{
+    background:#f5f7f3;
+}
+.admin-dropdown a svg{
+    width:16px;
+    height:16px;
+    flex-shrink:0;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+.admin-dropdown-divider{
+    height:1px;
+    background:var(--border);
+    margin:4px 0;
+}
+.admin-dropdown a.logout-item{
+    color:var(--red-text);
+}
+.admin-dropdown a.logout-item:hover{
+    background:var(--red-bg);
+}
+
+/* Display submenu */
+.display-submenu{
+    display:none;
+    flex-direction:column;
+    background:#f8f9f7;
+}
+body[data-theme="dark"] .display-submenu{
+    background:#141712;
+}
+.display-submenu.open{
+    display:flex;
+}
+.display-option{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:9px 14px 9px 34px !important;
+    font-size:12.5px !important;
+}
+.display-option .check-icon{
+    width:14px;
+    height:14px;
+    stroke:var(--accent);
+    display:none;
+}
+.display-option.active .check-icon{
+    display:block;
+}
+.display-toggle-arrow{
+    margin-left:auto;
+    width:14px;
+    height:14px;
+    transition:transform .15s;
+}
+.display-toggle-arrow.open{
+    transform:rotate(180deg);
+}
+
+/* Settings submenu */
+.settings-submenu{
+    display:none;
+    flex-direction:column;
+    background:#f8f9f7;
+}
+body[data-theme="dark"] .settings-submenu{
+    background:#141712;
+}
+.settings-submenu.open{
+    display:flex;
+}
+.settings-submenu a{
+    padding:9px 14px 9px 34px !important;
+    font-size:12.5px !important;
+}
+
+/* Dark theme overrides (adapted to this page's variable names) */
+body[data-theme="dark"]{
+    --bg:#12140f;
+    --card:#1b1f18;
+    --text-900:#eef1ec;
+    --text-600:#a7b0a3;
+    --text-400:#7c847a;
+    --border:#2c3229;
+    --green-bg:#1d3324;
+    --red-bg:#3a1f1c;
+    --amber-bg:#3a2f1c;
+    --pending-bg:#3a2f1c;
+    --verified-bg:#1d3324;
+    --rejected-bg:#3a1f1c;
+}
+body[data-theme="dark"] .search-box,
+body[data-theme="dark"] select.filter-select,
+body[data-theme="dark"] .btn-outline,
+body[data-theme="dark"] .bell-wrap,
+body[data-theme="dark"] .card{
+    background:var(--card);
+    color:var(--text-900);
+}
+body[data-theme="dark"] tbody tr:hover{
+    background:#232922;
+}
+body[data-theme="dark"] tbody tr.selected{
+    background:#1d3324;
+}
+body[data-theme="dark"] .admin-dropdown{
+    background:var(--card);
+    border-color:var(--border);
+}
+body[data-theme="dark"] .admin-dropdown a{
+    color:var(--text-900);
+}
+body[data-theme="dark"] .admin-dropdown a:hover{
+    background:#232922;
+}
+
   .content{
     padding:0 28px 28px 28px;
     display:flex;
@@ -284,7 +444,7 @@
   /* Stat cards */
     .stats{
     display:grid;
-    grid-template-columns:repeat(4,1fr);
+    grid-template-columns:repeat(5,1fr);
     gap:14px;
   }
   .stat-card{
@@ -334,6 +494,16 @@
     gap:18px;
     align-items:start;
   }
+
+.panels > .card:first-child{
+  margin-left: 16px;
+}
+
+@media (max-width: 1150px){
+  .panels > .card:first-child{
+    margin-left: 0;
+  }
+}
 
   .card{
     background:var(--card);
@@ -967,12 +1137,45 @@
           <button class="bell-btn" type="button" aria-label="Open notifications"></button>
           <span class="bell-badge" id="notificationCount" hidden>0</span>
         </div>
-        <div class="admin-mini">
-          <div class="avatar" id="adminInitials">AU</div>
-        </div>
-      </div>
+        <div class="admin-menu-wrap" id="adminMenuWrap">
+  <button type="button" class="admin-mini admin-menu-btn" id="adminMenuBtn" aria-haspopup="true" aria-expanded="false">
+    <div class="avatar" id="adminInitials">AU</div>
+  </button>
+  <div class="admin-dropdown" id="adminDropdown">
+    <button type="button" class="display-toggle" id="settingsToggleBtn" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--text-900);cursor:pointer;text-align:left;">
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Settings
+      <svg class="display-toggle-arrow" id="settingsArrow" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="settings-submenu" id="settingsSubmenu">
+      <a href="Setting.html">Settings</a>
     </div>
 
+    <button type="button" class="display-toggle" id="displayToggleBtn" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--text-900);cursor:pointer;text-align:left;">
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      Display
+      <svg class="display-toggle-arrow" id="displayArrow" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="display-submenu" id="displaySubmenu">
+      <a href="#" class="display-option" data-theme-choice="light">
+        Light Mode
+        <svg class="check-icon" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </a>
+      <a href="#" class="display-option" data-theme-choice="dark">
+        Dark Mode
+        <svg class="check-icon" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </a>
+    </div>
+
+    <div class="admin-dropdown-divider"></div>
+    <a class="logout-item" href="Home.html" id="dropdownLogoutBtn">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+      Logout
+    </a>
+  </div>
+</div>
+</div>
+  </div>
     <div class="content">
 
       <!-- Stat cards -->
@@ -1016,6 +1219,17 @@
           </div>
           <div class="stat-label">Rejected<div class="meta-line" id="rejectedMeta">0% of total</div></div>
         </div>
+
+        <div class="stat-card">
+        <div class="stat-top">
+        <span class="stat-value" id="archivedReports">0</span>
+        <div class="stat-icon rejected">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--red-text)" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg>
+      </div>
+    </div>
+    <div class="stat-label">Archived<div class="meta-line" id="archivedMeta">0% of total</div></div>
+  </div>
+</div>
       </div>
 
       <!-- Panels -->
@@ -1077,9 +1291,10 @@
           </table>
 
           <div class="table-footer">
-            <span id="reportCount">Loading...</span>
-          </div>
-        </div>
+  <span id="reportCount">Loading...</span>
+  <div class="pagination" id="pagination"></div>
+</div>
+  </div>
 
         <!-- RIGHT: Report details + Rejected list -->
       <div>
@@ -1230,6 +1445,9 @@ let selectedReport = null;
 let hazardTypes = new Set();
 let selectedArchiveIds = new Set();
 let pendingArchiveIds = [];
+let currentPage = 1;
+const itemsPerPage = 10;
+let currentFilteredReports = [];
 
 // Hazard type icons mapping
 const hazardIcons = {
@@ -1292,19 +1510,27 @@ function getRiskLevel(report) {
 // Render reports table
 function renderReportsTable(reports) {
   const tbody = document.getElementById('reportsTable');
-  const itemsPerPage = 10;
-  const paginatedReports = reports.slice(0, itemsPerPage);
-  
+  currentFilteredReports = reports;
+
+  const totalPages = Math.max(1, Math.ceil(reports.length / itemsPerPage));
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedReports = reports.slice(startIndex, startIndex + itemsPerPage);
+
   if (reports.length === 0) {
     tbody.innerHTML = '<tr><td colspan="8" class="loading" style="padding:20px;">No reports found</td></tr>';
+    document.getElementById('reportCount').textContent = 'Showing 0 of 0 reports';
+    renderPagination(0);
     return;
   }
 
   tbody.innerHTML = paginatedReports.map((report, index) => {
     const risk = getRiskLevel(report);
+    const globalIndex = startIndex + index;
     return `
       <tr class="${selectedReport?.id === report.id ? 'selected' : ''}" data-report-id="${report.id}" onclick="selectReport('${report.id}')">
-        <td>${report.reportId || `HR-${index + 1}`}</td>
+        <td>${report.reportId || `HR-${globalIndex + 1}`}</td>
         <td><div class="hazard-cell"><span class="hazard-icon">${getHazardIcon(report.hazardType)}</span>${report.hazardType}</div></td>
         <td>${report.location || 'N/A'}</td>
         <td>${report.reportedBy || 'Anonymous'}</td>
@@ -1315,6 +1541,46 @@ function renderReportsTable(reports) {
       </tr>
     `;
   }).join('');
+
+  const showingStart = startIndex + 1;
+  const showingEnd = Math.min(startIndex + itemsPerPage, reports.length);
+  document.getElementById('reportCount').textContent =
+    `Showing ${showingStart} to ${showingEnd} of ${reports.length} reports`;
+
+  renderPagination(reports.length);
+}
+
+function renderPagination(totalItems) {
+  const pagination = document.getElementById('pagination');
+  if (!pagination) return;
+
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  if (totalPages <= 1) {
+    pagination.innerHTML = '';
+    return;
+  }
+
+  let html = `<button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''}>&lt;</button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+  }
+  html += `<button id="nextPageBtn" ${currentPage === totalPages ? 'disabled' : ''}>&gt;</button>`;
+
+  pagination.innerHTML = html;
+
+  document.getElementById('prevPageBtn')?.addEventListener('click', () => {
+    if (currentPage > 1) { currentPage--; renderReportsTable(currentFilteredReports); }
+  });
+  document.getElementById('nextPageBtn')?.addEventListener('click', () => {
+    if (currentPage < totalPages) { currentPage++; renderReportsTable(currentFilteredReports); }
+  });
+  pagination.querySelectorAll('.page-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentPage = parseInt(btn.dataset.page, 10);
+      renderReportsTable(currentFilteredReports);
+    });
+  });
 }
 
 // Rows here double as A&A's Expired Advisories rows do: clicking toggles the
@@ -1901,11 +2167,11 @@ function proceedEditVerify() {
   openStatusModal(id, 'verified');
 }
 
-// Select report
+// Select report — re-applies current filters (without resetting the page)
+// so rejected reports remain in the Rejected panel, then loads details.
 window.selectReport = (reportId) => {
   selectedReport = allReports.find(r => r.id === reportId);
-  // Re-apply current filters so rejected reports remain in the Rejected panel
-  filterReports();
+  filterReports(false);
   renderReportDetails(selectedReport);
 };
 
@@ -1915,25 +2181,35 @@ function updateStats() {
   const pending = allReports.filter(r => r.status === 'pending').length;
   const verified = allReports.filter(r => r.status === 'verified').length;
   const rejected = allReports.filter(r => r.status === 'rejected').length;
+  const archived = allReports.filter(r => r.status === 'archived').length;
 
   document.getElementById('totalReports').textContent = total;
   document.getElementById('pendingReports').textContent = pending;
   document.getElementById('verifiedReports').textContent = verified;
   document.getElementById('rejectedReports').textContent = rejected;
+  document.getElementById('archivedReports').textContent = archived;
   
   const pendingPercent = total ? Math.round((pending / total) * 100) : 0;
   const verifiedPercent = total ? Math.round((verified / total) * 100) : 0;
   const rejectedPercent = total ? Math.round((rejected / total) * 100) : 0;
+  const archivedPercent = total ? Math.round((archived / total) * 100) : 0;
 
   document.getElementById('pendingMeta').textContent = pendingPercent + '% of total';
   document.getElementById('verifiedMeta').textContent = verifiedPercent + '% of total';
   document.getElementById('rejectedMeta').textContent = rejectedPercent + '% of total';
-
-  document.getElementById('reportCount').textContent = `Showing 1 to ${Math.min(10, total)} of ${total} reports`;
+  document.getElementById('archivedMeta').textContent = archivedPercent + '% of total';
+  // NOTE: reportCount is now set by renderReportsTable() with accurate,
+  // pagination-aware numbers. Do not overwrite it here.
 }
 
 // Filter reports
-function filterReports() {
+// resetPage=true (default) whenever the search box or a dropdown filter
+// changes — a new filter should always start back at page 1.
+// resetPage=false when re-rendering after a row click or a background
+// data refresh, so the user's current page doesn't jump.
+function filterReports(resetPage = true) {
+  if (resetPage) currentPage = 1;
+
   const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
   const statusFilter = document.getElementById('statusFilter').value;
   const hazardFilter = document.getElementById('hazardFilter').value;
@@ -2038,8 +2314,10 @@ function loadReports() {
       return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: 'base' });
     });
 
+    // Don't reset the page on a background data refresh — keep the admin
+    // on whatever page they're currently viewing.
     populateHazardFilter();
-    filterReports();
+    filterReports(false);
     updateStats();
     renderRejectedList();
 
@@ -2059,10 +2337,13 @@ function loadReports() {
 }
 
 // Event listeners
-document.getElementById('searchInput').addEventListener('input', filterReports);
-document.getElementById('statusFilter').addEventListener('change', filterReports);
-document.getElementById('hazardFilter').addEventListener('change', filterReports);
-document.getElementById('dateFilter').addEventListener('change', filterReports);
+// A real filter change (search / status / hazard / date) should always
+// jump back to page 1, so these call filterReports() with its default
+// resetPage=true.
+document.getElementById('searchInput').addEventListener('input', () => filterReports());
+document.getElementById('statusFilter').addEventListener('change', () => filterReports());
+document.getElementById('hazardFilter').addEventListener('change', () => filterReports());
+document.getElementById('dateFilter').addEventListener('change', () => filterReports());
 
 document.getElementById('clearFiltersBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
@@ -2115,12 +2396,8 @@ document.addEventListener('keydown', (event) => {
 // Auth state listener
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    const initials = user.displayName 
-      ? user.displayName.split(' ').map(n => n[0]).join('')
-      : user.email.substring(0, 2);
-    
-    document.getElementById('userInitials').textContent = initials.toUpperCase();
-    document.getElementById('adminInitials').textContent = initials.toUpperCase();
+    document.getElementById('userInitials').textContent = 'AU';
+    document.getElementById('adminInitials').textContent = 'AU';
     loadReports();
   } else {
     window.location.href = 'Home.html';
@@ -2129,6 +2406,89 @@ onAuthStateChanged(auth, (user) => {
 
 // Logout
 document.querySelector('.logout-btn').addEventListener('click', (e) => {
+  e.preventDefault();
+  signOut(auth).then(() => {
+    window.location.href = 'Home.html';
+  });
+});
+
+// Top-right admin dropdown
+(function(){
+  const wrap = document.getElementById('adminMenuWrap');
+  const btn = document.getElementById('adminMenuBtn');
+  const dropdown = document.getElementById('adminDropdown');
+  if (!wrap || !btn || !dropdown) return;
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = dropdown.classList.toggle('open');
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!wrap.contains(e.target)) {
+      dropdown.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      dropdown.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+})();
+
+// Display (Light/Dark) submenu
+(function(){
+  const displayToggleBtn = document.getElementById('displayToggleBtn');
+  const displaySubmenu = document.getElementById('displaySubmenu');
+  const displayArrow = document.getElementById('displayArrow');
+  const options = document.querySelectorAll('.display-option');
+  if (!displayToggleBtn || !displaySubmenu) return;
+
+  function applyTheme(theme){
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('peakpath-theme', theme);
+    options.forEach(o => {
+      o.classList.toggle('active', o.dataset.themeChoice === theme);
+    });
+  }
+
+  applyTheme(localStorage.getItem('peakpath-theme') || 'light');
+
+  displayToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = displaySubmenu.classList.toggle('open');
+    displayArrow.classList.toggle('open', isOpen);
+  });
+
+  options.forEach(opt => {
+    opt.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      applyTheme(opt.dataset.themeChoice);
+    });
+  });
+})();
+
+// Settings submenu
+(function(){
+  const settingsToggleBtn = document.getElementById('settingsToggleBtn');
+  const settingsSubmenu = document.getElementById('settingsSubmenu');
+  const settingsArrow = document.getElementById('settingsArrow');
+  if (!settingsToggleBtn || !settingsSubmenu) return;
+
+  settingsToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = settingsSubmenu.classList.toggle('open');
+    settingsArrow.classList.toggle('open', isOpen);
+  });
+})();
+
+// Dropdown logout button (uses the same auth/signOut already imported above)
+document.getElementById('dropdownLogoutBtn')?.addEventListener('click', (e) => {
   e.preventDefault();
   signOut(auth).then(() => {
     window.location.href = 'Home.html';
