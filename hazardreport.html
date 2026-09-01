@@ -646,6 +646,67 @@
   .history-text strong{font-size:12.5px;font-weight:600;display:block;color:var(--text-900);}
   .history-text span{font-size:11px;color:var(--text-400);}
 
+  /* Rejected panel header + archive action */
+  .panel-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:12px;
+  }
+  .panel-header h2{margin:0;}
+  .archive-action-wrap{
+    position:relative;
+    display:flex;
+    align-items:center;
+  }
+  .archive-action{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:36px;height:36px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:#ffffff;
+    color:var(--text-900);
+    transition:all .15s ease;
+    cursor:pointer;
+  }
+  .archive-action:hover{
+    background:var(--green-bg);
+    border-color:rgba(47,143,78,.25);
+    color:var(--accent-dark);
+  }
+  .archive-action:disabled{
+    cursor:not-allowed;
+    opacity:.45;
+  }
+  .archive-action svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .archive-tooltip{
+    position:absolute;
+    top:calc(100% + 8px);
+    right:0;
+    white-space:nowrap;
+    padding:6px 8px;
+    border-radius:8px;
+    background:#1d2b1d;
+    color:#fff;
+    font-size:11px;
+    opacity:0;
+    transform:translateY(-4px);
+    pointer-events:none;
+    transition:all .15s ease;
+    box-shadow:0 8px 18px rgba(0,0,0,.12);
+  }
+  .archive-action:hover .archive-tooltip,
+  .archive-action:focus-visible .archive-tooltip{opacity:1;transform:translateY(0);}
+  .rejected-row.archive-selected{
+    background:var(--accent-light);
+    border-radius:8px;
+    padding-left:8px;
+    padding-right:8px;
+  }
 
   /* Confirmation Modal */
   .modal-overlay{
@@ -1024,7 +1085,15 @@
       </div>
 
       <div class="card" id="rejectedPanel" style="margin-top:18px;padding:18px 20px">
-      <h2 style="font-size:16px;font-weight:700;margin-bottom:12px">Rejected Reports</h2>
+      <div class="panel-header">
+        <h2 style="font-size:16px;font-weight:700">Rejected Reports</h2>
+        <div class="archive-action-wrap">
+          <button class="archive-action" id="archiveSelectedBtn" type="button" aria-label="Archive selected report" disabled>
+            <svg viewBox="0 0 24 24"><path d="M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M8 7V4h8v3"/><path d="M9 12h6"/></svg>
+            <span class="archive-tooltip">Archive</span>
+          </button>
+        </div>
+      </div>
       <div id="rejectedList" style="display:flex;flex-direction:column;gap:2px"></div>
       </div>
       </div>
@@ -1110,6 +1179,26 @@
   </div>
 </div>
 
+<!-- Archive confirmation modal -->
+<div class="modal-overlay" id="archiveConfirmModal" aria-hidden="true">
+  <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="archiveConfirmTitle">
+    <div class="modal-header">
+      <div class="modal-icon verify" id="archiveModalIcon">🗄</div>
+      <div>
+        <h3 id="archiveConfirmTitle">Archive Report</h3>
+        <p id="archiveConfirmSubtitle">This report will be moved to the archive.</p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="form-error" id="archiveReportError" role="alert"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn cancel" id="archiveModalCancelBtn">Cancel</button>
+      <button type="button" class="modal-btn confirm-verify" id="archiveModalConfirmBtn">Archive</button>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -1136,6 +1225,8 @@ const auth = getAuth(app);
 let allReports = [];
 let selectedReport = null;
 let hazardTypes = new Set();
+let selectedArchiveIds = new Set();
+let pendingArchiveIds = [];
 
 // Hazard type icons mapping
 const hazardIcons = {
@@ -1223,20 +1314,46 @@ function renderReportsTable(reports) {
   }).join('');
 }
 
+// Rows here double as A&A's Expired Advisories rows do: clicking toggles the
+// row into `selectedArchiveIds` (so it can be archived) *and* loads it into
+// the report-details panel on the left.
+function updateArchiveButtonState() {
+  const btn = document.getElementById('archiveSelectedBtn');
+  if (!btn) return;
+  const hasSelection = selectedArchiveIds.size > 0;
+  btn.disabled = !hasSelection;
+}
+
 function renderRejectedList() {
   const wrap = document.getElementById('rejectedList');
   const rejected = allReports.filter(r => r.status === 'rejected');
+
+  // Drop any stale selections for reports that are no longer rejected
+  // (e.g. they were just archived or re-verified elsewhere).
+  const rejectedIds = new Set(rejected.map(r => r.id));
+  [...selectedArchiveIds].forEach(id => { if (!rejectedIds.has(id)) selectedArchiveIds.delete(id); });
+
   wrap.innerHTML = '';
 
   if (!rejected.length) {
     wrap.innerHTML = '<div style="padding:10px 0;color:var(--text-400);font-size:12.5px">No rejected reports.</div>';
+    updateArchiveButtonState();
     return;
   }
 
   rejected.forEach((report, index) => {
     const row = document.createElement('div');
+    row.className = 'rejected-row' + (selectedArchiveIds.has(report.id) ? ' archive-selected' : '');
     row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
-    row.onclick = () => selectReport(report.id);
+    row.onclick = () => {
+      if (selectedArchiveIds.has(report.id)) {
+        selectedArchiveIds.delete(report.id);
+      } else {
+        selectedArchiveIds.add(report.id);
+      }
+      selectReport(report.id);
+      renderRejectedList();
+    };
     row.innerHTML = `
       <span class="hazard-icon" style="flex-shrink:0">${getHazardIcon(report.hazardType)}</span>
       <div style="flex:1;min-width:0">
@@ -1247,6 +1364,78 @@ function renderRejectedList() {
     `;
     wrap.appendChild(row);
   });
+
+  updateArchiveButtonState();
+}
+
+// -----------------------------
+// Archive rejected report(s)
+// -----------------------------
+function openArchivePrompt() {
+  if (!selectedArchiveIds.size) return;
+  pendingArchiveIds = [...selectedArchiveIds];
+  const items = pendingArchiveIds.map(id => allReports.find(r => r.id === id)).filter(Boolean);
+  if (!items.length) return;
+
+  document.getElementById('archiveConfirmSubtitle').textContent = items.length === 1
+    ? `"${items[0].hazardType || 'Hazard Report'}" at ${items[0].location || 'the reported location'} will be moved to the archive.`
+    : `${items.length} rejected reports will be moved to the archive.`;
+  document.getElementById('archiveReportError').textContent = '';
+
+  const confirmBtn = document.getElementById('archiveModalConfirmBtn');
+  confirmBtn.disabled = false;
+  confirmBtn.textContent = 'Archive';
+
+  const modal = document.getElementById('archiveConfirmModal');
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeArchiveModal() {
+  const modal = document.getElementById('archiveConfirmModal');
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden', 'true');
+  pendingArchiveIds = [];
+}
+
+async function confirmArchiveReports() {
+  if (!pendingArchiveIds.length) return;
+  const ids = [...pendingArchiveIds];
+  const confirmBtn = document.getElementById('archiveModalConfirmBtn');
+  const errorEl = document.getElementById('archiveReportError');
+
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Archiving...';
+  errorEl.textContent = '';
+
+  try {
+    const batch = writeBatch(db);
+    ids.forEach(id => {
+      batch.update(doc(db, 'reports', id), {
+        status: 'archived',
+        archivedAt: serverTimestamp(),
+        archivedBy: auth.currentUser?.uid || null
+      });
+    });
+    await batch.commit();
+
+    ids.forEach(id => selectedArchiveIds.delete(id));
+
+    if (selectedReport && ids.includes(selectedReport.id)) {
+      selectedReport = null;
+      renderReportDetails(null);
+    }
+
+    closeArchiveModal();
+    // onSnapshot() will refresh the table, stats, and rejected list automatically.
+  } catch (error) {
+    console.error('Error archiving report(s):', error);
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Archive';
+    errorEl.textContent = error?.code === 'permission-denied'
+      ? 'Firebase denied this update. Check your Firestore security rules.'
+      : `Could not archive the report: ${error.message || 'Unknown error'}`;
+  }
 }
 
 // Renders photo attachments for a report. Currently your Firestore docs
@@ -1690,6 +1879,14 @@ document.getElementById('deleteConfirmModal').addEventListener('click', (event) 
   if (event.target.id === 'deleteConfirmModal') closeDeleteModal();
 });
 
+// Archive modal listeners
+document.getElementById('archiveSelectedBtn').addEventListener('click', openArchivePrompt);
+document.getElementById('archiveModalCancelBtn').addEventListener('click', closeArchiveModal);
+document.getElementById('archiveModalConfirmBtn').addEventListener('click', confirmArchiveReports);
+document.getElementById('archiveConfirmModal').addEventListener('click', (event) => {
+  if (event.target.id === 'archiveConfirmModal') closeArchiveModal();
+});
+
 function proceedEditVerify() {
   if (!editConfirmTarget) return;
   const id = editConfirmTarget;
@@ -1735,7 +1932,7 @@ function filterReports() {
   const hazardFilter = document.getElementById('hazardFilter').value;
   const dateFilter = document.getElementById('dateFilter').value;
 
-  let filtered = allReports.filter(r => r.status !== 'rejected');
+  let filtered = allReports.filter(r => r.status !== 'rejected' && r.status !== 'archived');
 
   if (searchTerm) {
     filtered = filtered.filter(r =>
@@ -1897,6 +2094,10 @@ document.addEventListener('keydown', (event) => {
     const editModal = document.getElementById('editConfirmModal');
     if (editModal.classList.contains('show')) {
       closeEditConfirmModal();
+    }
+    const archiveModal = document.getElementById('archiveConfirmModal');
+    if (archiveModal.classList.contains('show')) {
+      closeArchiveModal();
     }
   }
 });

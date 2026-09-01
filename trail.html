@@ -130,7 +130,7 @@ body[data-theme="dark"] .display-submenu{
     transform:rotate(180deg);
 }
 
-/* Settings & Privacy submenu (reuses same visual pattern as Display) */
+/* Settings submenu (reuses same visual pattern as Display) */
 .settings-submenu{
     display:none;
     flex-direction:column;
@@ -145,55 +145,6 @@ body[data-theme="dark"] .settings-submenu{
 .settings-submenu a{
     padding:9px 14px 9px 34px !important;
     font-size:12.5px !important;
-}
-
-/* Language sub-submenu (nested one level deeper) */
-.language-submenu{
-    display:none;
-    flex-direction:column;
-    background:#f2f4ef;
-}
-body[data-theme="dark"] .language-submenu{
-    background:#101310;
-}
-.language-submenu.open{
-    display:flex;
-}
-.language-option{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:8px 14px 8px 54px !important;
-    font-size:12px !important;
-}
-.language-option .check-icon{
-    width:13px;
-    height:13px;
-    stroke:var(--accent);
-    display:none;
-}
-.language-option.active .check-icon{
-    display:block;
-}
-.language-toggle-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    width:100%;
-    padding:9px 14px 9px 34px;
-    font-size:12.5px;
-    font-weight:500;
-    color:var(--text-primary);
-    background:transparent;
-    border:none;
-    cursor:pointer;
-    text-align:left;
-}
-.language-toggle-row:hover{
-    background:#eef1ec;
-}
-body[data-theme="dark"] .language-toggle-row:hover{
-    background:#1c2018;
 }
 
   /* SIDEBAR */
@@ -1013,15 +964,15 @@ tbody tr:last-child td{
         </div>
       </div>
       <ul class="nav">
-        <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
-        <li><a class="active" href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
-        <li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a></li>
-        <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a></li>
-        <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>Geomap Monitoring</a></li>
-        <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
-        <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
-        <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
-        <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
+        <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_dashboard">Dashboard</span></a></li>
+        <li><a class="active" href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_trail">Trail Management</span></a></li>
+        <li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_hazard">Hazard Reports</span></a></li>
+        <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_aa">Advisories &amp; Announcements</span></a></li>
+        <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_geomap">Geomap Monitoring</span></a></li>
+        <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_users">User Management</span></a></li>
+        <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_analytics">Analytics &amp; Reports</span></a></li>
+        <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_emergency">Emergency Monitoring</span></a></li>
+        <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24">...</svg><span data-i18n="nav_settings">Settings</span></a></li>
       </ul>
       <div class="sidebar-footer">
         <div class="user-chip">
@@ -1038,8 +989,8 @@ tbody tr:last-child td{
   <main class="main">
     <section class="topbar">
       <div>
-        <h1>Trail Management</h1>
-        <p>Manage Mount Makiling trails, statuses, checkpoints, and campsite information.</p>
+        <h1 data-i18n="page_title">Trail Management</h1>
+        <p data-i18n="page_subtitle">Manage Mount Makiling trails, statuses, checkpoints, and campsite information.</p>
       </div>
       <div class="topbar-right">
         <div class="bell-wrap">
@@ -1053,26 +1004,11 @@ tbody tr:last-child td{
   <div class="admin-dropdown" id="adminDropdown">
   <button type="button" class="display-toggle" id="settingsToggleBtn" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--text-primary);cursor:pointer;text-align:left;">
   <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-  Settings &amp; Privacy
+  Settings
   <svg class="display-toggle-arrow" id="settingsArrow" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
 </button>
 <div class="settings-submenu" id="settingsSubmenu">
   <a href="Setting.html">Settings</a>
-  <button type="button" class="language-toggle-row" id="languageToggleBtn">
-  Language
-  <svg class="display-toggle-arrow" id="languageArrow" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-</button>
-<div class="language-submenu" id="languageSubmenu">
-  <a href="#" class="language-option" data-lang-choice="en">
-    English
-    <svg class="check-icon" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-  </a>
-  <a href="#" class="language-option" data-lang-choice="tl">
-    Tagalog
-    <svg class="check-icon" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-  </a>
-</div>
-  <a href="#" id="privacyCenterLink">Privacy Center</a>
 </div>
 
   <button type="button" class="display-toggle" id="displayToggleBtn" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--text-primary);cursor:pointer;text-align:left;">
@@ -2009,38 +1945,6 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async () =
     e.stopPropagation();
     const isOpen = settingsSubmenu.classList.toggle('open');
     settingsArrow.classList.toggle('open', isOpen);
-  });
-})();
-
-(function(){
-  const languageToggleBtn = document.getElementById('languageToggleBtn');
-  const languageSubmenu = document.getElementById('languageSubmenu');
-  const languageArrow = document.getElementById('languageArrow');
-  const langOptions = document.querySelectorAll('.language-option');
-  if (!languageToggleBtn || !languageSubmenu) return;
-
-  function applyLanguage(lang){
-    localStorage.setItem('peakpath-lang', lang);
-    langOptions.forEach(o => {
-      o.classList.toggle('active', o.dataset.langChoice === lang);
-    });
-  }
-
-  // Load saved language (defaults to English)
-  applyLanguage(localStorage.getItem('peakpath-lang') || 'en');
-
-  languageToggleBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isOpen = languageSubmenu.classList.toggle('open');
-    languageArrow.classList.toggle('open', isOpen);
-  });
-
-  langOptions.forEach(opt => {
-    opt.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      applyLanguage(opt.dataset.langChoice);
-    });
   });
 })();
 </script>
