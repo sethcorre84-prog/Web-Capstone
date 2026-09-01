@@ -1418,6 +1418,7 @@ async function confirmArchiveReports() {
       });
     });
     await batch.commit();
+    await window.renumberReports(); // close gaps left by newly archived reports
 
     ids.forEach(id => selectedArchiveIds.delete(id));
 
@@ -1826,7 +1827,8 @@ async function renumberReports() {
       const date = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
       return { docSnap, data, date };
     })
-    .sort((a, b) => b.date - a.date); // newest first, no docs excluded
+    .filter(({ data }) => data.status !== 'archived')
+    .sort((a, b) => b.date - a.date); // newest first, archived excluded
 
   docs.forEach(({ docSnap, data, date }) => {
     const year = date.getFullYear();
