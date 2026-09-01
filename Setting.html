@@ -518,6 +518,17 @@
       <div class="panel">
         <div class="panel-title">Notification Settings</div>
 
+        <div class="setting-row" data-action="archivedHazardReports">
+  <div class="setting-left">
+    <div class="setting-icon">🗃️</div>
+    <div class="setting-text">
+      <div class="label">Archived Hazard Reports</div>
+      <div class="desc">Review hazard reports that have been archived.</div>
+    </div>
+  </div>
+  <div class="setting-right"><span class="chevron">›</span></div>
+</div>
+
         <div class="setting-row" data-action="expiredAdvisoryArchive">
           <div class="setting-left">
             <div class="setting-icon">🗂️</div>
@@ -767,6 +778,42 @@
     return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  async function loadArchivedHazardReports() {
+  const archiveList = document.getElementById('archivedHazardList');
+  if (!archiveList) return;
+
+  archiveList.innerHTML = '<div class="archive-empty">Loading archived hazard reports...</div>';
+
+  try {
+    const reportsQuery = query(collection(db, 'reports'), orderBy('timestamp', 'desc'));
+    const snapshot = await getDocs(reportsQuery);
+    const archived = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((item) => (item.status || '').toLowerCase() === 'archived');
+
+    if (!archived.length) {
+      archiveList.innerHTML = '<div class="archive-empty">There are no archived hazard reports yet.</div>';
+      return;
+    }
+
+    archiveList.innerHTML = archived.map((item) => `
+      <div class="archive-item">
+        <div class="archive-item-title">${item.hazardType || 'Unknown Hazard'}</div>
+        <div class="archive-item-meta">
+          <span>${item.reportId || item.id}</span>
+          <span>•</span>
+          <span>${item.location || 'N/A'}</span>
+          <span>•</span>
+          <span>${formatArchiveDate(item.archivedAt)}</span>
+        </div>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading archived hazard reports:', error);
+    archiveList.innerHTML = '<div class="archive-empty">Unable to load the archive right now.</div>';
+  }
+}
+
   async function loadExpiredAdvisoryArchive() {
     const archiveList = document.getElementById('expiredArchiveList');
     if (!archiveList) return;
@@ -862,6 +909,17 @@
           </div>
         `
       },
+      archivedHazardReports: {
+  title: 'Archived Hazard Reports',
+  content: `
+    <div class="archive-list" id="archivedHazardList">
+      <div class="archive-empty">Loading archived hazard reports...</div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="ghost-btn" data-close-modal>Close</button>
+    </div>
+  `
+},
       expiredAdvisoryArchive: {
         title: 'Expired Advisories Archive',
         content: `
@@ -1046,6 +1104,9 @@
     modal.classList.add('visible');
     modal.setAttribute('aria-hidden', 'false');
 
+    if (action === 'archivedHazardReports') {
+    loadArchivedHazardReports();
+    }
     if (action === 'expiredAdvisoryArchive') {
       loadExpiredAdvisoryArchive();
     }
