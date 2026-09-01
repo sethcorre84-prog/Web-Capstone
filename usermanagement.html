@@ -1,746 +1,792 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="sidebar.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-<link rel="stylesheet" href="pages.css">
-<style>
-  @view-transition {
-  navigation: auto;
-}
-  html, body {
-    visibility: hidden;
-    opacity: 1;
-    background: #eef1ec;
-  }
-</style>
-<script type="module" src="dashboard-guard.js"></script>
-<script type="module" src="notification.js"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>PeakPath — User Management</title>
+<script src="sidebar.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+<link rel="stylesheet" href="pages.css">
+<script type="module" src="dashboard-guard.js"></script>
+<script type="module" src="notification.js"></script>
 <style>
-  :root {
-    --sidebar-bg:#132313;
-    --sidebar-bg-light:#1c341c;
-    --accent:#2f8f4e;
-    --accent-dark:#1f6b39;
-    --green:#2f8f4e;
-    --green-deep:#1f6b39;
-    --green-soft:#eaf7ef;
-    --page-bg:#edf1ef;
-    --panel:#ffffff;
-    --panel-soft:#f7faf7;
-    --border:#dfe5df;
-    --text:#1f2d24;
-    --text-soft:#6f7a72;
-    --muted:#98a19a;
-    --red:#d9534f;
-    --red-soft:#fbeae7;
-    --amber:#d08a32;
-    --amber-soft:#fef2e6;
-    --blue:#3967c9;
-    --blue-soft:#edf3ff;
-    --shadow:0 10px 28px rgba(18, 34, 25, 0.06);
-    --radius:12px;
+  @view-transition {
+    navigation: auto;
   }
-
-  * { box-sizing:border-box; }
+  
   html, body {
-    margin:0;
-    padding:0;
-    background:var(--page-bg);
-    color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    visibility: visible;
+    opacity: 1;   
+    background: #f1f5f9;
   }
-  body { font-size:14px; line-height:1.4; }
-  a { text-decoration:none; color:inherit; }
-  button, input, select { font:inherit; }
-  button { cursor:pointer; }
-
+  
+  :root {
+    color-scheme: dark;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    --sidebar-bg: #132313;
+    --sidebar-bg-light: #1c341c;
+    --accent: #2f8f4e;
+    --accent-dark: #1f6b39;
+    --text-primary: #ffffff;
+    --text-secondary: #c4d1c4;
+    --panel-bg: #ffffff;
+    --border-color: #e2e8f0;
+    --text-dark: #0f172a;
+    --text-muted: #64748b;
+    --text-soft: #475569;
+  }
+  
+  * { box-sizing: border-box; }
+  
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #f1f5f9;
+    color: #102a43;
+  }
+  
   .app {
-    display:flex;
-    min-height:100vh;
-    background:var(--page-bg);
+    display: flex;
+    min-height: 100vh;
   }
-
+  
   .sidebar {
-    width:236px;
+    width: 236px;
     flex-shrink: 0;
-    background:var(--sidebar-bg);
-    color:#dfe8df;
-    padding:22px 16px;
-    display:flex;
-    flex-direction:column;
-    min-height:100vh;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    padding: 22px 16px;
+    color: #dfe8df;
     position: sticky;
     top: 0;
     height: 100vh;
     overflow: hidden;
   }
-
+  
   .brand {
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    text-align:center;
-    padding:4px 8px 20px 8px;
-    gap:10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 4px 8px 20px 8px;
+    text-align: center;
     flex-shrink: 0;
   }
-
+  
   .brand-icon {
-    width:34px;
-    height:34px;
-    border-radius:9px;
-    display:grid;
-    place-items:center;
-    background:linear-gradient(160deg, #3fa860, #1f6b39);
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: linear-gradient(160deg, #3fa860, #1f6b39);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
   }
-
+  
   .brand-name {
-    font-size:17px;
-    line-height:1.1;
-    font-weight:700;
-    color:#fff;
+    font-size: 17px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.1;
     margin-top: 4px;
   }
-
+  
   .brand-sub {
-    font-size:11px;
-    color:#8fa88f;
+    font-size: 11px;
+    color: #8fa88f;
   }
-
+  
   .nav {
-    list-style:none;
-    margin:0;
-    padding:0;
-    display:flex;
-    flex-direction:column;
-    gap:2px;
-    flex:1;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
     margin-top: 6px;
     overflow-y: auto;
     min-height: 0;
+    margin: 0;
+    padding: 0;
   }
-
+  
+  .nav li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
   .nav li a {
-    display:flex;
-    align-items:center;
-    gap:11px;
-    padding:10px 12px;
-    border-radius:8px;
-    font-size:13.5px;
-    font-weight:500;
-    color:#c4d1c4;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: #c4d1c4;
+    font-weight: 500;
     transition: background .15s;
+    text-decoration: none;
   }
-
-  .nav li a:hover { 
-    background:var(--sidebar-bg-light);
+  
+  .nav li a:hover {
+    background: var(--sidebar-bg-light);
     color: #fff;
   }
+  
   .nav li a.active {
-    background:var(--accent);
-    color:#fff;
+    background: var(--accent);
+    color: #fff;
   }
-
+  
   .nav-icon {
-    width:18px;
-    height:18px;
-    stroke:currentColor;
-    fill:none;
-    stroke-width:1.8;
-    stroke-linecap:round;
-    stroke-linejoin:round;
-    flex-shrink:0;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
-
+  
   .sidebar-footer {
-    border-top:1px solid #2a3d2a;
-    padding-top:14px;
+    border-top: 1px solid #2a3d2a;
+    padding-top: 14px;
     margin-top: 10px;
     flex-shrink: 0;
   }
-
+  
   .user-chip {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:6px 8px 14px 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px 14px 8px;
   }
-
+  
   .avatar {
-    width:36px;
-    height:36px;
-    border-radius:50%;
-    display:grid;
-    place-items:center;
-    background:var(--accent);
-    color:#fff;
-    font-size:13px;
-    font-weight:700;
-    flex-shrink:0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #fff;
+    font-size: 13px;
+    flex-shrink: 0;
   }
-
+  
   .user-chip .name {
-    font-size:13.5px;
-    font-weight:600;
-    color:#fff;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #fff;
   }
-
+  
   .user-chip .role {
-    font-size:11px;
-    color:#8fa88f;
+    font-size: 11px;
+    color: #8fa88f;
   }
-
+  
   .logout-btn {
-    width:100%;
-    display:flex;
-    align-items:center;
-    gap:8px;
-    border:1px solid #33472f;
-    border-radius:8px;
-    background:transparent;
-    color:#c4d1c4;
-    padding:9px 12px;
-    font-size:13px;
-    font-weight:500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: transparent;
+    border: 1px solid #33472f;
+    color: #c4d1c4;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
     transition: all 0.2s ease;
   }
-
+  
   .logout-btn:hover {
-    background:var(--sidebar-bg-light);
+    background: var(--sidebar-bg-light);
   }
-
-  .main {
-    flex:1;
-    padding:18px 26px 18px 24px;
+  
+  .main-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 20px;
   }
-
-  .topbar {
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    margin-bottom:18px;
+  
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    background: #ffffff;
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(15,23,42,0.08);
+    border-radius: 12px;
+    margin-bottom: 20px;
   }
-
-  .topbar h1 {
-    margin:0 0 4px;
-    font-size:22px;
-    letter-spacing:-0.02em;
+  
+  .top-copy h1 { 
+    margin: 0; 
+    font-size: 28px; 
+    color: #0f172a; 
+    font-weight: 700; 
   }
-
-  .topbar p {
-    margin:0;
-    color:var(--text-soft);
-    font-size:13px;
+  
+  .top-copy p { 
+    margin: 8px 0 0; 
+    color: #475569; 
+    font-size: 14px; 
   }
-
-  .topbar-right {
-    display:flex;
-    align-items:center;
-    gap:12px;
+  
+  .top-meta {
+    display: grid;
+    gap: 10px;
+    text-align: right;
   }
-
-  .admin-pill {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:4px 8px 4px 4px;
-    border:1px solid var(--border);
-    border-radius:999px;
-    background:rgba(255,255,255,0.35);
+  
+  .top-meta .meta-label { 
+    color: #94a3b8; 
+    font-size: 13px; 
   }
-
-  .admin-pill .avatar {
-    width:28px;
-    height:28px;
-    font-size:11px;
+  
+  .top-meta strong { 
+    display: block; 
+    color: #0f172a; 
+    font-size: 16px; 
   }
-
-  .admin-name {
-    font-size:13px;
-    font-weight:600;
+  
+  .hero-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
   }
-
-  .admin-role {
-    font-size:11px;
-    color:var(--text-soft);
+  
+  .hero-card {
+    background: #ffffff;
+    padding: 20px;
+    box-shadow: 0 18px 36px rgba(15,23,42,0.06);
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    transition: all 0.2s ease;
   }
-
-  .section-label-row {
-    display:flex;
-    gap:26px;
-    border-bottom:1px solid var(--border);
-    margin-bottom:18px;
+  
+  .hero-card:hover {
+    box-shadow: 0 24px 48px rgba(15,23,42,0.08);
+    transform: translateY(-2px);
   }
-
-  .section-chip {
-    display:inline-block;
-    padding:10px 2px 12px;
-    border-bottom:2px solid transparent;
-    font-size:13px;
-    font-weight:600;
-    color:var(--text-soft);
+  
+  .hero-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
   }
-
-  .section-chip.active {
-    color:var(--green-deep);
-    border-bottom-color:var(--green-deep);
+  
+  .hero-card-title i {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    background: #e2f8ed;
+    color: #15803d;
+    border-radius: 10px;
+    font-size: 15px;
   }
-
-  .stats {
-    display:grid;
-    grid-template-columns:repeat(5,minmax(0,1fr));
-    gap:14px;
-    margin-bottom:18px;
+  
+  .hero-card h3 { 
+    margin: 0; 
+    font-size: 12px; 
+    letter-spacing: 0.12em; 
+    text-transform: uppercase; 
+    color: #64748b; 
+    font-weight: 600; 
   }
-
-  .stat-card {
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-    padding:16px 18px 14px;
-    display:flex;
-    flex-direction:column;
-    justify-content:space-between;
-    min-height:90px;
-    box-shadow:0 1px 0 rgba(16,34,20,0.03);
+  
+  .hero-card p { 
+    margin: 0; 
+    font-size: 24px; 
+    font-weight: 700; 
+    color: #0f172a; 
   }
-
-  .stat-top {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
+  
+  .hero-card span { 
+    display: block; 
+    margin-top: 10px; 
+    font-size: 12px; 
+    color: #64748b; 
   }
-
-  .stat-value {
-    font-size:18px;
-    font-weight:700;
-    letter-spacing:-0.02em;
+  
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 2.25fr 1fr;
+    gap: 20px;
+    align-items: stretch;
   }
-
-  .stat-icon {
-    width:34px;
-    height:34px;
-    border-radius:8px;
-    display:grid;
-    place-items:center;
+  
+  .card {
+    background: #ffffff;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 18px 36px rgba(15,23,42,0.06);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    overflow: hidden;
   }
-
-  .stat-label {
-    font-size:12px;
-    color:var(--text-soft);
+  
+  .card:hover {
+    box-shadow: 0 24px 48px rgba(15,23,42,0.08);
   }
-
-  .content-grid {
-    display:grid;
-    grid-template-columns:1.7fr 0.92fr;
-    gap:20px;
-    align-items:start;
+  
+  .card h2 { 
+    margin: 0 0 16px; 
+    font-size: 18px; 
+    color: #0f172a; 
+    font-weight: 700; 
+    flex-shrink: 0;
   }
-
-  .panel {
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-    box-shadow:0 1px 0 rgba(16,34,20,0.02);
+  
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
   }
-
-  .user-panel {
-    padding:16px 18px 10px;
+  
+  .card select {
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #0f172a;
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 6px;
   }
-
-  .detail-panel {
-    padding:16px 18px 12px;
-  }
-
-  .panel-header {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom:14px;
-  }
-
-  .panel-title {
-    margin:0;
-    font-size:15px;
-    font-weight:700;
-  }
-
-  .header-actions {
-    display:flex;
-    align-items:center;
-    gap:8px;
-  }
-
-  .btn {
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    height:36px;
-    border-radius:8px;
-    border:1px solid var(--border);
-    padding:0 14px;
-    font-size:13px;
-    font-weight:600;
-  }
-
-  .btn-primary {
-    background:linear-gradient(180deg,#2d9c5d,#228748);
-    border-color:transparent;
-    color:#fff;
-  }
-
-  .btn-secondary {
-    background:#fff;
-    color:var(--text);
-  }
-
+  
   .toolbar {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-    margin-bottom:14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
   }
-
+  
   .search-box {
-    flex:1 1 270px;
-    display:flex;
-    align-items:center;
-    gap:8px;
-    min-width:0;
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:8px 12px;
-    background:var(--panel-soft);
+    flex: 1 1 200px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: #f8fafc;
   }
-
+  
   .search-box input {
-    flex:1;
-    min-width:0;
-    border:none;
-    background:transparent;
-    outline:none;
-    color:var(--text);
-    font-size:13px;
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    outline: none;
+    color: #0f172a;
+    font-size: 13px;
   }
-
+  
   .filter-box {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-    min-width:140px;
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:8px 10px;
-    background:var(--panel-soft);
-    color:var(--text-soft);
-    font-size:13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-width: 130px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 13px;
   }
-
+  
   .filter-box select {
-    appearance:none;
-    border:none;
-    background:transparent;
-    color:var(--text-soft);
-    outline:none;
-    font-size:13px;
-    padding-right:6px;
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: #475569;
+    outline: none;
+    font-size: 13px;
+    padding-right: 4px;
   }
-
+  
   .filter-button {
-    height:36px;
-    padding:0 14px;
-    border:1px solid var(--border);
-    background:#fff;
-    border-radius:8px;
-    color:var(--text-soft);
-    font-size:13px;
-    font-weight:600;
+    height: 40px;
+    padding: 0 16px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    border-radius: 8px;
+    color: #475569;
+    font-size: 14px;
+    font-weight: 600;
   }
-
+  
   .user-list-table {
-    width:100%;
-    border-collapse:collapse;
-    table-layout:fixed;
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    margin-top: 8px;
   }
-
+  
   .user-list-table th,
   .user-list-table td {
-    text-align:left;
-    border-bottom:1px solid var(--border);
-    padding:10px 8px;
-    vertical-align:middle;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 8px;
+    vertical-align: middle;
+    word-break: break-word;
   }
-
+  
+  .table-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  
   .user-list-table thead th {
-    font-size:11px;
-    letter-spacing:0.06em;
-    text-transform:uppercase;
-    color:var(--muted);
-    font-weight:700;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    font-weight: 700;
+    background: #f8fafc;
   }
-
-  .user-list-table tbody tr:last-child td { border-bottom:none; }
-  .user-list-table tbody tr:hover { background:#f8faf8; }
-
+  
+  .user-list-table tbody tr:hover { 
+    background: #f8fafc; 
+  }
+  
   .user-cell {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    min-width:0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
   }
-
+  
   .thumb {
-    width:36px;
-    height:36px;
-    border-radius:50%;
-    display:grid;
-    place-items:center;
-    background:linear-gradient(145deg,#d6e7d9,#a9c9b0);
-    color:#1d4129;
-    font-size:11px;
-    font-weight:700;
-    flex-shrink:0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(145deg, #e2f8ed, #c6e9db);
+    color: #0f6938;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
   }
-
+  
   .user-name {
-    font-size:13px;
-    font-weight:600;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-
+  
   .user-email {
-    font-size:11px;
-    color:var(--text-soft);
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
+    font-size: 12px;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-
+  
   .badge {
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:4px 10px;
-    border-radius:999px;
-    font-size:11px;
-    font-weight:600;
-    line-height:1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
   }
-
-  .badge.hiker { background:var(--blue-soft); color:var(--blue); }
-  .badge.guide { background:var(--green-soft); color:var(--green); }
-  .badge.ranger { background:var(--amber-soft); color:var(--amber); }
-  .badge.admin { background:var(--green-soft); color:var(--green); }
-  .badge.active { background:var(--green-soft); color:var(--green); }
-  .badge.inactive { background:var(--red-soft); color:var(--red); }
-  .badge.suspended { background:var(--red-soft); color:var(--red); }
-
-  .team-cell { color:var(--text-soft); font-size:12px; }
+  
+  .badge.hiker { background: #dbeafe; color: #0284c7; }
+  .badge.guide { background: #dcfce7; color: #16a34a; }
+  .badge.ranger { background: #fef3c7; color: #d97706; }
+  .badge.admin { background: #dcfce7; color: #16a34a; }
+  .badge.active { background: #dcfce7; color: #16a34a; }
+  .badge.inactive { background: #fee2e2; color: #dc2626; }
+  .badge.suspended { background: #fee2e2; color: #dc2626; }
+  
+  .team-cell { color: #475569; font-size: 14px; }
+  
   .last-active {
-    font-size:12px;
-    color:var(--text-soft);
-    line-height:1.45;
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.4;
   }
-
-  .last-active strong { color:var(--text); font-weight:600; }
-
+  
+  .last-active strong { color: #0f172a; font-weight: 600; }
+  
   .table-actions {
-    display:flex;
-    align-items:center;
-    gap:6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
-
+  
   .table-action {
-    width:28px;
-    height:28px;
-    border:1px solid var(--border);
-    border-radius:6px;
-    background:#fff;
-    color:var(--text-soft);
-    display:grid;
-    place-items:center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fff;
+    color: #94a3b8;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
-
+  
+  .table-action:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+  }
+  
   .profile-header {
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding-bottom:10px;
-    margin-bottom:14px;
-    border-bottom:1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
   }
-
+  
   .profile-header .avatar {
-    width:42px;
-    height:42px;
-    font-size:12px;
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
   }
-
+  
   .profile-name-wrap {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-    flex:1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    flex: 1;
   }
-
+  
   .profile-name {
-    font-size:14px;
-    font-weight:700;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
   }
-
+  
+  .profile-email {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 3px;
+  }
+  
   .status-pill {
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:4px 8px;
-    border-radius:999px;
-    background:var(--green-soft);
-    color:var(--green);
-    font-size:11px;
-    font-weight:700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #dcfce7;
+    color: #16a34a;
+    font-size: 12px;
+    font-weight: 700;
   }
-
+  
   .detail-info {
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+    margin-bottom: 16px;
   }
-
+  
   .field {
-    display:flex;
-    flex-direction:column;
-    gap:6px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
-
+  
   .field label {
-    font-size:11px;
-    font-weight:700;
-    color:var(--text-soft);
-    letter-spacing:0.04em;
-    text-transform:uppercase;
+    font-size: 12px;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
-
+  
   .field input {
-    width:100%;
-    border:1px solid var(--border);
-    background:var(--panel-soft);
-    border-radius:8px;
-    padding:9px 10px;
-    color:var(--text);
-    font-size:13px;
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #0f172a;
+    font-size: 14px;
   }
-
+  
   .detail-actions {
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin-top:16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
   }
-
-  .mini-btn {
-    flex:1 1 48%;
-    min-height:36px;
-    border:1px solid var(--border);
-    border-radius:8px;
-    background:#fff;
-    color:var(--text);
-    font-size:12px;
-    font-weight:600;
+  
+  .action-btn {
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fff;
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
-
-  .mini-btn.primary {
-    background:var(--green-soft);
-    border-color:rgba(47,143,78,0.12);
-    color:var(--green-deep);
+  
+  .action-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
   }
-
-  .mini-btn.danger {
-    background:var(--red-soft);
-    border-color:rgba(217,83,79,0.15);
-    color:var(--red);
+  
+  .action-btn.primary {
+    background: #dcfce7;
+    border-color: #a7f3d0;
+    color: #166a3c;
   }
-
-  .recent-panel {
-    margin-top:18px;
+  
+  .action-btn.primary:hover {
+    background: #bbf7d0;
   }
-
+  
+  .action-btn.danger {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+  }
+  
+  .action-btn.danger:hover {
+    background: #fecaca;
+  }
+  
+  .activity-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+  }
+  
+  .activity-section h3 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  
   .activity-row {
-    display:flex;
-    align-items:flex-start;
-    gap:10px;
-    padding:10px 0;
-    border-bottom:1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
   }
-
-  .activity-row:last-child { border-bottom:none; }
-
+  
   .activity-dot {
-    width:9px;
-    height:9px;
-    border-radius:50%;
-    background:linear-gradient(180deg,#2d9c5d,#1f6b39);
-    margin-top:6px;
-    flex-shrink:0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #16a34a;
+    margin-top: 6px;
+    flex-shrink: 0;
   }
-
-  .activity-dot.warn {
-    background:linear-gradient(180deg,#dd5f57,#c93f3a);
-  }
-
+  
   .activity-title {
-    font-size:13px;
-    font-weight:600;
-    line-height:1.4;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
   }
-
+  
   .activity-time {
-    margin-top:4px;
-    font-size:11px;
-    color:var(--text-soft);
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 3px;
   }
-
-  .contact-cta {
-    width:100%;
-    margin-top:18px;
-    height:40px;
-    border:none;
-    border-radius:10px;
-    background:linear-gradient(180deg,#d9534f,#c94b46);
-    color:#fff;
-    font-weight:700;
-    font-size:13px;
+  
+  .contact-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ef4444, #dc2626);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
-
-  @media (max-width:1180px) {
-    .stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
-    .content-grid { grid-template-columns:1fr; }
+  
+  .contact-btn:hover {
+    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
   }
-
-  @media (max-width:720px) {
-    .app { display:block; }
-    .sidebar { width:100%; min-height:auto; position: relative; height: auto; }
-    .main { padding:18px 14px 24px; }
-    .stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .topbar { flex-direction:column; gap:12px; }
+  
+  .side-card {
+    background: #ffffff;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 18px 36px rgba(15,23,42,0.06);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    overflow: hidden;
   }
-
-  @media (max-width:500px) {
-    .stats { grid-template-columns:1fr; }
-    .toolbar { flex-direction:column; align-items:stretch; }
-    .filter-box, .search-box { width:100%; }
-    .detail-info { grid-template-columns:1fr; }
+  
+  .side-card:hover {
+    box-shadow: 0 24px 48px rgba(15,23,42,0.08);
+  }
+  
+  .side-card h3 { 
+    margin: 0 0 16px; 
+    font-size: 16px; 
+    color: #0f172a; 
+    font-weight: 700; 
+  }
+  
+  @media (max-width:1200px) {
+    .hero-grid { grid-template-columns: repeat(3, 1fr); }
+    .dashboard-grid { grid-template-columns: 1fr; }
+  }
+  
+  @media (max-width:900px) {
+    .hero-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  
+  @media (max-width:640px) {
+    .sidebar { width: 100%; height: auto; position: relative; padding: 16px 0; }
+    .main-panel { padding: 16px; }
+    .hero-grid { grid-template-columns: 1fr; }
+    .top-bar { flex-direction: column; }
+    .top-meta { text-align: left; }
+    .toolbar { flex-direction: column; }
+    .search-box, .filter-box { width: 100%; }
+    .detail-info { grid-template-columns: 1fr; }
+    .detail-actions { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -758,15 +804,15 @@
     </div>
 
     <ul class="nav">
-      <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
-      <li><a href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
-      <li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a></li>
-      <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a></li>
-      <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>Geomap Monitoring</a></li>
-      <li><a href="usermanagement.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
-      <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
-      <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
-      <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
+      <li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
+      <li><a href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
+      <li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a></li>
+      <li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a></li>
+      <li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>Geomap Monitoring</a></li>
+      <li><a href="usermanagement.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
+      <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
+      <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
+      <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
     </ul>
 
     <div class="sidebar-footer">
@@ -781,79 +827,54 @@
     </div>
   </aside>
 
-  <main class="main">
-    <section class="topbar">
-      <div>
+  <main class="main-panel">
+    <section class="top-bar">
+      <div class="top-copy">
         <h1>User Management</h1>
         <p>Manage hikers, trail admins, and system access roles.</p>
       </div>
-      <div class="topbar-right">
-        <div class="admin-pill" aria-label="Current user">
-          <div class="avatar">AU</div>
-          <div>
-            <div class="admin-name">Admin User</div>
-            <div class="admin-role">Super Administrator</div>
-          </div>
-        </div>
+      <div class="top-meta">
+        <div class="meta-label">Current User</div>
+        <strong>Admin User</strong>
+        <span>Super Administrator</span>
       </div>
     </section>
 
-    <div class="section-label-row">
-      <a class="section-chip active" href="usermanagement.html">Users</a>
-      <a class="section-chip" href="userreports.html">User Reports</a>
-    </div>
-
-    <section class="stats">
-      <div class="stat-card">
-        <div class="stat-top">
-          <span class="stat-value" id="totalUsersValue">1,248</span>
-          <div class="stat-icon" style="background:#eaf7ef"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2a8d52" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="8" r="2.5"/><path d="M15.5 19a4.5 4.5 0 018 0"/></svg></div>
-        </div>
-        <div class="stat-label">Total Users</div>
+    <section class="hero-grid">
+      <div class="hero-card">
+        <div class="hero-card-title"><i class="fa-solid fa-users"></i><h3>Total Users</h3></div>
+        <p id="totalUsersValue">—</p>
+        <span>All registered accounts</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <span class="stat-value" id="activeUsersValue">892</span>
-          <div class="stat-icon" style="background:#eaf7ef"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2a8d52" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg></div>
-        </div>
-        <div class="stat-label">Active Users</div>
+      <div class="hero-card">
+        <div class="hero-card-title"><i class="fa-solid fa-user-check"></i><h3>Active Users</h3></div>
+        <p id="activeUsersValue">—</p>
+        <span>Users active this month</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <span class="stat-value" id="teamCountValue">156</span>
-          <div class="stat-icon" style="background:#fef2e6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d0812a" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="8" r="2.5"/><path d="M15.5 19a4.5 4.5 0 018 0"/></svg></div>
-        </div>
-        <div class="stat-label">Teams</div>
+      <div class="hero-card">
+        <div class="hero-card-title"><i class="fa-solid fa-people-group"></i><h3>Teams</h3></div>
+        <p id="teamCountValue">—</p>
+        <span>Active team groups</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <span class="stat-value" id="emergencyAlertsValue">23</span>
-          <div class="stat-icon" style="background:#fbe9e7"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d9534f" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg></div>
-        </div>
-        <div class="stat-label">Emergency Alerts</div>
+      <div class="hero-card">
+        <div class="hero-card-title"><i class="fa-solid fa-shield"></i><h3>Administrators</h3></div>
+        <p id="adminCountValue">—</p>
+        <span>Admin accounts</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <span class="stat-value" id="adminCountValue">12</span>
-          <div class="stat-icon" style="background:#fef2e6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d0812a" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4z"/></svg></div>
-        </div>
-        <div class="stat-label">Administrators</div>
+      <div class="hero-card">
+        <div class="hero-card-title"><i class="fa-solid fa-triangle-exclamation"></i><h3>Emergency Alerts</h3></div>
+        <p id="emergencyAlertsValue">—</p>
+        <span>Users with alerts</span>
       </div>
     </section>
 
-    <section class="content-grid">
-      <div class="user-panel panel">
-        <div class="panel-header">
-          <h2 class="panel-title">User List</h2>
-          <div class="header-actions">
-            <button class="btn btn-primary" type="button">+ Add User</button>
-            <button class="btn btn-secondary" type="button">Export</button>
-          </div>
-        </div>
-
+    <section class="dashboard-grid">
+      <div class="card">
+        <h2>User List</h2>
+        
         <div class="toolbar">
           <div class="search-box">
-            <span class="icon">🔎</span>
+            <span>🔎</span>
             <input type="text" id="userSearchInput" placeholder="Search users..." />
           </div>
           <div class="filter-box">
@@ -877,33 +898,32 @@
             </select>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
           </div>
-          <button class="filter-button" type="button">Filters</button>
         </div>
 
-        <table class="user-list-table">
-          <thead>
-            <tr>
-              <th style="width:26%">User</th>
-              <th style="width:14%">Role</th>
-              <th style="width:16%">Team / Group</th>
-              <th style="width:14%">Status</th>
-              <th style="width:16%">Last Active</th>
-              <th style="width:14%">Registered On</th>
-              <th style="width:10%">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="usersTableBody"></tbody>
-        </table>
+        <div class="table-wrapper">
+          <table class="user-list-table">
+            <thead>
+              <tr>
+                <th style="width:26%">User</th>
+                <th style="width:14%">Role</th>
+                <th style="width:16%">Team / Group</th>
+                <th style="width:14%">Status</th>
+                <th style="width:16%">Last Active</th>
+                <th style="width:10%">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
       </div>
 
-      <aside class="detail-panel panel">
-        <div class="panel-title">User Details</div>
+      <div class="side-card">
         <div class="profile-header">
-          <div class="avatar" id="detailAvatar">H</div>
+          <div class="avatar" id="detailAvatar">U</div>
           <div class="profile-name-wrap">
             <div>
-              <div class="profile-name" id="detailName">User</div>
-              <div id="detailEmail" style="font-size:11px;color:var(--text-soft);margin-top:2px">user@email.com</div>
+              <div class="profile-name" id="detailName">No user selected</div>
+              <div class="profile-email" id="detailEmail">Select a user to view details</div>
             </div>
             <span class="status-pill" id="detailStatusBadge">Active</span>
           </div>
@@ -926,48 +946,39 @@
             <label>Last Active</label>
             <input id="detailLastActive" type="text" value="—" readonly />
           </div>
-          <div class="field full">
+          <div class="field" style="grid-column: 1 / -1;">
             <label>Assigned Area</label>
             <input id="detailArea" type="text" value="—" readonly />
-          </div>
-          <div class="field">
-            <label>Total Hikes</label>
-            <input id="detailTotalHikes" type="text" value="—" readonly />
-          </div>
-          <div class="field">
-            <label>Total Distance</label>
-            <input id="detailDistance" type="text" value="—" readonly />
-          </div>
-          <div class="field full">
-            <label>Status</label>
-            <input id="detailStatus" type="text" value="—" readonly />
           </div>
         </div>
 
         <div class="detail-actions">
-          <button class="mini-btn primary" type="button">View Profile</button>
-          <button class="mini-btn" type="button">Edit User</button>
-          <button class="mini-btn" type="button">Reset Password</button>
-          <button id="deactivateUserBtn" class="mini-btn danger" type="button">Deactivate</button>
+          <button class="action-btn primary" type="button">View Profile</button>
+          <button class="action-btn" type="button">Edit User</button>
+          <button class="action-btn" type="button">Reset Password</button>
+          <button id="deactivateUserBtn" class="action-btn danger" type="button">Deactivate</button>
         </div>
 
-        <div class="recent-panel" style="margin-top:18px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <h3 style="font-size:15px;font-weight:700;">Recent Activities</h3>
-            <a href="#" style="font-size:12px;color:var(--text-soft);">View All</a>
-          </div>
-
+        <div class="activity-section">
+          <h3>Activity Summary</h3>
           <div class="activity-row">
             <div class="activity-dot"></div>
-            <div class="activity-details">
-              <div class="activity-title">No recent activity available.</div>
-              <div class="activity-time">Waiting for database activity.</div>
+            <div>
+              <div class="activity-title">Total Hikes</div>
+              <div id="detailTotalHikes" class="activity-time">—</div>
+            </div>
+          </div>
+          <div class="activity-row">
+            <div class="activity-dot"></div>
+            <div>
+              <div class="activity-title">Total Distance</div>
+              <div id="detailDistance" class="activity-time">—</div>
             </div>
           </div>
         </div>
 
-        <button class="contact-cta" type="button">✆ Contact User (Emergency)</button>
-      </aside>
+        <button class="contact-btn" type="button">📞 Contact User (Emergency)</button>
+      </div>
     </section>
   </main>
 </div>
@@ -1111,7 +1122,7 @@
     });
 
     if (!filtered.length) {
-      usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--text-soft);">No users found for the selected filters.</td></tr>';
+      usersTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#94a3b8;">No users found for the selected filters.</td></tr>';
       return;
     }
 
@@ -1129,11 +1140,10 @@
         <td><span class="badge ${toBadgeClass(user.role)}">${user.role || 'Hiker'}</span></td>
         <td class="team-cell">${user.team}</td>
         <td><span class="badge ${getUserStatusClass(user.status)}">${user.status || 'Active'}</span></td>
-        <td class="last-active"><strong>${formatDisplayDate(user.lastActive)}</strong><br>${formatDisplayDateTime(user.lastActive).includes('—') ? '' : formatDisplayDateTime(user.lastActive)}</td>
-        <td class="last-active"><strong>${formatDisplayDate(user.memberSince)}</strong><br>${formatDisplayDateTime(user.memberSince).includes('—') ? '' : formatDisplayDateTime(user.memberSince)}</td>
+        <td class="last-active"><strong>${formatDisplayDate(user.lastActive)}</strong></td>
         <td>
           <div class="table-actions">
-            <button class="table-action" aria-label="View details">◉</button>
+            <button class="table-action" aria-label="View details">👁</button>
             <button class="table-action" aria-label="Edit user">✎</button>
             <button class="table-action" aria-label="More actions">⋮</button>
           </div>
@@ -1156,7 +1166,7 @@
     }
 
     usersTableBody.querySelectorAll('tr[data-user-id]').forEach((row) => {
-      row.style.background = row.dataset.userId === state.selectedUserId ? 'rgba(47,143,78,0.05)' : '';
+      row.style.background = row.dataset.userId === state.selectedUserId ? '#f0fdf4' : '';
     });
   };
 
@@ -1164,16 +1174,15 @@
     const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
     if (!selectedUser) {
       document.getElementById('detailName').textContent = 'No user selected';
-      document.getElementById('detailEmail').textContent = 'No records';
+      document.getElementById('detailEmail').textContent = 'Select a user to view details';
       document.getElementById('detailStatusBadge').textContent = '—';
       document.getElementById('detailPhone').value = '—';
       document.getElementById('detailTeam').value = '—';
       document.getElementById('detailMemberSince').value = '—';
       document.getElementById('detailLastActive').value = '—';
       document.getElementById('detailArea').value = '—';
-      document.getElementById('detailTotalHikes').value = '—';
-      document.getElementById('detailDistance').value = '—';
-      document.getElementById('detailStatus').value = '—';
+      document.getElementById('detailTotalHikes').textContent = '—';
+      document.getElementById('detailDistance').textContent = '—';
       if (deactivateUserBtn) {
         deactivateUserBtn.disabled = true;
         deactivateUserBtn.textContent = 'Deactivate';
@@ -1185,17 +1194,16 @@
     document.getElementById('detailName').textContent = selectedUser.name;
     document.getElementById('detailEmail').textContent = selectedUser.email;
     document.getElementById('detailStatusBadge').textContent = selectedUser.status || 'Active';
-    document.getElementById('detailStatusBadge').style.background = selectedUser.status.toLowerCase() === 'active' ? 'var(--green-soft)' : 'var(--red-soft)';
-    document.getElementById('detailStatusBadge').style.color = selectedUser.status.toLowerCase() === 'active' ? 'var(--green)' : 'var(--red)';
+    document.getElementById('detailStatusBadge').style.background = selectedUser.status.toLowerCase() === 'active' ? '#dcfce7' : '#fee2e2';
+    document.getElementById('detailStatusBadge').style.color = selectedUser.status.toLowerCase() === 'active' ? '#16a34a' : '#dc2626';
 
     document.getElementById('detailPhone').value = selectedUser.phone || '—';
     document.getElementById('detailTeam').value = selectedUser.team || '—';
     document.getElementById('detailMemberSince').value = formatDisplayDate(selectedUser.memberSince);
     document.getElementById('detailLastActive').value = formatDisplayDateTime(selectedUser.lastActive);
     document.getElementById('detailArea').value = selectedUser.area || '—';
-    document.getElementById('detailTotalHikes').value = selectedUser.totalHikes || '—';
-    document.getElementById('detailDistance').value = selectedUser.totalDistance || '—';
-    document.getElementById('detailStatus').value = selectedUser.status || 'Active';
+    document.getElementById('detailTotalHikes').textContent = selectedUser.totalHikes || '—';
+    document.getElementById('detailDistance').textContent = selectedUser.totalDistance || '—';
 
     if (deactivateUserBtn) {
       deactivateUserBtn.disabled = false;
@@ -1224,7 +1232,7 @@
   onSnapshot(collection(db, 'users'), (snapshot) => {
     state.users = snapshot.docs.map(normalizeUser);
     if (!state.users.length) {
-      usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--text-soft);">No users found in Firestore.</td></tr>';
+      usersTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#94a3b8;">No users found in database.</td></tr>';
       return;
     }
 
@@ -1237,7 +1245,7 @@
     renderSelectedUser();
   }, (error) => {
     console.error('Error loading users:', error);
-    usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--text-soft);">Unable to load users from the database.</td></tr>';
+    usersTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#94a3b8;">Unable to load users from database.</td></tr>';
   });
 
   searchInput.addEventListener('input', () => {
