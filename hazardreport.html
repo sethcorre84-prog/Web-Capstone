@@ -355,12 +355,12 @@
   .filters-row{
     display:flex;
     gap:10px;
-    flex-wrap:wrap;
+    flex-wrap:nowrap;
     align-items:center;
   }
   .search-box{
-  flex:1;
-  min-width:160px;
+  flex:1 1 140px;
+  min-width:100px;
   display:flex;
   align-items:center;
   gap:8px;
@@ -368,7 +368,7 @@
   border-radius:8px;
   padding:8px 12px;
   background:#fbfcfa;
-}
+  }
   .search-box input{
     width:100%;
     border:none;
@@ -389,7 +389,10 @@
   background:#fbfcfa;
   font-size:13px;
   color:var(--text-600);
-}
+  flex:0 0 auto;
+  width:auto;
+  min-width:0;
+  }
   .date-range-row{
     display:flex;
     gap:10px;
@@ -1423,7 +1426,7 @@ async function confirmArchiveReports() {
     ids.forEach(id => selectedArchiveIds.delete(id));
 
     if (selectedReport && ids.includes(selectedReport.id)) {
-      selectedReport = null;
+      selectedReport = null; 
       renderReportDetails(null);
     }
 
