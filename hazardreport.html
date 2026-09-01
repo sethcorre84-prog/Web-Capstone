@@ -1588,6 +1588,8 @@ function openStatusModal(reportId, newStatus) {
   const reason = document.getElementById('statusReason');
   const reasonLabel = document.getElementById('statusReasonLabel');
 
+  confirmBtn.disabled = false;
+
   document.getElementById('modalReportId').textContent =
     report.reportId || report.id;
   document.getElementById('modalHazardType').textContent =
@@ -2036,7 +2038,10 @@ function loadReports() {
     updateStats();
     renderRejectedList();
 
-    if (allReports.length > 0 && !selectedReport) {
+    if (selectedReport) {
+      selectedReport = allReports.find(r => r.id === selectedReport.id) || null;
+      renderReportDetails(selectedReport);
+    } else if (allReports.length > 0) {
       selectedReport = allReports[0];
       renderReportDetails(selectedReport);
     }
