@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="pages.css">
 <script type="module" src="notification.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <title>PeakPath Admin — Hazard Reports</title>
 <style>
   @view-transition {
@@ -522,6 +524,15 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     font-size:16px;
     font-weight:700;
   }
+  .list-header-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:12px;
+}
+.list-header-top h2{
+  margin:0;
+}
   .filters-row{
     display:flex;
     gap:10px;
@@ -1238,8 +1249,16 @@ body[data-theme="dark"] .admin-dropdown a:hover{
         <!-- LEFT: Reports list -->
         <div class="card">
           <div class="list-card-header">
-            <h2>Hazard Reports List</h2>
-            <div class="filters-row">
+  <div class="list-header-top">
+  <h2>Hazard Reports List</h2>
+  <div class="archive-action-wrap">
+    <button class="archive-action" id="viewReportsBtn" type="button" aria-label="View reports">
+      <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      <span class="archive-tooltip">View reports</span>
+    </button>
+  </div>
+</div>
+  <div class="filters-row">
               <div class="search-box">
                 <span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></span>
                 <input type="text" placeholder="Search reports..." id="searchInput">
@@ -1548,6 +1567,53 @@ function renderReportsTable(reports) {
     `Showing ${showingStart} to ${showingEnd} of ${reports.length} reports`;
 
   renderPagination(reports.length);
+}
+
+// Export the currently filtered hazard reports (respects active
+// search/status/hazard/date filters, exports ALL matching pages —
+// not just the one visible on screen) as a downloadable PDF.
+function exportReportsToPDF() {
+  const { jsPDF } = window.jspdf;
+  const docPdf = new jsPDF({ orientation: 'landscape' });
+
+  const reports = currentFilteredReports.length ? currentFilteredReports : allReports;
+
+  docPdf.setFontSize(14);
+  docPdf.text('PeakPath — Hazard Reports', 14, 15);
+  docPdf.setFontSize(10);
+  docPdf.setTextColor(100);
+  docPdf.text(`Generated ${new Date().toLocaleString('en-US')} • ${reports.length} report(s)`, 14, 21);
+
+  const rows = reports.map((report, index) => {
+    const risk = getRiskLevel(report);
+    const date = report.timestamp
+      ? (report.timestamp.toDate ? report.timestamp.toDate() : new Date(report.timestamp))
+      : null;
+    const dateStr = date ? date.toLocaleString('en-US', {
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    }) : 'N/A';
+
+    return [
+      report.reportId || `HR-${index + 1}`,
+      report.hazardType || 'Unknown',
+      report.location || 'N/A',
+      report.reportedBy || 'Anonymous',
+      risk.label,
+      report.status ? report.status.charAt(0).toUpperCase() + report.status.slice(1) : '',
+      dateStr
+    ];
+  });
+
+  docPdf.autoTable({
+    startY: 26,
+    head: [['Report ID', 'Hazard Type', 'Location / Trail', 'Reported By', 'Risk Level', 'Status', 'Reported On']],
+    body: rows,
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: [47, 143, 78] }, // matches --accent
+    alternateRowStyles: { fillColor: [247, 249, 247] }
+  });
+
+  docPdf.save(`hazard-reports-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
 function renderPagination(totalItems) {
@@ -2344,7 +2410,6 @@ document.getElementById('searchInput').addEventListener('input', () => filterRep
 document.getElementById('statusFilter').addEventListener('change', () => filterReports());
 document.getElementById('hazardFilter').addEventListener('change', () => filterReports());
 document.getElementById('dateFilter').addEventListener('change', () => filterReports());
-
 document.getElementById('clearFiltersBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
   document.getElementById('statusFilter').value = '';
@@ -2352,6 +2417,9 @@ document.getElementById('clearFiltersBtn').addEventListener('click', () => {
   document.getElementById('dateFilter').value = '';
   filterReports();
 });
+
+document.getElementById('viewReportsBtn')?.addEventListener('click', exportReportsToPDF);
+  document.querySelector('table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
 // Modal event handlers
 document.getElementById('modalCancelBtn').addEventListener('click', closeStatusModal);

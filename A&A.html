@@ -155,13 +155,14 @@
 		.page-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--card-bg);display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
 		.page-btn[disabled]{opacity:.4;cursor:default}
 		.page-btn.current{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
-		.stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+		.stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
 		.stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:10px}
 		.stat-top{display:flex;justify-content:space-between;align-items:center}
 		.stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 		.stat-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 		.stat-num{font-size:24px;font-weight:700;color:var(--text-primary);line-height:1.1}
 		.stat-label{font-size:12px;color:var(--text-secondary)}
+		.stat-label .meta-line{font-size:11px;color:var(--text-muted);margin-top:2px}
 		/* Modal */
 		.modal-overlay{position:fixed;inset:0;background:rgba(15,25,15,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;z-index:100}
 		.modal-overlay.open{display:flex}
@@ -227,16 +228,13 @@
 				</div>
 			</div>
 
-			<div class="content-grid">
-				<div>
-					<div class="panel">
-						<div class="panel-title">Advisory Statistics (This Month)</div>
-						<div class="stats-grid" id="statsGrid"></div>
-					</div>
+			<div class="stats-grid" id="statsGrid"></div>
 
-					<div class="panel">
-        			<div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
-            		<span>Advisories &amp; Announcements</span>
+<div class="content-grid">
+    <div>
+        <div class="panel">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Advisories &amp; Announcements</span>
             		<button class="button button-green" id="createBtn" style="padding:8px 14px;font-size:12.5px">+ Create New</button>
         			</div>
         			<div class="toolbar">
@@ -596,28 +594,34 @@ async function syncExpiredAdvisories(){
 			wrap.appendChild(next);
 		}
 
-		function renderStats(){
-			const active = allItems.filter(d => getEffectiveStatus(d) === 'Active').length;
-			const scheduled = allItems.filter(d => getEffectiveStatus(d) === 'Scheduled').length;
-			const expired = allItems.filter(d => getEffectiveStatus(d) === 'Expired').length;
+	function renderStats(){
+    const active = allItems.filter(d => getEffectiveStatus(d) === 'Active').length;
+    const scheduled = allItems.filter(d => getEffectiveStatus(d) === 'Scheduled').length;
+    const expired = allItems.filter(d => getEffectiveStatus(d) === 'Expired').length;
+    const archived = allItems.filter(d => (d.status || '').toLowerCase() === 'archived').length;
 
-			const cards = [
-				{ label:'Active Advisories', num:active, bg:'var(--accent-light)', fg:'var(--accent)', icon:'<path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/>' },
-				{ label:'Scheduled', num:scheduled, bg:'var(--warning-light)', fg:'var(--warning)', icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' },
-				{ label:'Expired', num:expired, bg:'#f1f1ee', fg:'var(--text-muted)', icon:'<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>' }
-			];
-			const grid = document.getElementById('statsGrid');
-			grid.innerHTML = '';
-			cards.forEach(c => {
-				const card = el('div','stat-card');
-				card.innerHTML = `<div class="stat-top">
-						<span class="stat-num">${c.num}</span>
-						<div class="stat-icon" style="background:${c.bg};color:${c.fg}"><svg viewBox="0 0 24 24">${c.icon}</svg></div>
-					</div>
-					<div class="stat-label">${c.label}</div>`;
-				grid.appendChild(card);
-			});
-		}
+    // Same "X% of total" pattern as the stat cards in hazardreport.html.
+    const total = allItems.length;
+    const pct = (n) => (total ? Math.round((n / total) * 100) : 0) + '% of total';
+
+    const cards = [
+        { label:'Active Advisories', num:active, bg:'var(--accent-light)', fg:'var(--accent)', icon:'<path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/>', meta: pct(active) },
+        { label:'Scheduled', num:scheduled, bg:'var(--warning-light)', fg:'var(--warning)', icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', meta: pct(scheduled) },
+        { label:'Expired', num:expired, bg:'#f1f1ee', fg:'var(--text-muted)', icon:'<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>', meta: pct(expired) },
+        { label:'Archived', num:archived, bg:'var(--danger-light)', fg:'var(--danger)', icon:'<path d="M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M8 7V4h8v3"/><path d="M9 12h6"/>', meta: pct(archived) }
+    ];
+    const grid = document.getElementById('statsGrid');
+    grid.innerHTML = '';
+    cards.forEach(c => {
+        const card = el('div','stat-card');
+        card.innerHTML = `<div class="stat-top">
+                <span class="stat-num">${c.num}</span>
+                <div class="stat-icon" style="background:${c.bg};color:${c.fg}"><svg viewBox="0 0 24 24">${c.icon}</svg></div>
+            </div>
+            <div class="stat-label">${c.label}<div class="meta-line">${c.meta}</div></div>`;
+        grid.appendChild(card);
+    });
+}
 
 		function renderList(items) {
 			const tbody = document.getElementById('listBody');
