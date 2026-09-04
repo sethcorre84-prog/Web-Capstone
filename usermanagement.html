@@ -715,6 +715,112 @@
     background: #f8fafc;
     border-color: #cbd5e1;
   }
+
+  .action-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .action-status {
+    min-height: 18px;
+    margin: -6px 0 12px;
+    color: #475569;
+    font-size: 12px;
+  }
+
+  .action-status.success {
+    color: #166a3c;
+  }
+
+  .action-status.error {
+    color: #b91c1c;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+    overflow-y: auto;
+    background: rgba(15, 25, 15, 0.45);
+  }
+
+  .modal-overlay.open {
+    display: flex;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 560px;
+    padding: 22px 24px 24px;
+    border-radius: 12px;
+    background: #fff;
+  }
+
+  .modal h2 {
+    margin: 0 0 16px;
+    color: #1f2a22;
+    font-size: 18px;
+  }
+
+  .modal .field {
+    margin-bottom: 13px;
+  }
+
+  .modal .field label {
+    display: block;
+    margin-bottom: 5px;
+    color: #5b6b60;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  .modal .field input,
+  .modal .field select {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fbfcfa;
+    color: #1f2a22;
+    font: inherit;
+    font-size: 13px;
+  }
+
+  .modal .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .modal-actions button {
+    padding: 9px 16px;
+    border: 0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .modal-cancel {
+    background: #f1f3ef;
+    color: #1f2a22;
+  }
+
+  .modal-save {
+    background: #2f8f4e;
+    color: #fff;
+  }
   
   .action-btn.primary {
     background: #dcfce7;
@@ -1087,11 +1193,12 @@
         </div>
 
         <div class="detail-actions">
-          <button class="action-btn primary" type="button">View Profile</button>
-          <button class="action-btn" type="button">Edit User</button>
-          <button class="action-btn" type="button">Reset Password</button>
+          <button id="viewProfileBtn" class="action-btn primary" type="button">View Profile</button>
+          <button id="editUserBtn" class="action-btn" type="button" disabled>Edit User</button>
+          <button id="resetPasswordBtn" class="action-btn" type="button" disabled>Reset Password</button>
           <button id="deactivateUserBtn" class="action-btn danger" type="button">Deactivate</button>
         </div>
+        <p id="resetPasswordStatus" class="action-status" role="status" aria-live="polite"></p>
 
         <div class="activity-section">
           <h3>Activity Summary</h3>
@@ -1118,8 +1225,54 @@
   </main>
 </div>
 
+<div id="editUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
+  <form id="editUserForm" class="modal">
+    <h2 id="editUserTitle">Edit User</h2>
+    <div class="field">
+      <label for="editUserName">Full Name</label>
+      <input id="editUserName" name="fullName" type="text" required>
+    </div>
+    <div class="field">
+      <label for="editUserEmail">Email</label>
+      <input id="editUserEmail" name="email" type="email" required>
+    </div>
+    <div class="field">
+        <label for="editUserStatus">Status</label>
+        <select id="editUserStatus" name="status">
+          <option>Active</option>
+          <option>Inactive</option>
+          <option>Pending</option>
+          <option>Suspended</option>
+        </select>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="editUserTeam">Team</label>
+        <input id="editUserTeam" name="team" type="text">
+      </div>
+      <div class="field">
+        <label for="editUserPhone">Phone</label>
+        <input id="editUserPhone" name="phone" type="text">
+      </div>
+    </div>
+    <div class="field">
+      <label for="editUserEmergencyContact">Emergency Contact</label>
+      <input id="editUserEmergencyContact" name="emergencyContact" type="text">
+    </div>
+    <div class="field">
+      <label for="editUserArea">Assigned Area</label>
+      <input id="editUserArea" name="assignedArea" type="text">
+    </div>
+    <div class="modal-actions">
+      <button id="cancelEditUserBtn" class="modal-cancel" type="button">Cancel</button>
+      <button id="saveEditUserBtn" class="modal-save" type="submit">Save Changes</button>
+    </div>
+  </form>
+</div>
+
 <script type="module">
-  import { db } from './firebase-config.js';
+  import { auth, db } from './firebase-config.js';
+  import { sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
     collection,
     doc,
@@ -1131,6 +1284,13 @@
   const searchInput = document.getElementById('userSearchInput');
   const roleFilter = document.getElementById('userRoleFilter');
   const statusFilter = document.getElementById('userStatusFilter');
+  const resetPasswordBtn = document.getElementById('resetPasswordBtn');
+  const resetPasswordStatus = document.getElementById('resetPasswordStatus');
+  const editUserBtn = document.getElementById('editUserBtn');
+  const editUserModal = document.getElementById('editUserModal');
+  const editUserForm = document.getElementById('editUserForm');
+  const cancelEditUserBtn = document.getElementById('cancelEditUserBtn');
+  const saveEditUserBtn = document.getElementById('saveEditUserBtn');
   const deactivateUserBtn = document.getElementById('deactivateUserBtn');
 
   const state = {
@@ -1139,6 +1299,13 @@
   };
 
   const normalizeText = (value) => String(value ?? '').trim();
+
+  const hasValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const setResetPasswordStatus = (message, type = '') => {
+    resetPasswordStatus.textContent = message;
+    resetPasswordStatus.className = `action-status${type ? ` ${type}` : ''}`;
+  };
 
   const formatDisplayDate = (value) => {
     if (!value) return '—';
@@ -1322,6 +1489,9 @@
         deactivateUserBtn.disabled = true;
         deactivateUserBtn.textContent = 'Deactivate';
       }
+      resetPasswordBtn.disabled = true;
+      setResetPasswordStatus('');
+      editUserBtn.disabled = true;
       return;
     }
 
@@ -1344,7 +1514,88 @@
       deactivateUserBtn.disabled = false;
       deactivateUserBtn.textContent = String(selectedUser.status || 'Active').toLowerCase() === 'inactive' ? 'Activate User' : 'Deactivate';
     }
+    resetPasswordBtn.disabled = !hasValidEmail(selectedUser.email);
+    setResetPasswordStatus('');
+    editUserBtn.disabled = false;
   };
+
+  const closeEditUserModal = () => editUserModal.classList.remove('open');
+
+  editUserBtn.addEventListener('click', () => {
+    const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
+    if (!selectedUser) return;
+
+    document.getElementById('editUserName').value = selectedUser.name === 'Unnamed user' ? '' : selectedUser.name;
+    document.getElementById('editUserEmail').value = hasValidEmail(selectedUser.email) ? selectedUser.email : '';
+    document.getElementById('editUserStatus').value = selectedUser.status;
+    document.getElementById('editUserTeam').value = selectedUser.team === '—' ? '' : selectedUser.team;
+    document.getElementById('editUserPhone').value = selectedUser.phone === '—' ? '' : selectedUser.phone;
+    document.getElementById('editUserEmergencyContact').value = selectedUser.emergencyContact === '—' ? '' : selectedUser.emergencyContact;
+    document.getElementById('editUserArea').value = selectedUser.area === '—' ? '' : selectedUser.area;
+    editUserModal.classList.add('open');
+    document.getElementById('editUserName').focus();
+  });
+
+  cancelEditUserBtn.addEventListener('click', closeEditUserModal);
+  editUserModal.addEventListener('click', (event) => {
+    if (event.target === editUserModal) closeEditUserModal();
+  });
+
+  editUserForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
+    if (!selectedUser) return;
+
+    const formData = new FormData(editUserForm);
+    const email = normalizeText(formData.get('email'));
+    if (!hasValidEmail(email)) return;
+
+    saveEditUserBtn.disabled = true;
+    saveEditUserBtn.textContent = 'Saving...';
+    try {
+      await updateDoc(doc(db, 'users', selectedUser.id), {
+        fullName: normalizeText(formData.get('fullName')),
+        email,
+        role: 'Hiker',
+        status: normalizeText(formData.get('status')),
+        team: normalizeText(formData.get('team')) || '—',
+        phone: normalizeText(formData.get('phone')) || '—',
+        emergencyContact: normalizeText(formData.get('emergencyContact')) || '—',
+        assignedArea: normalizeText(formData.get('assignedArea')) || '—'
+      });
+      closeEditUserModal();
+      setResetPasswordStatus('User details updated.', 'success');
+    } catch (error) {
+      console.error('Failed to update user details:', error);
+      alert('Unable to update this user right now.');
+    } finally {
+      saveEditUserBtn.disabled = false;
+      saveEditUserBtn.textContent = 'Save Changes';
+    }
+  });
+
+  resetPasswordBtn.addEventListener('click', async () => {
+    const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
+    if (!selectedUser || !hasValidEmail(selectedUser.email)) {
+      setResetPasswordStatus('A valid email address is required.', 'error');
+      return;
+    }
+
+    resetPasswordBtn.disabled = true;
+    resetPasswordBtn.textContent = 'Sending...';
+    setResetPasswordStatus('');
+
+    try {
+      await sendPasswordResetEmail(auth, selectedUser.email);
+      setResetPasswordStatus(`Password reset email sent to ${selectedUser.email}.`, 'success');
+    } catch (error) {
+      console.error('Failed to send password reset email:', error);
+      setResetPasswordStatus('Unable to send the password reset email right now.', 'error');
+    } finally {
+      resetPasswordBtn.disabled = false;
+      resetPasswordBtn.textContent = 'Reset Password';
+    }
+  });
 
   if (deactivateUserBtn) {
     deactivateUserBtn.addEventListener('click', async () => {
