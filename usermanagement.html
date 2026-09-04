@@ -821,6 +821,52 @@
     background: #2f8f4e;
     color: #fff;
   }
+
+  .profile-modal {
+    max-width: 620px;
+  }
+
+  .profile-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .profile-modal-header .avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .profile-modal-name {
+    color: #1f2a22;
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  .profile-modal-email {
+    margin-top: 3px;
+    color: #5b6b60;
+    font-size: 13px;
+  }
+
+  .profile-modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+  }
+
+  .profile-modal-value {
+    min-height: 20px;
+    color: #1f2a22;
+    font-size: 13px;
+  }
+
+  @media (max-width: 640px) {
+    .profile-modal-grid { grid-template-columns: 1fr; }
+  }
   
   .action-btn.primary {
     background: #dcfce7;
@@ -1282,6 +1328,33 @@
   </form>
 </div>
 
+<div id="viewProfileModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="viewProfileTitle">
+  <section class="modal profile-modal">
+    <div class="profile-modal-header">
+      <div id="profileModalAvatar" class="avatar">U</div>
+      <div>
+        <div id="viewProfileTitle" class="profile-modal-name">User Profile</div>
+        <div id="profileModalEmail" class="profile-modal-email">—</div>
+      </div>
+    </div>
+    <div class="profile-modal-grid">
+      <div class="field"><label>Role</label><div id="profileModalRole" class="profile-modal-value">—</div></div>
+      <div class="field"><label>Status</label><div id="profileModalStatus" class="profile-modal-value">—</div></div>
+      <div class="field"><label>Team</label><div id="profileModalTeam" class="profile-modal-value">—</div></div>
+      <div class="field"><label>Phone</label><div id="profileModalPhone" class="profile-modal-value">—</div></div>
+      <div class="field"><label>Emergency Contact</label><div id="profileModalEmergencyContact" class="profile-modal-value">—</div></div>
+      <div class="field"><label>Assigned Area</label><div id="profileModalArea" class="profile-modal-value">—</div></div>
+      <div class="field"><label>Member Since</label><div id="profileModalMemberSince" class="profile-modal-value">—</div></div>
+      <div class="field"><label>Last Active</label><div id="profileModalLastActive" class="profile-modal-value">—</div></div>
+      <div class="field"><label>Total Hikes</label><div id="profileModalTotalHikes" class="profile-modal-value">—</div></div>
+      <div class="field"><label>Total Distance</label><div id="profileModalTotalDistance" class="profile-modal-value">—</div></div>
+    </div>
+    <div class="modal-actions">
+      <button id="closeViewProfileBtn" class="modal-cancel" type="button">Close</button>
+    </div>
+  </section>
+</div>
+
 <script type="module">
   import { auth, db } from './firebase-config.js';
   import { sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
@@ -1299,6 +1372,8 @@
   const statusFilter = document.getElementById('userStatusFilter');
   const viewProfileBtn = document.getElementById('viewProfileBtn');
   const userDetailCard = document.getElementById('userDetailCard');
+  const viewProfileModal = document.getElementById('viewProfileModal');
+  const closeViewProfileBtn = document.getElementById('closeViewProfileBtn');
   const resetPasswordBtn = document.getElementById('resetPasswordBtn');
   const resetPasswordStatus = document.getElementById('resetPasswordStatus');
   const editUserBtn = document.getElementById('editUserBtn');
@@ -1538,6 +1613,7 @@
       setResetPasswordStatus('');
       editUserBtn.disabled = true;
       deleteAccountBtn.disabled = true;
+      viewProfileBtn.disabled = true;
       return;
     }
 
@@ -1564,14 +1640,42 @@
     setResetPasswordStatus('');
     editUserBtn.disabled = false;
     deleteAccountBtn.disabled = false;
+    viewProfileBtn.disabled = false;
   };
 
   const closeEditUserModal = () => editUserModal.classList.remove('open');
 
   viewProfileBtn.addEventListener('click', () => {
-    if (!state.selectedUserId) return;
-    userDetailCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    userDetailCard.focus({ preventScroll: true });
+    const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
+    if (!selectedUser) return;
+
+    document.getElementById('profileModalAvatar').textContent = getInitials(selectedUser.name);
+    document.getElementById('viewProfileTitle').textContent = selectedUser.name;
+    document.getElementById('profileModalEmail').textContent = selectedUser.email;
+    document.getElementById('profileModalRole').textContent = selectedUser.role;
+    document.getElementById('profileModalStatus').textContent = selectedUser.status;
+    document.getElementById('profileModalTeam').textContent = selectedUser.team;
+    document.getElementById('profileModalPhone').textContent = selectedUser.phone;
+    document.getElementById('profileModalEmergencyContact').textContent = selectedUser.emergencyContact;
+    document.getElementById('profileModalArea').textContent = selectedUser.area;
+    document.getElementById('profileModalMemberSince').textContent = formatDisplayDate(selectedUser.memberSince);
+    document.getElementById('profileModalLastActive').textContent = formatDisplayDateTime(selectedUser.lastActive);
+    document.getElementById('profileModalTotalHikes').textContent = selectedUser.totalHikes;
+    document.getElementById('profileModalTotalDistance').textContent = selectedUser.totalDistance;
+    viewProfileModal.classList.add('open');
+    closeViewProfileBtn.focus();
+  });
+
+  const closeViewProfileModal = () => viewProfileModal.classList.remove('open');
+  closeViewProfileBtn.addEventListener('click', closeViewProfileModal);
+  viewProfileModal.addEventListener('click', (event) => {
+    if (event.target === viewProfileModal) closeViewProfileModal();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeViewProfileModal();
+      closeEditUserModal();
+    }
   });
 
   editUserBtn.addEventListener('click', () => {
