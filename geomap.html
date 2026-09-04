@@ -451,9 +451,13 @@
             </div>
           </div>
 
-          <div class="alerts">
+          <div class="alerts" style="line-height:2.6">
             <strong>Alerts Overview</strong>
-            <div style="display:flex;gap:8px;margin-top:10px">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px">
+              <div style="flex:1;background:#f4f6f4;border:1px solid #dfe7df;border-radius:8px;padding:10px;text-align:center">
+                <div id="totalRiskCount" style="font-weight:700">0</div>
+                <div style="font-size:12px;color:var(--text-secondary)">Total Alerts</div>
+              </div>
               <div style="flex:1;background:#fff6f6;border:1px solid #f3d6d6;border-radius:8px;padding:10px;text-align:center">
                 <div id="highRiskCount" style="font-weight:700">0</div>
                 <div style="font-size:12px;color:var(--text-secondary)">High Risk</div>
@@ -524,47 +528,54 @@
     };
 
     const getRiskBucket = (item) => {
-      const value = String(item?.riskLevel ?? item?.severity ?? item?.priority ?? item?.type ?? '').trim().toLowerCase();
+      const value = String(item?.riskLevel ?? item?.risk ?? item?.severity ?? item?.priority ?? item?.type ?? '').trim().toLowerCase();
       if (/high|critical|severe|urgent|alert/.test(value)) return 'high';
       if (/moderate|medium|warning|elevated/.test(value)) return 'moderate';
       if (/low|minor|info|normal/.test(value)) return 'low';
-      return 'low';
+      return 'unknown';
     };
 
     const getRiskLabel = (item) => {
       const bucket = getRiskBucket(item);
       if (bucket === 'high') return 'High Risk';
       if (bucket === 'moderate') return 'Moderate Risk';
-      return 'Low Risk';
+      if (bucket === 'low') return 'Low Risk';
+      return 'Unknown Risk';
     };
 
     const renderAlertOverview = (advisories, reports) => {
       const highRiskCount = document.getElementById('highRiskCount');
       const moderateRiskCount = document.getElementById('moderateRiskCount');
       const lowRiskCount = document.getElementById('lowRiskCount');
-      if (!highRiskCount || !moderateRiskCount || !lowRiskCount) return;
+      const totalRiskCount = document.getElementById('totalRiskCount');
+      if (!highRiskCount || !moderateRiskCount || !lowRiskCount || !totalRiskCount) return;
 
       const activeAdvisories = (advisories || [])
         .filter((item) => item.visible !== false)
         .filter((item) => (item.status || 'Active').toLowerCase() !== 'expired')
         .filter((item) => (item.status || 'Active').toLowerCase() !== 'archived');
 
-      const verifiedHazards = (reports || [])
-        .filter((item) => (item.status || 'pending').toLowerCase() === 'verified');
+      const activeHazards = (reports || [])
+        .filter((item) => !['rejected', 'archived', 'resolved', 'closed'].includes(
+          String(item.status ?? item.Status ?? 'pending').trim().toLowerCase()
+        ));
 
       const counts = { high: 0, moderate: 0, low: 0 };
 
       activeAdvisories.forEach((item) => {
-        counts[getRiskBucket(item)] += 1;
+        const bucket = getRiskBucket(item);
+        if (bucket in counts) counts[bucket] += 1;
       });
 
-      verifiedHazards.forEach((item) => {
-        counts[getRiskBucket(item)] += 1;
+      activeHazards.forEach((item) => {
+        const bucket = getRiskBucket(item);
+        if (bucket in counts) counts[bucket] += 1;
       });
 
       highRiskCount.textContent = String(counts.high);
       moderateRiskCount.textContent = String(counts.moderate);
       lowRiskCount.textContent = String(counts.low);
+      totalRiskCount.textContent = String(counts.high + counts.moderate + counts.low);
     };
 
     const renderActiveAlerts = (advisories) => {
