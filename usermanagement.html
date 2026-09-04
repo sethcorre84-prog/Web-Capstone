@@ -841,6 +841,17 @@
   .action-btn.danger:hover {
     background: #fecaca;
   }
+
+  .action-btn.delete-account {
+    grid-column: 1 / -1;
+    background: #b91c1c;
+    border-color: #991b1b;
+    color: #fff;
+  }
+
+  .action-btn.delete-account:hover {
+    background: #991b1b;
+  }
   
   .activity-section {
     margin-top: 16px;
@@ -1157,7 +1168,7 @@
         </div>
       </div>
 
-      <div class="side-card">
+      <div id="userDetailCard" class="side-card" tabindex="-1">
         <div class="profile-header">
           <div class="avatar" id="detailAvatar">U</div>
           <div class="profile-name-wrap">
@@ -1197,6 +1208,7 @@
           <button id="editUserBtn" class="action-btn" type="button" disabled>Edit User</button>
           <button id="resetPasswordBtn" class="action-btn" type="button" disabled>Reset Password</button>
           <button id="deactivateUserBtn" class="action-btn danger" type="button">Deactivate</button>
+          <button id="deleteAccountBtn" class="action-btn delete-account" type="button" disabled>Delete Account</button>
         </div>
         <p id="resetPasswordStatus" class="action-status" role="status" aria-live="polite"></p>
 
@@ -1276,6 +1288,7 @@
   import {
     collection,
     doc,
+    deleteDoc,
     onSnapshot,
     updateDoc
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
@@ -1284,6 +1297,8 @@
   const searchInput = document.getElementById('userSearchInput');
   const roleFilter = document.getElementById('userRoleFilter');
   const statusFilter = document.getElementById('userStatusFilter');
+  const viewProfileBtn = document.getElementById('viewProfileBtn');
+  const userDetailCard = document.getElementById('userDetailCard');
   const resetPasswordBtn = document.getElementById('resetPasswordBtn');
   const resetPasswordStatus = document.getElementById('resetPasswordStatus');
   const editUserBtn = document.getElementById('editUserBtn');
@@ -1292,6 +1307,7 @@
   const cancelEditUserBtn = document.getElementById('cancelEditUserBtn');
   const saveEditUserBtn = document.getElementById('saveEditUserBtn');
   const deactivateUserBtn = document.getElementById('deactivateUserBtn');
+  const deleteAccountBtn = document.getElementById('deleteAccountBtn');
 
   const state = {
     users: [],
@@ -1447,7 +1463,7 @@
           <div class="table-actions">
             <button class="table-action" aria-label="View details">👁</button>
             <button class="table-action" aria-label="Edit user">✎</button>
-            <button class="table-action" aria-label="More actions">⋮</button>
+            <button class="table-action" aria-label="Delete user">🗑</button>
           </div>
         </td>
       </tr>
@@ -1469,6 +1485,35 @@
 
     usersTableBody.querySelectorAll('tr[data-user-id]').forEach((row) => {
       row.style.background = row.dataset.userId === state.selectedUserId ? '#f0fdf4' : '';
+    });
+
+    usersTableBody.querySelectorAll('tr[data-user-id]').forEach((row) => {
+      const userId = row.dataset.userId;
+      const [viewButton, editButton, deleteButton] = row.querySelectorAll('.table-action');
+
+      viewButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        state.selectedUserId = userId;
+        renderUserTable();
+        renderSelectedUser();
+        userDetailCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+
+      editButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        state.selectedUserId = userId;
+        renderUserTable();
+        renderSelectedUser();
+        editUserBtn.click();
+      });
+
+      deleteButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        state.selectedUserId = userId;
+        renderUserTable();
+        renderSelectedUser();
+        deleteAccountBtn.click();
+      });
     });
   };
 
@@ -1492,6 +1537,7 @@
       resetPasswordBtn.disabled = true;
       setResetPasswordStatus('');
       editUserBtn.disabled = true;
+      deleteAccountBtn.disabled = true;
       return;
     }
 
@@ -1517,9 +1563,16 @@
     resetPasswordBtn.disabled = !hasValidEmail(selectedUser.email);
     setResetPasswordStatus('');
     editUserBtn.disabled = false;
+    deleteAccountBtn.disabled = false;
   };
 
   const closeEditUserModal = () => editUserModal.classList.remove('open');
+
+  viewProfileBtn.addEventListener('click', () => {
+    if (!state.selectedUserId) return;
+    userDetailCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    userDetailCard.focus({ preventScroll: true });
+  });
 
   editUserBtn.addEventListener('click', () => {
     const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
@@ -1615,10 +1668,34 @@
     });
   }
 
+  deleteAccountBtn.addEventListener('click', async () => {
+    const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
+    if (!selectedUser) return;
+
+    const confirmed = window.confirm(`Delete ${selectedUser.name}'s account? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    deleteAccountBtn.disabled = true;
+    deleteAccountBtn.textContent = 'Deleting...';
+    try {
+      await deleteDoc(doc(db, 'users', selectedUser.id));
+      state.selectedUserId = null;
+      setResetPasswordStatus('User account deleted.', 'success');
+    } catch (error) {
+      console.error('Failed to delete user account:', error);
+      setResetPasswordStatus('Unable to delete this user account right now.', 'error');
+      deleteAccountBtn.disabled = false;
+    } finally {
+      deleteAccountBtn.textContent = 'Delete Account';
+    }
+  });
+
   onSnapshot(collection(db, 'users'), (snapshot) => {
     state.users = snapshot.docs.map(normalizeUser);
     if (!state.users.length) {
+      state.selectedUserId = null;
       usersTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#94a3b8;">No users found in database.</td></tr>';
+      renderSelectedUser();
       return;
     }
 
