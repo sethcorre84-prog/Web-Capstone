@@ -144,6 +144,7 @@
     color: var(--text-primary, #1c231c);
     text-decoration: none;
     border-bottom: 1px solid var(--border, #e4e7e1);
+
 }
 .notification-item:hover,
 .notification-item:focus,

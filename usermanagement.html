@@ -17,11 +17,11 @@
   html, body {
     visibility: visible;
     opacity: 1;   
-    background: #f1f5f9;
+    background: #f4f6f4;
   }
   
   :root {
-    color-scheme: dark;
+    color-scheme: light;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
     --sidebar-bg: #132313;
     --sidebar-bg-light: #1c341c;
@@ -41,8 +41,13 @@
   body {
     margin: 0;
     min-height: 100vh;
-    background: #f1f5f9;
-    color: #102a43;
+    background: #f4f6f4;
+    color: #1f2a22;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
   }
   
   .app {
@@ -84,6 +89,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    margin: 0 auto;
   }
   
   .brand-name {
@@ -108,7 +114,6 @@
     margin-top: 6px;
     overflow-y: auto;
     min-height: 0;
-    margin: 0;
     padding: 0;
   }
   
@@ -215,7 +220,7 @@
     display: flex;
     flex-direction: column;
     flex: 1;
-    padding: 20px;
+    padding: 26px 32px;
   }
   
   .top-bar {
@@ -223,41 +228,20 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 18px;
-    background: #ffffff;
-    padding: 24px;
-    box-shadow: 0 20px 40px rgba(15,23,42,0.08);
-    border-radius: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
   }
   
   .top-copy h1 { 
-    margin: 0; 
-    font-size: 28px; 
+    margin: 0 0 4px; 
+    font-size: 22px; 
     color: #0f172a; 
     font-weight: 700; 
   }
   
   .top-copy p { 
-    margin: 8px 0 0; 
-    color: #475569; 
-    font-size: 14px; 
-  }
-  
-  .top-meta {
-    display: grid;
-    gap: 10px;
-    text-align: right;
-  }
-  
-  .top-meta .meta-label { 
-    color: #94a3b8; 
-    font-size: 13px; 
-  }
-  
-  .top-meta strong { 
-    display: block; 
-    color: #0f172a; 
-    font-size: 16px; 
+    margin: 0; 
+    color: #5b6b60; 
+    font-size: 13.5px; 
   }
   
   .hero-grid {
@@ -366,7 +350,7 @@
     background: #f8fafc;
     color: #0f172a;
     font-size: 14px;
-    padding: 8px 12px;
+    margin: 0;
     border-radius: 6px;
   }
   
@@ -374,22 +358,89 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
     margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #e2e8f0;
-    flex-shrink: 0;
   }
-  
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .bell-wrap {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .bell-btn {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: transparent;
+    color: #0f172a;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bell-icon {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .bell-btn::before {
+
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    font-size: 17px;
+  }
+
+  .bell-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #d1453b;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .admin-mini {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .admin-mini .avatar {
+    width: 34px;
+    height: 34px;
+    background: #1f6b39;
+    font-size: 12px;
+  }
+
   .search-box {
-    flex: 1 1 200px;
     display: flex;
     align-items: center;
     gap: 8px;
+    flex: 1;
     min-width: 0;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 8px 10px;
     background: #f8fafc;
   }
   
@@ -448,7 +499,7 @@
   .user-list-table th,
   .user-list-table td {
     text-align: left;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e7ebe7;
     padding: 12px 8px;
     vertical-align: middle;
     word-break: break-word;
@@ -760,6 +811,77 @@
   .side-card:hover {
     box-shadow: 0 24px 48px rgba(15,23,42,0.08);
   }
+
+  .tabs {
+    display: flex;
+    gap: 24px;
+    border-bottom: 1px solid #e7ebe7;
+    margin-bottom: 18px;
+  }
+
+  .tab {
+    padding: 10px 2px 12px;
+    border-bottom: 2px solid transparent;
+    color: #5b6b60;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .tab.active {
+    border-bottom-color: #1f6b39;
+    color: #1f6b39;
+  }
+
+  .page-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 20px;
+    padding: 14px 16px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 12px 24px rgba(15,23,42,0.05);
+  }
+
+  .page-navigation-label {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .page-navigation-links {
+    display: flex;
+    gap: 8px;
+  }
+
+  .page-navigation-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    color: #475569;
+    background: #f8fafc;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .page-navigation-link:hover,
+  .page-navigation-link.active {
+    border-color: #2f8f4e;
+    background: #e2f8ed;
+    color: #1f6b39;
+  }
+
+  .page-navigation-link i {
+    font-size: 13px;
+  }
   
   .side-card h3 { 
     margin: 0 0 16px; 
@@ -787,6 +909,9 @@
     .search-box, .filter-box { width: 100%; }
     .detail-info { grid-template-columns: 1fr; }
     .detail-actions { grid-template-columns: 1fr; }
+    .page-navigation { align-items: stretch; flex-direction: column; }
+    .page-navigation-links { flex-direction: column; }
+    .page-navigation-link { justify-content: center; }
   }
 </style>
 </head>
@@ -831,14 +956,23 @@
     <section class="top-bar">
       <div class="top-copy">
         <h1>User Management</h1>
-        <p>Manage hikers, trail admins, and system access roles.</p>
+        <p>Manage hikers and view user reports about other users' behavior.</p>
       </div>
-      <div class="top-meta">
-        <div class="meta-label">Current User</div>
-        <strong>Admin User</strong>
-        <span>Super Administrator</span>
+      <div class="topbar-right">
+        <div class="bell-wrap">
+          <button class="bell-btn" type="button" aria-label="Open notifications"></button>
+          <span class="bell-badge" hidden>0</span>
+        </div>
+        <div class="admin-mini">
+          <div class="avatar">AU</div>
+        </div>
       </div>
     </section>
+
+    <nav class="tabs" aria-label="User management pages">
+      <a class="tab active" href="usermanagement.html" aria-current="page">Users</a>
+      <a class="tab" href="userreports.html">User Reports</a>
+    </nav>
 
     <section class="hero-grid">
       <div class="hero-card">
@@ -980,6 +1114,7 @@
         <button class="contact-btn" type="button">📞 Contact User (Emergency)</button>
       </div>
     </section>
+
   </main>
 </div>
 
