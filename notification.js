@@ -72,6 +72,9 @@ const render = () => {
     badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
     badge.hidden = unreadCount === 0;
 
+        const markAllBtn = center.querySelector('.notification-mark-all');
+    if (markAllBtn) markAllBtn.disabled = unreadCount === 0;
+
     if (!notifications.length) {
       list.innerHTML = '<div class="notification-empty">No alerts to review.</div>';
       return;
@@ -100,14 +103,29 @@ const render = () => {
 const markAsRead = (notificationId) => {
   const notification = notifications.find((item) => item.id === notificationId);
   if (!notification || notification.read === true) return;
-
   if (notification.type === 'hazard_pending') {
     localStorage.setItem(pendingReadKey(notification.reportDocumentId), 'true');
   } else if (notification.type === 'advisory') {
     localStorage.setItem(advisoryReadKey(notification.advisoryDocumentId), 'true');
   }
-
   notification.read = true;
+  render();
+};
+
+const markAllAsRead = () => {
+  const hasUnread = notifications.some((item) => item.read !== true);
+  if (!hasUnread) return;
+
+  notifications.forEach((notification) => {
+    if (notification.read === true) return;
+    if (notification.type === 'hazard_pending') {
+      localStorage.setItem(pendingReadKey(notification.reportDocumentId), 'true');
+    } else if (notification.type === 'advisory') {
+      localStorage.setItem(advisoryReadKey(notification.advisoryDocumentId), 'true');
+    }
+    notification.read = true;
+  });
+
   render();
 };
 
@@ -123,6 +141,12 @@ const setupCenter = (center) => {
   });
 
   panel.addEventListener('click', (event) => {
+    const markAllBtn = event.target.closest('.notification-mark-all');
+    if (markAllBtn) {
+      event.preventDefault();
+      markAllAsRead();
+      return;
+    }
     const item = event.target.closest('[data-notification-id]');
     if (item) markAsRead(item.dataset.notificationId);
   });
@@ -136,7 +160,10 @@ document.querySelectorAll('.bell-wrap').forEach((bell) => {
     </button>
     <span class="bell-badge" aria-live="polite" hidden>0</span>
     <div class="notification-panel" role="region" aria-label="Notifications">
-      <div class="notification-header"><strong>Notifications</strong></div>
+      <div class="notification-header" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <strong>Notifications</strong>
+        <button type="button" class="notification-mark-all" style="border:none;background:transparent;color:#2f8f4e;font-size:11.5px;font-weight:600;cursor:pointer;padding:2px 4px" disabled>Mark all as read</button>
+      </div>
       <div class="notification-list"><div class="notification-empty">Loading notifications...</div></div>
     </div>
   `;

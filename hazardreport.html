@@ -1153,16 +1153,12 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     <div class="avatar" id="adminInitials">AU</div>
   </button>
   <div class="admin-dropdown" id="adminDropdown">
-    <button type="button" class="display-toggle" id="settingsToggleBtn" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--text-900);cursor:pointer;text-align:left;">
+      <a href="Setting.html" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;font-size:13px;font-weight:500;color:var(--text-900);text-decoration:none;">
       <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       Settings
-      <svg class="display-toggle-arrow" id="settingsArrow" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-    </button>
-    <div class="settings-submenu" id="settingsSubmenu">
-      <a href="Setting.html">Settings</a>
-    </div>
+    </a>
 
-    <button type="button" class="display-toggle" id="displayToggleBtn" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--text-900);cursor:pointer;text-align:left;">
+    <button type="button" class="display-toggle" id="displayToggleBtn" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:transparent;font-size:13px;font-weight:550;color:var(--text-900);cursor:pointer;text-align:left;">
       <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
       Display
       <svg class="display-toggle-arrow" id="displayArrow" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -1432,6 +1428,59 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     <div class="modal-actions">
       <button type="button" class="modal-btn cancel" id="archiveModalCancelBtn">Cancel</button>
       <button type="button" class="modal-btn confirm-verify" id="archiveModalConfirmBtn">Archive</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit report information modal -->
+<div class="modal-overlay" id="editReportModal" aria-hidden="true">
+  <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="editReportTitle" style="width:min(560px,100%)">
+    <div class="modal-header">
+      <div class="modal-icon" style="background:var(--green-bg);color:var(--green-text);">✎</div>
+      <div>
+        <h3 id="editReportTitle">Edit Report Information</h3>
+        <p>Update the details for this hazard report.</p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="report-form">
+        <div class="report-form-grid">
+          <label>Hazard Type
+            <input type="text" id="editHazardType" placeholder="e.g. Rockfall">
+          </label>
+          <label>Risk Level
+            <select id="editRiskLevel">
+              <option value="Low">Low</option>
+              <option value="Moderate">Moderate</option>
+              <option value="High">High</option>
+            </select>
+          </label>
+        </div>
+        <div class="report-form-grid">
+          <label>Location
+            <input type="text" id="editLocation" placeholder="e.g. Mount Makiling">
+          </label>
+          <label>Trail
+            <input type="text" id="editTrail" placeholder="e.g. Sipit Trail">
+          </label>
+        </div>
+        <div class="report-form-grid">
+          <label>Reported By
+            <input type="text" id="editReportedBy" placeholder="e.g. Anonymous">
+          </label>
+          <label>Contact
+            <input type="text" id="editContact" placeholder="Phone or email">
+          </label>
+        </div>
+        <label>Description
+          <textarea id="editDescription" placeholder="Full details of the hazard"></textarea>
+        </label>
+      </div>
+      <div class="form-error" id="editReportError" role="alert"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn cancel" id="editReportCancelBtn">Cancel</button>
+      <button type="button" class="modal-btn confirm-verify" id="editReportSaveBtn">Save Changes</button>
     </div>
   </div>
 </div>
@@ -1774,6 +1823,86 @@ async function confirmArchiveReports() {
   }
 }
 
+// -----------------------------
+// Edit report information modal
+// -----------------------------
+let editReportTargetId = null;
+
+function openEditReportModal(reportId) {
+  const report = allReports.find(r => r.id === reportId);
+  if (!report) return;
+  editReportTargetId = reportId;
+
+  document.getElementById('editHazardType').value = report.hazardType || '';
+  document.getElementById('editRiskLevel').value = getRiskLevel(report).className === 'unknown' ? 'Moderate' : getRiskLevel(report).label;
+  document.getElementById('editLocation').value = report.location || '';
+  document.getElementById('editTrail').value = report.trail || '';
+  document.getElementById('editReportedBy').value = report.reportedBy || '';
+  document.getElementById('editContact').value = report.contact || '';
+  document.getElementById('editDescription').value = report.description || '';
+  document.getElementById('editReportError').textContent = '';
+
+  const confirmBtn = document.getElementById('editReportSaveBtn');
+  confirmBtn.disabled = false;
+  confirmBtn.textContent = 'Save Changes';
+
+  const modal = document.getElementById('editReportModal');
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+}
+window.openEditReportModal = openEditReportModal; // called from inline onclick
+
+function closeEditReportModal() {
+  const modal = document.getElementById('editReportModal');
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden', 'true');
+  editReportTargetId = null;
+}
+
+async function confirmEditReport() {
+  if (!editReportTargetId) return;
+  const confirmBtn = document.getElementById('editReportSaveBtn');
+  const errorEl = document.getElementById('editReportError');
+
+  const hazardType = document.getElementById('editHazardType').value.trim();
+  if (!hazardType) {
+    errorEl.textContent = 'Hazard type is required.';
+    return;
+  }
+
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Saving...';
+  errorEl.textContent = '';
+
+  try {
+    await updateDoc(doc(db, 'reports', editReportTargetId), {
+      hazardType,
+      riskLevel: document.getElementById('editRiskLevel').value,
+      location: document.getElementById('editLocation').value.trim(),
+      trail: document.getElementById('editTrail').value.trim(),
+      reportedBy: document.getElementById('editReportedBy').value.trim() || 'Anonymous',
+      contact: document.getElementById('editContact').value.trim(),
+      description: document.getElementById('editDescription').value.trim(),
+      updatedAt: new Date()
+    });
+    closeEditReportModal();
+    // onSnapshot() will refresh the details panel and table automatically.
+  } catch (error) {
+    console.error('Error updating report info:', error);
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Save Changes';
+    errorEl.textContent = error?.code === 'permission-denied'
+      ? 'Firebase denied this update. Check your Firestore security rules.'
+      : `Could not save changes: ${error.message || 'Unknown error'}`;
+  }
+}
+
+document.getElementById('editReportCancelBtn').addEventListener('click', closeEditReportModal);
+document.getElementById('editReportSaveBtn').addEventListener('click', confirmEditReport);
+document.getElementById('editReportModal').addEventListener('click', (event) => {
+  if (event.target.id === 'editReportModal') closeEditReportModal();
+});
+
 // Renders photo attachments for a report. Currently your Firestore docs
 // store a single `photoUrl` string, but this also supports a future
 // `photoUrls` array (multiple photos) without any other changes needed.
@@ -1873,7 +2002,9 @@ function renderReportDetails(report) {
         ${renderAttachments(report)}
       </div>
     </div>
-
+        <div>
+      <button class="btn btn-info" style="width:100%" onclick="openEditReportModal('${report.id}')">✎ Edit Information</button>
+    </div>
     <div class="admin-actions">
       <p class="section-label">Admin Actions</p>
       <div class="row">
@@ -2458,6 +2589,10 @@ document.addEventListener('keydown', (event) => {
     if (archiveModal.classList.contains('show')) {
       closeArchiveModal();
     }
+        const editReportModal = document.getElementById('editReportModal');
+    if (editReportModal.classList.contains('show')) {
+      closeEditReportModal();
+    }
   }
 });
 
@@ -2538,20 +2673,6 @@ document.querySelector('.logout-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       applyTheme(opt.dataset.themeChoice);
     });
-  });
-})();
-
-// Settings submenu
-(function(){
-  const settingsToggleBtn = document.getElementById('settingsToggleBtn');
-  const settingsSubmenu = document.getElementById('settingsSubmenu');
-  const settingsArrow = document.getElementById('settingsArrow');
-  if (!settingsToggleBtn || !settingsSubmenu) return;
-
-  settingsToggleBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isOpen = settingsSubmenu.classList.toggle('open');
-    settingsArrow.classList.toggle('open', isOpen);
   });
 })();
 
