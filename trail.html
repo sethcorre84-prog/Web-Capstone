@@ -370,7 +370,7 @@ html.sidebar-was-collapsed .sidebar{
 .topbar-right{
     display:flex;
     align-items:center;
-    gap:18px;
+  gap:16px;
 }
 
 .bell-wrap{
@@ -404,6 +404,44 @@ html.sidebar-was-collapsed .sidebar{
 .bell-icon{
     font-size:20px;   /* Increase or decrease this */
     line-height:1;
+}
+
+.profile-chip{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  cursor:pointer;
+  position:relative;
+}
+.profile-chip .avatar{
+  width:34px;
+  height:34px;
+  font-size:12px;
+}
+.profile-menu{
+  position:absolute;
+  top:46px;
+  right:0;
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:8px;
+  box-shadow:0 8px 22px rgba(0,0,0,.12);
+  min-width:150px;
+  display:none;
+  overflow:hidden;
+  z-index:30;
+}
+.profile-menu.open{
+  display:block;
+}
+.profile-menu a{
+  display:block;
+  padding:10px 14px;
+  font-size:13px;
+  color:var(--text-primary);
+}
+.profile-menu a:hover{
+  background:var(--accent-light);
 }
 
 .admin-mini{
@@ -618,8 +656,9 @@ select.filter{
     border:1px solid var(--border);
     border-radius:8px;
     background:#fff;
-    font-size:12.5px;
-    font-weight:500;
+    font:inherit;
+    font-size:13px;
+    font-weight:400;
     color:var(--text-secondary);
 }
 
@@ -1046,45 +1085,16 @@ tbody tr:last-child td{
         <h1 data-i18n="page_title">Trail Management</h1>
         <p data-i18n="page_subtitle">Manage Mount Makiling trails, statuses, checkpoints, and campsite information.</p>
       </div>
-      <div class="topbar-right">
-        <div class="bell-wrap">
-          <button class="bell-btn" type="button" aria-label="Open notifications"></button>
-          <span class="bell-badge" hidden>0</span>
-</div>
-        <div class="admin-menu-wrap" id="adminMenuWrap">
-  <button type="button" class="admin-mini admin-menu-btn" id="adminMenuBtn" aria-haspopup="true" aria-expanded="false">
-    <div class="avatar">AU</div>
-  </button>
-  <div class="admin-dropdown" id="adminDropdown">
-      <a href="Setting.html" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;font-size:13px;font-weight:500;color:var(--text-900);text-decoration:none;">
-      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-      Settings
-    </a>
-
-    <button type="button" class="display-toggle" id="displayToggleBtn" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--text-900);cursor:pointer;text-align:left;">
-    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-    Display
-    <svg class="display-toggle-arrow" id="displayArrow" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-  </button>
-  <div class="display-submenu" id="displaySubmenu">
-    <a href="#" class="display-option" data-theme-choice="light">
-      Light Mode
-      <svg class="check-icon" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-    </a>
-    <a href="#" class="display-option" data-theme-choice="dark">
-      Dark Mode
-      <svg class="check-icon" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-    </a>
-  </div>
-
-  <div class="admin-dropdown-divider"></div>
-  <a class="logout-item" href="Home.html">
-    <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
-    Logout
-  </a>
-</div>
-</div>
-  </div>
+      	<div class="topbar-right">
+					<div class="bell-wrap">
+						<button class="bell-btn" type="button" aria-label="Open notifications"></button>
+						<span class="bell-badge" hidden>0</span>
+					</div>
+					<div class="profile-chip" id="profileChip">
+						<div class="avatar">AU</div>
+						<div class="profile-menu" id="profileMenu"><a href="Home.html">Logout</a></div>
+					</div>
+				</div>
     </section>
 
     <!-- STATS -->
@@ -1147,7 +1157,7 @@ tbody tr:last-child td{
             <select class="filter" id="diffFilter"><option value="">Difficulty: All</option><option>Easy</option><option>Moderate</option><option>Hard</option><option>Undefined</option></select>
             <select class="filter" id="typeFilter"><option value="">Trail Type: All</option><option>Major Trail</option><option>Side Trail</option><option>Undefined</option></select>
             <button class="clear-btn" id="clearBtn">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              <i class="fa-solid fa-filter" aria-hidden="true"></i>
               Clear Filters
             </button>
           </div>
@@ -1924,66 +1934,6 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async () =
     deleteConfirmModal.style.display = 'none';
   }
 });
-
-(function(){
-  const wrap = document.getElementById('adminMenuWrap');
-  const btn = document.getElementById('adminMenuBtn');
-  const dropdown = document.getElementById('adminDropdown');
-  if (!wrap || !btn || !dropdown) return;
-
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isOpen = dropdown.classList.toggle('open');
-    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!wrap.contains(e.target)) {
-      dropdown.classList.remove('open');
-      btn.setAttribute('aria-expanded', 'false');
-    }
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      dropdown.classList.remove('open');
-      btn.setAttribute('aria-expanded', 'false');
-    }
-  });
-})();
-
-(function(){
-  const displayToggleBtn = document.getElementById('displayToggleBtn');
-  const displaySubmenu = document.getElementById('displaySubmenu');
-  const displayArrow = document.getElementById('displayArrow');
-  const options = document.querySelectorAll('.display-option');
-  if (!displayToggleBtn || !displaySubmenu) return;
-
-  function applyTheme(theme){
-    document.body.setAttribute('data-theme', theme);
-    localStorage.setItem('peakpath-theme', theme);
-    options.forEach(o => {
-      o.classList.toggle('active', o.dataset.themeChoice === theme);
-    });
-  }
-
-  // Load saved theme (defaults to light)
-  applyTheme(localStorage.getItem('peakpath-theme') || 'light');
-
-  displayToggleBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isOpen = displaySubmenu.classList.toggle('open');
-    displayArrow.classList.toggle('open', isOpen);
-  });
-
-  options.forEach(opt => {
-    opt.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      applyTheme(opt.dataset.themeChoice);
-    });
-  });
-})();
 </script>
 </body>
 </html>

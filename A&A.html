@@ -78,24 +78,6 @@
 		.profile-menu.open{display:block}
 		.profile-menu a{display:block;padding:10px 14px;font-size:13px;color:var(--text-primary)}
 		.profile-menu a:hover{background:var(--accent-light)}
-		.admin-menu-wrap{position:relative}
-.admin-mini{display:flex;align-items:center;gap:10px}
-.admin-menu-btn{display:flex;align-items:center;gap:10px;background:transparent;border:none;padding:0;cursor:pointer}
-.admin-dropdown{display:none;position:absolute;top:calc(100% + 10px);right:0;width:200px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.15);overflow:hidden;z-index:50}
-.admin-dropdown.open{display:block}
-.admin-dropdown a,.admin-dropdown .display-toggle{display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;font-weight:500;color:var(--text-primary);width:100%;border:none;background:transparent;text-align:left;cursor:pointer}
-.admin-dropdown a:hover,.admin-dropdown .display-toggle:hover{background:#f5f7f3}
-.admin-dropdown a svg,.admin-dropdown .display-toggle svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.admin-dropdown-divider{height:1px;background:var(--border);margin:4px 0}
-.admin-dropdown a.logout-item{color:var(--danger)}
-.admin-dropdown a.logout-item:hover{background:var(--danger-light)}
-.display-submenu{display:none;flex-direction:column;background:#f8f9f7}
-.display-submenu.open{display:flex}
-.display-option{display:flex;align-items:center;justify-content:space-between;padding:9px 14px 9px 34px !important;font-size:12.5px !important}
-.display-option .check-icon{width:14px;height:14px;stroke:var(--accent);display:none}
-.display-option.active .check-icon{display:block}
-.display-toggle-arrow{margin-left:auto;width:14px;height:14px;transition:transform .15s}
-.display-toggle-arrow.open{transform:rotate(180deg)}
 		.button{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;border-radius:8px;border:none;font-weight:700;font-size:13px}
 		.button-green{background:var(--accent);color:#fff}
 		.content-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:18px;align-items:start}
@@ -114,7 +96,7 @@
 		.search-box{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:#fbfcfa}
 		.search-box input{border:none;background:transparent;outline:none;font-size:13px;width:100%;color:var(--text-primary)}
 		select.filter{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;background:#fbfcfa;color:var(--text-secondary)}
-		.clear-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12.5px;font-weight:500;color:var(--text-secondary)}
+		.clear-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font:inherit;font-size:13px;font-weight:400;color:var(--text-secondary)}
 		.clear-btn:hover{background:#f5f5f2}
 		table{width:100%;border-collapse:collapse}
 		thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);padding:8px 6px;border-bottom:1px solid var(--border);font-weight:600}
@@ -239,38 +221,9 @@
 						<button class="bell-btn" type="button" aria-label="Open notifications"></button>
 						<span class="bell-badge" hidden>0</span>
 					</div>
-					<div class="admin-menu-wrap" id="adminMenuWrap">
-						<button type="button" class="admin-mini admin-menu-btn" id="adminMenuBtn" aria-haspopup="true" aria-expanded="false">
-							<div class="avatar">AU</div>
-						</button>
-						<div class="admin-dropdown" id="adminDropdown">
-							<a href="Setting.html">
-								<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-								Settings
-							</a>
-
-							<button type="button" class="display-toggle" id="displayToggleBtn">
-								<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-								Display
-								<svg class="display-toggle-arrow" id="displayArrow" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-							</button>
-							<div class="display-submenu" id="displaySubmenu">
-								<a href="#" class="display-option" data-theme-choice="light">
-									Light Mode
-									<svg class="check-icon" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-								</a>
-								<a href="#" class="display-option" data-theme-choice="dark">
-									Dark Mode
-									<svg class="check-icon" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-								</a>
-							</div>
-
-							<div class="admin-dropdown-divider"></div>
-							<a class="logout-item" href="Home.html">
-								<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
-								Logout
-							</a>
-						</div>
+					<div class="profile-chip" id="profileChip">
+						<div class="avatar">AU</div>
+						<div class="profile-menu" id="profileMenu"><a href="Home.html">Logout</a></div>
 					</div>
 				</div>
 			</div>
@@ -290,7 +243,7 @@
             			<select id="statusFilter" class="filter"><option value="">All Status</option><option>Active</option><option>Scheduled</option></select>
             			<select id="dateFilter" class="filter"><option value="">All Dates</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select>
         			<button class="clear-btn" id="clearFiltersBtn">
-    					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    						<i class="fa-solid fa-filter" aria-hidden="true"></i>
     					 Clear Filters
 					</button>
         		</div>
@@ -519,7 +472,7 @@
 		let selectedArchiveIds = new Set();
 		let editingId = null;
 		let currentPage = 1;
-		const PAGE_SIZE = 5;
+		const PAGE_SIZE = 10;
 
 		const TYPE_META = {
 			Advisory:     { cls:'advisory',     bg:'var(--danger-light)',  fg:'var(--danger)', icon:'<path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/>' },
@@ -1150,67 +1103,6 @@ setInterval(() => {
 			if (it && it.visible === false) return;
 			endAdvisoryById(selectedId);
 		});
-
-				// Top-right admin dropdown
-		(function(){
-			const wrap = document.getElementById('adminMenuWrap');
-			const btn = document.getElementById('adminMenuBtn');
-			const dropdown = document.getElementById('adminDropdown');
-			if (!wrap || !btn || !dropdown) return;
-
-			btn.addEventListener('click', (e) => {
-				e.stopPropagation();
-				const isOpen = dropdown.classList.toggle('open');
-				btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-			});
-
-			document.addEventListener('click', (e) => {
-				if (!wrap.contains(e.target)) {
-					dropdown.classList.remove('open');
-					btn.setAttribute('aria-expanded', 'false');
-				}
-			});
-
-			document.addEventListener('keydown', (e) => {
-				if (e.key === 'Escape') {
-					dropdown.classList.remove('open');
-					btn.setAttribute('aria-expanded', 'false');
-				}
-			});
-		})();
-
-		// Display (Light/Dark) submenu
-		(function(){
-			const displayToggleBtn = document.getElementById('displayToggleBtn');
-			const displaySubmenu = document.getElementById('displaySubmenu');
-			const displayArrow = document.getElementById('displayArrow');
-			const options = document.querySelectorAll('.display-option');
-			if (!displayToggleBtn || !displaySubmenu) return;
-
-			function applyTheme(theme){
-				document.body.setAttribute('data-theme', theme);
-				localStorage.setItem('peakpath-theme', theme);
-				options.forEach(o => {
-					o.classList.toggle('active', o.dataset.themeChoice === theme);
-				});
-			}
-
-			applyTheme(localStorage.getItem('peakpath-theme') || 'light');
-
-			displayToggleBtn.addEventListener('click', (e) => {
-				e.stopPropagation();
-				const isOpen = displaySubmenu.classList.toggle('open');
-				displayArrow.classList.toggle('open', isOpen);
-			});
-
-			options.forEach(opt => {
-				opt.addEventListener('click', (e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					applyTheme(opt.dataset.themeChoice);
-				});
-			});
-		})();
 	</script>
 </body>
 </html>
