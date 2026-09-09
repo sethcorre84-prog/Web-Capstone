@@ -121,7 +121,11 @@
   .stat-meta.down{color:var(--red-text);}
 
   /* ---------------- Content layout ---------------- */
-  .content-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:18px;align-items:start;}
+  .content-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:18px;align-items:start;min-width:0;}
+  /* Grid items default to min-width:auto, so a wide table would push the column
+     past its track and shove the details panel off-screen. */
+  .content-grid > div,
+  .content-grid > aside{min-width:0;}
 
   .panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:18px 20px;margin-bottom:18px;}
   .panel-title{font-size:15.5px;font-weight:700;margin-bottom:2px;}
@@ -135,6 +139,7 @@
   .filters-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12.5px;font-weight:600;color:var(--text-600);}
 
   /* Table */
+  .table-wrap{overflow-x:auto;}
   table{width:100%;border-collapse:collapse;}
   thead th{padding:9px 6px;border-bottom:1px solid var(--border);text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-400);white-space:nowrap;}
   tbody td{padding:11px 6px;border-bottom:1px solid var(--border);font-size:12.5px;vertical-align:middle;}
@@ -173,24 +178,29 @@
   .pagination .dots{color:var(--text-400);padding:0 2px;}
 
   /* Charts row */
-  .charts-row{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:18px;}
-  .chart-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:16px 18px;}
+  /* auto-fit instead of fixed 1fr/1.2fr/1fr tracks: inside the 1.75fr content
+     column three fixed tracks crush each panel to ~210px, which is narrower
+     than the 112px donut + its legend. Panels now reflow to 2-up/1-up instead. */
+  .charts-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;min-width:0;}
+  .chart-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:16px 18px;min-width:0;}
   .chart-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
   .chart-panel-head h3{font-size:13.5px;font-weight:700;}
   .period-select{padding:5px 10px;border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--text-600);background:#fbfcfa;}
   .chart-sub{font-size:11px;color:var(--text-400);margin-bottom:10px;}
 
-  .donut-wrap{display:flex;align-items:center;gap:14px;}
+  .donut-wrap{display:flex;align-items:center;gap:14px;min-width:0;flex-wrap:wrap;}
   .donut{position:relative;width:112px;height:112px;border-radius:50%;flex-shrink:0;}
   .donut-hole{position:absolute;inset:18px;background:var(--card);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;}
   .donut-hole .total{font-size:17px;font-weight:700;}
   .donut-hole .label{font-size:9.5px;color:var(--text-400);}
 
-  .legend{display:flex;flex-direction:column;gap:7px;font-size:11px;}
-  .legend-item{display:flex;align-items:center;gap:7px;}
+  .legend{display:flex;flex-direction:column;gap:7px;font-size:11px;min-width:0;flex:1 1 130px;}
+  .legend-item{display:flex;align-items:center;gap:7px;min-width:0;}
   .legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
-  .legend-item span.lname{color:var(--text-900);}
-  .legend-item span.lval{margin-left:auto;color:var(--text-400);padding-left:8px;}
+  /* labels must be able to shrink and wrap, otherwise the longest word
+     ("Disrespectful") sets the row width and the values spill past the card */
+  .legend-item span.lname{color:var(--text-900);min-width:0;overflow-wrap:anywhere;}
+  .legend-item span.lval{margin-left:auto;color:var(--text-400);padding-left:8px;flex:0 0 auto;white-space:nowrap;}
 
   .linechart-legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-600);margin-bottom:8px;}
   .linechart-legend .dot{width:7px;height:7px;border-radius:50%;background:var(--red-text);}
@@ -375,6 +385,7 @@
             <button class="filters-btn">▽ Filters</button>
           </div>
 
+          <div class="table-wrap">
           <table>
             <thead>
               <tr>
@@ -497,6 +508,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
 
           <div class="table-footer">
             <span>Showing 1 to 5 of 34 reports</span>
