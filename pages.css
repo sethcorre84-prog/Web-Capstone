@@ -6,6 +6,137 @@
    analytics.html, emergency.html, Setting.html).
    ========================================================================== */
 
+/* ==========================================================================
+   Design tokens — the single source of truth for the admin portal palette.
+
+   Pages historically grew three different names for the same colour
+   (--card-bg / --card / --panel-bg, --text-primary / --text-900 / --text-dark,
+   ...). Every alias is defined here and mapped to one canonical value, so a
+   page keeps using whichever name its markup already references and still
+   renders identically to every other page. Do not redefine these in a page's
+   inline <style> — that is what made the pages drift apart.
+   ========================================================================== */
+:root {
+    color-scheme: light;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif;
+
+    /* Sidebar */
+    --sidebar-bg: #132313;
+    --sidebar-bg-light: #1c341c;
+
+    /* Brand */
+    --accent: #2f8f4e;
+    --accent-dark: #1f6b39;
+    --accent-light: #e7f5eb;
+
+    /* Surfaces */
+    --page-bg: #eef1ec;
+    --bg: #eef1ec;
+    --card-bg: #ffffff;
+    --card: #ffffff;
+    --panel-bg: #ffffff;
+    --border: #e4e7e1;
+    --border-color: #e4e7e1;
+
+    /* Text */
+    --text-primary: #1c231c;
+    --text-900: #1c231c;
+    --text-dark: #1c231c;
+    --text-secondary: #5b6b60;
+    --text-600: #5b6b60;
+    --text-soft: #5b6b60;
+    --text-muted: #93a199;
+    --text-400: #93a199;
+
+    /* Radii */
+    --radius: 12px;
+    --radius-md: 12px;
+    --radius-lg: 14px;
+
+    /* Elevation */
+    --shadow-sm: 0 1px 2px rgba(20, 40, 25, 0.05);
+    --shadow-card: 0 1px 3px rgba(20, 40, 25, 0.06),
+        0 1px 2px rgba(20, 40, 25, 0.04);
+    --shadow-hover: 0 6px 18px rgba(20, 40, 25, 0.10);
+
+    /* Status */
+    --danger: #c8402f;
+    --danger-light: #fbeae7;
+    --warning: #c9821f;
+    --warning-light: #fbf1e2;
+    --success: #2f8f4e;
+    --success-light: #e7f5eb;
+    --blue: #2a63b5;
+    --blue-light: #e6f0ff;
+    --orange: #c9821f;
+    --yellow: #c9821f;
+    --purple: #6b4cc9;
+
+    /* Status pill pairs */
+    --red-bg: #fbe9e7;
+    --red-text: #c8402f;
+    --green-bg: #e7f5eb;
+    --green-text: #2f8f4e;
+    --orange-bg: #fbf1e2;
+    --orange-text: #c9821f;
+    --amber-bg: #fbf1e2;
+    --amber-text: #b9791b;
+    --amber-icon: #e8a63c;
+    --blue-bg: #e6f0ff;
+    --blue-text: #2a63b5;
+    --purple-bg: #f1eafb;
+    --purple-text: #6b4cc9;
+    --pending-bg: #fbf1e2;
+    --pending-text: #c9821f;
+    --verified-bg: #e7f5eb;
+    --verified-text: #2f8f4e;
+    --rejected-bg: #fbe9e7;
+    --rejected-text: #c8402f;
+}
+
+/* Shared page chrome: identical background, text colour and typography on
+   every admin page. */
+body {
+    background: var(--page-bg);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif;
+}
+
+/* Shared content-area rhythm. */
+.main,
+.main-panel {
+    padding: 26px 32px;
+}
+
+/* Shared page header. */
+.topbar,
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+.topbar h1,
+.top-bar h1,
+.topbar-left h1,
+.top-copy h1 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.topbar p,
+.top-bar p,
+.topbar-left p,
+.top-copy p {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+}
+
 /* Toggle button (three-line icon button at the top of the sidebar) */
 .sidebar-toggle {
     display: flex;
