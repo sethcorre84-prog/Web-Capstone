@@ -571,14 +571,13 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   margin:0;
 }
   .filters-row{
-    display:flex;
+    display:grid;
+    grid-template-columns:minmax(140px,1.6fr) repeat(3,minmax(105px,1fr)) auto;
     gap:10px;
-    flex-wrap:nowrap;
     align-items:center;
   }
   .search-box{
-  flex:1 1 140px;
-  min-width:100px;
+  min-width:0;
   display:flex;
   align-items:center;
   gap:8px;
@@ -607,8 +606,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   background:#fbfcfa;
   font-size:13px;
   color:var(--text-600);
-  flex:0 0 auto;
-  width:auto;
+  width:100%;
   min-width:0;
   }
   .date-range-row{
@@ -628,8 +626,21 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     font-weight:400;
     color:var(--text-600);
     cursor:pointer;
-    flex-shrink:0;
+    min-width:0;
     white-space:nowrap;
+    justify-content:center;
+  }
+
+  @media (max-width: 760px){
+    .filters-row{
+      grid-template-columns:1fr 1fr;
+    }
+    .search-box{
+      grid-column:1 / -1;
+    }
+    .btn-outline{
+      width:100%;
+    }
   }
   .btn-outline:hover{
     background:#f5f5f2;
@@ -1455,7 +1466,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
       <div class="report-form">
         <div class="report-form-grid">
           <label>Hazard Type
-            <input type="text" id="editHazardType" placeholder="e.g. Rockfall">
+            <input type="text" id="editHazardType" placeholder="e.g. Rockfall" readonly style="background:#f2f4f2;color:var(--text-600);cursor:not-allowed;">
           </label>
           <label>Risk Level
             <select id="editRiskLevel">
@@ -1467,22 +1478,22 @@ body[data-theme="dark"] .admin-dropdown a:hover{
         </div>
         <div class="report-form-grid">
           <label>Location
-            <input type="text" id="editLocation" placeholder="e.g. Mount Makiling">
+            <input type="text" id="editLocation" placeholder="e.g. Mount Makiling" readonly style="background:#f2f4f2;color:var(--text-600);cursor:not-allowed;">
           </label>
           <label>Trail
-            <input type="text" id="editTrail" placeholder="e.g. Sipit Trail">
+            <input type="text" id="editTrail" placeholder="e.g. Sipit Trail" readonly style="background:#f2f4f2;color:var(--text-600);cursor:not-allowed;">
           </label>
         </div>
         <div class="report-form-grid">
           <label>Reported By
-            <input type="text" id="editReportedBy" placeholder="e.g. Anonymous">
+            <input type="text" id="editReportedBy" placeholder="e.g. Anonymous" readonly style="background:#f2f4f2;color:var(--text-600);cursor:not-allowed;">
           </label>
           <label>Contact
-            <input type="text" id="editContact" placeholder="Phone or email">
+            <input type="text" id="editContact" placeholder="Phone or email" readonly style="background:#f2f4f2;color:var(--text-600);cursor:not-allowed;">
           </label>
         </div>
         <label>Description
-          <textarea id="editDescription" placeholder="Full details of the hazard"></textarea>
+          <textarea id="editDescription" placeholder="Full details of the hazard" readonly style="background:#f2f4f2;color:var(--text-600);cursor:not-allowed;"></textarea>
         </label>
       </div>
       <div class="form-error" id="editReportError" role="alert"></div>
@@ -1873,25 +1884,16 @@ async function confirmEditReport() {
   const confirmBtn = document.getElementById('editReportSaveBtn');
   const errorEl = document.getElementById('editReportError');
 
-  const hazardType = document.getElementById('editHazardType').value.trim();
-  if (!hazardType) {
-    errorEl.textContent = 'Hazard type is required.';
-    return;
-  }
-
   confirmBtn.disabled = true;
   confirmBtn.textContent = 'Saving...';
   errorEl.textContent = '';
 
   try {
+    // Only Risk Level is editable by admins — all other fields are
+    // locked in the UI, and this is also enforced here so nothing
+    // else is ever written even if the DOM were tampered with.
     await updateDoc(doc(db, 'reports', editReportTargetId), {
-      hazardType,
       riskLevel: document.getElementById('editRiskLevel').value,
-      location: document.getElementById('editLocation').value.trim(),
-      trail: document.getElementById('editTrail').value.trim(),
-      reportedBy: document.getElementById('editReportedBy').value.trim() || 'Anonymous',
-      contact: document.getElementById('editContact').value.trim(),
-      description: document.getElementById('editDescription').value.trim(),
       updatedAt: new Date()
     });
     closeEditReportModal();
@@ -2011,14 +2013,20 @@ function renderReportDetails(report) {
         ${renderAttachments(report)}
       </div>
     </div>
-        <div>
+      <div>
       <button class="btn btn-info" style="width:100%" onclick="openEditReportModal('${report.id}')">✎ Edit Information</button>
     </div>
     <div class="admin-actions">
       <p class="section-label">Admin Actions</p>
+      ${risk.className === 'unknown' ? `
+        <div class="form-error" style="margin-bottom:2px;">Set a valid risk level before this report can be verified or rejected.</div>
+      ` : ''}
       <div class="row">
-          <button class="btn btn-verify" onclick="updateReportStatus('${report.id}', 'verified')">✔ Verify Hazard</button>
-          ${report.status === 'rejected' ?
+          ${risk.className === 'unknown'
+            ? `<button class="btn btn-verify" disabled style="opacity:.6;cursor:not-allowed">✔ Verify Hazard</button>`
+            : `<button class="btn btn-verify" onclick="updateReportStatus('${report.id}', 'verified')">✔ Verify Hazard</button>`
+          }
+          ${report.status === 'rejected' || risk.className === 'unknown' ?
             `<button class="btn btn-reject" disabled style="opacity:.6;cursor:not-allowed">✖ Reject Report</button>` :
             `<button class="btn btn-reject" onclick="updateReportStatus('${report.id}', 'rejected')">✖ Reject Report</button>`
           }

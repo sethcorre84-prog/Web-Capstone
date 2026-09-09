@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="sidebar.js"></script>
     <script type="module" src="dashboard-guard.js"></script>
+    <script type="module" src="notification.js"></script>
     <title>PeakPath Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link rel="stylesheet" href="pages.css">
@@ -201,6 +202,38 @@
         }
         .top-copy h1 { margin: 0; font-size: 32px; color: #0f172a; font-weight: 700; }
         .top-copy p { margin: 8px 0 0; color: #475569; font-size: 15px; }
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+        .bell-wrap {
+            position: relative;
+            width: 38px;
+            height: 38px;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bell-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            background: #d1453b;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bell-icon { font-size: 20px; line-height: 1; }
         .top-meta {
             display: grid;
             gap: 10px;
@@ -517,11 +550,17 @@
                     <h1>Welcome back, Admin!</h1>
                     <p>Mount Makiling Overview Dashboard</p>
                 </div>
-                <div class="top-meta">
-                    <div class="meta-label">Today</div>
-                    <strong id="live-clock">10:30 AM</strong>
-                    <span id="live-day">Tuesday</span>
-                    <span>Admin User • Super Administrator</span>
+                <div class="topbar-right">
+                    <div class="top-meta">
+                        <div class="meta-label">Today</div>
+                        <strong id="live-clock">10:30 AM</strong>
+                        <span id="live-day">Tuesday</span>
+                        <span>Admin User • Super Administrator</span>
+                    </div>
+                    <div class="bell-wrap">
+                        <button class="bell-btn" type="button" aria-label="Open notifications"></button>
+                        <span class="bell-badge" hidden>0</span>
+                    </div>
                 </div>
             </section>
             <section class="hero-grid">
