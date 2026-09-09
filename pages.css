@@ -137,6 +137,84 @@ body {
     color: var(--text-secondary);
 }
 
+/* ==========================================================================
+   Pagination — one look for every paginated table.
+
+   Two markup conventions exist in the portal and both are supported here:
+     trail.html / A&A.html   .pagination (footer row) > .page-btns | #pageControls > button.page-btn
+     hazardreport.html /
+     userreports.html        .table-footer (row) > .pagination > button
+   Style the buttons here, not in a page's inline <style>, or the pages drift
+   apart again.
+   ========================================================================== */
+
+/* The row holding the "Showing x to y of z" text and the buttons. */
+.table-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* The button group. */
+.page-btns,
+#pageControls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* The buttons themselves. */
+.page-btn,
+.pagination button {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-family: inherit;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+}
+
+/* Current page. `.current` is A&A's class name, `.active` everywhere else.
+   The dark-theme selectors are listed so a page's `body[data-theme="dark"]
+   .page-btn` rule cannot out-rank the highlight and flatten the control. */
+.page-btn.active,
+.page-btn.current,
+.pagination button.active,
+.pagination button.current,
+body[data-theme="dark"] .page-btn.active,
+body[data-theme="dark"] .page-btn.current,
+body[data-theme="dark"] .pagination button.active,
+body[data-theme="dark"] .pagination button.current {
+    background: var(--accent-dark);
+    border-color: var(--accent-dark);
+    color: #fff;
+    font-weight: 700;
+}
+
+.page-btn:disabled,
+.page-btn[disabled],
+.pagination button:disabled,
+.pagination button[disabled] {
+    opacity: .4;
+    cursor: default;
+}
+
+.pagination .dots {
+    color: var(--text-muted);
+    padding: 0 2px;
+}
+
 /* Toggle button (three-line icon button at the top of the sidebar) */
 .sidebar-toggle {
     display: flex;

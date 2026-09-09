@@ -687,21 +687,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     align-items:center;
     gap:6px;
   }
-  .pagination button{
-    width:26px;height:26px;
-    border-radius:6px;
-    border:1px solid var(--border);
-    background:#fff;
-    color:var(--text-600);
-    font-size:12px;
-    cursor:pointer;
-  }
-  .pagination button.active{
-    background:var(--accent-dark);
-    border-color:var(--accent-dark);
-    color:#fff;
-    font-weight:700;
-  }
+  /* Pagination buttons are styled in pages.css so every table matches. */
 
   /* Report details card */
   .details-card{
@@ -1319,6 +1305,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
         </div>
       </div>
       <div id="rejectedList" style="display:flex;flex-direction:column;gap:2px"></div>
+      <div class="pagination" id="rejectedPagination" style="margin-top:10px;justify-content:flex-end;width:100%"></div>
       </div>
       </div>
       </div>
@@ -1507,6 +1494,8 @@ let pendingArchiveIds = [];
 let currentPage = 1;
 const itemsPerPage = 10;
 let currentFilteredReports = [];
+let rejectedPage = 1;
+const rejectedPageSize = 5;
 
 // Hazard type icons mapping
 const hazardIcons = {
@@ -1712,11 +1701,19 @@ function renderRejectedList() {
 
   if (!rejected.length) {
     wrap.innerHTML = '<div style="padding:10px 0;color:var(--text-400);font-size:12.5px">No rejected reports.</div>';
+    renderRejectedPagination(0);
     updateArchiveButtonState();
     return;
   }
 
-  rejected.forEach((report, index) => {
+  // 5 per page (allReports is already sorted newest-first); a "next page"
+  // control appears once there are more than 5 rejected reports.
+  const totalPages = Math.max(1, Math.ceil(rejected.length / rejectedPageSize));
+  if (rejectedPage > totalPages) rejectedPage = totalPages;
+  const start = (rejectedPage - 1) * rejectedPageSize;
+  const pageItems = rejected.slice(start, start + rejectedPageSize);
+
+  pageItems.forEach((report, index) => {
     const row = document.createElement('div');
     row.className = 'rejected-row' + (selectedArchiveIds.has(report.id) ? ' archive-selected' : '');
     row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
@@ -1733,14 +1730,42 @@ function renderRejectedList() {
       <span class="hazard-icon" style="flex-shrink:0">${getHazardIcon(report.hazardType)}</span>
       <div style="flex:1;min-width:0">
         <div style="font-weight:600;font-size:12.5px">${report.hazardType || 'Unknown'}</div>
-        <div style="font-size:11px;color:var(--text-400);margin-top:1px">${report.location || 'N/A'} · ${report.reportId || `HR-${index + 1}`}</div>
+        <div style="font-size:11px;color:var(--text-400);margin-top:1px">${report.location || 'N/A'} · ${report.reportId || `HR-${start + index + 1}`}</div>
       </div>
       <span class="badge rejected" style="flex-shrink:0">Rejected</span>
     `;
     wrap.appendChild(row);
   });
 
+  renderRejectedPagination(totalPages);
   updateArchiveButtonState();
+}
+
+// Prev / numbered / next control for the Rejected Reports panel, styled the
+// same as every other paginated list in the portal (see pages.css).
+function renderRejectedPagination(totalPages) {
+  const wrap = document.getElementById('rejectedPagination');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  if (totalPages <= 1) return;
+
+  const addButton = (label, page, { disabled = false, active = false } = {}) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'page-btn' + (active ? ' active' : '');
+    btn.innerHTML = label;
+    btn.disabled = disabled;
+    if (!disabled && !active) {
+      btn.addEventListener('click', () => { rejectedPage = page; renderRejectedList(); });
+    }
+    wrap.appendChild(btn);
+  };
+
+  addButton('&lsaquo;', rejectedPage - 1, { disabled: rejectedPage === 1 });
+  for (let page = 1; page <= totalPages; page++) {
+    addButton(String(page), page, { active: page === rejectedPage });
+  }
+  addButton('&rsaquo;', rejectedPage + 1, { disabled: rejectedPage === totalPages });
 }
 
 // -----------------------------

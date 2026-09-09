@@ -130,9 +130,7 @@
 		.icon-btn[disabled]:hover{background:transparent;color:var(--text-secondary)}
 		.pagination{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
 		.page-controls{display:flex;align-items:center;gap:6px}
-		.page-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--card-bg);display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
-		.page-btn[disabled]{opacity:.4;cursor:default}
-		.page-btn.current{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
+		/* Pagination buttons are styled in pages.css so every table matches. */
 		.stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
 		.stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:10px}
 		.stat-top{display:flex;justify-content:space-between;align-items:center}
@@ -287,6 +285,7 @@
 						</div>
 					</div>
 					<div id="expiredList" style="display:flex;flex-direction:column;gap:2px"></div>
+					<div class="page-controls" id="expiredPagination" style="margin-top:10px;justify-content:flex-end;width:100%"></div>
 				</div>
 			</div>
 		</div>
@@ -450,7 +449,9 @@
 		let selectedArchiveIds = new Set();
 		let editingId = null;
 		let currentPage = 1;
-		const PAGE_SIZE = 10;
+		const PAGE_SIZE = 15;
+		let expiredPage = 1;
+		const expiredPageSize = 5;
 
 		const TYPE_META = {
 			Advisory:     { cls:'advisory',     bg:'var(--danger-light)',  fg:'var(--danger)', icon:'<path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/>' },
@@ -555,16 +556,27 @@ async function syncExpiredAdvisories(){
 			renderExpiredList();
 		}
 
+		// Prev / numbered / next, matching trail.html, hazardreport.html and
+		// userreports.html so the page count is shown the same way everywhere.
 		function renderPagination(totalPages){
 			const wrap = document.getElementById('pageControls');
 			wrap.innerHTML = '';
+
+			if (totalPages <= 1) return;
+
 			const prev = el('button','page-btn'); prev.textContent = '‹';
 			prev.disabled = currentPage <= 1;
 			prev.onclick = () => { currentPage--; applyFiltersAndRender(); };
 			wrap.appendChild(prev);
 
-			const cur = el('button','page-btn current'); cur.textContent = currentPage;
-			wrap.appendChild(cur);
+			for (let page = 1; page <= totalPages; page++) {
+				const btn = el('button','page-btn' + (page === currentPage ? ' active current' : ''));
+				btn.textContent = page;
+				if (page !== currentPage) {
+					btn.onclick = () => { currentPage = page; applyFiltersAndRender(); };
+				}
+				wrap.appendChild(btn);
+			}
 
 			const next = el('button','page-btn'); next.textContent = '›';
 			next.disabled = currentPage >= totalPages;
@@ -696,9 +708,16 @@ async function syncExpiredAdvisories(){
 				selectedArchiveIds.clear();
 				updateArchiveButtonState();
 				wrap.innerHTML = '<div class="empty-state" style="padding:10px 0">No expired advisories.</div>';
+				renderExpiredPagination(0);
 				return;
 			}
-			expired.forEach(it => {
+			// 5 per page (allItems is queried newest-first); a "next page"
+			// control appears once there are more than 5 expired advisories.
+			const totalPages = Math.max(1, Math.ceil(expired.length / expiredPageSize));
+			if (expiredPage > totalPages) expiredPage = totalPages;
+			const start = (expiredPage - 1) * expiredPageSize;
+			const pageItems = expired.slice(start, start + expiredPageSize);
+			pageItems.forEach(it => {
 				const meta = typeMeta(it.type);
 				const row = document.createElement('div');
 				row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
@@ -743,7 +762,35 @@ async function syncExpiredAdvisories(){
 				}
 				wrap.appendChild(row);
 			});
+			renderExpiredPagination(totalPages);
 			updateArchiveButtonState();
+		}
+
+		// Prev / numbered / next control for the Expired Advisories panel, styled
+		// the same as every other paginated list in the portal (see pages.css).
+		function renderExpiredPagination(totalPages){
+			const wrap = document.getElementById('expiredPagination');
+			if (!wrap) return;
+			wrap.innerHTML = '';
+			if (totalPages <= 1) return;
+
+			const addButton = (label, page, { disabled = false, active = false } = {}) => {
+				const btn = document.createElement('button');
+				btn.type = 'button';
+				btn.className = 'page-btn' + (active ? ' active' : '');
+				btn.innerHTML = label;
+				btn.disabled = disabled;
+				if (!disabled && !active) {
+					btn.addEventListener('click', () => { expiredPage = page; renderExpiredList(); });
+				}
+				wrap.appendChild(btn);
+			};
+
+			addButton('&lsaquo;', expiredPage - 1, { disabled: expiredPage === 1 });
+			for (let page = 1; page <= totalPages; page++) {
+				addButton(String(page), page, { active: page === expiredPage });
+			}
+			addButton('&rsaquo;', expiredPage + 1, { disabled: expiredPage === totalPages });
 		}
 
 		function selectAdvisory(id) {

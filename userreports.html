@@ -172,10 +172,8 @@
   .icon-btn:hover{background:#f0f2ee;}
 
   .table-footer{display:flex;align-items:center;justify-content:space-between;padding:14px 4px 2px 4px;font-size:12px;color:var(--text-600);}
-  .pagination{display:flex;align-items:center;gap:5px;}
-  .pagination button{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--text-600);font-size:12px;cursor:pointer;}
-  .pagination button.active{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff;font-weight:700;}
-  .pagination .dots{color:var(--text-400);padding:0 2px;}
+  .pagination{display:flex;align-items:center;gap:6px;}
+  /* Pagination buttons are styled in pages.css so every table matches. */
 
   /* Charts row */
   /* auto-fit instead of fixed 1fr/1.2fr/1fr tracks: inside the 1.75fr content
@@ -454,17 +452,7 @@
 
           <div class="table-footer">
             <span id="reportsSummaryText">Showing 0 reports</span>
-            <div class="pagination">
-              <button>‹</button>
-              <button class="active">1</button>
-              <button>2</button>
-              <button>3</button>
-              <button>4</button>
-              <button>5</button>
-              <span class="dots">…</span>
-              <button>7</button>
-              <button>›</button>
-            </div>
+            <div class="pagination" id="reportsPagination"></div>
           </div>
         </div>
 
@@ -741,12 +729,18 @@
     selectedReportId: null
   };
 
+  // Same page size as every other paginated table (trail.html, A&A.html,
+  // hazardreport.html) so the number of pages is consistent across the portal.
+  const PAGE_SIZE = 10;
+  let currentPage = 1;
+
   const tableBody = document.getElementById('userReportsTableBody');
   const searchInput = document.getElementById('reportsSearchInput');
   const statusFilter = document.getElementById('reportsStatusFilter');
   const typeFilter = document.getElementById('reportsTypeFilter');
   const dateFilter = document.getElementById('reportsDateFilter');
   const reportsSummaryText = document.getElementById('reportsSummaryText');
+  const reportsPagination = document.getElementById('reportsPagination');
 
   const totalReportsValue = document.getElementById('totalReportsValue');
   const pendingReportsValue = document.getElementById('pendingReportsValue');
@@ -1213,16 +1207,22 @@
     });
 
     if (!filteredReports.length) {
-      tableBody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:#94a3b8;">No reports found for the selected filters.</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--text-400);">No reports found for the selected filters.</td></tr>';
       reportsSummaryText.textContent = 'Showing 0 reports';
+      renderPagination(1);
       return;
     }
 
+    const totalPages = Math.max(1, Math.ceil(filteredReports.length / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+    const startIdx = (currentPage - 1) * PAGE_SIZE;
+    const pageReports = filteredReports.slice(startIdx, startIdx + PAGE_SIZE);
+
     if (!state.selectedReportId || !filteredReports.some((report) => report.id === state.selectedReportId)) {
-      state.selectedReportId = filteredReports[0].id;
+      state.selectedReportId = pageReports[0].id;
     }
 
-    tableBody.innerHTML = filteredReports.map((report) => `
+    tableBody.innerHTML = pageReports.map((report) => `
       <tr data-report-id="${report.id}" class="${report.id === state.selectedReportId ? 'selected' : ''}">
         <td><div class="report-id-cell"><span class="flag" style="background:${report.status.toLowerCase() === 'resolved' ? '#2f8f4e' : report.status.toLowerCase() === 'under review' ? '#2a63b5' : '#d1453b'};"></span>${report.reportId}</div></td>
         <td>
@@ -1263,8 +1263,41 @@
       });
     });
 
-    reportsSummaryText.textContent = `Showing ${filteredReports.length} report${filteredReports.length === 1 ? '' : 's'}`;
+    reportsSummaryText.textContent =
+      `Showing ${startIdx + 1} to ${Math.min(startIdx + PAGE_SIZE, filteredReports.length)} of ${filteredReports.length} reports`;
+    renderPagination(totalPages);
     renderSelectedReport();
+  };
+
+  // Mirrors the prev / numbered / next control used by trail.html and
+  // hazardreport.html.
+  const renderPagination = (totalPages) => {
+    if (!reportsPagination) return;
+
+    if (totalPages <= 1) {
+      reportsPagination.innerHTML = '';
+      return;
+    }
+
+    reportsPagination.innerHTML = '';
+
+    const addButton = (label, page, { disabled = false, active = false } = {}) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.innerHTML = label;
+      button.disabled = disabled;
+      if (active) button.classList.add('active');
+      if (!disabled && !active) {
+        button.addEventListener('click', () => { currentPage = page; renderTable(); });
+      }
+      reportsPagination.appendChild(button);
+    };
+
+    addButton('&lsaquo;', currentPage - 1, { disabled: currentPage === 1 });
+    for (let page = 1; page <= totalPages; page++) {
+      addButton(String(page), page, { active: page === currentPage });
+    }
+    addButton('&rsaquo;', currentPage + 1, { disabled: currentPage === totalPages });
   };
 
   /* ---------------- Report actions ---------------- */
@@ -1712,6 +1745,7 @@
   });
 
   const applyFilters = () => {
+    currentPage = 1;
     renderTable();
   };
 
