@@ -15,6 +15,7 @@
   }
 </style>
   <script type="module" src="dashboard-guard.js"></script>
+  <script type="module" src="notification.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PeakPath — Geomap Monitoring</title>
@@ -207,6 +208,41 @@
       color:var(--text-secondary);
       font-size:13px
     }
+    .topbar-right{
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+    .bell-wrap{
+      position:relative;
+      width:38px;
+      height:38px;
+      border-radius:9px;
+      background:var(--card-bg);
+      border:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .bell-badge{
+      position:absolute;
+      top:-5px;
+      right:-5px;
+      width:17px;
+      height:17px;
+      border-radius:50%;
+      background:var(--danger);
+      color:#fff;
+      font-size:10px;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .bell-icon{
+      font-size:20px;
+      line-height:1;
+    }
         .summary-cards{
       display:grid;
       grid-template-columns:repeat(4,1fr);
@@ -239,6 +275,11 @@
       font-size:12px;
       color:var(--text-secondary);
       line-height:1.4;
+    }
+    .card .percentage{
+      margin-top:4px;
+      font-size:11px;
+      color:var(--text-muted);
     }
     .card-icon{
       width:32px;
@@ -305,6 +346,34 @@
       flex-direction:column;
       gap:12px
     }
+    .status-pair{
+      align-items:stretch !important;
+    }
+    .trail-status-panel{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+    }
+    .trail-status-panel #trailStatusList{
+      flex:1;
+      min-height:0;
+      max-height:220px;
+      overflow-y:auto;
+    }
+    .recent-hazards-panel{
+      height:280px;
+      display:flex;
+      flex-direction:column;
+    }
+    .recent-hazards-panel #recentHazardsList{
+      flex:1;
+      min-height:0;
+      max-height:none;
+      overflow-y:auto;
+    }
+    .emergency-alerts-panel{
+      width:calc(100% + 300px);
+    }
     .legend, .alerts, .recent{
       background:var(--card-bg);
       border:1px solid var(--border);
@@ -313,6 +382,9 @@
     }
     @media(max-width:980px){
       .content-grid{grid-template-columns:1fr
+      }
+      .emergency-alerts-panel{
+        width:100%;
       }
       .sidebar{
         display:none}
@@ -360,9 +432,15 @@
           <h1>Geomap Monitoring</h1>
           <p>Real-time monitoring of trails, hazards, and environmental conditions.</p>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-          <div id="liveDate" style="color:var(--text-secondary);font-size:13px"></div>
-          <div id="liveTime" style="color:var(--text-primary);font-weight:700;font-size:13px"></div>
+        <div class="topbar-right">
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+            <div id="liveDate" style="color:var(--text-secondary);font-size:13px"></div>
+            <div id="liveTime" style="color:var(--text-primary);font-weight:700;font-size:13px"></div>
+          </div>
+          <div class="bell-wrap">
+            <button class="bell-btn" type="button" aria-label="Open notifications"></button>
+            <span class="bell-badge" hidden>0</span>
+          </div>
         </div>
       </div>
 
@@ -379,7 +457,10 @@
               </svg>
             </div>
           </div>
-          <div class="card-content"><div class="label">Active Hikers Today</div></div>
+          <div class="card-content">
+            <div class="label">Active Hikers Today</div>
+            <div class="percentage" id="activeHikersPercentage">—% of hikers</div>
+          </div>
         </div>
         <div class="card">
           <div class="card-top">
@@ -388,7 +469,10 @@
               <svg viewBox="0 0 24 24"><path d="M4 18l5-9 4 6 3-5 4 8"/><path d="M3 18h18"/></svg>
             </div>
           </div>
-          <div class="card-content"><div class="label">Open Trails</div></div>
+          <div class="card-content">
+            <div class="label">Open Trails</div>
+            <div class="percentage" id="openTrailsPercentage">—% of trails</div>
+          </div>
         </div>
         <div class="card">
           <div class="card-top">
@@ -397,7 +481,10 @@
               <svg viewBox="0 0 24 24"><path d="M12 4l8 14H4l8-14z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
             </div>
           </div>
-          <div class="card-content"><div class="label">Active Hazard Alerts</div></div>
+          <div class="card-content">
+            <div class="label">Active Hazard Alerts</div>
+            <div class="percentage" id="activeHazardsPercentage">—% of reports</div>
+          </div>
         </div>
         <div class="card">
           <div class="card-top">
@@ -420,8 +507,8 @@
             <div style="font-size:12px;color:var(--text-secondary);margin-top:8px">Live OpenStreetMap data · Trail and verified hazard markers come from Firestore</div>
           </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
-            <div class="panel" style="padding:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
+          <div class="status-pair" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
+            <div class="panel trail-status-panel" style="padding:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
               <div style="display:flex;justify-content:space-between;align-items:center"><strong>Active Alerts</strong><a href="A&A.html">View All</a></div>
               <div id="activeAlertsList" style="margin-top:12px;max-height:220px;overflow-y:auto;padding-right:4px"></div>
             </div>
@@ -431,7 +518,7 @@
             </div>
           </div>
 
-          <div class="panel" style="padding:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;margin-top:12px;">
+          <div class="panel emergency-alerts-panel" style="padding:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;margin-top:12px;">
             <div style="display:flex;justify-content:space-between;align-items:center"><strong>Active Emergency Alerts</strong></div>
             <div id="emergencyAlertsList" style="margin-top:12px"></div>
           </div>
@@ -473,7 +560,7 @@
             </div>
           </div>
 
-          <div class="recent">
+          <div class="recent recent-hazards-panel">
             <strong>Recent Hazards</strong>
             <div id="recentHazardsList" style="margin-top:10px;font-size:13px;color:var(--text-secondary);max-height:220px;overflow-y:auto;padding-right:4px"></div>
           </div>
@@ -852,36 +939,47 @@
     locationControl.addTo(map);
 
     onSnapshot(collection(db, 'users'), (snapshot) => {
-      const activeHikers = snapshot.docs.filter(document => {
+      const hikers = snapshot.docs.filter(document => {
         const data = document.data();
         const role = String(data.role || data.Role || 'Hiker').toLowerCase();
+        return role === 'hiker';
+      });
+      const activeHikers = hikers.filter(document => {
+        const data = document.data();
         const status = String(data.status || data.Status || 'Active').toLowerCase();
-        return role === 'hiker' && status === 'active';
+        return status === 'active';
       });
       setSummaryValue('activeHikersValue', activeHikers.length);
+      setSummaryValue('activeHikersPercentage', `${hikers.length ? Math.round((activeHikers.length / hikers.length) * 100) : 0}% of hikers`);
     }, (error) => {
       console.error('Error loading active hikers:', error);
       setSummaryValue('activeHikersValue', '—');
+      setSummaryValue('activeHikersPercentage', '—% of hikers');
     });
 
     onSnapshot(collection(db, 'trails'), (snapshot) => {
       const trails = snapshot.docs.map(document => document.data());
       const openTrails = trails.filter(trail => (trail.Status || 'Open') === 'Open');
       setSummaryValue('openTrailsValue', `${openTrails.length} / ${trails.length}`);
+      setSummaryValue('openTrailsPercentage', `${trails.length ? Math.round((openTrails.length / trails.length) * 100) : 0}% of trails`);
     }, (error) => {
       console.error('Error loading trail summary:', error);
       setSummaryValue('openTrailsValue', '—');
+      setSummaryValue('openTrailsPercentage', '—% of trails');
     });
 
     onSnapshot(collection(db, 'reports'), (snapshot) => {
-      const activeHazards = snapshot.docs.filter(document => {
+      const reports = snapshot.docs;
+      const activeHazards = reports.filter(document => {
         const data = document.data();
         return (data.status || 'pending') === 'verified';
       });
       setSummaryValue('activeHazardsValue', activeHazards.length);
+      setSummaryValue('activeHazardsPercentage', `${reports.length ? Math.round((activeHazards.length / reports.length) * 100) : 0}% of reports`);
     }, (error) => {
       console.error('Error loading active hazards:', error);
       setSummaryValue('activeHazardsValue', '—');
+      setSummaryValue('activeHazardsPercentage', '—% of reports');
     });
 
     const weatherCodes = {
