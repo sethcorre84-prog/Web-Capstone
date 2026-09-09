@@ -20,6 +20,11 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    match /userReported/{reportId} {
+      allow read: if signedIn() && isAdmin();
+      allow create, update, delete: if signedIn() && isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

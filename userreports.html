@@ -313,7 +313,7 @@
     <section class="stats">
       <div class="stat-card">
         <div class="stat-top">
-          <span class="stat-value">34</span>
+          <span class="stat-value" id="totalReportsValue">0</span>
           <div class="stat-icon" style="background:var(--red-bg);">
             <svg viewBox="0 0 24 24" fill="none" stroke="var(--red-text)" stroke-width="2"><path d="M4 21V4"/><path d="M4 4h13l-2.5 4L17 12H4"/></svg>
           </div>
@@ -323,7 +323,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-top">
-          <span class="stat-value">12</span>
+          <span class="stat-value" id="pendingReportsValue">0</span>
           <div class="stat-icon" style="background:var(--orange-bg);">
             <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange-text)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
           </div>
@@ -333,7 +333,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-top">
-          <span class="stat-value">17</span>
+          <span class="stat-value" id="underReviewValue">0</span>
           <div class="stat-icon" style="background:var(--blue-bg);">
             <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue-text)" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
           </div>
@@ -343,7 +343,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-top">
-          <span class="stat-value">5</span>
+          <span class="stat-value" id="resolvedReportsValue">0</span>
           <div class="stat-icon" style="background:var(--green-bg);">
             <svg viewBox="0 0 24 24" fill="none" stroke="var(--green-text)" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
           </div>
@@ -363,15 +363,15 @@
           <div class="toolbar">
             <div class="search-box">
               <span>🔎</span>
-              <input type="text" placeholder="Search reports...">
+              <input id="reportsSearchInput" type="text" placeholder="Search reports...">
             </div>
-            <select class="filter">
+            <select id="reportsStatusFilter" class="filter">
               <option>All Status</option>
               <option>Pending</option>
               <option>Under Review</option>
               <option>Resolved</option>
             </select>
-            <select class="filter">
+            <select id="reportsTypeFilter" class="filter">
               <option>All Report Types</option>
               <option>Harassment</option>
               <option>Inappropriate Behavior</option>
@@ -379,7 +379,7 @@
               <option>Unsafe Behavior</option>
               <option>Disrespectful Conduct</option>
             </select>
-            <select class="filter">
+            <select id="reportsDateFilter" class="filter">
               <option>All Dates</option>
             </select>
             <button class="filters-btn">▽ Filters</button>
@@ -400,118 +400,12 @@
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
-              <tr class="selected">
-                <td><div class="report-id-cell"><span class="flag" style="background:#d1453b;"></span>UR-2025-034</div></td>
-                <td>
-                  <div class="person-cell">
-                    <div class="p-avatar" style="background:linear-gradient(160deg,#e08fa0,#c24a63);">H</div>
-                    <div><div class="p-name">Hiker_0211</div><div class="p-email">hiker_0211@email.com</div></div>
-                  </div>
-                </td>
-                <td>
-                  <div class="person-cell">
-                    <div class="p-avatar" style="background:linear-gradient(160deg,#7fa8d8,#3a5f9e);">U</div>
-                    <div><div class="p-name">User_0741</div><div class="p-email">user_0741@email.com</div></div>
-                  </div>
-                </td>
-                <td><span class="badge harassment">Harassment</span></td>
-                <td><span class="desc-preview">User was verbally abusive to other hikers at the campsite...</span></td>
-                <td>Spirit Trail (Section 2)</td>
-                <td>May 20, 2025<br><span style="color:var(--text-400);font-size:10.5px;">10:25 AM</span></td>
-                <td><span class="badge pending">Pending</span></td>
-                <td><div class="row-actions"><button class="icon-btn">👁</button><button class="icon-btn">⋮</button></div></td>
-              </tr>
-              <tr>
-                <td><div class="report-id-cell"><span class="flag" style="background:#c9821f;"></span>UR-2025-033</div></td>
-                <td>
-                  <div class="person-cell">
-                    <div class="p-avatar" style="background:linear-gradient(160deg,#8fd0c0,#2f8f6b);">H</div>
-                    <div><div class="p-name">Hiker_0663</div><div class="p-email">hiker_0663@email.com</div></div>
-                  </div>
-                </td>
-                <td>
-                  <div class="person-cell">
-                    <div class="p-avatar" style="background:linear-gradient(160deg,#c7a5e0,#7b4fd1);">R</div>
-                    <div><div class="p-name">Ranger_Jane</div><div class="p-email">rangerjane@gov.ph</div></div>
-                  </div>
-                </td>
-                <td><span class="badge inappropriate">Inappropriate Behavior</span></td>
-                <td><span class="desc-preview">Making loud noise and disturbing other hikers...</span></td>
-                <td>Makiling Rainforest Trail</td>
-                <td>May 19, 2025<br><span style="color:var(--text-400);font-size:10.5px;">08:15 PM</span></td>
-                <td><span class="badge under-review">Under Review</span></td>
-                <td><div class="row-actions"><button class="icon-btn">👁</button><button class="icon-btn">⋮</button></div></td>
-              </tr>
-              <tr>
-                <td><div class="report-id-cell"><span class="flag" style="background:#7b4fd1;"></span>UR-2025-032</div></td>
-                <td>
-                  <div class="person-cell">
-                    <div class="p-avatar" style="background:linear-gradient(160deg,#f0c380,#c9821f);">U</div>
-                    <div><div class="p-name">User_0387</div><div class="p-email">user_0387@email.com</div></div>
-                  </div>
-                </td>
-                <td>
-                  <div class="person-cell">
-                    <div class="p-avatar" style="background:linear-gradient(160deg,#7fbf8f,#2f6b45);">U</div>
-                    <div><div class="p-name">User_0922</div><div class="p-email">user_0922@email.com</div></div>
-                  </div>
-                </td>
-                <td><span class="badge rule">Rule Violation</span></td>
-                <td><span class="desc-preview">Not following Leave No Trace policy. Left trash behind...</span></td>
-                <td>Forestry Trail (UPLB Area)</td>
-                <td>May 19, 2025<br><span style="color:var(--text-400);font-size:10.5px;">04:30 PM</span></td>
-                <td><span class="badge pending">Pending</span></td>
-                <td><div class="row-actions"><button class="icon-btn">👁</button><button class="icon-btn">⋮</button></div></td>
-              </tr>
-              <tr>
-                <td><div class="report-id-cell"><span class="flag" style="background:#d1453b;"></span>UR-2025-031</div></td>
-                <td>
-                  <div class="person-cell">
-                    <div class="p-avatar" style="background:linear-gradient(160deg,#e08fa0,#c24a63);">H</div>
-                    <div><div class="p-name">Hiker_0999</div><div class="p-email">hiker_0999@email.com</div></div>
-                  </div>
-                </td>
-                <td>
-                  <div class="person-cell">
-                    <div class="p-avatar" style="background:linear-gradient(160deg,#8fbfe0,#2f6bad);">G</div>
-                    <div><div class="p-name">Guide_007</div><div class="p-email">guide_007@email.com</div></div>
-                  </div>
-                </td>
-                <td><span class="badge unsafe">Unsafe Behavior</span></td>
-                <td><span class="desc-preview">Took unnecessary risks near the cliff and encouraged others...</span></td>
-                <td>Landslide Risk Area (Upper)</td>
-                <td>May 18, 2025<br><span style="color:var(--text-400);font-size:10.5px;">11:20 AM</span></td>
-                <td><span class="badge resolved">Resolved</span></td>
-                <td><div class="row-actions"><button class="icon-btn">👁</button><button class="icon-btn">⋮</button></div></td>
-              </tr>
-              <tr>
-                <td><div class="report-id-cell"><span class="flag" style="background:#c9821f;"></span>UR-2025-030</div></td>
-                <td>
-                  <div class="person-cell">
-                    <div class="p-avatar" style="background:linear-gradient(160deg,#e0b58f,#b56b2f);">H</div>
-                    <div><div class="p-name">Hiker_0456</div><div class="p-email">hiker_0456@email.com</div></div>
-                  </div>
-                </td>
-                <td>
-                  <div class="person-cell">
-                    <div class="p-avatar" style="background:linear-gradient(160deg,#7fa8d8,#3a5f9e);">U</div>
-                    <div><div class="p-name">User_0741</div><div class="p-email">user_0741@email.com</div></div>
-                  </div>
-                </td>
-                <td><span class="badge disrespectful">Disrespectful Conduct</span></td>
-                <td><span class="desc-preview">Disrespectful to the guide and other hikers...</span></td>
-                <td>Summit Camp (Mt. Makiling)</td>
-                <td>May 17, 2025<br><span style="color:var(--text-400);font-size:10.5px;">07:05 AM</span></td>
-                <td><span class="badge under-review">Under Review</span></td>
-                <td><div class="row-actions"><button class="icon-btn">👁</button><button class="icon-btn">⋮</button></div></td>
-              </tr>
-            </tbody>
+            <tbody id="userReportsTableBody"></tbody>
           </table>
           </div>
 
           <div class="table-footer">
-            <span>Showing 1 to 5 of 34 reports</span>
+            <span id="reportsSummaryText">Showing 0 reports</span>
             <div class="pagination">
               <button>‹</button>
               <button class="active">1</button>
@@ -601,43 +495,43 @@
         <div class="panel">
           <div class="details-top">
             <div class="panel-title" style="margin-bottom:0;">Report Details</div>
-            <span class="status-pill">Pending</span>
+            <span class="status-pill" id="detailStatusPill">Pending</span>
           </div>
 
           <div class="detail-fields">
-            <div class="detail-field"><div class="lbl">Report ID</div><div class="val">UR-2025-034</div></div>
-            <div class="detail-field"><div class="lbl">Report Type</div><div class="val">Harassment</div></div>
+            <div class="detail-field"><div class="lbl">Report ID</div><div class="val" id="detailReportId">—</div></div>
+            <div class="detail-field"><div class="lbl">Report Type</div><div class="val" id="detailReportType">—</div></div>
           </div>
 
           <div class="person-block">
             <div class="section-label">Reported User</div>
             <div class="person-row">
-              <div class="p-avatar" style="background:linear-gradient(160deg,#e08fa0,#c24a63);">H</div>
-              <div><div class="p-name">Hiker_0211</div><div class="p-email">hiker_0211@email.com</div></div>
+              <div class="p-avatar" id="detailReportedUserAvatar" style="background:linear-gradient(160deg,#e08fa0,#c24a63);">H</div>
+              <div><div class="p-name" id="detailReportedUserName">—</div><div class="p-email" id="detailReportedUserEmail">—</div></div>
             </div>
           </div>
 
           <div class="person-block">
             <div class="section-label">Reported By</div>
             <div class="person-row">
-              <div class="p-avatar" style="background:linear-gradient(160deg,#7fa8d8,#3a5f9e);">U</div>
-              <div><div class="p-name">User_0741</div><div class="p-email">user_0741@email.com</div></div>
+              <div class="p-avatar" id="detailReportedByAvatar" style="background:linear-gradient(160deg,#7fa8d8,#3a5f9e);">U</div>
+              <div><div class="p-name" id="detailReportedByName">—</div><div class="p-email" id="detailReportedByEmail">—</div></div>
             </div>
           </div>
 
           <div class="section-block">
             <div class="section-label">Location / Trail</div>
-            <div class="section-text">Spirit Trail (Section 2)</div>
+            <div class="section-text" id="detailLocation">—</div>
           </div>
 
           <div class="section-block">
             <div class="section-label">Date Reported</div>
-            <div class="section-text">May 20, 2025 10:25 AM</div>
+            <div class="section-text" id="detailDateReported">—</div>
           </div>
 
           <div class="section-block">
             <div class="section-label">Description</div>
-            <p class="section-text">The user was verbally abusive to other hikers near the campsite. This made others feel uncomfortable and unsafe.</p>
+            <p class="section-text" id="detailDescription">—</p>
           </div>
 
           <div class="section-block">
@@ -665,5 +559,345 @@
     </div>
   </main>
 </div>
+
+<script type="module">
+  import { db } from './firebase-config.js';
+  import { collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+  const state = {
+    reports: [],
+    selectedReportId: null
+  };
+
+  const tableBody = document.getElementById('userReportsTableBody');
+  const searchInput = document.getElementById('reportsSearchInput');
+  const statusFilter = document.getElementById('reportsStatusFilter');
+  const typeFilter = document.getElementById('reportsTypeFilter');
+  const dateFilter = document.getElementById('reportsDateFilter');
+  const reportsSummaryText = document.getElementById('reportsSummaryText');
+
+  const totalReportsValue = document.getElementById('totalReportsValue');
+  const pendingReportsValue = document.getElementById('pendingReportsValue');
+  const underReviewValue = document.getElementById('underReviewValue');
+  const resolvedReportsValue = document.getElementById('resolvedReportsValue');
+
+  const detailStatusPill = document.getElementById('detailStatusPill');
+  const detailReportId = document.getElementById('detailReportId');
+  const detailReportType = document.getElementById('detailReportType');
+  const detailReportedUserName = document.getElementById('detailReportedUserName');
+  const detailReportedUserEmail = document.getElementById('detailReportedUserEmail');
+  const detailReportedUserAvatar = document.getElementById('detailReportedUserAvatar');
+  const detailReportedByName = document.getElementById('detailReportedByName');
+  const detailReportedByEmail = document.getElementById('detailReportedByEmail');
+  const detailReportedByAvatar = document.getElementById('detailReportedByAvatar');
+  const detailLocation = document.getElementById('detailLocation');
+  const detailDateReported = document.getElementById('detailDateReported');
+  const detailDescription = document.getElementById('detailDescription');
+
+  const normalizeText = (value) => String(value ?? '').trim();
+
+  const getInitials = (value) => {
+    const safeValue = normalizeText(value) || 'U';
+    return safeValue
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0].toUpperCase())
+      .join('') || 'U';
+  };
+
+  const toBadgeClass = (status) => {
+    const normalized = normalizeText(status).toLowerCase();
+    if (normalized === 'pending') return 'pending';
+    if (normalized === 'under review') return 'under-review';
+    if (normalized === 'resolved') return 'resolved';
+    if (normalized.includes('harassment')) return 'harassment';
+    if (normalized.includes('inappropriate')) return 'inappropriate';
+    if (normalized.includes('rule')) return 'rule';
+    if (normalized.includes('unsafe')) return 'unsafe';
+    if (normalized.includes('disrespectful')) return 'disrespectful';
+    return 'pending';
+  };
+
+  const formatDate = (value) => {
+    if (!value) return '—';
+
+    if (typeof value.toDate === 'function') {
+      const date = value.toDate();
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+
+    if (value instanceof Date) {
+      return value.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+
+    if (typeof value === 'string') {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+      }
+      return value;
+    }
+
+    return '—';
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return '—';
+
+    if (typeof value.toDate === 'function') {
+      const date = value.toDate();
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+    }
+
+    if (value instanceof Date) {
+      return value.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+    }
+
+    if (typeof value === 'string') {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+      }
+      return value;
+    }
+
+    return '—';
+  };
+
+  const getFirstAvailable = (...values) => {
+    for (const value of values) {
+      const text = normalizeText(value);
+      if (text) return text;
+    }
+    return '';
+  };
+
+  const getPersonData = (report, nameKeys, emailKeys) => {
+    const rawName = getFirstAvailable(
+      ...nameKeys.map((key) => report[key]),
+      ...nameKeys.map((key) => report[key]?.name),
+      ...nameKeys.map((key) => report[key]?.fullName),
+      ...nameKeys.map((key) => report[key]?.displayName),
+      ...nameKeys.map((key) => report[key]?.username)
+    );
+
+    const rawEmail = getFirstAvailable(
+      ...emailKeys.map((key) => report[key]),
+      ...emailKeys.map((key) => report[key]?.email)
+    );
+
+    return {
+      name: rawName || 'Unknown user',
+      email: rawEmail || 'No email provided'
+    };
+  };
+
+  const normalizeReport = (doc) => {
+    const data = doc.data() || {};
+
+    const reportedUser = getPersonData(
+      data,
+      ['reportedUserName', 'reportedUser', 'reportedUsername', 'reported_username', 'reportedUserDisplayName', 'reported_user_name'],
+      ['reportedUserEmail', 'reportedEmail', 'reported_user_email', 'reportedUserMail']
+    );
+
+    const reportedBy = getPersonData(
+      data,
+      ['reportedByName', 'reporterName', 'reporter', 'reportedBy', 'submittedBy', 'submittedByName', 'userName', 'username'],
+      ['reportedByEmail', 'reporterEmail', 'submittedByEmail', 'email']
+    );
+
+    return {
+      id: doc.id,
+      reportId: getFirstAvailable(data.reportId, data.reportID, data.idNumber, doc.id),
+      reportedUserName: reportedUser.name,
+      reportedUserEmail: reportedUser.email,
+      reportedByName: reportedBy.name,
+      reportedByEmail: reportedBy.email,
+      reportType: getFirstAvailable(data.reportType, data.type, data.category, data.report_category, 'User report'),
+      description: getFirstAvailable(data.description, data.details, data.message, data.reason, 'No description provided'),
+      location: getFirstAvailable(data.location, data.trail, data.trailName, data.place, data.area, 'Unknown location'),
+      status: getFirstAvailable(data.status, data.reportStatus, 'Pending'),
+      dateReported: data.dateReported || data.timestamp || data.createdAt || data.reportedAt || data.date || null
+    };
+  };
+
+  const renderStats = () => {
+    const total = state.reports.length;
+    const pending = state.reports.filter((report) => report.status.toLowerCase() === 'pending').length;
+    const underReview = state.reports.filter((report) => report.status.toLowerCase() === 'under review').length;
+    const resolved = state.reports.filter((report) => report.status.toLowerCase() === 'resolved').length;
+
+    totalReportsValue.textContent = total;
+    pendingReportsValue.textContent = pending;
+    underReviewValue.textContent = underReview;
+    resolvedReportsValue.textContent = resolved;
+  };
+
+  const renderSelectedReport = () => {
+    const selectedReport = state.reports.find((report) => report.id === state.selectedReportId) || state.reports[0];
+
+    if (!selectedReport) {
+      detailStatusPill.textContent = 'No data';
+      detailReportId.textContent = '—';
+      detailReportType.textContent = '—';
+      detailReportedUserName.textContent = '—';
+      detailReportedUserEmail.textContent = '—';
+      detailReportedByName.textContent = '—';
+      detailReportedByEmail.textContent = '—';
+      detailLocation.textContent = '—';
+      detailDateReported.textContent = '—';
+      detailDescription.textContent = '—';
+      detailReportedUserAvatar.textContent = '—';
+      detailReportedByAvatar.textContent = '—';
+      return;
+    }
+
+    const statusLabel = normalizeText(selectedReport.status) || 'Pending';
+    detailStatusPill.textContent = statusLabel;
+    detailStatusPill.style.background = statusLabel.toLowerCase() === 'resolved'
+      ? 'var(--green-bg)'
+      : statusLabel.toLowerCase() === 'under review'
+        ? 'var(--blue-bg)'
+        : 'var(--orange-bg)';
+    detailStatusPill.style.color = statusLabel.toLowerCase() === 'resolved'
+      ? 'var(--green-text)'
+      : statusLabel.toLowerCase() === 'under review'
+        ? 'var(--blue-text)'
+        : 'var(--orange-text)';
+
+    detailReportId.textContent = selectedReport.reportId;
+    detailReportType.textContent = selectedReport.reportType;
+    detailReportedUserName.textContent = selectedReport.reportedUserName;
+    detailReportedUserEmail.textContent = selectedReport.reportedUserEmail;
+    detailReportedByName.textContent = selectedReport.reportedByName;
+    detailReportedByEmail.textContent = selectedReport.reportedByEmail;
+    detailLocation.textContent = selectedReport.location;
+    detailDateReported.textContent = formatDateTime(selectedReport.dateReported);
+    detailDescription.textContent = selectedReport.description;
+
+    detailReportedUserAvatar.textContent = getInitials(selectedReport.reportedUserName);
+    detailReportedByAvatar.textContent = getInitials(selectedReport.reportedByName);
+  };
+
+  const renderTable = () => {
+    const term = searchInput.value.trim().toLowerCase();
+    const selectedStatus = statusFilter.value;
+    const selectedType = typeFilter.value;
+
+    const filteredReports = state.reports.filter((report) => {
+      const matchesSearch = !term || [
+        report.reportId,
+        report.reportedUserName,
+        report.reportedUserEmail,
+        report.reportedByName,
+        report.reportedByEmail,
+        report.reportType,
+        report.location,
+        report.description
+      ].join(' ').toLowerCase().includes(term);
+
+      const matchesStatus = selectedStatus === 'All Status' || report.status.toLowerCase() === selectedStatus.toLowerCase();
+      const matchesType = selectedType === 'All Report Types' || report.reportType.toLowerCase() === selectedType.toLowerCase();
+
+      return matchesSearch && matchesStatus && matchesType;
+    });
+
+    if (!filteredReports.length) {
+      tableBody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:#94a3b8;">No reports found for the selected filters.</td></tr>';
+      reportsSummaryText.textContent = 'Showing 0 reports';
+      return;
+    }
+
+    if (!state.selectedReportId || !filteredReports.some((report) => report.id === state.selectedReportId)) {
+      state.selectedReportId = filteredReports[0].id;
+    }
+
+    tableBody.innerHTML = filteredReports.map((report) => `
+      <tr data-report-id="${report.id}" class="${report.id === state.selectedReportId ? 'selected' : ''}">
+        <td><div class="report-id-cell"><span class="flag" style="background:${report.status.toLowerCase() === 'resolved' ? '#2f8f4e' : report.status.toLowerCase() === 'under review' ? '#2a63b5' : '#d1453b'};"></span>${report.reportId}</div></td>
+        <td>
+          <div class="person-cell">
+            <div class="p-avatar" style="background:linear-gradient(160deg,#e08fa0,#c24a63);">${getInitials(report.reportedUserName)}</div>
+            <div><div class="p-name">${report.reportedUserName}</div><div class="p-email">${report.reportedUserEmail}</div></div>
+          </div>
+        </td>
+        <td>
+          <div class="person-cell">
+            <div class="p-avatar" style="background:linear-gradient(160deg,#7fa8d8,#3a5f9e);">${getInitials(report.reportedByName)}</div>
+            <div><div class="p-name">${report.reportedByName}</div><div class="p-email">${report.reportedByEmail}</div></div>
+          </div>
+        </td>
+        <td><span class="badge ${toBadgeClass(report.reportType)}">${report.reportType}</span></td>
+        <td><span class="desc-preview">${report.description}</span></td>
+        <td>${report.location}</td>
+        <td>${formatDate(report.dateReported)}<br><span style="color:var(--text-400);font-size:10.5px;">${formatDateTime(report.dateReported).split(',').slice(1).join(',').trim() || ''}</span></td>
+        <td><span class="badge ${toBadgeClass(report.status)}">${report.status}</span></td>
+        <td><div class="row-actions"><button class="icon-btn" type="button">👁</button><button class="icon-btn" type="button">⋮</button></div></td>
+      </tr>
+    `).join('');
+
+    tableBody.querySelectorAll('tr[data-report-id]').forEach((row) => {
+      row.addEventListener('click', () => {
+        state.selectedReportId = row.dataset.reportId;
+        renderTable();
+        renderSelectedReport();
+      });
+    });
+
+    reportsSummaryText.textContent = `Showing ${filteredReports.length} report${filteredReports.length === 1 ? '' : 's'}`;
+    renderSelectedReport();
+  };
+
+  const applyFilters = () => {
+    renderTable();
+  };
+
+  searchInput.addEventListener('input', applyFilters);
+  statusFilter.addEventListener('change', applyFilters);
+  typeFilter.addEventListener('change', applyFilters);
+  dateFilter.addEventListener('change', applyFilters);
+
+  onSnapshot(collection(db, 'userReported'), (snapshot) => {
+    state.reports = snapshot.docs.map(normalizeReport);
+    renderStats();
+    renderTable();
+  }, (error) => {
+    console.error('Failed to load user reports:', error);
+    tableBody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:#94a3b8;">Unable to load reports from the database.</td></tr>';
+    reportsSummaryText.textContent = 'Unable to load reports';
+  });
+</script>
 </body>
 </html>
