@@ -235,6 +235,54 @@
   .action-btn.warn{background:#e8a63c;color:#fff;}
   .action-btn.suspend{background:var(--red-text);color:#fff;}
   .action-btn.resolve{background:#fff;color:var(--text-900);border:1px solid var(--border);}
+  .action-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .action-hint{margin-top:8px;font-size:11px;color:var(--text-400);line-height:1.5;}
+
+  /* ---------------- Action modals ---------------- */
+  .modal-overlay{position:fixed;inset:0;z-index:1000;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;background:rgba(15,25,15,.45);}
+  .modal-overlay.open{display:flex;}
+  .modal{width:100%;max-width:560px;padding:22px 24px 24px;border-radius:12px;background:var(--card);box-shadow:0 18px 48px rgba(20,40,25,.22);}
+  .modal h2{margin:0 0 4px;font-size:18px;font-weight:700;color:var(--text-900);}
+  .modal-sub{margin-bottom:16px;font-size:12.5px;color:var(--text-600);line-height:1.5;}
+  .modal .field{margin-bottom:13px;}
+  .modal .field label{display:block;margin-bottom:5px;font-size:12.5px;font-weight:600;color:var(--text-600);}
+  .modal .field input,.modal .field select,.modal .field textarea{width:100%;padding:9px 11px;border:1px solid #e2e8f0;border-radius:8px;background:#fbfcfa;color:var(--text-900);font:inherit;font-size:13px;}
+  .modal .field textarea{min-height:94px;resize:vertical;line-height:1.5;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .modal-actions button{padding:9px 16px;border:0;border-radius:8px;font-size:13px;font-weight:700;}
+  .modal-cancel{background:#f1f3ef;color:var(--text-900);}
+  .modal-confirm{background:var(--accent);color:#fff;}
+  .modal-confirm.warn{background:#e8a63c;}
+  .modal-confirm.danger{background:var(--red-text);}
+  .modal-actions button:disabled{opacity:.6;cursor:not-allowed;}
+  .modal-callout{padding:10px 12px;border-radius:8px;background:var(--orange-bg);color:var(--orange-text);font-size:12px;font-weight:600;line-height:1.5;margin-bottom:14px;}
+
+  /* Full details modal */
+  .details-modal{max-width:660px;}
+  .details-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px 18px;margin-bottom:18px;}
+  .details-grid .full{grid-column:1 / -1;}
+  .details-grid .lbl{font-size:10.5px;font-weight:700;color:var(--text-400);text-transform:uppercase;letter-spacing:.02em;margin-bottom:3px;}
+  .details-grid .val{font-size:13px;font-weight:600;color:var(--text-900);line-height:1.5;overflow-wrap:anywhere;}
+  .details-grid .val.body{font-weight:500;color:var(--text-600);}
+  .details-section-label{font-size:12px;font-weight:700;color:var(--text-900);margin-bottom:8px;}
+
+  .history-list{display:flex;flex-direction:column;gap:8px;max-height:230px;overflow-y:auto;}
+  .history-item{display:flex;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:#fbfcfa;}
+  .history-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px;}
+  .history-dot.contact{background:#2f6fed;}
+  .history-dot.warn{background:#e8a63c;}
+  .history-dot.suspend{background:var(--red-text);}
+  .history-body{min-width:0;}
+  .history-title{font-size:12.5px;font-weight:700;color:var(--text-900);}
+  .history-note{font-size:12px;color:var(--text-600);line-height:1.5;overflow-wrap:anywhere;}
+  .history-meta{font-size:11px;color:var(--text-400);margin-top:3px;}
+  .history-empty{font-size:12px;color:var(--text-400);}
+
+  /* Toasts */
+  .toast-stack{position:fixed;right:18px;bottom:18px;z-index:1100;display:flex;flex-direction:column;gap:8px;}
+  .toast{padding:11px 15px;border-radius:9px;background:var(--text-900);color:#fff;font-size:12.5px;font-weight:600;line-height:1.45;max-width:330px;box-shadow:0 8px 24px rgba(20,40,25,.24);}
+  .toast.success{background:var(--accent-dark);}
+  .toast.error{background:var(--red-text);}
 
   @media (max-width:1150px){
     .content-grid{grid-template-columns:1fr;}
@@ -429,15 +477,11 @@
             </div>
             <div class="chart-sub">Reports by Type</div>
             <div class="donut-wrap">
-              <div class="donut" style="background:conic-gradient(#d1453b 0% 35%, #c9821f 35% 59%, #7b4fd1 59% 77%, #2f8f4e 77% 92%, #2a63b5 92% 100%);">
-                <div class="donut-hole"><div class="total">34</div><div class="label">Total</div></div>
+              <div class="donut" id="reportsOverviewDonut" style="background:conic-gradient(#d1453b 0% 35%, #c9821f 35% 59%, #7b4fd1 59% 77%, #2f8f4e 77% 92%, #2a63b5 92% 100%);">
+                <div class="donut-hole"><div class="total" id="reportsOverviewTotal">0</div><div class="label">Total</div></div>
               </div>
-              <div class="legend">
-                <div class="legend-item"><span class="legend-dot" style="background:#d1453b;"></span><span class="lname">Harassment</span><span class="lval">12 (35%)</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#c9821f;"></span><span class="lname">Inappropriate Behavior</span><span class="lval">8 (24%)</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#7b4fd1;"></span><span class="lname">Rule Violation</span><span class="lval">6 (18%)</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#2f8f4e;"></span><span class="lname">Unsafe Behavior</span><span class="lval">5 (15%)</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#2a63b5;"></span><span class="lname">Disrespectful Conduct</span><span class="lval">3 (8%)</span></div>
+              <div class="legend" id="reportsOverviewLegend">
+                <div class="legend-item"><span class="legend-dot" style="background:#d1453b;"></span><span class="lname">Harassment</span><span class="lval">0 (0%)</span></div>
               </div>
             </div>
           </div>
@@ -447,29 +491,7 @@
               <h3>Reports Over Time</h3>
             </div>
             <div class="linechart-legend"><span class="dot"></span>Number of Reports</div>
-            <svg viewBox="0 0 320 150" width="100%" height="150">
-              <line x1="28" y1="10" x2="28" y2="120" stroke="#e7ebe7" stroke-width="1"/>
-              <line x1="28" y1="120" x2="310" y2="120" stroke="#e7ebe7" stroke-width="1"/>
-              <text x="6" y="14" font-size="9" fill="#93a199" font-family="Arial">15</text>
-              <text x="6" y="68" font-size="9" fill="#93a199" font-family="Arial">10</text>
-              <text x="10" y="123" font-size="9" fill="#93a199" font-family="Arial">5</text>
-              <polyline points="40,95 78,45 116,100 154,60 192,105 230,55 268,90 300,50" fill="none" stroke="#d1453b" stroke-width="2"/>
-              <circle cx="40" cy="95" r="3" fill="#d1453b"/>
-              <circle cx="78" cy="45" r="3" fill="#d1453b"/>
-              <circle cx="116" cy="100" r="3" fill="#d1453b"/>
-              <circle cx="154" cy="60" r="3" fill="#d1453b"/>
-              <circle cx="192" cy="105" r="3" fill="#d1453b"/>
-              <circle cx="230" cy="55" r="3" fill="#d1453b"/>
-              <circle cx="268" cy="90" r="3" fill="#d1453b"/>
-              <circle cx="300" cy="50" r="3" fill="#d1453b"/>
-              <text x="32" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 14</text>
-              <text x="70" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 15</text>
-              <text x="108" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 16</text>
-              <text x="146" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 17</text>
-              <text x="184" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 18</text>
-              <text x="222" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 19</text>
-              <text x="260" y="134" font-size="8.5" fill="#93a199" font-family="Arial">May 20</text>
-            </svg>
+            <svg id="reportsOverTimeChart" viewBox="0 0 320 150" width="100%" height="150"></svg>
           </div>
 
           <div class="chart-panel">
@@ -477,13 +499,11 @@
               <h3>Report Status Distribution</h3>
             </div>
             <div class="donut-wrap" style="flex-direction:column;align-items:center;">
-              <div class="donut" style="background:conic-gradient(#c9821f 0% 35%, #2a63b5 35% 85%, #2f8f4e 85% 100%);">
-                <div class="donut-hole"><div class="total">34</div><div class="label">Total</div></div>
+              <div class="donut" id="statusDistributionDonut" style="background:conic-gradient(#c9821f 0% 35%, #2a63b5 35% 85%, #2f8f4e 85% 100%);">
+                <div class="donut-hole"><div class="total" id="statusDistributionTotal">0</div><div class="label">Total</div></div>
               </div>
-              <div class="legend" style="width:100%;margin-top:12px;">
-                <div class="legend-item"><span class="legend-dot" style="background:#c9821f;"></span><span class="lname">Pending</span><span class="lval">12 (35%)</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#2a63b5;"></span><span class="lname">Under Review</span><span class="lval">17 (50%)</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#2f8f4e;"></span><span class="lname">Resolved</span><span class="lval">5 (15%)</span></div>
+              <div class="legend" id="statusDistributionLegend" style="width:100%;margin-top:12px;">
+                <div class="legend-item"><span class="legend-dot" style="background:#c9821f;"></span><span class="lname">Pending</span><span class="lval">0 (0%)</span></div>
               </div>
             </div>
           </div>
@@ -547,12 +567,13 @@
           <div class="section-block" style="margin-bottom:0;">
             <div class="section-label">Actions</div>
             <div class="actions-list">
-              <button class="action-btn view">👁 View Full Details</button>
-              <button class="action-btn contact">📞 Contact Reported User</button>
-              <button class="action-btn warn">⚠ Warn User</button>
-              <button class="action-btn suspend">⛔ Suspend User</button>
-              <button class="action-btn resolve">✔ Mark as Resolved</button>
+              <button id="viewDetailsBtn" class="action-btn view" type="button">👁 View Full Details</button>
+              <button id="contactUserBtn" class="action-btn contact" type="button">📞 Contact Reported User</button>
+              <button id="warnUserBtn" class="action-btn warn" type="button">⚠ Warn User</button>
+              <button id="suspendUserBtn" class="action-btn suspend" type="button">⛔ Suspend User</button>
+              <button id="resolveReportBtn" class="action-btn resolve" type="button">✔ Mark as Resolved</button>
             </div>
+            <p class="action-hint" id="actionHint" role="status" aria-live="polite"></p>
           </div>
         </div>
       </aside>
@@ -560,12 +581,163 @@
   </main>
 </div>
 
+<!-- View Full Details -->
+<div id="reportDetailsModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reportDetailsTitle">
+  <div class="modal details-modal">
+    <h2 id="reportDetailsTitle">Report Details</h2>
+    <p class="modal-sub" id="reportDetailsSub">Full record of the submitted user report.</p>
+
+    <div class="details-grid">
+      <div><div class="lbl">Report ID</div><div class="val" id="fullReportId">—</div></div>
+      <div><div class="lbl">Status</div><div class="val" id="fullStatus">—</div></div>
+      <div><div class="lbl">Report Type</div><div class="val" id="fullReportType">—</div></div>
+      <div><div class="lbl">Date Reported</div><div class="val" id="fullDateReported">—</div></div>
+      <div><div class="lbl">Reported User</div><div class="val" id="fullReportedUser">—</div></div>
+      <div><div class="lbl">Reported By</div><div class="val" id="fullReportedBy">—</div></div>
+      <div><div class="lbl">Location / Trail</div><div class="val" id="fullLocation">—</div></div>
+      <div><div class="lbl">Linked Account</div><div class="val" id="fullLinkedAccount">—</div></div>
+      <div class="full"><div class="lbl">Description</div><div class="val body" id="fullDescription">—</div></div>
+    </div>
+
+    <div class="details-section-label">Action History</div>
+    <div class="history-list" id="fullActionHistory">
+      <div class="history-empty">No actions recorded for this report yet.</div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="modal-cancel" id="closeReportDetailsBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contact Reported User -->
+<div id="contactUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="contactUserTitle">
+  <form id="contactUserForm" class="modal">
+    <h2 id="contactUserTitle">Contact Reported User</h2>
+    <p class="modal-sub" id="contactUserSub">Open an email draft addressed to the reported user.</p>
+
+    <div class="field">
+      <label for="contactUserEmail">To</label>
+      <input id="contactUserEmail" type="email" readonly>
+    </div>
+    <div class="field">
+      <label for="contactUserSubject">Subject</label>
+      <input id="contactUserSubject" name="subject" type="text" required>
+    </div>
+    <div class="field">
+      <label for="contactUserMessage">Message</label>
+      <textarea id="contactUserMessage" name="message" required></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="modal-cancel" data-close-modal="contactUserModal">Cancel</button>
+      <button type="submit" class="modal-confirm" id="sendContactBtn">Open Email Draft</button>
+    </div>
+  </form>
+</div>
+
+<!-- Warn User -->
+<div id="warnUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="warnUserTitle">
+  <form id="warnUserForm" class="modal">
+    <h2 id="warnUserTitle">Warn User</h2>
+    <p class="modal-sub" id="warnUserSub">Issue a formal warning against the reported user.</p>
+    <div class="modal-callout" id="warnUserCallout" hidden></div>
+
+    <div class="field">
+      <label for="warnUserReason">Warning Reason</label>
+      <select id="warnUserReason" name="reason">
+        <option>Harassment</option>
+        <option>Inappropriate Behavior</option>
+        <option>Rule Violation</option>
+        <option>Unsafe Behavior</option>
+        <option>Disrespectful Conduct</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="warnUserNote">Note to record</label>
+      <textarea id="warnUserNote" name="note" required placeholder="Describe what the user is being warned about."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="modal-cancel" data-close-modal="warnUserModal">Cancel</button>
+      <button type="submit" class="modal-confirm warn" id="confirmWarnBtn">Issue Warning</button>
+    </div>
+  </form>
+</div>
+
+<!-- Suspend User -->
+<div id="suspendUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="suspendUserTitle">
+  <form id="suspendUserForm" class="modal">
+    <h2 id="suspendUserTitle">Suspend User</h2>
+    <p class="modal-sub" id="suspendUserSub">Suspending sets the account status to Suspended.</p>
+    <div class="modal-callout" id="suspendUserCallout" hidden></div>
+
+    <div class="field">
+      <label for="suspendDuration">Suspension Length</label>
+      <select id="suspendDuration" name="duration">
+        <option value="7">7 days</option>
+        <option value="30" selected>30 days</option>
+        <option value="90">90 days</option>
+        <option value="permanent">Permanent</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="suspendReason">Reason</label>
+      <textarea id="suspendReason" name="reason" required placeholder="Explain why this account is being suspended."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="modal-cancel" data-close-modal="suspendUserModal">Cancel</button>
+      <button type="submit" class="modal-confirm danger" id="confirmSuspendBtn">Suspend Account</button>
+    </div>
+  </form>
+</div>
+
+<!-- Mark as Resolved -->
+<div id="resolveReportModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="resolveReportTitle">
+  <form id="resolveReportForm" class="modal">
+    <h2 id="resolveReportTitle">Mark as Resolved</h2>
+    <p class="modal-sub" id="resolveReportSub">Close this report and record the outcome.</p>
+
+    <div class="field">
+      <label for="resolveOutcome">Outcome</label>
+      <select id="resolveOutcome" name="outcome">
+        <option>No action needed</option>
+        <option>Warning issued</option>
+        <option>User suspended</option>
+        <option>Escalated to authorities</option>
+        <option>Report withdrawn</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="resolveNote">Resolution note</label>
+      <textarea id="resolveNote" name="note" required placeholder="Summarize how this report was handled."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="modal-cancel" data-close-modal="resolveReportModal">Cancel</button>
+      <button type="submit" class="modal-confirm" id="confirmResolveBtn">Mark as Resolved</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
 <script type="module">
-  import { db } from './firebase-config.js';
-  import { collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { auth, db } from './firebase-config.js';
+  import {
+    arrayUnion,
+    collection,
+    doc,
+    increment,
+    onSnapshot,
+    updateDoc
+  } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const state = {
     reports: [],
+    users: [],
     selectedReportId: null
   };
 
@@ -580,6 +752,14 @@
   const pendingReportsValue = document.getElementById('pendingReportsValue');
   const underReviewValue = document.getElementById('underReviewValue');
   const resolvedReportsValue = document.getElementById('resolvedReportsValue');
+
+  const reportsOverviewDonut = document.getElementById('reportsOverviewDonut');
+  const reportsOverviewTotal = document.getElementById('reportsOverviewTotal');
+  const reportsOverviewLegend = document.getElementById('reportsOverviewLegend');
+  const reportsOverTimeChart = document.getElementById('reportsOverTimeChart');
+  const statusDistributionDonut = document.getElementById('statusDistributionDonut');
+  const statusDistributionTotal = document.getElementById('statusDistributionTotal');
+  const statusDistributionLegend = document.getElementById('statusDistributionLegend');
 
   const detailStatusPill = document.getElementById('detailStatusPill');
   const detailReportId = document.getElementById('detailReportId');
@@ -741,6 +921,11 @@
     return {
       id: doc.id,
       reportId: getFirstAvailable(data.reportId, data.reportID, data.idNumber, doc.id),
+      reportedUserId: getFirstAvailable(data.reportedUserId, data.reportedUserUid, data.reportedUid, data.reportedUserID),
+      actionLog: Array.isArray(data.actionLog) ? data.actionLog : [],
+      warningsIssued: Number(data.warningsIssued) || 0,
+      resolutionOutcome: normalizeText(data.resolutionOutcome),
+      resolutionNote: normalizeText(data.resolutionNote),
       reportedUserName: reportedUser.name,
       reportedUserEmail: reportedUser.email,
       reportedByName: reportedBy.name,
@@ -753,6 +938,187 @@
     };
   };
 
+  const getReportDateValue = (value) => {
+    if (!value) return null;
+
+    if (typeof value.toDate === 'function') {
+      return value.toDate();
+    }
+
+    if (value instanceof Date) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    return null;
+  };
+
+  const renderOverviewChart = () => {
+    const total = state.reports.length;
+    const typeCounts = {};
+
+    state.reports.forEach((report) => {
+      const key = normalizeText(report.reportType) || 'Unspecified';
+      typeCounts[key] = (typeCounts[key] || 0) + 1;
+    });
+
+    const entries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+    const palette = ['#d1453b', '#c9821f', '#7b4fd1', '#2f8f4e', '#2a63b5', '#93a199'];
+
+    if (!entries.length) {
+      reportsOverviewTotal.textContent = '0';
+      reportsOverviewDonut.style.background = 'conic-gradient(#dfe5df 0% 100%)';
+      reportsOverviewLegend.innerHTML = '<div class="legend-item"><span class="legend-dot" style="background:#dfe5df;"></span><span class="lname">No reports yet</span><span class="lval">0 (0%)</span></div>';
+      return;
+    }
+
+    let currentStop = 0;
+    const donutSegments = entries.map(([name, count], index) => {
+      const percentage = (count / total) * 100;
+      const start = currentStop;
+      currentStop += percentage;
+      return `${palette[index % palette.length]} ${start}% ${currentStop}%`;
+    });
+
+    reportsOverviewDonut.style.background = `conic-gradient(${donutSegments.join(', ')})`;
+    reportsOverviewTotal.textContent = total;
+    reportsOverviewLegend.innerHTML = entries.map(([name, count], index) => {
+      const percentage = total ? ((count / total) * 100).toFixed(0) : '0';
+      return `
+        <div class="legend-item">
+          <span class="legend-dot" style="background:${palette[index % palette.length]};"></span>
+          <span class="lname">${name}</span>
+          <span class="lval">${count} (${percentage}%)</span>
+        </div>
+      `;
+    }).join('');
+  };
+
+  const renderStatusDistributionChart = () => {
+    const total = state.reports.length;
+    const statusCounts = {};
+
+    state.reports.forEach((report) => {
+      const key = normalizeText(report.status) || 'Pending';
+      statusCounts[key] = (statusCounts[key] || 0) + 1;
+    });
+
+    const entries = Object.entries(statusCounts).sort((a, b) => b[1] - a[1]);
+    const palette = ['#c9821f', '#2a63b5', '#2f8f4e', '#93a199'];
+
+    if (!entries.length) {
+      statusDistributionTotal.textContent = '0';
+      statusDistributionDonut.style.background = 'conic-gradient(#dfe5df 0% 100%)';
+      statusDistributionLegend.innerHTML = '<div class="legend-item"><span class="legend-dot" style="background:#dfe5df;"></span><span class="lname">No reports yet</span><span class="lval">0 (0%)</span></div>';
+      return;
+    }
+
+    let currentStop = 0;
+    const donutSegments = entries.map(([name, count], index) => {
+      const percentage = (count / total) * 100;
+      const start = currentStop;
+      currentStop += percentage;
+      return `${palette[index % palette.length]} ${start}% ${currentStop}%`;
+    });
+
+    statusDistributionDonut.style.background = `conic-gradient(${donutSegments.join(', ')})`;
+    statusDistributionTotal.textContent = total;
+    statusDistributionLegend.innerHTML = entries.map(([name, count], index) => {
+      const percentage = total ? ((count / total) * 100).toFixed(0) : '0';
+      return `
+        <div class="legend-item">
+          <span class="legend-dot" style="background:${palette[index % palette.length]};"></span>
+          <span class="lname">${name}</span>
+          <span class="lval">${count} (${percentage}%)</span>
+        </div>
+      `;
+    }).join('');
+  };
+
+  const renderReportsOverTimeChart = () => {
+    const reportDates = state.reports
+      .map((report) => getReportDateValue(report.dateReported))
+      .filter(Boolean)
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    const chartSvg = reportsOverTimeChart;
+
+    if (!reportDates.length) {
+      chartSvg.innerHTML = `
+        <text x="160" y="82" font-size="12" text-anchor="middle" fill="#93a199" font-family="Arial">No report activity yet</text>
+      `;
+      return;
+    }
+
+    const latestDate = reportDates[reportDates.length - 1];
+    const startDate = new Date(latestDate);
+    startDate.setDate(startDate.getDate() - 6);
+
+    const labels = [];
+    for (let i = 0; i < 7; i += 1) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+      labels.push(currentDate);
+    }
+
+    const dailyCounts = labels.map((date) => {
+      const key = date.toISOString().slice(0, 10);
+      return {
+        date,
+        count: state.reports.filter((report) => {
+          const currentDate = getReportDateValue(report.dateReported);
+          return currentDate && currentDate.toISOString().slice(0, 10) === key;
+        }).length
+      };
+    });
+
+    const maxCount = Math.max(...dailyCounts.map((item) => item.count), 1);
+    const xStep = 270 / Math.max(dailyCounts.length - 1, 1);
+    const xStart = 36;
+    const yBottom = 120;
+    const yTop = 18;
+    const yHeight = yBottom - yTop;
+    const pointCoordinates = dailyCounts.map((item, index) => {
+      const x = xStart + (index * xStep);
+      const y = yBottom - ((item.count / maxCount) * yHeight);
+      return { x, y, count: item.count, date: item.date };
+    });
+
+    const polylinePoints = pointCoordinates.map((point) => `${point.x},${point.y}`).join(' ');
+
+    const axisLabels = labels.map((label, index) => {
+      const x = xStart + (index * xStep);
+      const formatted = label.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `<text x="${x}" y="134" font-size="8.5" fill="#93a199" font-family="Arial" text-anchor="middle">${formatted}</text>`;
+    }).join('');
+
+    const gridLines = [0, 1, 2, 3, 4].map((step) => {
+      const y = yBottom - (step * (yHeight / 4));
+      const value = Math.round((maxCount / 4) * (4 - step));
+      return `
+        <line x1="28" y1="${y}" x2="310" y2="${y}" stroke="#e7ebe7" stroke-width="1"/>
+        <text x="6" y="${y + 3}" font-size="9" fill="#93a199" font-family="Arial">${value}</text>
+      `;
+    }).join('');
+
+    const circles = pointCoordinates.map((point) => `
+      <circle cx="${point.x}" cy="${point.y}" r="3" fill="#d1453b"/>
+    `).join('');
+
+    chartSvg.innerHTML = `
+      <line x1="28" y1="10" x2="28" y2="120" stroke="#e7ebe7" stroke-width="1"/>
+      <line x1="28" y1="120" x2="310" y2="120" stroke="#e7ebe7" stroke-width="1"/>
+      ${gridLines}
+      <polyline points="${polylinePoints}" fill="none" stroke="#d1453b" stroke-width="2"/>
+      ${circles}
+      ${axisLabels}
+    `;
+  };
+
   const renderStats = () => {
     const total = state.reports.length;
     const pending = state.reports.filter((report) => report.status.toLowerCase() === 'pending').length;
@@ -763,6 +1129,10 @@
     pendingReportsValue.textContent = pending;
     underReviewValue.textContent = underReview;
     resolvedReportsValue.textContent = resolved;
+
+    renderOverviewChart();
+    renderStatusDistributionChart();
+    renderReportsOverTimeChart();
   };
 
   const renderSelectedReport = () => {
@@ -781,6 +1151,7 @@
       detailDescription.textContent = '—';
       detailReportedUserAvatar.textContent = '—';
       detailReportedByAvatar.textContent = '—';
+      syncActionButtons(null);
       return;
     }
 
@@ -809,6 +1180,13 @@
 
     detailReportedUserAvatar.textContent = getInitials(selectedReport.reportedUserName);
     detailReportedByAvatar.textContent = getInitials(selectedReport.reportedByName);
+
+    syncActionButtons(selectedReport);
+
+    // Keep the details modal in sync while it is open (live snapshot updates).
+    if (reportDetailsModal.classList.contains('open')) {
+      renderFullDetails(selectedReport);
+    }
   };
 
   const renderTable = () => {
@@ -864,7 +1242,7 @@
         <td>${report.location}</td>
         <td>${formatDate(report.dateReported)}<br><span style="color:var(--text-400);font-size:10.5px;">${formatDateTime(report.dateReported).split(',').slice(1).join(',').trim() || ''}</span></td>
         <td><span class="badge ${toBadgeClass(report.status)}">${report.status}</span></td>
-        <td><div class="row-actions"><button class="icon-btn" type="button">👁</button><button class="icon-btn" type="button">⋮</button></div></td>
+        <td><div class="row-actions"><button class="icon-btn" type="button" data-view-report="${report.id}" title="View full details">👁</button><button class="icon-btn" type="button">⋮</button></div></td>
       </tr>
     `).join('');
 
@@ -876,9 +1254,462 @@
       });
     });
 
+    tableBody.querySelectorAll('[data-view-report]').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        state.selectedReportId = button.dataset.viewReport;
+        renderTable();
+        openReportDetails();
+      });
+    });
+
     reportsSummaryText.textContent = `Showing ${filteredReports.length} report${filteredReports.length === 1 ? '' : 's'}`;
     renderSelectedReport();
   };
+
+  /* ---------------- Report actions ---------------- */
+
+  const reportDetailsModal = document.getElementById('reportDetailsModal');
+  const contactUserModal = document.getElementById('contactUserModal');
+  const warnUserModal = document.getElementById('warnUserModal');
+  const suspendUserModal = document.getElementById('suspendUserModal');
+  const resolveReportModal = document.getElementById('resolveReportModal');
+
+  const viewDetailsBtn = document.getElementById('viewDetailsBtn');
+  const contactUserBtn = document.getElementById('contactUserBtn');
+  const warnUserBtn = document.getElementById('warnUserBtn');
+  const suspendUserBtn = document.getElementById('suspendUserBtn');
+  const resolveReportBtn = document.getElementById('resolveReportBtn');
+  const actionHint = document.getElementById('actionHint');
+  const toastStack = document.getElementById('toastStack');
+
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[char]);
+
+  const hasValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeText(value));
+
+  const showToast = (message, variant = '') => {
+    const toast = document.createElement('div');
+    toast.className = `toast ${variant}`.trim();
+    toast.textContent = message;
+    toastStack.appendChild(toast);
+    setTimeout(() => toast.remove(), 4200);
+  };
+
+  const openModal = (modal) => modal.classList.add('open');
+  const closeModal = (modal) => modal.classList.remove('open');
+
+  document.querySelectorAll('[data-close-modal]').forEach((button) => {
+    button.addEventListener('click', () => closeModal(document.getElementById(button.dataset.closeModal)));
+  });
+
+  document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) closeModal(overlay);
+    });
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.modal-overlay.open').forEach(closeModal);
+  });
+
+  document.getElementById('closeReportDetailsBtn').addEventListener('click', () => closeModal(reportDetailsModal));
+
+  const getSelectedReport = () =>
+    state.reports.find((report) => report.id === state.selectedReportId) || state.reports[0] || null;
+
+  // Reports store the reported user loosely, so match on uid first, then email, then name.
+  const findLinkedUser = (report) => {
+    if (!report) return null;
+
+    const uid = normalizeText(report.reportedUserId);
+    if (uid) {
+      const byId = state.users.find((user) => user.id === uid);
+      if (byId) return byId;
+    }
+
+    const email = normalizeText(report.reportedUserEmail).toLowerCase();
+    if (hasValidEmail(email)) {
+      const byEmail = state.users.find((user) => normalizeText(user.email).toLowerCase() === email);
+      if (byEmail) return byEmail;
+    }
+
+    const name = normalizeText(report.reportedUserName).toLowerCase();
+    if (name && name !== 'unknown user') {
+      const byName = state.users.find((user) => normalizeText(user.name).toLowerCase() === name);
+      if (byName) return byName;
+    }
+
+    return null;
+  };
+
+  const currentAdminLabel = () => normalizeText(auth.currentUser?.email) || 'Admin';
+
+  const buildLogEntry = (type, title, note) => ({
+    type,
+    title,
+    note: normalizeText(note),
+    by: currentAdminLabel(),
+    at: new Date().toISOString()
+  });
+
+  // Firestore rules only expose `users` and `userReported`, so the audit trail
+  // lives on the report document itself instead of a separate log collection.
+  const saveReportAction = (report, entry, extraFields = {}) =>
+    updateDoc(doc(db, 'userReported', report.id), {
+      ...extraFields,
+      actionLog: arrayUnion(entry)
+    });
+
+  const withBusyButton = async (button, busyLabel, task) => {
+    const originalLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = busyLabel;
+    try {
+      await task();
+    } finally {
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
+  };
+
+  const syncActionButtons = (report) => {
+    const linkedUser = findLinkedUser(report);
+    const isResolved = Boolean(report) && normalizeText(report.status).toLowerCase() === 'resolved';
+    const canEmail = Boolean(report) && hasValidEmail(report.reportedUserEmail);
+
+    viewDetailsBtn.disabled = !report;
+    contactUserBtn.disabled = !report || !canEmail;
+    warnUserBtn.disabled = !report;
+    suspendUserBtn.disabled = !report || !linkedUser;
+    resolveReportBtn.disabled = !report || isResolved;
+    resolveReportBtn.textContent = isResolved ? '✔ Resolved' : '✔ Mark as Resolved';
+
+    const hints = [];
+    if (!report) {
+      hints.push('Select a report from the table to act on it.');
+    } else {
+      if (!canEmail) hints.push('This report has no valid email, so the reported user cannot be contacted.');
+      if (!linkedUser) hints.push('No matching account was found in Users, so suspension is unavailable.');
+      else if (normalizeText(linkedUser.status).toLowerCase() === 'suspended') hints.push(`${linkedUser.name} is currently suspended.`);
+      if (isResolved) hints.push('This report is already resolved.');
+    }
+    actionHint.textContent = hints.join(' ');
+  };
+
+  const renderActionHistory = (report) => {
+    const historyList = document.getElementById('fullActionHistory');
+    const entries = [...report.actionLog].sort((a, b) => String(b?.at ?? '').localeCompare(String(a?.at ?? '')));
+
+    if (!entries.length) {
+      historyList.innerHTML = '<div class="history-empty">No actions recorded for this report yet.</div>';
+      return;
+    }
+
+    historyList.innerHTML = entries.map((entry) => `
+      <div class="history-item">
+        <span class="history-dot ${escapeHtml(entry?.type ?? '')}"></span>
+        <div class="history-body">
+          <div class="history-title">${escapeHtml(entry?.title || 'Action recorded')}</div>
+          ${entry?.note ? `<div class="history-note">${escapeHtml(entry.note)}</div>` : ''}
+          <div class="history-meta">${escapeHtml(entry?.by || 'Admin')} · ${escapeHtml(formatDateTime(entry?.at))}</div>
+        </div>
+      </div>
+    `).join('');
+  };
+
+  const renderFullDetails = (report) => {
+    if (!report) return;
+
+    const linkedUser = findLinkedUser(report);
+
+    document.getElementById('reportDetailsSub').textContent =
+      `${report.reportType} report filed against ${report.reportedUserName}.`;
+    document.getElementById('fullReportId').textContent = report.reportId;
+    document.getElementById('fullStatus').textContent = report.status;
+    document.getElementById('fullReportType').textContent = report.reportType;
+    document.getElementById('fullDateReported').textContent = formatDateTime(report.dateReported);
+    document.getElementById('fullReportedUser').textContent = `${report.reportedUserName} (${report.reportedUserEmail})`;
+    document.getElementById('fullReportedBy').textContent = `${report.reportedByName} (${report.reportedByEmail})`;
+    document.getElementById('fullLocation').textContent = report.location;
+    document.getElementById('fullDescription').textContent = report.description;
+
+    const warningsLabel = report.warningsIssued
+      ? ` · ${report.warningsIssued} warning${report.warningsIssued === 1 ? '' : 's'} from this report`
+      : '';
+    document.getElementById('fullLinkedAccount').textContent = linkedUser
+      ? `${linkedUser.name} — ${linkedUser.status}${warningsLabel}`
+      : `No matching user account${warningsLabel}`;
+
+    renderActionHistory(report);
+  };
+
+  const openReportDetails = () => {
+    const report = getSelectedReport();
+    if (!report) {
+      showToast('Select a report first.', 'error');
+      return;
+    }
+    renderFullDetails(report);
+    openModal(reportDetailsModal);
+  };
+
+  viewDetailsBtn.addEventListener('click', openReportDetails);
+
+  contactUserBtn.addEventListener('click', () => {
+    const report = getSelectedReport();
+    if (!report) return;
+
+    if (!hasValidEmail(report.reportedUserEmail)) {
+      showToast('This report has no valid email address for the reported user.', 'error');
+      return;
+    }
+
+    document.getElementById('contactUserSub').textContent =
+      `Opens an email draft to ${report.reportedUserName} and records the contact on report ${report.reportId}.`;
+    document.getElementById('contactUserEmail').value = report.reportedUserEmail;
+    document.getElementById('contactUserSubject').value = `PeakPath: report ${report.reportId} about your trail conduct`;
+    document.getElementById('contactUserMessage').value =
+      `Hello ${report.reportedUserName},\n\n` +
+      `We received a ${report.reportType.toLowerCase()} report regarding your conduct at ${report.location}. ` +
+      `Please reply to this email with your account of what happened so we can review the case.\n\n` +
+      `Regards,\nPeakPath Admin Team`;
+
+    openModal(contactUserModal);
+  });
+
+  document.getElementById('contactUserForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const report = getSelectedReport();
+    if (!report) return;
+
+    const email = normalizeText(document.getElementById('contactUserEmail').value);
+    const subject = normalizeText(document.getElementById('contactUserSubject').value);
+    const message = document.getElementById('contactUserMessage').value;
+
+    await withBusyButton(document.getElementById('sendContactBtn'), 'Opening...', async () => {
+      try {
+        await saveReportAction(
+          report,
+          buildLogEntry('contact', `Contacted ${report.reportedUserName}`, `${subject} (sent to ${email})`),
+          { lastContactedAt: new Date().toISOString() }
+        );
+        closeModal(contactUserModal);
+        window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+        showToast('Contact logged and email draft opened.', 'success');
+      } catch (error) {
+        console.error('Failed to log the contact attempt:', error);
+        showToast('Unable to record this contact right now.', 'error');
+      }
+    });
+  });
+
+  warnUserBtn.addEventListener('click', () => {
+    const report = getSelectedReport();
+    if (!report) return;
+
+    const linkedUser = findLinkedUser(report);
+    const callout = document.getElementById('warnUserCallout');
+
+    document.getElementById('warnUserSub').textContent =
+      `Issue a formal warning to ${report.reportedUserName} for report ${report.reportId}.`;
+    document.getElementById('warnUserReason').value =
+      [...document.getElementById('warnUserReason').options].some((option) => option.value === report.reportType)
+        ? report.reportType
+        : 'Other';
+    document.getElementById('warnUserNote').value = '';
+
+    callout.hidden = Boolean(linkedUser);
+    if (!linkedUser) {
+      callout.textContent = 'No matching account was found in Users. The warning is recorded on this report only.';
+    }
+
+    openModal(warnUserModal);
+  });
+
+  document.getElementById('warnUserForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const report = getSelectedReport();
+    if (!report) return;
+
+    const reason = document.getElementById('warnUserReason').value;
+    const note = normalizeText(document.getElementById('warnUserNote').value);
+    if (!note) return;
+
+    const linkedUser = findLinkedUser(report);
+    const nowIso = new Date().toISOString();
+    const isPending = normalizeText(report.status).toLowerCase() === 'pending';
+
+    await withBusyButton(document.getElementById('confirmWarnBtn'), 'Issuing...', async () => {
+      try {
+        if (linkedUser) {
+          await updateDoc(doc(db, 'users', linkedUser.id), {
+            warnings: increment(1),
+            lastWarningAt: nowIso,
+            lastWarningReason: reason
+          });
+        }
+
+        await saveReportAction(
+          report,
+          buildLogEntry('warn', `Warning issued — ${reason}`, note),
+          {
+            warningsIssued: increment(1),
+            lastWarningAt: nowIso,
+            // A warned report is actively being handled, so pull it out of the pending queue.
+            ...(isPending ? { status: 'Under Review' } : {})
+          }
+        );
+
+        closeModal(warnUserModal);
+        showToast(
+          linkedUser
+            ? `Warning issued to ${linkedUser.name}.`
+            : 'Warning recorded on the report (no linked account).',
+          'success'
+        );
+      } catch (error) {
+        console.error('Failed to issue the warning:', error);
+        showToast('Unable to issue this warning right now.', 'error');
+      }
+    });
+  });
+
+  suspendUserBtn.addEventListener('click', () => {
+    const report = getSelectedReport();
+    if (!report) return;
+
+    const linkedUser = findLinkedUser(report);
+    if (!linkedUser) {
+      showToast('No matching user account was found for this report.', 'error');
+      return;
+    }
+
+    const callout = document.getElementById('suspendUserCallout');
+    const alreadySuspended = normalizeText(linkedUser.status).toLowerCase() === 'suspended';
+
+    document.getElementById('suspendUserSub').textContent =
+      `Sets ${linkedUser.name}'s account status to Suspended and records the action on report ${report.reportId}.`;
+    document.getElementById('suspendReason').value = '';
+    document.getElementById('suspendDuration').value = '30';
+
+    callout.hidden = !alreadySuspended;
+    if (alreadySuspended) {
+      callout.textContent = `${linkedUser.name} is already suspended. Confirming will replace the existing suspension terms.`;
+    }
+
+    openModal(suspendUserModal);
+  });
+
+  document.getElementById('suspendUserForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const report = getSelectedReport();
+    if (!report) return;
+
+    const linkedUser = findLinkedUser(report);
+    if (!linkedUser) {
+      showToast('No matching user account was found for this report.', 'error');
+      return;
+    }
+
+    const reason = normalizeText(document.getElementById('suspendReason').value);
+    if (!reason) return;
+
+    const duration = document.getElementById('suspendDuration').value;
+    const nowIso = new Date().toISOString();
+    const isPending = normalizeText(report.status).toLowerCase() === 'pending';
+
+    let suspendedUntil = 'Permanent';
+    let durationLabel = 'permanently';
+    if (duration !== 'permanent') {
+      const until = new Date();
+      until.setDate(until.getDate() + Number(duration));
+      suspendedUntil = until.toISOString();
+      durationLabel = `for ${duration} days (until ${formatDate(until)})`;
+    }
+
+    await withBusyButton(document.getElementById('confirmSuspendBtn'), 'Suspending...', async () => {
+      try {
+        await updateDoc(doc(db, 'users', linkedUser.id), {
+          status: 'Suspended',
+          suspendedAt: nowIso,
+          suspendedUntil,
+          suspensionReason: reason
+        });
+
+        await saveReportAction(
+          report,
+          buildLogEntry('suspend', `Account suspended ${durationLabel}`, reason),
+          {
+            suspendedUserId: linkedUser.id,
+            lastSuspendedAt: nowIso,
+            ...(isPending ? { status: 'Under Review' } : {})
+          }
+        );
+
+        closeModal(suspendUserModal);
+        showToast(`${linkedUser.name} suspended ${durationLabel}.`, 'success');
+      } catch (error) {
+        console.error('Failed to suspend the user:', error);
+        showToast('Unable to suspend this account right now.', 'error');
+      }
+    });
+  });
+
+  resolveReportBtn.addEventListener('click', () => {
+    const report = getSelectedReport();
+    if (!report) return;
+
+    if (normalizeText(report.status).toLowerCase() === 'resolved') {
+      showToast('This report is already resolved.');
+      return;
+    }
+
+    document.getElementById('resolveReportSub').textContent =
+      `Close report ${report.reportId} against ${report.reportedUserName} and record the outcome.`;
+    document.getElementById('resolveOutcome').value = report.warningsIssued ? 'Warning issued' : 'No action needed';
+    document.getElementById('resolveNote').value = '';
+
+    openModal(resolveReportModal);
+  });
+
+  document.getElementById('resolveReportForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const report = getSelectedReport();
+    if (!report) return;
+
+    const outcome = document.getElementById('resolveOutcome').value;
+    const note = normalizeText(document.getElementById('resolveNote').value);
+    if (!note) return;
+
+    await withBusyButton(document.getElementById('confirmResolveBtn'), 'Saving...', async () => {
+      try {
+        await saveReportAction(
+          report,
+          buildLogEntry('resolve', `Report resolved — ${outcome}`, note),
+          {
+            status: 'Resolved',
+            resolvedAt: new Date().toISOString(),
+            resolvedBy: currentAdminLabel(),
+            resolutionOutcome: outcome,
+            resolutionNote: note
+          }
+        );
+
+        closeModal(resolveReportModal);
+        showToast(`Report ${report.reportId} marked as resolved.`, 'success');
+      } catch (error) {
+        console.error('Failed to resolve the report:', error);
+        showToast('Unable to resolve this report right now.', 'error');
+      }
+    });
+  });
 
   const applyFilters = () => {
     renderTable();
@@ -889,6 +1720,38 @@
   typeFilter.addEventListener('change', applyFilters);
   dateFilter.addEventListener('change', applyFilters);
 
+  // Nothing is selectable until the first snapshot lands.
+  syncActionButtons(null);
+
+  const normalizeUser = (docSnapshot) => {
+    const data = docSnapshot.data() || {};
+    const firstName = normalizeText(data.firstName || data.firstname);
+    const lastName = normalizeText(data.lastName || data.lastname);
+
+    return {
+      id: docSnapshot.id,
+      name: getFirstAvailable(
+        data.fullName,
+        data.fullname,
+        data.displayName,
+        data.name,
+        [firstName, lastName].filter(Boolean).join(' ')
+      ) || 'Unnamed user',
+      email: getFirstAvailable(data.email, data.Email),
+      status: getFirstAvailable(data.status, data.Status, 'Active'),
+      warnings: Number(data.warnings || data.warningCount || 0) || 0
+    };
+  };
+
+  onSnapshot(collection(db, 'users'), (snapshot) => {
+    state.users = snapshot.docs.map(normalizeUser);
+    renderSelectedReport();
+  }, (error) => {
+    console.error('Failed to load users for report actions:', error);
+    state.users = [];
+    renderSelectedReport();
+  });
+
   onSnapshot(collection(db, 'userReported'), (snapshot) => {
     state.reports = snapshot.docs.map(normalizeReport);
     renderStats();
@@ -897,6 +1760,8 @@
     console.error('Failed to load user reports:', error);
     tableBody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:#94a3b8;">Unable to load reports from the database.</td></tr>';
     reportsSummaryText.textContent = 'Unable to load reports';
+    state.reports = [];
+    syncActionButtons(null);
   });
 </script>
 </body>
