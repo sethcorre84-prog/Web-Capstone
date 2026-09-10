@@ -654,7 +654,7 @@ a { color: inherit; text-decoration: none; }
 
 <script type="module">
   import { db } from './firebase-config.js';
-  import { collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { collection, doc, onSnapshot, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   /* Mount Makiling — the same coordinates the geomap page forecasts against. */
   const MAKILING = { latitude: 14.136, longitude: 121.197 };
@@ -1339,6 +1339,49 @@ a { color: inherit; text-decoration: none; }
       `${RISK_MODEL.moderateThreshold}+ is Moderate and ${RISK_MODEL.highThreshold}+ is High. Empty sections mean that collection has no data yet.`;
   };
 
+  /* ---------------- Daily record ---------------- */
+
+  /* The list above stays live. Alongside it, each Manila calendar day gets one
+     Firestore record that is rewritten whenever that day's list changes, so
+     once the day is over its record holds the day's final recommendations. */
+  const HISTORY_COLLECTION = 'prescriptiveHistory';
+  const RECORD_SOURCES = ['hazards', 'trails', 'users', 'advisories', 'emergencies', 'forecast'];
+
+  const manilaDateKey = () =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+
+  let lastSavedRecord = '';
+
+  const saveDailyRecord = async () => {
+    if (RECORD_SOURCES.some((key) => state[key] === null)) return;
+
+    const date = manilaDateKey();
+    const actions = buildRecommendations();
+    const signature = JSON.stringify({ date, actions });
+    if (signature === lastSavedRecord) return;
+    lastSavedRecord = signature;
+
+    const today = dailyRisk()[0];
+    const countOf = (priority) => actions.filter((action) => action.priority === priority).length;
+
+    try {
+      await setDoc(doc(db, HISTORY_COLLECTION, date), {
+        date,
+        actions,
+        counts: { total: actions.length, high: countOf('high'), med: countOf('med'), low: countOf('low') },
+        riskScore: today.score,
+        riskLevel: bucketLabel(today.bucket),
+        inputs: Object.fromEntries(RECORD_SOURCES.map((key) => [key, state[key].length])),
+        // Sources that failed to load, so a thin record can be told apart from a quiet day.
+        unavailableInputs: Object.keys(state.errors),
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      lastSavedRecord = ''; // try again on the next data change
+      console.error(`Failed to save the ${date} prescriptive record:`, error);
+    }
+  };
+
   const renderAll = () => {
     renderCards();
     renderRiskForecast();
@@ -1348,6 +1391,7 @@ a { color: inherit; text-decoration: none; }
     renderTrailRisk();
     renderRecommendations();
     renderInsights();
+    saveDailyRecord();
   };
 
   /* ---------------- Live sources ---------------- */

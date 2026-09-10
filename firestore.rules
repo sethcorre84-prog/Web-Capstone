@@ -25,6 +25,11 @@ service cloud.firestore {
       allow create, update, delete: if signedIn() && isAdmin();
     }
 
+    // One document per Manila date, written by analytics.html.
+    match /prescriptiveHistory/{day} {
+      allow read, write: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
