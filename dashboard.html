@@ -32,148 +32,6 @@
             display: flex;
             min-height: 100vh;
         }
-        .sidebar {
-            width: 236px;
-            flex-shrink: 0;
-            background: var(--sidebar-bg);
-            display: flex;
-            flex-direction: column;
-            padding: 22px 16px;
-            color: #dfe8df;
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .brand {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 4px 8px 20px 8px;
-            text-align: center;
-            flex-shrink: 0;
-        }
-        .brand-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 9px;
-            background: linear-gradient(160deg, #3fa860, #1f6b39);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            margin: 0 auto;
-        }
-        .brand-name {
-            font-size: 17px;
-            font-weight: 700;
-            color: #fff;
-            line-height: 1.1;
-            margin-top: 4px;
-        }
-        .brand-sub {
-            font-size: 11px;
-            color: #8fa88f;
-        }
-        .nav {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            flex: 1;
-            margin-top: 6px;
-            overflow-y: auto;
-            min-height: 0;
-            padding: 0;
-        }
-        .nav li {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-        .nav li a {
-            display: flex;
-            align-items: center;
-            gap: 11px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            font-size: 13.5px;
-            color: #c4d1c4;
-            font-weight: 500;
-            transition: background .15s;
-            text-decoration: none;
-        }
-        .nav li a:hover {
-            background: var(--sidebar-bg-light);
-            color: #fff;
-        }
-        .nav li a.active {
-            background: var(--accent);
-            color: #fff;
-        }
-        .nav-icon {
-            width: 18px;
-            height: 18px;
-            flex-shrink: 0;
-            stroke: currentColor;
-            fill: none;
-            stroke-width: 1.8;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-        .sidebar-footer {
-            border-top: 1px solid #2a3d2a;
-            padding-top: 14px;
-            margin-top: 10px;
-            flex-shrink: 0;
-        }
-        .user-chip {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 6px 8px 14px 8px;
-        }
-        .avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: #fff;
-            font-size: 13px;
-            flex-shrink: 0;
-        }
-        .user-chip .name {
-            font-size: 13.5px;
-            font-weight: 600;
-            color: #fff;
-        }
-        .user-chip .role {
-            font-size: 11px;
-            color: #8fa88f;
-        }
-        .logout-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            width: 100%;
-            background: transparent;
-            border: 1px solid #33472f;
-            color: #c4d1c4;
-            padding: 9px 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            text-decoration: none;
-        }
-        .logout-btn:hover {
-            background: var(--sidebar-bg-light);
-        }
         .main-panel {
             display: flex;
             flex-direction: column;
@@ -454,11 +312,9 @@
             border-color: #94a3b8;
         }
         @media (max-width: 1120px) {
-            .sidebar { width: 240px; }
             .hero-grid { grid-template-columns: repeat(3, 1fr); }
         }
         @media (max-width: 900px) {
-            .sidebar { width: 220px; }
             .hero-grid { grid-template-columns: 1fr 1fr; }
             .dashboard-grid { grid-template-columns: 1fr; }
             .summary-list { grid-template-columns: 1fr 1fr; }
@@ -487,7 +343,7 @@
               <li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
               <li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
               <li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
-              <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Setting</a></li>
+              <li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
             </ul>
 
             <div class="sidebar-footer">

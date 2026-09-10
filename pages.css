@@ -215,6 +215,169 @@ body[data-theme="dark"] .pagination button.current {
     padding: 0 2px;
 }
 
+/* ==========================================================================
+   Sidebar — one look and one layout for every admin page.
+
+   Each page used to carry its own copy of these rules and the copies drifted:
+   half of them scrolled the whole sidebar (pushing Logout off-screen on short
+   windows) and each page hid, stacked or resized it at a different
+   breakpoint. Style the sidebar here, not in a page's inline <style>.
+   ========================================================================== */
+.sidebar {
+    width: 236px;
+    flex-shrink: 0;
+    align-self: flex-start;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 22px 16px;
+    overflow: hidden;
+    background: var(--sidebar-bg);
+    color: #dfe8df;
+    transition: width .22s ease, padding .22s ease;
+}
+
+.brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-shrink: 0;
+    padding: 4px 8px 20px 8px;
+    text-align: center;
+}
+.brand-icon {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    border-radius: 9px;
+    background: linear-gradient(160deg, #3fa860, #1f6b39);
+}
+.brand-name {
+    margin-top: 4px;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #fff;
+}
+.brand-sub {
+    font-size: 11px;
+    color: #8fa88f;
+}
+
+/* Only the link list scrolls, so the account chip and Logout stay pinned to
+   the bottom. The scrollbar is hidden but scrolling still works. */
+.nav {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+    overflow-y: auto;
+    scrollbar-width: none;      /* Firefox */
+    -ms-overflow-style: none;   /* old Edge/IE */
+}
+.nav::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;              /* Chrome, Edge, Safari */
+}
+.nav li a {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #c4d1c4;
+    text-decoration: none;
+    transition: background .15s ease, color .15s ease;
+}
+.nav li a:hover {
+    background: var(--sidebar-bg-light);
+    color: #fff;
+}
+.nav li a.active {
+    background: var(--accent);
+    color: #fff;
+}
+.nav-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sidebar-footer {
+    flex-shrink: 0;
+    margin-top: 10px;
+    padding-top: 14px;
+    border-top: 1px solid #2a3d2a;
+}
+.user-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px 14px 8px;
+}
+/* Deliberately not scoped to .sidebar: the top-bar and profile avatars reuse
+   this base and only override the size. */
+.avatar {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+}
+.user-chip .name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #fff;
+}
+.user-chip .role {
+    font-size: 11px;
+    color: #8fa88f;
+}
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #33472f;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: #c4d1c4;
+    text-decoration: none;
+    transition: background .15s ease;
+}
+.logout-btn:hover {
+    background: var(--sidebar-bg-light);
+}
+
 /* Toggle button (three-line icon button at the top of the sidebar) */
 .sidebar-toggle {
     display: flex;
@@ -227,18 +390,13 @@ body[data-theme="dark"] .pagination button.current {
     border-radius: 8px;
     color: #c4d1c4;
     cursor: pointer;
-    margin: 0 auto 14px 0;   /* was: margin-bottom: 14px; */
+    margin: 0 auto 14px 0;
     flex-shrink: 0;
     transition: background .15s;
 }
 .sidebar-toggle:hover {
     background: var(--sidebar-bg-light);
     color: #fff;
-}
-
-/* Smooth width transition when collapsing/expanding */
-.sidebar {
-    transition: width .22s ease, padding .22s ease;
 }
 
 /* Collapsed state, applied by sidebar.js after the toggle is clicked */
@@ -257,33 +415,22 @@ body[data-theme="dark"] .pagination button.current {
 .sidebar.collapsed .brand-sub,
 .sidebar.collapsed .nav-text,
 .sidebar.collapsed .user-chip .name,
-.sidebar.collapsed .user-chip .role,
-.sidebar.collapsed .logout-btn .nav-text {
+.sidebar.collapsed .user-chip .role {
     display: none;
 }
 .sidebar.collapsed .nav li a {
     justify-content: center;
     padding: 10px;
 }
+/* gap: 0 so the emptied name/role wrapper doesn't push the avatar off-centre. */
 .sidebar.collapsed .user-chip {
     justify-content: center;
+    gap: 0;
     padding: 6px 0 14px 0;
 }
 .sidebar.collapsed .logout-btn {
     justify-content: center;
     padding: 9px;
-}
-
-/* Hide the nav list's scrollbar visually (keeps scrolling functional,
-   just removes the visible scrollbar track/thumb). */
-.nav {
-    scrollbar-width: none;      /* Firefox */
-    -ms-overflow-style: none;   /* old Edge/IE */
-}
-.nav::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none;              /* Chrome, Edge, Safari */
 }
 
 /* Applied instantly by the inline <head> script (before paint) so the
@@ -292,6 +439,41 @@ body[data-theme="dark"] .pagination button.current {
 .sidebar-was-collapsed .sidebar {
     width: 76px;
     padding: 22px 10px;
+}
+
+/* Narrow screens always get the icon rail, so every page keeps its
+   navigation without the sidebar eating the content area. */
+@media (max-width: 760px) {
+    .sidebar {
+        width: 76px;
+        padding: 22px 10px;
+    }
+    .sidebar-toggle {
+        display: none;
+    }
+    .sidebar .brand {
+        padding-bottom: 14px;
+    }
+    .sidebar .brand-name,
+    .sidebar .brand-sub,
+    .sidebar .nav-text,
+    .sidebar .user-chip .name,
+    .sidebar .user-chip .role {
+        display: none;
+    }
+    .sidebar .nav li a {
+        justify-content: center;
+        padding: 10px;
+    }
+    .sidebar .user-chip {
+        justify-content: center;
+        gap: 0;
+        padding: 6px 0 14px 0;
+    }
+    .sidebar .logout-btn {
+        justify-content: center;
+        padding: 9px;
+    }
 }
 
 /* Shared verified-hazard notification control */

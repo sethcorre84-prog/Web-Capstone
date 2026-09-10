@@ -36,102 +36,6 @@
 
   .app{display:flex;min-height:100vh;}
 
-  /* ---------------- Sidebar (matches other admin pages) ---------------- */
-  .sidebar{
-    width:236px;
-    flex-shrink:0;
-    background:var(--sidebar-bg);
-    display:flex;
-    flex-direction:column;
-    padding:22px 16px;
-    color:#dfe8df;
-    position:sticky;
-    top:0;
-    height:100vh;
-    overflow:hidden;
-  }
-  .brand{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    padding:4px 8px 20px 8px;
-    text-align:center;
-    flex-shrink:0;
-  }
-  .brand-icon{
-    width:34px;
-    height:34px;
-    border-radius:9px;
-    background:linear-gradient(160deg,#3fa860,#1f6b39);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex-shrink:0;
-    margin:0 auto;
-  }
-  .brand-name{
-    display:block;
-    margin-top:4px;
-    font-size:17px;
-    font-weight:700;
-    line-height:1.1;
-    color:#fff;
-  }
-  .brand-sub{font-size:11px;color:#8fa88f;}
-
-  .nav{
-    list-style:none;
-    display:flex;
-    flex-direction:column;
-    gap:2px;
-    flex:1;
-    margin-top:6px;
-    overflow-y:auto;
-    min-height:0;
-  }
-  .nav li a{
-    display:flex;
-    align-items:center;
-    gap:11px;
-    padding:10px 12px;
-    border-radius:8px;
-    font-size:13.5px;
-    font-weight:500;
-    color:#c4d1c4;
-    transition:background .15s;
-  }
-  .nav li a:hover{background:var(--sidebar-bg-light);color:#fff;}
-  .nav li a.active{background:var(--accent);color:#fff;}
-  .nav-icon{
-    width:18px;height:18px;flex-shrink:0;
-    fill:none;stroke:currentColor;stroke-width:1.8;
-    stroke-linecap:round;stroke-linejoin:round;
-  }
-
-  .sidebar-footer{
-    border-top:1px solid #2a3d2a;
-    padding-top:14px;
-    margin-top:10px;
-    flex-shrink:0;
-  }
-  .user-chip{display:flex;align-items:center;gap:10px;padding:6px 8px 14px 8px;}
-  .avatar{
-    width:36px;height:36px;border-radius:50%;
-    background:var(--accent);
-    display:flex;align-items:center;justify-content:center;
-    flex-shrink:0;font-size:13px;font-weight:700;color:#fff;
-  }
-  .user-chip .name{font-size:13.5px;font-weight:600;color:#fff;}
-  .user-chip .role{font-size:11px;color:#8fa88f;}
-  .logout-btn{
-    display:flex;align-items:center;gap:8px;width:100%;
-    padding:9px 12px;border:1px solid #33472f;border-radius:8px;
-    background:transparent;font-size:13px;font-weight:500;color:#c4d1c4;
-  }
-  .logout-btn:hover{background:var(--sidebar-bg-light);}
-
   /* ---------------- Main ---------------- */
   .main{flex:1;min-width:0;padding:26px 32px;}
 
@@ -464,8 +368,6 @@
     .settings-grid{grid-template-columns:1fr;}
   }
   @media (max-width:700px){
-    .app{flex-direction:column;}
-    .sidebar{width:100%;position:relative;height:auto;}
     .topbar{flex-direction:column;gap:14px;}
   }
 </style>
