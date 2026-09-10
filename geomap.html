@@ -223,6 +223,18 @@
       max-height:none;
       overflow-y:auto;
     }
+    .recent-hazard.on-map{
+      cursor:pointer;
+    }
+    .recent-hazard.on-map:hover .recent-hazard-title,
+    .recent-hazard.on-map:focus-visible .recent-hazard-title{
+      color:var(--accent-dark);
+      text-decoration:underline;
+    }
+    .recent-hazard.on-map:focus-visible{
+      outline:2px solid var(--accent);
+      outline-offset:2px;
+    }
     .emergency-alerts-panel{
       width:calc(100% + 300px);
     }
@@ -354,7 +366,7 @@
         <div class="left-column">
           <div class="map-area">
             <div id="makilingMap" aria-label="Map of Mount Makiling"></div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:8px">Live OpenStreetMap data · Trail and verified hazard markers come from Firestore</div>
+            <div id="mapCaption" style="font-size:12px;color:var(--text-secondary);margin-top:8px">Live OpenStreetMap data · Trail and verified hazard markers come from Firestore</div>
           </div>
 
           <div class="status-pair" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
@@ -450,6 +462,18 @@
         ? [latitude, longitude]
         : null;
     };
+
+    /* The PeakPath mobile app saves a report's GPS fix as one string in
+       `location`, e.g. "14.136000, 121.197000". A report whose location was
+       edited into a place name has no position and cannot be plotted. */
+    const getHazardCoordinates = (report) => {
+      const direct = getCoordinates(report);
+      if (direct) return direct;
+      const match = String(report.location ?? '').match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+      return match ? getCoordinates({ latitude: match[1], longitude: match[2] }) : null;
+    };
+
+    const isVerified = (report) => String(report.status ?? 'pending').trim().toLowerCase() === 'verified';
 
     const toDate = (value) => {
       if (!value) return null;
@@ -553,7 +577,7 @@
       if (!list) return;
 
       const verifiedHazards = reports
-        .filter((item) => (item.status || 'pending').toLowerCase() === 'verified')
+        .filter(isVerified)
         .sort((a, b) => (toDate(b.createdAt) || toDate(b.timestamp) || new Date(0)).getTime() - (toDate(a.createdAt) || toDate(a.timestamp) || new Date(0)).getTime());
 
       if (!verifiedHazards.length) {
@@ -565,10 +589,12 @@
         const bucket = getRiskBucket(item);
         const riskText = getRiskLabel(item);
         const riskColor = bucket === 'high' ? '#c8402f' : bucket === 'moderate' ? '#c9821f' : '#3d6ec8';
+        // Only hazards with a usable position can be clicked to show them on the map.
+        const onMap = Boolean(getHazardCoordinates(item));
 
         return `
-          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div>${escapeHtml(item.hazardType || item.title || 'Hazard')}<br><small style="color:var(--text-secondary)">${escapeHtml(item.location || item.area || 'Mount Makiling')}</small></div>
+          <div class="recent-hazard${onMap ? ' on-map' : ''}" data-id="${escapeHtml(item.id)}"${onMap ? ' role="button" tabindex="0" title="Show on map"' : ''} style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div><span class="recent-hazard-title">${escapeHtml(item.hazardType || item.title || 'Hazard')}</span><br><small style="color:var(--text-secondary)">${escapeHtml(item.location || item.area || 'Mount Makiling')}</small></div>
             <div style="color:${riskColor};font-weight:700">${riskText}</div>
           </div>
         `;
@@ -676,24 +702,73 @@
       }
     });
 
+    // Marker per report id, so a Recent Hazards item can bring its marker into view.
+    const hazardMarkers = new Map();
+    let hazardViewFitted = false;
+
+    const focusHazard = (id) => {
+      const marker = hazardMarkers.get(id);
+      if (!marker) return;
+      // The layers control can hide hazards; show them again before opening the popup.
+      if (!map.hasLayer(hazardLayer)) hazardLayer.addTo(map);
+      document.getElementById('makilingMap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 16));
+      marker.openPopup();
+    };
+
+    const onRecentHazardActivate = (event) => {
+      if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
+      const item = event.target.closest('.recent-hazard.on-map');
+      if (!item) return;
+      event.preventDefault();
+      focusHazard(item.dataset.id);
+    };
+    document.getElementById('recentHazardsList')?.addEventListener('click', onRecentHazardActivate);
+    document.getElementById('recentHazardsList')?.addEventListener('keydown', onRecentHazardActivate);
+
     onSnapshot(collection(db, 'reports'), (snapshot) => {
       hazardData = snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
       renderRecentHazards(hazardData);
       renderAlertOverview(advisoryData, hazardData);
 
       hazardLayer.clearLayers();
-      hazardData.forEach((data) => {
-        if ((data.status || 'pending') !== 'verified') return;
-        const coordinates = getCoordinates(data);
+      hazardMarkers.clear();
+      const verifiedHazards = hazardData.filter(isVerified);
+
+      verifiedHazards.forEach((data) => {
+        const coordinates = getHazardCoordinates(data);
         if (!coordinates) return;
-        L.circleMarker(coordinates, {
-          radius: 8,
-          color: '#c8402f',
+        const reportedDate = toDate(data.createdAt) || toDate(data.timestamp);
+        const marker = L.circleMarker(coordinates, {
+          radius: 9,
+          color: '#ffffff',
+          weight: 2,
           fillColor: '#c8402f',
-          fillOpacity: 0.8
-        }).bindPopup(`<strong>${escapeHtml(data.hazardType || 'Verified hazard')}</strong><br>${escapeHtml(data.location || 'Mount Makiling')}`)
-          .addTo(hazardLayer);
+          fillOpacity: 0.9
+        }).bindPopup(`
+          <strong>${escapeHtml(data.hazardType || 'Verified hazard')}</strong><br>
+          ${data.trail ? `${escapeHtml(data.trail)}<br>` : ''}
+          <small>${reportedDate ? `Reported ${escapeHtml(formatAlertDate(reportedDate))} · ` : ''}${coordinates.map((value) => value.toFixed(5)).join(', ')}</small>
+        `).addTo(hazardLayer);
+        hazardMarkers.set(data.id, marker);
       });
+
+      const plotted = hazardMarkers.size;
+      const unplotted = verifiedHazards.length - plotted;
+      const caption = document.getElementById('mapCaption');
+      if (caption) {
+        caption.textContent = verifiedHazards.length
+          ? `Live OpenStreetMap data · ${plotted} of ${verifiedHazards.length} verified hazard${verifiedHazards.length === 1 ? '' : 's'} on the map` +
+            (unplotted ? ` · ${unplotted} ha${unplotted === 1 ? 's' : 've'} no latitude/longitude` : '')
+          : 'Live OpenStreetMap data · No verified hazards to plot';
+      }
+
+      // Frame the hazards once on load; later live updates leave the admin's view alone.
+      if (!hazardViewFitted && plotted) {
+        hazardViewFitted = true;
+        const bounds = L.latLngBounds([...hazardMarkers.values()].map((marker) => marker.getLatLng()));
+        map.fitBounds(bounds.pad(0.2), { maxZoom: 15 });
+      }
     }, (error) => {
       console.error('Error loading hazard map markers:', error);
       const list = document.getElementById('recentHazardsList');
@@ -822,7 +897,7 @@
       const reports = snapshot.docs;
       const activeHazards = reports.filter(document => {
         const data = document.data();
-        return (data.status || 'pending') === 'verified';
+        return isVerified(data);
       });
       setSummaryValue('activeHazardsValue', activeHazards.length);
       setSummaryValue('activeHazardsPercentage', `${reports.length ? Math.round((activeHazards.length / reports.length) * 100) : 0}% of reports`);
