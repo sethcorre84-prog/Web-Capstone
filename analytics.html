@@ -567,29 +567,6 @@ a { color: inherit; text-decoration: none; }
   background: #fff;
 }
 /* ---- Live data states ---- */
-.data-status {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px 12px;
-  margin: -4px 0 14px;
-  font-size: 10.5px;
-  color: var(--text-muted);
-}
-.data-status .src {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.data-status .dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-.data-status .dot.empty { background: var(--text-muted); }
-.data-status .dot.loading { background: var(--yellow); }
-.data-status .dot.error { background: var(--danger); }
 .empty-state {
   padding: 12px 0;
   color: var(--text-muted);
@@ -710,8 +687,6 @@ a { color: inherit; text-decoration: none; }
         </div>
       </div>
     </div>
-    <div class="data-status" id="dataStatus"></div>
-
     <div class="cards-row">
       <div class="card">
         <div class="card-top">
@@ -999,32 +974,6 @@ a { color: inherit; text-decoration: none; }
   ];
 
   /* ---------------- Renderers ---------------- */
-
-  const renderDataStatus = () => {
-    const sources = [
-      { key: 'hazards', label: 'hazard reports', data: state.hazards },
-      { key: 'trails', label: 'trails', data: state.trails },
-      { key: 'users', label: 'hikers', data: state.users },
-      { key: 'advisories', label: 'advisories', data: state.advisories },
-      { key: 'emergencies', label: 'emergency alerts', data: state.emergencies },
-      { key: 'forecast', label: 'day forecast', data: state.forecast }
-    ];
-
-    document.getElementById('dataStatus').innerHTML = sources.map((source) => {
-      let dotClass = 'loading';
-      let text = `${source.label} — loading`;
-
-      if (state.errors[source.key]) {
-        dotClass = 'error';
-        text = `${source.label} — unavailable`;
-      } else if (Array.isArray(source.data)) {
-        dotClass = source.data.length ? '' : 'empty';
-        text = `${source.data.length} ${source.label}`;
-      }
-
-      return `<span class="src"><span class="dot ${dotClass}"></span>${escapeHtml(text)}</span>`;
-    }).join('');
-  };
 
   const renderCards = () => {
     const days = dailyRisk();
@@ -1523,7 +1472,6 @@ a { color: inherit; text-decoration: none; }
   };
 
   const renderAll = () => {
-    renderDataStatus();
     renderCards();
     renderRiskForecast();
     renderWeatherImpact();
