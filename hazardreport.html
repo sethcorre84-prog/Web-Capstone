@@ -172,14 +172,14 @@
     flex-direction:column;
     min-width:0;
     flex:1;
+    padding:26px 32px;
   }
 
   .topbar{
     display:flex;
-    align-items:center;
     justify-content:space-between;
-    padding:20px 28px;
-    background:var(--bg);
+    align-items:flex-start;
+    margin-bottom:22px;
   }
   .topbar h1{
     font-size:22px;
@@ -445,7 +445,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
 }
 
   .content{
-    padding:0 28px 28px 28px;
+    padding:0 0 28px 0;
     display:flex;
     flex-direction:column;
     gap:18px;
@@ -454,7 +454,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   /* Stat cards */
     .stats{
     display:grid;
-    grid-template-columns:repeat(5,1fr);
+    grid-template-columns:repeat(5,minmax(0,1fr));
     gap:14px;
   }
   .stat-card{
@@ -471,13 +471,13 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     justify-content:space-between;
     align-items:center;
   }
-  .stat-icon{
+    .stat-icon{
     width:32px;height:32px;
-    border-radius:8px;
+    border-radius:8px !important;
     display:flex;align-items:center;justify-content:center;
     flex-shrink:0;
   }
-  .stat-icon svg{width:16px;height:16px;}
+  .stat-icon svg{width:20px;height:16px;stroke-width:2;}
   .stat-icon.total{background:#eef2ee;}
   .stat-icon.pending{background:var(--amber-bg);}
   .stat-icon.verified{background:var(--green-bg);}
@@ -500,26 +500,16 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   /* Panels */
   .panels{
     display:grid;
-    grid-template-columns: 1.55fr 1fr;
+    grid-template-columns:1.7fr 1fr;
     gap:18px;
     align-items:start;
   }
 
-.panels > .card:first-child{
-  margin-left: 16px;
-}
-
-@media (max-width: 1150px){
-  .panels > .card:first-child{
-    margin-left: 0;
-  }
-}
-
   .card{
     background:var(--card);
     border:1px solid var(--border);
-    border-radius:var(--radius-lg);
-    box-shadow:var(--shadow-card);
+    border-radius:var(--radius);
+    box-shadow:none;
   }
 
   /* Reports list card */
@@ -1095,7 +1085,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
 
   @media (max-width: 1150px){
     .panels{grid-template-columns:1fr;}
-    .stats{grid-template-columns:repeat(2,1fr);}
+    .stats{grid-template-columns:repeat(5,minmax(0,1fr));}
   }
   @media (max-width: 760px){
     .app{grid-template-columns:1fr;}
@@ -1553,6 +1543,16 @@ function getRiskLevel(report) {
   if (/low|minor|info|normal/.test(normalized)) return { label: 'Low', className: 'low' };
 
   return { label: value, className: 'unknown' };
+}
+
+function getReportIdFromURL() {
+  return new URLSearchParams(window.location.search).get('report');
+}
+
+function clearReportIdFromURL() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('report');
+  window.history.replaceState({}, '', url);
 }
 
 // Render reports table
@@ -2530,6 +2530,28 @@ function loadReports() {
     filterReports(false);
     updateStats();
     renderRejectedList();
+
+        const urlReportId = getReportIdFromURL();
+    if (urlReportId) {
+      const targetReport = allReports.find(r => r.id === urlReportId || r.reportId === urlReportId);
+      if (targetReport) {
+        selectedReport = targetReport;
+        renderReportDetails(selectedReport);
+
+        const idx = currentFilteredReports.findIndex(r => r.id === targetReport.id);
+        if (idx !== -1) {
+          currentPage = Math.floor(idx / itemsPerPage) + 1;
+          renderReportsTable(currentFilteredReports);
+          setTimeout(() => {
+            document.querySelector(`tr[data-report-id="${targetReport.id}"]`)
+              ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 100);
+        }
+
+        clearReportIdFromURL();
+        return;
+      }
+    }
 
     if (selectedReport) {
       selectedReport = allReports.find(r => r.id === selectedReport.id) || null;

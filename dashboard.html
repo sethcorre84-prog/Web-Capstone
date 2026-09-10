@@ -198,37 +198,11 @@
             align-items: center;
             gap: 18px;
         }
-        .bell-wrap {
-            position: relative;
-            width: 38px;
-            height: 38px;
-            border: 1px solid #e2e8f0;
-            border-radius: 9px;
-            background: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .bell-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            width: 17px;
-            height: 17px;
-            border-radius: 50%;
-            background: #d1453b;
-            color: #ffffff;
-            font-size: 10px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .bell-icon { font-size: 20px; line-height: 1; }
+        .top-meta { text-align: right; }
         .top-meta {
-            display: grid;
-            gap: 10px;
-            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
         }
         .top-meta .meta-label { color: #94a3b8; font-size: 13px; }
         .top-meta strong { display: block; color: #0f172a; font-size: 18px; }
@@ -489,14 +463,6 @@
             .dashboard-grid { grid-template-columns: 1fr; }
             .summary-list { grid-template-columns: 1fr 1fr; }
         }
-        @media (max-width: 640px) {
-            .sidebar { width: 100%; height: auto; position: relative; padding: 16px 0; }
-            .nav { margin: 12px 0; }
-            .hero-grid { grid-template-columns: 1fr; }
-            .summary-list { grid-template-columns: 1fr; }
-            .top-bar { flex-direction: column; align-items: stretch; }
-            .top-meta { text-align: left; }
-        }
     </style>
 </head>
 <body>
@@ -547,10 +513,6 @@
                         <strong id="live-clock">10:30 AM</strong>
                         <span id="live-day">Tuesday</span>
                         <span>Admin User • Super Administrator</span>
-                    </div>
-                    <div class="bell-wrap">
-                        <button class="bell-btn" type="button" aria-label="Open notifications"></button>
-                        <span class="bell-badge" hidden>0</span>
                     </div>
                 </div>
             </section>

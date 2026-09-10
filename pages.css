@@ -409,6 +409,10 @@ body[data-theme="dark"] .pagination button.current {
 .notification-copy small {
     color: #000;
 }
+.notification-copy small.notification-retrieved {
+    color: var(--text-muted, #6b7a6b);
+    font-style: italic;
+}
 .notification-empty {
     padding: 24px 16px;
     color: #000;

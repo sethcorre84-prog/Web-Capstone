@@ -445,11 +445,12 @@
 		});
 
 		let allItems = [];
-		let selectedId = null;
+		const queryParams = new URLSearchParams(window.location.search);
+		let selectedId = queryParams.get('advisory');
 		let selectedArchiveIds = new Set();
 		let editingId = null;
 		let currentPage = 1;
-		const PAGE_SIZE = 15;
+		const PAGE_SIZE = 12;
 		let expiredPage = 1;
 		const expiredPageSize = 5;
 
@@ -720,7 +721,7 @@ async function syncExpiredAdvisories(){
 			pageItems.forEach(it => {
 				const meta = typeMeta(it.type);
 				const row = document.createElement('div');
-				row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
+				row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);';
 				row.onclick = (e) => {
 					e.stopPropagation();
 					if (selectedArchiveIds.has(it.id)) {
@@ -754,7 +755,7 @@ async function syncExpiredAdvisories(){
 				</div>
 				<span class="badge ${meta.cls}" style="flex-shrink:0">${escapeHtml(it.type || '')}</span>
 			`;
-				if (selectedArchiveIds.has(it.id) || selectedId === it.id) {
+				if (selectedId === it.id) {
 					row.style.background = 'var(--accent-light)';
 					row.style.borderRadius = '8px';
 					row.style.paddingLeft = '8px';
@@ -868,7 +869,11 @@ onSnapshot(advisoryQuery, (snapshot) => {
     syncExpiredAdvisories();
     if (selectedId) {
         const still = allItems.find(d => d.id === selectedId);
-        if (still) selectAdvisory(selectedId);
+        if (still) {
+            selectAdvisory(selectedId);
+        } else if (allItems.length) {
+            selectAdvisory(allItems[0].id);
+        }
     } else if (allItems.length) {
         selectAdvisory(allItems[0].id);
     }
@@ -955,6 +960,7 @@ setInterval(() => {
 			const effVal = document.getElementById('mEffective').value;
 			const expVal = document.getElementById('mExpires').value;
 			const actions = document.getElementById('mActions').value.split('\n').map(s => s.trim()).filter(Boolean);
+			const currentItem = editingId ? allItems.find(d => d.id === editingId) : null;
 
 			const payload = {
 				title,
@@ -970,6 +976,20 @@ setInterval(() => {
 				desc: document.getElementById('mDesc').value.trim(),
 				recommendedActions: actions
 			};
+
+			if (currentItem && currentItem.visible === false) {
+				payload.visible = true;
+				payload.archivedAt = null;
+				payload.archivedBy = null;
+			}
+
+			// Re-accepting an expired advisory (edited back to a non-expired status)
+			// should surface it as a fresh, unread notification instead of staying
+			// tied to whatever read state it had before it expired.
+			const wasExpired = currentItem && getEffectiveStatus(currentItem) === 'Expired';
+			if (wasExpired && payload.status !== 'Expired') {
+				payload.restoredAt = serverTimestamp();
+			}
 
 			try {
 				const wasEditing = !!editingId;
@@ -1108,6 +1128,14 @@ setInterval(() => {
 		document.getElementById('restoreConfirmNo').addEventListener('click', () => {
 		restoreConfirmOverlay.classList.remove('open');
 		pendingRestoreId = null;
+		selectedId = null;
+		selectedArchiveIds.clear();
+		document.getElementById('detailTitle').textContent = 'Select an advisory';
+		document.getElementById('detailSub').textContent = 'Choose an item from the list to see full details here.';
+		document.getElementById('detailBody').style.display = 'none';
+		document.getElementById('detailStatusPill').style.display = 'none';
+		updateArchiveButtonState();
+		applyFiltersAndRender();
 	});
 		restoreConfirmOverlay.addEventListener('click', (e) => {
 		if (e.target === restoreConfirmOverlay) {

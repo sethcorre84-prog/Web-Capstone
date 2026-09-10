@@ -32,32 +32,76 @@ const sortNotifications = (items) => items
   .slice(0, notificationLimit);
 
 const pendingReadKey = (id) => `peakpath:pending-hazard-read:${id}`;
-const advisoryReadKey = (id) => `peakpath:advisory-read:${id}`;
+// Versioned so re-accepting an expired advisory (which stamps a fresh
+// restoredAt) gets a brand-new key — any "read" flag from before it expired
+// no longer applies, and the notification comes back as unread/recent.
+const advisoryReadKey = (id, version) => `peakpath:advisory-read:${id}:${version || 0}`;
+// Pre-versioning key, kept only to migrate old read flags forward (see below).
+const legacyAdvisoryReadKey = (id) => `peakpath:advisory-read:${id}`;
 
-const isPendingRead = (id) => localStorage.getItem(pendingReadKey(id)) === 'true';
-const isAdvisoryRead = (id) => localStorage.getItem(advisoryReadKey(id)) === 'true';
+// Reads back when a notification was actually opened. Older entries were
+// written as the literal string 'true' (before read receipts existed) —
+// treat those as "read just now" rather than losing the read state.
+const getReadAt = (key) => {
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+  if (raw === 'true') return new Date();
+  return getDate(raw);
+};
+
+// Advisories read before the versioned key existed are still tracked under
+// the old, unversioned key. Migrate that flag forward so an advisory that
+// simply never expired doesn't suddenly reappear as unread — but skip the
+// migration once the advisory has actually been restored from Expired,
+// since that case should always come back as unread/recent.
+const getAdvisoryReadAt = (advisory, readKey) => {
+  const direct = getReadAt(readKey);
+  if (direct) return direct;
+  if (advisory.restoredAt) return null;
+
+  const legacyKey = legacyAdvisoryReadKey(advisory.id);
+  if (!localStorage.getItem(legacyKey)) return null;
+
+  const now = new Date();
+  localStorage.setItem(readKey, now.toISOString());
+  localStorage.removeItem(legacyKey);
+  return now;
+};
 
 const refreshNotifications = () => {
-  const pendingNotifications = pendingReports.map((report) => ({
-    id: `report-${report.id}`,
-    type: 'hazard_pending',
-    title: 'New hazard report',
-    message: `${report.hazardType || 'Hazard'} at ${report.location || 'reported location'} is awaiting verification.`,
-    createdAt: report.timestamp || report.createdAt,
-    read: isPendingRead(report.id),
-    reportDocumentId: report.id
-  }));
+  const pendingNotifications = pendingReports.map((report) => {
+    const readKey = pendingReadKey(report.id);
+    const readAt = getReadAt(readKey);
+    return {
+      id: `report-${report.id}`,
+      type: 'hazard_pending',
+      title: 'New hazard report',
+      message: `${report.hazardType || 'Hazard'} at ${report.location || 'reported location'} is awaiting verification.`,
+      createdAt: report.timestamp || report.createdAt,
+      read: !!readAt,
+      readAt,
+      readKey,
+      reportDocumentId: report.id
+    };
+  });
 
-  const advisoryNotifications = activeAdvisories.map((advisory) => ({
-    id: `advisory-${advisory.id}`,
-    type: 'advisory',
-    title: advisory.title || 'New advisory',
-    message: advisory.desc || `${advisory.type || 'Advisory'} for ${advisory.target || 'all trails'} is now available.`,
-    createdAt: advisory.effectiveDate || advisory.createdAt || advisory.publishedAt,
-    read: isAdvisoryRead(advisory.id),
-    advisoryDocumentId: advisory.id,
-    link: 'A&A.html'
-  }));
+  const advisoryNotifications = activeAdvisories.map((advisory) => {
+    const createdAt = advisory.restoredAt || advisory.effectiveDate || advisory.createdAt || advisory.publishedAt;
+    const readKey = advisoryReadKey(advisory.id, getDate(createdAt)?.getTime());
+    const readAt = getAdvisoryReadAt(advisory, readKey);
+    return {
+      id: `advisory-${advisory.id}`,
+      type: 'advisory',
+      title: advisory.title || 'New advisory',
+      message: advisory.desc || `${advisory.type || 'Advisory'} for ${advisory.target || 'all trails'} is now available.`,
+      createdAt,
+      read: !!readAt,
+      readAt,
+      readKey,
+      advisoryDocumentId: advisory.id,
+      link: `A&A.html?advisory=${encodeURIComponent(advisory.id)}`
+    };
+  });
 
   notifications = sortNotifications([...pendingNotifications, ...advisoryNotifications]);
   render();
@@ -87,10 +131,16 @@ const render = () => {
     }
 
     list.innerHTML = notifications.map((item) => {
-      const href = item.type === 'advisory' ? (item.link || 'A&A.html') : 'hazardreport.html';
+      const href = item.type === 'advisory'
+    ? (item.link || 'A&A.html')
+    : `hazardreport.html?report=${encodeURIComponent(item.reportDocumentId)}`;
       const fallbackText = item.type === 'advisory'
         ? (item.message || 'A new advisory is available.')
         : (item.hazardType ? `${item.hazardType} at ${item.location || 'reported location'} is awaiting verification.` : 'Hazard report update');
+
+      const retrievedLine = item.read === true
+        ? `<small class="notification-retrieved">Retrieved ${escapeHtml(formatDate(item.readAt))}</small>`
+        : '';
 
       return `
         <a class="notification-item${item.read === true ? '' : ' unread'}" href="${href}" data-notification-id="${escapeHtml(item.id)}">
@@ -99,6 +149,7 @@ const render = () => {
             <strong>${escapeHtml(item.title || 'Update')}</strong>
             <span>${escapeHtml(item.message || fallbackText)}</span>
             <small>${escapeHtml(formatDate(item.createdAt))}</small>
+            ${retrievedLine}
           </span>
         </a>
       `;
@@ -109,12 +160,10 @@ const render = () => {
 const markAsRead = (notificationId) => {
   const notification = notifications.find((item) => item.id === notificationId);
   if (!notification || notification.read === true) return;
-  if (notification.type === 'hazard_pending') {
-    localStorage.setItem(pendingReadKey(notification.reportDocumentId), 'true');
-  } else if (notification.type === 'advisory') {
-    localStorage.setItem(advisoryReadKey(notification.advisoryDocumentId), 'true');
-  }
+  const now = new Date();
+  localStorage.setItem(notification.readKey, now.toISOString());
   notification.read = true;
+  notification.readAt = now;
   render();
 };
 
@@ -122,14 +171,12 @@ const markAllAsRead = () => {
   const hasUnread = notifications.some((item) => item.read !== true);
   if (!hasUnread) return;
 
+  const now = new Date();
   notifications.forEach((notification) => {
     if (notification.read === true) return;
-    if (notification.type === 'hazard_pending') {
-      localStorage.setItem(pendingReadKey(notification.reportDocumentId), 'true');
-    } else if (notification.type === 'advisory') {
-      localStorage.setItem(advisoryReadKey(notification.advisoryDocumentId), 'true');
-    }
+    localStorage.setItem(notification.readKey, now.toISOString());
     notification.read = true;
+    notification.readAt = now;
   });
 
   render();
