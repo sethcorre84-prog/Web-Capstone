@@ -746,11 +746,18 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   }
   .archive-action:hover .archive-tooltip,
   .archive-action:focus-visible .archive-tooltip{opacity:1;transform:translateY(0);}
+  .rejected-row{
+    transition:transform .15s ease,box-shadow .15s ease,background .15s ease,padding .15s ease;
+  }
   .rejected-row.archive-selected{
     background:var(--accent-light);
     border-radius:8px;
     padding-left:8px;
     padding-right:8px;
+    transform:translateY(-3px);
+    box-shadow:0 10px 20px rgba(0,0,0,.12);
+    position:relative;
+    z-index:1;
   }
 
   /* Confirmation Modal */
@@ -1471,7 +1478,7 @@ function exportReportsToPDF() {
   const reports = currentFilteredReports.length ? currentFilteredReports : allReports;
 
   docPdf.setFontSize(14);
-  docPdf.text('PeakPath — Hazard Reports', 14, 15);
+  docPdf.text('PeakPath — Verified/Pending Hazard Reports', 14, 15);
   docPdf.setFontSize(10);
   docPdf.setTextColor(100);
   docPdf.text(`Generated ${new Date().toLocaleString('en-US')} • ${reports.length} report(s)`, 14, 21);
@@ -1580,13 +1587,21 @@ function renderRejectedList() {
     const row = document.createElement('div');
     row.className = 'rejected-row' + (selectedArchiveIds.has(report.id) ? ' archive-selected' : '');
     row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
-    row.onclick = () => {
-      if (selectedArchiveIds.has(report.id)) {
-        selectedArchiveIds.delete(report.id);
+    row.onclick = (e) => {
+      e.stopPropagation();
+      const alreadySelected = selectedArchiveIds.has(report.id);
+      // Only one rejected report can be highlighted/selected at a time —
+      // picking a different row replaces the previous selection instead of
+      // adding to it.
+      selectedArchiveIds.clear();
+      if (alreadySelected) {
+        selectedReport = null;
+        filterReports(false);
+        renderReportDetails(null);
       } else {
         selectedArchiveIds.add(report.id);
+        selectReport(report.id);
       }
-      selectReport(report.id);
       renderRejectedList();
     };
     row.innerHTML = `
@@ -1673,22 +1688,67 @@ async function confirmArchiveReports() {
 
   try {
     const batch = writeBatch(db);
+    const idSet = new Set(ids);
+
+    // Archived reports get their own per-year counter, appended after
+    // however many are already in the archive — same append pattern as a
+    // fresh rejection, just against the archive list instead.
+    const archivedCountsByYear = {};
+    allReports.forEach(r => {
+      if (r.status !== 'archived') return;
+      const y = r.timestamp
+        ? (r.timestamp.toDate ? r.timestamp.toDate() : new Date(r.timestamp)).getFullYear()
+        : new Date().getFullYear();
+      archivedCountsByYear[y] = (archivedCountsByYear[y] || 0) + 1;
+    });
+
     ids.forEach(id => {
+      const report = allReports.find(r => r.id === id);
+      const year = report?.timestamp
+        ? (report.timestamp.toDate ? report.timestamp.toDate() : new Date(report.timestamp)).getFullYear()
+        : new Date().getFullYear();
+      archivedCountsByYear[year] = (archivedCountsByYear[year] || 0) + 1;
+
       batch.update(doc(db, 'reports', id), {
         status: 'archived',
         archivedAt: serverTimestamp(),
-        archivedBy: auth.currentUser?.uid || null
+        archivedBy: auth.currentUser?.uid || null,
+        reportId: `A-${year}-${String(archivedCountsByYear[year]).padStart(3, '0')}`
       });
     });
+
+    // Archived items are always previously-rejected reports here, so close
+    // the gap(s) they leave behind in the rejected numbering — the
+    // remaining rejected reports for each affected year restart at 001,
+    // same as when one is verified back out of the rejected list.
+    const affectedYears = new Set(
+      allReports
+        .filter(r => idSet.has(r.id))
+        .map(r => (r.timestamp
+          ? (r.timestamp.toDate ? r.timestamp.toDate() : new Date(r.timestamp))
+          : new Date()
+        ).getFullYear())
+    );
+
+    affectedYears.forEach(year => {
+      const remainingRejected = allReports
+        .filter(r => !idSet.has(r.id) && r.status === 'rejected')
+        .map(r => {
+          const match = /^R-(\d{4})-(\d+)$/.exec(r.reportId || '');
+          return { id: r.id, reportId: r.reportId, year: match ? Number(match[1]) : year, num: match ? Number(match[2]) : Infinity };
+        })
+        .filter(r => r.year === year)
+        .sort((a, b) => a.num - b.num);
+
+      remainingRejected.forEach((r, index) => {
+        const newRejectedId = `R-${year}-${String(index + 1).padStart(3, '0')}`;
+        if (r.reportId !== newRejectedId) {
+          batch.update(doc(db, 'reports', r.id), { reportId: newRejectedId });
+        }
+      });
+    });
+
     await batch.commit();
-    await window.renumberReports(); // close gaps left by newly archived reports
-
-    ids.forEach(id => selectedArchiveIds.delete(id));
-
-    if (selectedReport && ids.includes(selectedReport.id)) {
-      selectedReport = null; 
-      renderReportDetails(null);
-    }
 
     closeArchiveModal();
     // onSnapshot() will refresh the table, stats, and rejected list automatically.
@@ -1881,7 +1941,7 @@ function renderReportDetails(report) {
         <div class="form-error" style="margin-bottom:2px;">Set a valid risk level before this report can be verified or rejected.</div>
       ` : ''}
       <div class="row">
-          ${risk.className === 'unknown'
+          ${report.status === 'verified' || risk.className === 'unknown'
             ? `<button class="btn btn-verify" disabled style="opacity:.6;cursor:not-allowed">✔ Verify Hazard</button>`
             : `<button class="btn btn-verify" onclick="updateReportStatus('${report.id}', 'verified')">✔ Verify Hazard</button>`
           }
@@ -2036,7 +2096,69 @@ async function confirmStatusUpdate() {
       updateData.statusNote = reason;
     }
 
+    const reportYear = report.timestamp
+      ? (report.timestamp.toDate ? report.timestamp.toDate() : new Date(report.timestamp)).getFullYear()
+      : new Date().getFullYear();
+
     const batch = writeBatch(db);
+
+    if (newStatus === 'rejected') {
+      // New rejections are appended after however many rejected reports
+      // already exist for the year — not a full resync of every ID.
+      const rejectedCount = allReports.filter(r =>
+        r.id !== reportId &&
+        r.status === 'rejected' &&
+        (r.timestamp ? (r.timestamp.toDate ? r.timestamp.toDate() : new Date(r.timestamp)).getFullYear() : new Date().getFullYear()) === reportYear
+      ).length;
+      updateData.reportId = `R-${reportYear}-${String(rejectedCount + 1).padStart(3, '0')}`;
+
+      // This report is leaving the active HR list, so close the gap it
+      // leaves behind there too: whoever was next in line moves up.
+      const remainingActive = allReports
+        .filter(r => r.id !== reportId && r.status !== 'rejected' && r.status !== 'archived')
+        .map(r => {
+          const match = /^HR-(\d{4})-(\d+)$/.exec(r.reportId || '');
+          return { id: r.id, reportId: r.reportId, year: match ? Number(match[1]) : reportYear, num: match ? Number(match[2]) : Infinity };
+        })
+        .filter(r => r.year === reportYear)
+        .sort((a, b) => a.num - b.num);
+
+      remainingActive.forEach((r, index) => {
+        const newHrId = `HR-${reportYear}-${String(index + 1).padStart(3, '0')}`;
+        if (r.reportId !== newHrId) {
+          batch.update(doc(db, 'reports', r.id), { reportId: newHrId });
+        }
+      });
+    } else if (newStatus === 'verified' && report.status === 'rejected') {
+      // Restoring a rejected report picks up right after the last HR number
+      // in the active (pending/verified) list, instead of shifting others.
+      const lastHrNumber = allReports.reduce((max, r) => {
+        if (r.id === reportId || r.status === 'rejected' || r.status === 'archived') return max;
+        const match = /^HR-(\d{4})-(\d+)$/.exec(r.reportId || '');
+        if (!match || Number(match[1]) !== reportYear) return max;
+        return Math.max(max, Number(match[2]));
+      }, 0);
+      updateData.reportId = `HR-${reportYear}-${String(lastHrNumber + 1).padStart(3, '0')}`;
+
+      // This report is leaving the rejected list, so close the gap it
+      // leaves behind: whoever was #2 becomes #1, and so on.
+      const remainingRejected = allReports
+        .filter(r => r.id !== reportId && r.status === 'rejected')
+        .map(r => {
+          const match = /^R-(\d{4})-(\d+)$/.exec(r.reportId || '');
+          return { id: r.id, reportId: r.reportId, year: match ? Number(match[1]) : reportYear, num: match ? Number(match[2]) : Infinity };
+        })
+        .filter(r => r.year === reportYear)
+        .sort((a, b) => a.num - b.num);
+
+      remainingRejected.forEach((r, index) => {
+        const newRejectedId = `R-${reportYear}-${String(index + 1).padStart(3, '0')}`;
+        if (r.reportId !== newRejectedId) {
+          batch.update(doc(db, 'reports', r.id), { reportId: newRejectedId });
+        }
+      });
+    }
+
     batch.update(reportRef, updateData);
 
     if (newStatus === 'verified') {
@@ -2160,7 +2282,8 @@ function closeDeleteModal() {
 async function renumberReports() {
   const snapshot = await getDocs(collection(db, 'reports'));
   const batch = writeBatch(db);
-  const countersByYear = {};
+  const countersByYear = {};        // for HR-YYYY-XXX (pending + verified)
+  const rejectedCountersByYear = {}; // separate count for rejected reports
   let changes = 0;
 
   const docs = snapshot.docs
@@ -2170,16 +2293,29 @@ async function renumberReports() {
       return { docSnap, data, date };
     })
     .filter(({ data }) => data.status !== 'archived')
-    .sort((a, b) => b.date - a.date); // newest first, archived excluded
+    .sort((a, b) => b.date - a.date); // newest first
 
   docs.forEach(({ docSnap, data, date }) => {
     const year = date.getFullYear();
-    countersByYear[year] = (countersByYear[year] || 0) + 1;
-    const newReportId = `HR-${year}-${String(countersByYear[year]).padStart(3, '0')}`;
 
-    if (data.reportId !== newReportId) {
-      batch.update(docSnap.ref, { reportId: newReportId });
-      changes++;
+    if (data.status === 'rejected') {
+      // Rejected reports get their own counter, separate from HR-XXX
+      rejectedCountersByYear[year] = (rejectedCountersByYear[year] || 0) + 1;
+      const newRejectedId = `R-${year}-${String(rejectedCountersByYear[year]).padStart(3, '0')}`;
+
+      if (data.reportId !== newRejectedId) {
+        batch.update(docSnap.ref, { reportId: newRejectedId });
+        changes++;
+      }
+    } else {
+      // Only pending + verified consume the main HR-XXX sequence
+      countersByYear[year] = (countersByYear[year] || 0) + 1;
+      const newReportId = `HR-${year}-${String(countersByYear[year]).padStart(3, '0')}`;
+
+      if (data.reportId !== newReportId) {
+        batch.update(docSnap.ref, { reportId: newReportId });
+        changes++;
+      }
     }
   });
 

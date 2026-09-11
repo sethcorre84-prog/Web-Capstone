@@ -902,14 +902,31 @@
   async function confirmUnarchiveHazardReport() {
     if (!pendingUnarchiveId) return;
     const reportId = pendingUnarchiveId;
+    const item = lastArchivedHazardReports.find((r) => r.id === reportId);
 
     unarchiveModalConfirmBtn.disabled = true;
     unarchiveModalConfirmBtn.textContent = 'Unarchiving...';
     unarchiveModalErrorEl.textContent = '';
 
     try {
+      const year = item?.timestamp
+        ? (item.timestamp.toDate ? item.timestamp.toDate() : new Date(item.timestamp)).getFullYear()
+        : new Date().getFullYear();
+
+      // Appends after the last existing rejected number for the year —
+      // same as a fresh rejection would — instead of shifting other IDs.
+      const reportsSnapshot = await getDocs(collection(db, 'reports'));
+      const lastRejectedNumber = reportsSnapshot.docs.reduce((max, docSnap) => {
+        const data = docSnap.data();
+        if (docSnap.id === reportId || (data.status || '').toLowerCase() !== 'rejected') return max;
+        const match = /^R-(\d{4})-(\d+)$/.exec(data.reportId || '');
+        if (!match || Number(match[1]) !== year) return max;
+        return Math.max(max, Number(match[2]));
+      }, 0);
+
       await updateDoc(doc(db, 'reports', reportId), {
         status: 'rejected',
+        reportId: `R-${year}-${String(lastRejectedNumber + 1).padStart(3, '0')}`,
         unarchivedAt: new Date()
       });
       closeUnarchiveModal();

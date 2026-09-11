@@ -65,6 +65,19 @@
 		tbody tr{cursor:pointer;transition:background .12s}
 		tbody tr:hover{background:#f6f8f4}
 		tbody tr.selected{background:var(--accent-light)}
+		@keyframes flashHighlight{0%,100%{background:var(--accent-light)}50%{background:#bfe8cc}}
+		.flash-highlight{animation:flashHighlight .8s ease-in-out 2}
+		.expired-row{transition:transform .15s ease,box-shadow .15s ease,background .15s ease,padding .15s ease}
+		.expired-row.selected-float{
+			background:var(--accent-light);
+			border-radius:8px;
+			padding-left:8px;
+			padding-right:8px;
+			transform:translateY(-3px);
+			box-shadow:0 10px 20px rgba(0,0,0,.12);
+			position:relative;
+			z-index:1;
+		}
 		.thumb{width:40px;height:40px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 		.thumb svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 		.trail-name{font-weight:600}
@@ -437,6 +450,13 @@
 		let expiredPage = 1;
 		const expiredPageSize = 5;
 
+		// Arriving from a notification link (?advisory=ID): the target advisory
+		// may not be on page 1 of the table (or of the Expired panel). Consumed
+		// once — whichever list actually contains the id jumps to its page and
+		// flashes the row, then clears this so normal pagination isn't hijacked
+		// on every later render.
+		let pendingDeepLinkId = selectedId;
+
 		const TYPE_META = {
 			Advisory:     { cls:'advisory',     bg:'var(--danger-light)',  fg:'var(--danger)', icon:'<path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/>' },
 			Weather:      { cls:'weather',      bg:'var(--blue-light)',    fg:'var(--blue)',   icon:'<path d="M17.5 19a4.5 4.5 0 000-9 6 6 0 00-11.4 2.2A4 4 0 007 19h10.5z"/>' },
@@ -525,6 +545,11 @@ async function syncExpiredAdvisories(){
 			if (statusVal) items = items.filter(d => getEffectiveStatus(d) === statusVal);
 			if (dateVal) items = items.filter(d => inDateRange(d, dateVal));
 
+			if (pendingDeepLinkId) {
+				const deepLinkIndex = items.findIndex(d => d.id === pendingDeepLinkId);
+				if (deepLinkIndex !== -1) currentPage = Math.floor(deepLinkIndex / PAGE_SIZE) + 1;
+			}
+
 			const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
 			if (currentPage > totalPages) currentPage = totalPages;
 			const start = (currentPage - 1) * PAGE_SIZE;
@@ -610,11 +635,13 @@ async function syncExpiredAdvisories(){
 				tbody.appendChild(tr);
 				return;
 			}
+			let deepLinkRow = null;
 			items.forEach(it => {
 				const meta = typeMeta(it.type);
 				const effectiveStatus = getEffectiveStatus(it);
 				const tr = document.createElement('tr');
 				if (it.id === selectedId) tr.classList.add('selected');
+				if (it.id === pendingDeepLinkId) deepLinkRow = tr;
 				tr.onclick = () => selectAdvisory(it.id);
 
 				const tdTitle = document.createElement('td');
@@ -673,6 +700,13 @@ async function syncExpiredAdvisories(){
 				tr.appendChild(tdTitle); tr.appendChild(tdType); tr.appendChild(tdTarget); tr.appendChild(tdStatus); tr.appendChild(tdPub); tr.appendChild(tdActions);
 				tbody.appendChild(tr);
 			});
+
+			if (deepLinkRow) {
+				pendingDeepLinkId = null;
+				deepLinkRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				deepLinkRow.classList.add('flash-highlight');
+				deepLinkRow.addEventListener('animationend', () => deepLinkRow.classList.remove('flash-highlight'), { once: true });
+			}
 		}
 
 		function updateArchiveButtonState() {
@@ -695,21 +729,34 @@ async function syncExpiredAdvisories(){
 				renderExpiredPagination(0);
 				return;
 			}
+			if (pendingDeepLinkId) {
+				const deepLinkIndex = expired.findIndex(d => d.id === pendingDeepLinkId);
+				if (deepLinkIndex !== -1) expiredPage = Math.floor(deepLinkIndex / expiredPageSize) + 1;
+			}
+
 			// 5 per page (allItems is queried newest-first); a "next page"
 			// control appears once there are more than 5 expired advisories.
 			const totalPages = Math.max(1, Math.ceil(expired.length / expiredPageSize));
 			if (expiredPage > totalPages) expiredPage = totalPages;
 			const start = (expiredPage - 1) * expiredPageSize;
 			const pageItems = expired.slice(start, start + expiredPageSize);
+			let deepLinkRow = null;
 			pageItems.forEach(it => {
 				const meta = typeMeta(it.type);
 				const row = document.createElement('div');
-				row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);';
+				row.className = 'expired-row';
+				row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
 				row.onclick = (e) => {
 					e.stopPropagation();
-					if (selectedArchiveIds.has(it.id)) {
-						selectedArchiveIds.delete(it.id);
-					} else {
+					// Reset any in-progress deep-link flash animation immediately so it
+					// doesn't fight with the float/selected style below.
+					row.classList.remove('flash-highlight');
+					// Only one expired advisory can be highlighted/selected at a
+					// time — picking a different row replaces the previous
+					// selection instead of adding to it.
+					const alreadySelected = selectedArchiveIds.has(it.id);
+					selectedArchiveIds.clear();
+					if (!alreadySelected) {
 						selectedArchiveIds.add(it.id);
 					}
 					if (selectedArchiveIds.size === 0) {
@@ -723,6 +770,7 @@ async function syncExpiredAdvisories(){
 						selectAdvisory(selectedId);
 					}
 					updateArchiveButtonState();
+					renderExpiredList();
 				};
 				row.oncontextmenu = (e) => {
 					e.preventDefault();
@@ -738,16 +786,21 @@ async function syncExpiredAdvisories(){
 				</div>
 				<span class="badge ${meta.cls}" style="flex-shrink:0">${escapeHtml(it.type || '')}</span>
 			`;
-				if (selectedId === it.id) {
-					row.style.background = 'var(--accent-light)';
-					row.style.borderRadius = '8px';
-					row.style.paddingLeft = '8px';
-					row.style.paddingRight = '8px';
+				if (selectedArchiveIds.has(it.id)) {
+					row.classList.add('selected-float');
 				}
+				if (it.id === pendingDeepLinkId) deepLinkRow = row;
 				wrap.appendChild(row);
 			});
 			renderExpiredPagination(totalPages);
 			updateArchiveButtonState();
+
+			if (deepLinkRow) {
+				pendingDeepLinkId = null;
+				deepLinkRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				deepLinkRow.classList.add('flash-highlight');
+				deepLinkRow.addEventListener('animationend', () => deepLinkRow.classList.remove('flash-highlight'), { once: true });
+			}
 		}
 
 		// Prev / numbered / next control for the Expired Advisories panel, styled
