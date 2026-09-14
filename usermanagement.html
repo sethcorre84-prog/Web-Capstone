@@ -87,64 +87,82 @@
   .hero-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
+    gap: 14px;
+    margin: 12px 0 18px;
   }
   
   .hero-card {
     background: #ffffff;
-    padding: 20px;
-    box-shadow: 0 18px 36px rgba(15,23,42,0.06);
     border: 1px solid #e2e8f0;
-    border-radius: 14px;
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 18px 36px rgba(15,23,42,0.06);
     transition: all 0.2s ease;
   }
-  
+
   .hero-card:hover {
     box-shadow: 0 24px 48px rgba(15,23,42,0.08);
     transform: translateY(-2px);
   }
-  
-  .hero-card-title {
+
+  .hero-card .card-top {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
+    gap: 12px;
   }
-  
-  .hero-card-title i {
-    width: 34px;
-    height: 34px;
+
+  .hero-card .card-content {
+    min-width: 0;
+  }
+
+  .hero-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
     display: grid;
     place-items: center;
-    background: #e2f8ed;
-    color: #15803d;
-    border-radius: 10px;
-    font-size: 15px;
+    border-radius: 8px;
+    font-size: 14px;
   }
-  
-  .hero-card h3 { 
-    margin: 0; 
-    font-size: 12px; 
-    letter-spacing: 0.12em; 
-    text-transform: uppercase; 
-    color: #64748b; 
-    font-weight: 600; 
+
+  .hero-icon.blue   { background: #e0edff; color: #2563eb; }
+  .hero-icon.green  { background: #dcfce7; color: #16a34a; }
+  .hero-icon.amber  { background: #fef3c7; color: #d97706; }
+  .hero-icon.red    { background: #fee2e2; color: #dc2626; }
+  .hero-icon.purple { background: #ede9fe; color: #7c3aed; }
+
+  .hero-card h3 {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #64748b;
+    font-weight: 500;
   }
-  
-  .hero-card p { 
-    margin: 0; 
-    font-size: 24px; 
-    font-weight: 700; 
-    color: #0f172a; 
+
+  .hero-card p {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
   }
-  
-  .hero-card span { 
-    display: block; 
-    margin-top: 10px; 
-    font-size: 12px; 
-    color: #64748b; 
+
+  .hero-trend {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+
+  .hero-trend.up   { color: #16a34a; }
+  .hero-trend.down { color: #dc2626; }
   
   .dashboard-grid {
     display: grid;
@@ -194,6 +212,82 @@
     gap: 10px;
     margin-bottom: 16px;
   }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .card-head h2 { margin: 0; }
+
+  .card-head-actions { display: flex; align-items: center; gap: 8px; }
+
+  .btn-primary,
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+
+  .btn-primary {
+    background: #16a34a;
+    border: 1px solid #16a34a;
+    color: #ffffff;
+  }
+
+  .btn-primary:hover { background: #15803d; border-color: #15803d; }
+
+  .btn-ghost {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+  }
+
+  .btn-ghost:hover { background: #f8fafc; }
+
+  .table-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 12.5px;
+    color: #64748b;
+  }
+
+  .pager { display: flex; align-items: center; gap: 6px; }
+
+  .pager button {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #334155;
+    border-radius: 7px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .pager button:hover:not(:disabled):not(.active) { background: #f1f5f9; }
+  .pager button.active { background: #16a34a; border-color: #16a34a; color: #ffffff; }
+  .pager button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .pager .pager-gap { color: #94a3b8; padding: 0 2px; }
 
   .topbar-right {
     display: flex;
@@ -266,6 +360,24 @@
     font-size: 12px;
   }
 
+  .admin-mini-name { font-size: 13px; font-weight: 600; color: #0f172a; line-height: 1.3; }
+  .admin-mini-role { font-size: 11px; color: #64748b; line-height: 1.3; }
+
+  .location-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    background: #ffffff;
+    font-size: 12.5px;
+    color: #334155;
+    white-space: nowrap;
+  }
+
+  .location-chip i { color: #16a34a; font-size: 12px; }
+
   .search-box {
     display: flex;
     align-items: center;
@@ -278,6 +390,8 @@
     background: #f8fafc;
   }
   
+  .search-box > i { color: #94a3b8; font-size: 12.5px; flex-shrink: 0; }
+
   .search-box input {
     flex: 1;
     min-width: 0;
@@ -387,22 +501,36 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 6px 12px;
+    padding: 5px 10px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 600;
     line-height: 1.2;
+    white-space: nowrap;
   }
   
-  .badge.hiker { background: #dbeafe; color: #0284c7; }
-  .badge.guide { background: #dcfce7; color: #16a34a; }
-  .badge.ranger { background: #fef3c7; color: #d97706; }
-  .badge.admin { background: #dcfce7; color: #16a34a; }
+  .badge.hiker { background: #dcfce7; color: #16a34a; }
+  .badge.guide { background: #dbeafe; color: #2563eb; }
+  .badge.ranger { background: #ede9fe; color: #7c3aed; }
+  .badge.admin { background: #fee2e2; color: #dc2626; }
   .badge.active { background: #dcfce7; color: #16a34a; }
-  .badge.inactive { background: #fee2e2; color: #dc2626; }
+  .badge.inactive { background: #f1f5f9; color: #64748b; }
   .badge.suspended { background: #fee2e2; color: #dc2626; }
   
-  .team-cell { color: #475569; font-size: 14px; }
+  .team-cell { color: #475569; font-size: 13px; }
+
+  .user-cell-text { min-width: 0; }
+
+  .user-list-table tbody tr.is-selected { background: #f0fdf4; }
+
+  .stacked-date { font-size: 12px; line-height: 1.45; }
+  .stacked-date strong { display: block; color: #0f172a; font-weight: 600; }
+  .stacked-date span { display: block; color: #94a3b8; }
+  .stacked-date .stacked-empty { color: #94a3b8; }
+
+  .status-pill.active { background: #dcfce7; color: #16a34a; }
+  .status-pill.inactive { background: #f1f5f9; color: #64748b; }
+  .status-pill.suspended { background: #fee2e2; color: #dc2626; }
   
   .last-active {
     font-size: 13px;
@@ -418,9 +546,11 @@
     gap: 6px;
   }
   
+  .table-action i { font-size: 11.5px; }
+
   .table-action {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
     background: #fff;
@@ -483,13 +613,57 @@
     font-weight: 700;
   }
   
-  .detail-info {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px 16px;
+  .side-card-heading {
+    margin: 0 0 14px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .profile-name-block { min-width: 0; }
+
+  .profile-name-block .badge { margin-top: 6px; }
+
+  .detail-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     margin-bottom: 16px;
   }
-  
+
+  .detail-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 0;
+    font-size: 12.5px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .detail-row:last-child { border-bottom: none; }
+
+  .detail-row > i {
+    width: 15px;
+    flex-shrink: 0;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 11.5px;
+  }
+
+  .detail-label { color: #64748b; flex-shrink: 0; }
+
+  .detail-value {
+    margin-left: auto;
+    text-align: right;
+    font-weight: 600;
+    color: #0f172a;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+
   .field {
     display: flex;
     flex-direction: column;
@@ -522,16 +696,23 @@
   }
   
   .action-btn {
-    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 8px;
     border: 1px solid #e2e8f0;
-    border-radius: 6px;
+    border-radius: 7px;
     background: #fff;
     color: #0f172a;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
   }
+
+  .action-btn i { font-size: 11px; color: #64748b; }
+  .action-btn.danger i { color: inherit; }
   
   .action-btn:hover {
     background: #f8fafc;
@@ -690,37 +871,16 @@
     .profile-modal-grid { grid-template-columns: 1fr; }
   }
   
-  .action-btn.primary {
-    background: #dcfce7;
-    border-color: #a7f3d0;
-    color: #166a3c;
-  }
-  
-  .action-btn.primary:hover {
-    background: #bbf7d0;
-  }
-  
   .action-btn.danger {
     background: #fee2e2;
     border-color: #fca5a5;
     color: #b91c1c;
   }
-  
+
   .action-btn.danger:hover {
     background: #fecaca;
   }
 
-  .action-btn.delete-account {
-    grid-column: 1 / -1;
-    background: #b91c1c;
-    border-color: #991b1b;
-    color: #fff;
-  }
-
-  .action-btn.delete-account:hover {
-    background: #991b1b;
-  }
-  
   .activity-section {
     margin-top: 16px;
     padding-top: 16px;
@@ -733,23 +893,89 @@
     font-weight: 700;
     color: #0f172a;
   }
-  
+
+  .activity-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .activity-head h3 { margin: 0; }
+
+  .activity-head a {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2563eb;
+    text-decoration: none;
+  }
+
+  .activity-head a:hover { text-decoration: underline; }
+
   .activity-row {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 10px 0;
+    padding: 8px 0;
   }
-  
-  .activity-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #16a34a;
-    margin-top: 6px;
+
+  .activity-icon {
+    width: 24px;
+    height: 24px;
     flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 7px;
+    font-size: 10.5px;
   }
-  
+
+  .activity-icon.green { background: #dcfce7; color: #16a34a; }
+  .activity-icon.red   { background: #fee2e2; color: #dc2626; }
+  .activity-icon.blue  { background: #e0edff; color: #2563eb; }
+  .activity-icon.amber { background: #fef3c7; color: #d97706; }
+
+  .activity-empty {
+    padding: 8px 0;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+
+  .row-menu-wrap { position: relative; display: inline-flex; }
+
+  .row-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 30;
+    min-width: 150px;
+    padding: 5px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    box-shadow: 0 12px 28px rgba(15,23,42,0.14);
+  }
+
+  .row-menu button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #334155;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .row-menu button:hover { background: #f1f5f9; }
+  .row-menu button.danger { color: #dc2626; }
+  .row-menu button.danger:hover { background: #fef2f2; }
+
   .activity-title {
     font-size: 12px;
     font-weight: 600;
@@ -763,6 +989,10 @@
   }
   
   .contact-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     width: 100%;
     margin-top: 16px;
     padding: 12px;
@@ -775,10 +1005,12 @@
     cursor: pointer;
     transition: all 0.2s ease;
   }
-  
-  .contact-btn:hover {
+
+  .contact-btn:hover:not(:disabled) {
     box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
   }
+
+  .contact-btn:disabled { opacity: 0.55; cursor: not-allowed; }
   
   .side-card {
     background: #ffffff;
@@ -838,9 +1070,11 @@
     .main-panel { padding: 16px; }
     .hero-grid { grid-template-columns: 1fr; }
     .top-bar { flex-direction: column; gap: 14px; }
+    .topbar-right { flex-wrap: wrap; }
     .toolbar { flex-direction: column; align-items: stretch; }
     .search-box, .filter-box { width: 100%; }
-    .detail-info { grid-template-columns: 1fr; }
+    .card-head { flex-direction: column; align-items: stretch; }
+    .card-head-actions { justify-content: flex-end; }
     .detail-actions { grid-template-columns: 1fr; }
   }
 </style>
@@ -873,10 +1107,6 @@
     <div class="sidebar-footer">
       <div class="user-chip">
         <div class="avatar">AU</div>
-        <div>
-          <div class="name">Admin User</div>
-          <div class="role">Super Administrator</div>
-        </div>
       </div>
       <a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
     </div>
@@ -889,12 +1119,17 @@
         <p>Manage hikers and view user reports about other users' behavior.</p>
       </div>
       <div class="topbar-right">
+        <div class="location-chip"></div>
         <div class="bell-wrap">
           <button class="bell-btn" type="button" aria-label="Open notifications"></button>
           <span class="bell-badge" hidden>0</span>
         </div>
         <div class="admin-mini">
           <div class="avatar">AU</div>
+          <div class="admin-mini-text">
+            <div class="admin-mini-name">Admin User</div>
+            <div class="admin-mini-role">Super Administrator</div>
+          </div>
         </div>
       </div>
     </section>
@@ -906,59 +1141,91 @@
 
     <section class="hero-grid">
       <div class="hero-card">
-        <div class="hero-card-title"><i class="fa-solid fa-users"></i><h3>Total Users</h3></div>
-        <p id="totalUsersValue">—</p>
-        <span>All registered accounts</span>
+        <div class="card-top">
+          <p id="totalUsersValue">—</p>
+          <div class="hero-icon blue"><i class="fa-solid fa-users"></i></div>
+        </div>
+        <div class="card-content">
+          <h3>Total Users</h3>
+          <span class="hero-trend" id="totalUsersTrend">—</span>
+        </div>
       </div>
       <div class="hero-card">
-        <div class="hero-card-title"><i class="fa-solid fa-user-check"></i><h3>Active Users</h3></div>
-        <p id="activeUsersValue">—</p>
-        <span>Users active this month</span>
+        <div class="card-top">
+          <p id="activeUsersValue">—</p>
+          <div class="hero-icon green"><i class="fa-solid fa-user-check"></i></div>
+        </div>
+        <div class="card-content">
+          <h3>Active Users</h3>
+          <span class="hero-trend" id="activeUsersTrend">—</span>
+        </div>
       </div>
       <div class="hero-card">
-        <div class="hero-card-title"><i class="fa-solid fa-people-group"></i><h3>Teams</h3></div>
-        <p id="teamCountValue">—</p>
-        <span>Active team groups</span>
+        <div class="card-top">
+          <p id="teamCountValue">—</p>
+          <div class="hero-icon amber"><i class="fa-solid fa-people-group"></i></div>
+        </div>
+        <div class="card-content">
+          <h3>Teams</h3>
+          <span class="hero-trend" id="teamCountTrend">—</span>
+        </div>
       </div>
       <div class="hero-card">
-        <div class="hero-card-title"><i class="fa-solid fa-shield"></i><h3>Administrators</h3></div>
-        <p id="adminCountValue">—</p>
-        <span>Admin accounts</span>
+        <div class="card-top">
+          <p id="emergencyAlertsValue">—</p>
+          <div class="hero-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        </div>
+        <div class="card-content">
+          <h3>Emergency Alerts</h3>
+          <span class="hero-trend" id="emergencyAlertsTrend">—</span>
+        </div>
       </div>
       <div class="hero-card">
-        <div class="hero-card-title"><i class="fa-solid fa-triangle-exclamation"></i><h3>Emergency Alerts</h3></div>
-        <p id="emergencyAlertsValue">—</p>
-        <span>Users with alerts</span>
+        <div class="card-top">
+          <p id="adminCountValue">—</p>
+          <div class="hero-icon purple"><i class="fa-solid fa-shield-halved"></i></div>
+        </div>
+        <div class="card-content">
+          <h3>Administrators</h3>
+          <span class="hero-trend" id="adminCountTrend">—</span>
+        </div>
       </div>
     </section>
 
     <section class="dashboard-grid">
       <div class="card">
-        <h2>User List</h2>
-        
+        <div class="card-head">
+          <h2>User List</h2>
+          <div class="card-head-actions">
+            <button id="addUserBtn" class="btn-primary" type="button"><i class="fa-solid fa-plus"></i>Add User</button>
+            <button id="exportUsersBtn" class="btn-ghost" type="button"><i class="fa-solid fa-download"></i>Export</button>
+          </div>
+        </div>
+
         <div class="toolbar">
           <div class="search-box">
-            <span>🔎</span>
+            <i class="fa-solid fa-magnifying-glass"></i>
             <input type="text" id="userSearchInput" placeholder="Search users..." />
           </div>
           <div class="filter-box">
             <select id="userRoleFilter">
               <option>All Roles</option>
-              <option>Hiker</option>
-              <option>Guide</option>
-              <option>Manager</option>
-              <option>Operator</option>
-              <option>Admin</option>
             </select>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
           </div>
           <div class="filter-box">
             <select id="userStatusFilter">
-              <option>All Statuses</option>
+              <option>All Status</option>
               <option>Active</option>
               <option>Inactive</option>
               <option>Pending</option>
               <option>Suspended</option>
+            </select>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="filter-box">
+            <select id="userTeamFilter">
+              <option>All Teams</option>
             </select>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
           </div>
@@ -968,82 +1235,70 @@
           <table class="user-list-table">
             <thead>
               <tr>
-                <th style="width:26%">User</th>
-                <th style="width:14%">Role</th>
+                <th style="width:24%">User</th>
+                <th style="width:11%">Role</th>
                 <th style="width:16%">Team / Group</th>
-                <th style="width:14%">Status</th>
-                <th style="width:16%">Last Active</th>
+                <th style="width:11%">Status</th>
+                <th style="width:14%">Last Active</th>
+                <th style="width:14%">Registered On</th>
                 <th style="width:10%">Actions</th>
               </tr>
             </thead>
             <tbody id="usersTableBody"></tbody>
           </table>
         </div>
+
+        <div class="table-foot">
+          <span id="userCountSummary">—</span>
+          <div class="pager" id="userPager"></div>
+        </div>
       </div>
 
       <div id="userDetailCard" class="side-card" tabindex="-1">
+        <h3 class="side-card-heading">User Details</h3>
+
         <div class="profile-header">
           <div class="avatar" id="detailAvatar">U</div>
           <div class="profile-name-wrap">
-            <div>
+            <div class="profile-name-block">
               <div class="profile-name" id="detailName">No user selected</div>
               <div class="profile-email" id="detailEmail">Select a user to view details</div>
+              <span class="badge hiker" id="detailRoleBadge">—</span>
             </div>
-            <span class="status-pill" id="detailStatusBadge">Active</span>
+            <span class="status-pill" id="detailStatusBadge">—</span>
           </div>
         </div>
 
-        <div class="detail-info">
-          <div class="field">
-            <label>Phone</label>
-            <input id="detailPhone" type="text" value="—" readonly />
-          </div>
-          <div class="field">
-            <label>Team</label>
-            <input id="detailTeam" type="text" value="—" readonly />
-          </div>
-          <div class="field">
-            <label>Member Since</label>
-            <input id="detailMemberSince" type="text" value="—" readonly />
-          </div>
-          <div class="field">
-            <label>Last Active</label>
-            <input id="detailLastActive" type="text" value="—" readonly />
-          </div>
-          <div class="field" style="grid-column: 1 / -1;">
-            <label>Assigned Area</label>
-            <input id="detailArea" type="text" value="—" readonly />
-          </div>
+        <div class="detail-rows">
+          <div class="detail-row"><i class="fa-solid fa-phone"></i><span class="detail-label">Phone</span><span class="detail-value" id="detailPhone">—</span></div>
+          <div class="detail-row"><i class="fa-solid fa-people-group"></i><span class="detail-label">Team / Group</span><span class="detail-value" id="detailTeam">—</span></div>
+          <div class="detail-row"><i class="fa-solid fa-calendar-check"></i><span class="detail-label">Member Since</span><span class="detail-value" id="detailMemberSince">—</span></div>
+          <div class="detail-row"><i class="fa-solid fa-clock"></i><span class="detail-label">Last Active</span><span class="detail-value" id="detailLastActive">—</span></div>
+          <div class="detail-row"><i class="fa-solid fa-person-hiking"></i><span class="detail-label">Total Hikes</span><span class="detail-value" id="detailTotalHikes">—</span></div>
+          <div class="detail-row"><i class="fa-solid fa-route"></i><span class="detail-label">Total Distance</span><span class="detail-value" id="detailDistance">—</span></div>
+          <div class="detail-row"><i class="fa-solid fa-triangle-exclamation"></i><span class="detail-label">Emergency Alerts</span><span class="detail-value" id="detailAlertCount">—</span></div>
+          <div class="detail-row"><i class="fa-solid fa-location-dot"></i><span class="detail-label">Assigned Area</span><span class="detail-value" id="detailArea">—</span></div>
         </div>
 
         <div class="detail-actions">
-          <button id="viewProfileBtn" class="action-btn primary" type="button">View Profile</button>
-          <button id="editUserBtn" class="action-btn" type="button" disabled>Edit User</button>
-          <button id="resetPasswordBtn" class="action-btn" type="button" disabled>Reset Password</button>
-          <button id="deactivateUserBtn" class="action-btn danger" type="button">Deactivate</button>
-          <button id="deleteAccountBtn" class="action-btn delete-account" type="button" disabled>Delete Account</button>
+          <button id="viewProfileBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-eye"></i>View Profile</button>
+          <button id="editUserBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-pen"></i>Edit User</button>
+          <button id="resetPasswordBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-rotate"></i>Reset Password</button>
+          <button id="assignTeamBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-user-group"></i>Assign Team</button>
+          <button id="deactivateUserBtn" class="action-btn danger" type="button" disabled><i class="fa-solid fa-user-slash"></i>Deactivate User</button>
+          <button id="viewActivityBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-chart-line"></i>View Activity</button>
         </div>
         <p id="resetPasswordStatus" class="action-status" role="status" aria-live="polite"></p>
 
-        <div class="activity-section">
-          <h3>Activity Summary</h3>
-          <div class="activity-row">
-            <div class="activity-dot"></div>
-            <div>
-              <div class="activity-title">Total Hikes</div>
-              <div id="detailTotalHikes" class="activity-time">—</div>
-            </div>
+        <div class="activity-section" id="recentActivitySection">
+          <div class="activity-head">
+            <h3>Recent Activities</h3>
+            <a href="userreports.html">View All</a>
           </div>
-          <div class="activity-row">
-            <div class="activity-dot"></div>
-            <div>
-              <div class="activity-title">Total Distance</div>
-              <div id="detailDistance" class="activity-time">—</div>
-            </div>
-          </div>
+          <div id="recentActivityList"></div>
         </div>
 
-        <button class="contact-btn" type="button">📞 Contact User (Emergency)</button>
+        <button class="contact-btn" id="contactUserBtn" type="button" disabled><i class="fa-solid fa-phone"></i>Contact User (Emergency)</button>
       </div>
     </section>
 
@@ -1095,6 +1350,71 @@
   </form>
 </div>
 
+<div id="addUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
+  <form id="addUserForm" class="modal">
+    <h2 id="addUserTitle">Add User</h2>
+    <div class="field">
+      <label for="addUserName">Full Name</label>
+      <input id="addUserName" name="fullName" type="text" required>
+    </div>
+    <div class="field">
+      <label for="addUserEmail">Email</label>
+      <input id="addUserEmail" name="email" type="email" required>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="addUserRole">Role</label>
+        <select id="addUserRole" name="role">
+          <option>Hiker</option>
+          <option>Guide</option>
+          <option>Ranger</option>
+          <option>Administrator</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="addUserStatus">Status</label>
+        <select id="addUserStatus" name="status">
+          <option>Active</option>
+          <option>Inactive</option>
+          <option>Pending</option>
+          <option>Suspended</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="addUserTeam">Team / Group</label>
+        <input id="addUserTeam" name="team" type="text">
+      </div>
+      <div class="field">
+        <label for="addUserPhone">Phone</label>
+        <input id="addUserPhone" name="phone" type="text">
+      </div>
+    </div>
+    <p id="addUserStatusMessage" class="action-status" role="status" aria-live="polite"></p>
+    <div class="modal-actions">
+      <button id="cancelAddUserBtn" class="modal-cancel" type="button">Cancel</button>
+      <button id="saveAddUserBtn" class="modal-save" type="submit">Add User</button>
+    </div>
+  </form>
+</div>
+
+<div id="assignTeamModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="assignTeamTitle">
+  <form id="assignTeamForm" class="modal">
+    <h2 id="assignTeamTitle">Assign Team</h2>
+    <p id="assignTeamSubtitle" class="action-status" style="margin-bottom:12px;">—</p>
+    <div class="field">
+      <label for="assignTeamInput">Team / Group</label>
+      <input id="assignTeamInput" name="team" type="text" list="assignTeamOptions" placeholder="e.g. Makiling Adventurers">
+      <datalist id="assignTeamOptions"></datalist>
+    </div>
+    <div class="modal-actions">
+      <button id="cancelAssignTeamBtn" class="modal-cancel" type="button">Cancel</button>
+      <button id="saveAssignTeamBtn" class="modal-save" type="submit">Save Team</button>
+    </div>
+  </form>
+</div>
+
 <div id="viewProfileModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="viewProfileTitle">
   <section class="modal profile-modal">
     <div class="profile-modal-header">
@@ -1126,76 +1446,112 @@
   import { auth, db } from './firebase-config.js';
   import { sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
+    addDoc,
     collection,
     doc,
     deleteDoc,
     onSnapshot,
+    serverTimestamp,
     updateDoc
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+  const PAGE_SIZE = 8;
 
   const usersTableBody = document.getElementById('usersTableBody');
   const searchInput = document.getElementById('userSearchInput');
   const roleFilter = document.getElementById('userRoleFilter');
   const statusFilter = document.getElementById('userStatusFilter');
-  const viewProfileBtn = document.getElementById('viewProfileBtn');
+  const teamFilter = document.getElementById('userTeamFilter');
+  const userCountSummary = document.getElementById('userCountSummary');
+  const userPager = document.getElementById('userPager');
+
   const userDetailCard = document.getElementById('userDetailCard');
+  const viewProfileBtn = document.getElementById('viewProfileBtn');
+  const editUserBtn = document.getElementById('editUserBtn');
+  const resetPasswordBtn = document.getElementById('resetPasswordBtn');
+  const assignTeamBtn = document.getElementById('assignTeamBtn');
+  const deactivateUserBtn = document.getElementById('deactivateUserBtn');
+  const viewActivityBtn = document.getElementById('viewActivityBtn');
+  const contactUserBtn = document.getElementById('contactUserBtn');
+  const resetPasswordStatus = document.getElementById('resetPasswordStatus');
+  const recentActivityList = document.getElementById('recentActivityList');
+  const recentActivitySection = document.getElementById('recentActivitySection');
+
   const viewProfileModal = document.getElementById('viewProfileModal');
   const closeViewProfileBtn = document.getElementById('closeViewProfileBtn');
-  const resetPasswordBtn = document.getElementById('resetPasswordBtn');
-  const resetPasswordStatus = document.getElementById('resetPasswordStatus');
-  const editUserBtn = document.getElementById('editUserBtn');
+
   const editUserModal = document.getElementById('editUserModal');
   const editUserForm = document.getElementById('editUserForm');
   const cancelEditUserBtn = document.getElementById('cancelEditUserBtn');
   const saveEditUserBtn = document.getElementById('saveEditUserBtn');
-  const deactivateUserBtn = document.getElementById('deactivateUserBtn');
-  const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+
+  const addUserBtn = document.getElementById('addUserBtn');
+  const addUserModal = document.getElementById('addUserModal');
+  const addUserForm = document.getElementById('addUserForm');
+  const cancelAddUserBtn = document.getElementById('cancelAddUserBtn');
+  const saveAddUserBtn = document.getElementById('saveAddUserBtn');
+  const addUserStatusMessage = document.getElementById('addUserStatusMessage');
+
+  const assignTeamModal = document.getElementById('assignTeamModal');
+  const assignTeamForm = document.getElementById('assignTeamForm');
+  const assignTeamInput = document.getElementById('assignTeamInput');
+  const assignTeamOptions = document.getElementById('assignTeamOptions');
+  const assignTeamSubtitle = document.getElementById('assignTeamSubtitle');
+  const cancelAssignTeamBtn = document.getElementById('cancelAssignTeamBtn');
+
+  const exportUsersBtn = document.getElementById('exportUsersBtn');
 
   const state = {
     users: [],
-    selectedUserId: null
+    hazardReports: [],
+    emergencies: [],
+    userReports: [],
+    selectedUserId: null,
+    page: 1
   };
 
   const normalizeText = (value) => String(value ?? '').trim();
 
   const hasValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+  const escapeHtml = (value) => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
   const setResetPasswordStatus = (message, type = '') => {
     resetPasswordStatus.textContent = message;
     resetPasswordStatus.className = `action-status${type ? ` ${type}` : ''}`;
   };
 
+  const toDate = (value) => {
+    if (!value) return null;
+    if (typeof value.toDate === 'function') return value.toDate();
+    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
   const formatDisplayDate = (value) => {
-    if (!value) return '—';
-    if (typeof value === 'string') {
-      if (!value.includes('T') && !value.includes('-')) return value;
-      const parsed = new Date(value);
-      return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-    if (typeof value.toDate === 'function') {
-      return value.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-    if (value instanceof Date) {
-      return value.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-    return '—';
+    const date = toDate(value);
+    if (!date) return typeof value === 'string' && value.trim() ? value : '—';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const formatDisplayDateTime = (value) => {
-    if (!value) return '—';
-    if (typeof value === 'string') {
-      const parsed = new Date(value);
-      if (Number.isNaN(parsed.getTime())) return value;
-      return parsed.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-    }
-    if (typeof value.toDate === 'function') {
-      const date = value.toDate();
-      return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-    }
-    if (value instanceof Date) {
-      return value.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-    }
-    return '—';
+    const date = toDate(value);
+    if (!date) return typeof value === 'string' && value.trim() ? value : '—';
+    return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  };
+
+  // Table cells show the date on one line and the time under it, as in the design.
+  const formatStackedDateTime = (value) => {
+    const date = toDate(value);
+    if (!date) return '<span class="stacked-empty">—</span>';
+    return `<strong>${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>`
+      + `<span>${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>`;
   };
 
   const getInitials = (name) => {
@@ -1205,24 +1561,21 @@
 
   const toBadgeClass = (role) => {
     const normalized = normalizeText(role).toLowerCase();
-    if (normalized.includes('admin')) return 'admin';
+    if (normalized.includes('admin') || normalized.includes('manager')) return 'admin';
     if (normalized.includes('guide')) return 'guide';
     if (normalized.includes('ranger')) return 'ranger';
-    if (normalized.includes('manager')) return 'admin';
     return 'hiker';
   };
 
   const getUserStatusClass = (status) => {
     const normalized = normalizeText(status).toLowerCase();
     if (normalized === 'active') return 'active';
-    if (normalized === 'inactive') return 'inactive';
-    if (normalized === 'pending') return 'inactive';
     if (normalized === 'suspended' || normalized === 'blocked') return 'suspended';
     return 'inactive';
   };
 
-  const normalizeUser = (doc) => {
-    const data = doc.data() || {};
+  const normalizeUser = (snapshotDoc) => {
+    const data = snapshotDoc.data() || {};
     const firstName = normalizeText(data.firstName || data.firstname);
     const lastName = normalizeText(data.lastName || data.lastname);
     const fullName = normalizeText(data.fullName || data.fullname || data.displayName || data.name || [firstName, lastName].filter(Boolean).join(' '));
@@ -1234,12 +1587,13 @@
     const emergencyContact = normalizeText(data.emergencyContact || data.emergencyPhone || data.emergency_number || '—');
     const memberSince = data.memberSince || data.createdAt || data.registeredOn || data.registeredAt || data.joinedAt;
     const lastActive = data.lastActive || data.lastLogin || data.lastSeen || data.updatedAt || data.lastUpdated;
-    const totalHikes = normalizeText(data.totalHikes || data.hikesCount || data.hikeCount || '—');
-    const totalDistance = normalizeText(data.totalDistance || data.distance || data.totalDistanceKm || '—');
+    const totalHikes = normalizeText(data.totalHikes ?? data.hikesCount ?? data.hikeCount ?? '—');
+    const totalDistance = normalizeText(data.totalDistance ?? data.distance ?? data.totalDistanceKm ?? '—');
     const area = normalizeText(data.assignedArea || data.area || data.trailArea || data.location || '—');
 
     return {
-      id: doc.id,
+      id: snapshotDoc.id,
+      uid: normalizeText(data.uid || data.userId || snapshotDoc.id),
       name: fullName || 'Unnamed user',
       email,
       role: role || 'Hiker',
@@ -1255,85 +1609,256 @@
     };
   };
 
-  const renderStats = () => {
-    const users = state.users;
-    const activeUsers = users.filter(user => user.status.toLowerCase() === 'active').length;
-    const admins = users.filter(user => user.role.toLowerCase().includes('admin')).length;
-    const alertCount = users.filter(user => user.emergencyContact !== '—').length;
-    const teamCount = new Set(users.map(user => user.team).filter(team => team && team !== '—')).size;
-
-    document.getElementById('totalUsersValue').textContent = users.length.toLocaleString();
-    document.getElementById('activeUsersValue').textContent = activeUsers.toLocaleString();
-    document.getElementById('teamCountValue').textContent = teamCount.toLocaleString();
-    document.getElementById('emergencyAlertsValue').textContent = alertCount.toLocaleString();
-    document.getElementById('adminCountValue').textContent = admins.toLocaleString();
+  // ---------------------------------------------------------------------
+  // Linking a user to records in the other collections. Those collections
+  // identify people inconsistently (uid, email or plain name), so every
+  // known identifier for the user is matched against every plausible field.
+  // ---------------------------------------------------------------------
+  const identityKeys = (user) => {
+    const keys = new Set();
+    [user.id, user.uid, user.email, user.name].forEach((value) => {
+      const key = normalizeText(value).toLowerCase();
+      if (key && key !== 'no email' && key !== 'unnamed user') keys.add(key);
+    });
+    return keys;
   };
 
-  const renderUserTable = () => {
+  const recordMatchesUser = (record, keys, fields) => fields.some((field) => {
+    const value = normalizeText(record?.[field]).toLowerCase();
+    return value && keys.has(value);
+  });
+
+  const HAZARD_USER_FIELDS = ['userId', 'uid', 'reportedById', 'reportedBy', 'reporterId', 'reporterEmail', 'email'];
+  const EMERGENCY_USER_FIELDS = ['userId', 'uid', 'hikerId', 'hikerName', 'userName', 'reportedBy', 'name', 'email'];
+  const REPORTED_USER_FIELDS = ['reportedUserId', 'reportedUserUid', 'reportedUid', 'reportedUserID', 'reportedUserEmail', 'reportedUserName', 'reportedUser'];
+
+  const pickDate = (record, fields) => {
+    for (const field of fields) {
+      const date = toDate(record?.[field]);
+      if (date) return date;
+    }
+    return null;
+  };
+
+  const getUserAlerts = (user) => {
+    const keys = identityKeys(user);
+    if (!keys.size) return [];
+    return state.emergencies.filter((record) => recordMatchesUser(record, keys, EMERGENCY_USER_FIELDS));
+  };
+
+  const getUserActivities = (user) => {
+    const keys = identityKeys(user);
+    if (!keys.size) return [];
+
+    const activities = [];
+
+    state.hazardReports
+      .filter((record) => recordMatchesUser(record, keys, HAZARD_USER_FIELDS))
+      .forEach((record) => {
+        activities.push({
+          icon: 'fa-triangle-exclamation',
+          tone: 'red',
+          title: `Submitted hazard report: ${normalizeText(record.hazardType || record.title) || 'Hazard'}`,
+          date: pickDate(record, ['timestamp', 'createdAt', 'reportedAt', 'date', 'updatedAt'])
+        });
+      });
+
+    state.emergencies
+      .filter((record) => recordMatchesUser(record, keys, EMERGENCY_USER_FIELDS))
+      .forEach((record) => {
+        activities.push({
+          icon: 'fa-tower-broadcast',
+          tone: 'amber',
+          title: `Emergency alert: ${normalizeText(record.title || record.Title || record.type || record.Type) || 'Alert raised'}`,
+          date: pickDate(record, ['timestamp', 'createdAt', 'reportedAt', 'date', 'updatedAt'])
+        });
+      });
+
+    state.userReports
+      .filter((record) => recordMatchesUser(record, keys, REPORTED_USER_FIELDS))
+      .forEach((record) => {
+        activities.push({
+          icon: 'fa-flag',
+          tone: 'blue',
+          title: `Reported by another user: ${normalizeText(record.reportType || record.type || record.category) || 'User report'}`,
+          date: pickDate(record, ['createdAt', 'timestamp', 'reportedAt', 'date', 'updatedAt'])
+        });
+      });
+
+    return activities
+      .sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0))
+      .slice(0, 5);
+  };
+
+  // ---------------------------------------------------------------------
+  // Stat cards
+  // ---------------------------------------------------------------------
+  const setTrend = (id, text, tone = '') => {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.textContent = text;
+    element.className = `hero-trend${tone ? ` ${tone}` : ''}`;
+  };
+
+  const renderStats = () => {
+    const users = state.users;
+    const total = users.length;
+    const activeUsers = users.filter(user => user.status.toLowerCase() === 'active').length;
+    const admins = users.filter(user => toBadgeClass(user.role) === 'admin').length;
+    const teams = new Set(users.map(user => user.team).filter(team => team && team !== '—'));
+    const usersInTeams = users.filter(user => user.team && user.team !== '—').length;
+
+    const now = new Date();
+    const newThisMonth = users.filter((user) => {
+      const joined = toDate(user.memberSince);
+      return joined && joined.getMonth() === now.getMonth() && joined.getFullYear() === now.getFullYear();
+    }).length;
+
+    const unresolvedAlerts = state.emergencies.filter((record) => {
+      const status = normalizeText(record.status || record.Status || record.state || 'active').toLowerCase();
+      return !['resolved', 'closed', 'completed', 'cancelled'].includes(status);
+    }).length;
+
+    const percent = (part) => (total ? Math.round((part / total) * 100) : 0);
+
+    document.getElementById('totalUsersValue').textContent = total.toLocaleString();
+    document.getElementById('activeUsersValue').textContent = activeUsers.toLocaleString();
+    document.getElementById('teamCountValue').textContent = teams.size.toLocaleString();
+    document.getElementById('emergencyAlertsValue').textContent = state.emergencies.length.toLocaleString();
+    document.getElementById('adminCountValue').textContent = admins.toLocaleString();
+
+    setTrend('totalUsersTrend', newThisMonth ? `+${newThisMonth} new this month` : 'No new sign-ups this month', newThisMonth ? 'up' : '');
+    setTrend('activeUsersTrend', `${percent(activeUsers)}% of all users`);
+    setTrend('teamCountTrend', `${usersInTeams.toLocaleString()} users assigned`);
+    setTrend('emergencyAlertsTrend', unresolvedAlerts ? `${unresolvedAlerts} unresolved` : 'All resolved', unresolvedAlerts ? 'down' : 'up');
+    setTrend('adminCountTrend', `${percent(admins)}% of all users`);
+  };
+
+  // ---------------------------------------------------------------------
+  // Filters, table and pagination
+  // ---------------------------------------------------------------------
+  const getFilteredUsers = () => {
     const search = searchInput.value.trim().toLowerCase();
     const selectedRole = roleFilter.value;
     const selectedStatus = statusFilter.value;
+    const selectedTeam = teamFilter.value;
 
-    const filtered = state.users.filter((user) => {
-      const matchesSearch = !search || `${user.name} ${user.email}`.toLowerCase().includes(search);
+    return state.users.filter((user) => {
+      const matchesSearch = !search || `${user.name} ${user.email} ${user.team}`.toLowerCase().includes(search);
       const matchesRole = selectedRole === 'All Roles' || user.role.toLowerCase() === selectedRole.toLowerCase();
-      const matchesStatus = selectedStatus === 'All Statuses' || user.status.toLowerCase() === selectedStatus.toLowerCase();
-      return matchesSearch && matchesRole && matchesStatus;
+      const matchesStatus = selectedStatus === 'All Status' || user.status.toLowerCase() === selectedStatus.toLowerCase();
+      const matchesTeam = selectedTeam === 'All Teams' || user.team.toLowerCase() === selectedTeam.toLowerCase();
+      return matchesSearch && matchesRole && matchesStatus && matchesTeam;
     });
+  };
+
+  const closeRowMenus = () => {
+    document.querySelectorAll('.row-menu').forEach(menu => menu.remove());
+  };
+
+  const renderPager = (totalPages) => {
+    userPager.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const addButton = (label, page, { disabled = false, active = false } = {}) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.innerHTML = label;
+      button.disabled = disabled;
+      if (active) button.classList.add('active');
+      if (!disabled && !active) {
+        button.addEventListener('click', () => {
+          state.page = page;
+          renderUserTable();
+        });
+      }
+      userPager.appendChild(button);
+    };
+
+    addButton('&lsaquo;', state.page - 1, { disabled: state.page === 1 });
+
+    const shown = [...new Set([1, state.page - 1, state.page, state.page + 1, totalPages])]
+      .filter(page => page >= 1 && page <= totalPages)
+      .sort((a, b) => a - b);
+
+    let previous = 0;
+    shown.forEach((page) => {
+      if (previous && page - previous > 1) {
+        const gap = document.createElement('span');
+        gap.className = 'pager-gap';
+        gap.textContent = '…';
+        userPager.appendChild(gap);
+      }
+      addButton(String(page), page, { active: page === state.page });
+      previous = page;
+    });
+
+    addButton('&rsaquo;', state.page + 1, { disabled: state.page === totalPages });
+  };
+
+  const renderUserTable = () => {
+    closeRowMenus();
+    const filtered = getFilteredUsers();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if (state.page > totalPages) state.page = totalPages;
 
     if (!filtered.length) {
-      usersTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#94a3b8;">No users found for the selected filters.</td></tr>';
+      usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#94a3b8;">No users found for the selected filters.</td></tr>';
+      userCountSummary.textContent = 'No users to show';
+      renderPager(1);
       return;
     }
-
-    const rows = filtered.map((user) => `
-      <tr data-user-id="${user.id}" style="cursor:pointer;">
-        <td>
-          <div class="user-cell">
-            <div class="thumb">${getInitials(user.name)}</div>
-            <div>
-              <div class="user-name">${user.name}</div>
-              <div class="user-email">${user.email}</div>
-            </div>
-          </div>
-        </td>
-        <td><span class="badge ${toBadgeClass(user.role)}">${user.role || 'Hiker'}</span></td>
-        <td class="team-cell">${user.team}</td>
-        <td><span class="badge ${getUserStatusClass(user.status)}">${user.status || 'Active'}</span></td>
-        <td class="last-active"><strong>${formatDisplayDate(user.lastActive)}</strong></td>
-        <td>
-          <div class="table-actions">
-            <button class="table-action" aria-label="View details">👁</button>
-            <button class="table-action" aria-label="Edit user">✎</button>
-            <button class="table-action" aria-label="Delete user">🗑</button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
-
-    usersTableBody.innerHTML = rows;
-
-    usersTableBody.querySelectorAll('tr[data-user-id]').forEach((row) => {
-      row.addEventListener('click', () => {
-        state.selectedUserId = row.dataset.userId;
-        renderUserTable();
-        renderSelectedUser();
-      });
-    });
 
     if (!state.selectedUserId || !filtered.some(user => user.id === state.selectedUserId)) {
       state.selectedUserId = filtered[0].id;
     }
 
-    usersTableBody.querySelectorAll('tr[data-user-id]').forEach((row) => {
-      row.style.background = row.dataset.userId === state.selectedUserId ? '#f0fdf4' : '';
-    });
+    const start = (state.page - 1) * PAGE_SIZE;
+    const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+    usersTableBody.innerHTML = pageItems.map((user) => `
+      <tr data-user-id="${escapeHtml(user.id)}"${user.id === state.selectedUserId ? ' class="is-selected"' : ''}>
+        <td>
+          <div class="user-cell">
+            <div class="thumb">${escapeHtml(getInitials(user.name))}</div>
+            <div class="user-cell-text">
+              <div class="user-name">${escapeHtml(user.name)}</div>
+              <div class="user-email">${escapeHtml(user.email)}</div>
+            </div>
+          </div>
+        </td>
+        <td><span class="badge ${toBadgeClass(user.role)}">${escapeHtml(user.role)}</span></td>
+        <td class="team-cell">${escapeHtml(user.team)}</td>
+        <td><span class="badge ${getUserStatusClass(user.status)}">${escapeHtml(user.status)}</span></td>
+        <td class="stacked-date">${formatStackedDateTime(user.lastActive)}</td>
+        <td class="stacked-date">${formatStackedDateTime(user.memberSince)}</td>
+        <td>
+          <div class="table-actions">
+            <button class="table-action" data-action="view" type="button" aria-label="View details" title="View details"><i class="fa-solid fa-eye"></i></button>
+            <button class="table-action" data-action="edit" type="button" aria-label="Edit user" title="Edit user"><i class="fa-solid fa-pen"></i></button>
+            <span class="row-menu-wrap">
+              <button class="table-action" data-action="more" type="button" aria-label="More actions" title="More actions"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            </span>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    const shownFrom = start + 1;
+    const shownTo = start + pageItems.length;
+    userCountSummary.textContent = `Showing ${shownFrom} to ${shownTo} of ${filtered.length.toLocaleString()} user${filtered.length === 1 ? '' : 's'}`;
+    renderPager(totalPages);
 
     usersTableBody.querySelectorAll('tr[data-user-id]').forEach((row) => {
       const userId = row.dataset.userId;
-      const [viewButton, editButton, deleteButton] = row.querySelectorAll('.table-action');
 
-      viewButton.addEventListener('click', (event) => {
+      row.addEventListener('click', () => {
+        state.selectedUserId = userId;
+        renderUserTable();
+        renderSelectedUser();
+      });
+
+      row.querySelector('[data-action="view"]').addEventListener('click', (event) => {
         event.stopPropagation();
         state.selectedUserId = userId;
         renderUserTable();
@@ -1341,134 +1866,272 @@
         userDetailCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
 
-      editButton.addEventListener('click', (event) => {
+      row.querySelector('[data-action="edit"]').addEventListener('click', (event) => {
         event.stopPropagation();
         state.selectedUserId = userId;
         renderUserTable();
         renderSelectedUser();
-        editUserBtn.click();
+        openEditUserModal();
       });
 
-      deleteButton.addEventListener('click', (event) => {
+      const moreButton = row.querySelector('[data-action="more"]');
+      moreButton.addEventListener('click', (event) => {
         event.stopPropagation();
+        const wrap = moreButton.parentElement;
+        const alreadyOpen = wrap.querySelector('.row-menu');
+        closeRowMenus();
+        if (alreadyOpen) return;
+
         state.selectedUserId = userId;
-        renderUserTable();
         renderSelectedUser();
-        deleteAccountBtn.click();
+
+        const menu = document.createElement('div');
+        menu.className = 'row-menu';
+        menu.innerHTML = `
+          <button type="button" data-menu="reset"><i class="fa-solid fa-rotate"></i>Reset Password</button>
+          <button type="button" data-menu="team"><i class="fa-solid fa-user-group"></i>Assign Team</button>
+          <button type="button" class="danger" data-menu="delete"><i class="fa-solid fa-trash"></i>Delete Account</button>
+        `;
+        menu.addEventListener('click', (menuEvent) => menuEvent.stopPropagation());
+        menu.querySelector('[data-menu="reset"]').addEventListener('click', () => {
+          closeRowMenus();
+          resetPasswordBtn.click();
+        });
+        menu.querySelector('[data-menu="team"]').addEventListener('click', () => {
+          closeRowMenus();
+          openAssignTeamModal();
+        });
+        menu.querySelector('[data-menu="delete"]').addEventListener('click', () => {
+          closeRowMenus();
+          deleteSelectedUser();
+        });
+        wrap.appendChild(menu);
       });
     });
   };
 
-  const renderSelectedUser = () => {
-    const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
-    if (!selectedUser) {
-      document.getElementById('detailName').textContent = 'No user selected';
-      document.getElementById('detailEmail').textContent = 'Select a user to view details';
-      document.getElementById('detailStatusBadge').textContent = '—';
-      document.getElementById('detailPhone').value = '—';
-      document.getElementById('detailTeam').value = '—';
-      document.getElementById('detailMemberSince').value = '—';
-      document.getElementById('detailLastActive').value = '—';
-      document.getElementById('detailArea').value = '—';
-      document.getElementById('detailTotalHikes').textContent = '—';
-      document.getElementById('detailDistance').textContent = '—';
-      if (deactivateUserBtn) {
-        deactivateUserBtn.disabled = true;
-        deactivateUserBtn.textContent = 'Deactivate';
-      }
-      resetPasswordBtn.disabled = true;
-      setResetPasswordStatus('');
-      editUserBtn.disabled = true;
-      deleteAccountBtn.disabled = true;
-      viewProfileBtn.disabled = true;
+  document.addEventListener('click', closeRowMenus);
+
+  // ---------------------------------------------------------------------
+  // Selected user panel
+  // ---------------------------------------------------------------------
+  const detailActionButtons = [viewProfileBtn, editUserBtn, resetPasswordBtn, assignTeamBtn, deactivateUserBtn, viewActivityBtn, contactUserBtn];
+
+  const getSelectedUser = () => state.users.find(user => user.id === state.selectedUserId) || null;
+
+  const renderActivities = (user) => {
+    if (!user) {
+      recentActivityList.innerHTML = '<div class="activity-empty">Select a user to see their activity.</div>';
       return;
     }
 
-    document.getElementById('detailAvatar').textContent = getInitials(selectedUser.name);
-    document.getElementById('detailName').textContent = selectedUser.name;
-    document.getElementById('detailEmail').textContent = selectedUser.email;
-    document.getElementById('detailStatusBadge').textContent = selectedUser.status || 'Active';
-    document.getElementById('detailStatusBadge').style.background = selectedUser.status.toLowerCase() === 'active' ? '#dcfce7' : '#fee2e2';
-    document.getElementById('detailStatusBadge').style.color = selectedUser.status.toLowerCase() === 'active' ? '#16a34a' : '#dc2626';
-
-    document.getElementById('detailPhone').value = selectedUser.phone || '—';
-    document.getElementById('detailTeam').value = selectedUser.team || '—';
-    document.getElementById('detailMemberSince').value = formatDisplayDate(selectedUser.memberSince);
-    document.getElementById('detailLastActive').value = formatDisplayDateTime(selectedUser.lastActive);
-    document.getElementById('detailArea').value = selectedUser.area || '—';
-    document.getElementById('detailTotalHikes').textContent = selectedUser.totalHikes || '—';
-    document.getElementById('detailDistance').textContent = selectedUser.totalDistance || '—';
-
-    if (deactivateUserBtn) {
-      deactivateUserBtn.disabled = false;
-      deactivateUserBtn.textContent = String(selectedUser.status || 'Active').toLowerCase() === 'inactive' ? 'Activate User' : 'Deactivate';
+    const activities = getUserActivities(user);
+    if (!activities.length) {
+      recentActivityList.innerHTML = '<div class="activity-empty">No recorded activity for this user yet.</div>';
+      return;
     }
-    resetPasswordBtn.disabled = !hasValidEmail(selectedUser.email);
-    setResetPasswordStatus('');
-    editUserBtn.disabled = false;
-    deleteAccountBtn.disabled = false;
-    viewProfileBtn.disabled = false;
+
+    recentActivityList.innerHTML = activities.map((activity) => `
+      <div class="activity-row">
+        <div class="activity-icon ${activity.tone}"><i class="fa-solid ${activity.icon}"></i></div>
+        <div>
+          <div class="activity-title">${escapeHtml(activity.title)}</div>
+          <div class="activity-time">${activity.date ? escapeHtml(formatDisplayDateTime(activity.date)) : 'Date not recorded'}</div>
+        </div>
+      </div>
+    `).join('');
   };
 
+  const renderSelectedUser = () => {
+    const user = getSelectedUser();
+
+    if (!user) {
+      document.getElementById('detailAvatar').textContent = 'U';
+      document.getElementById('detailName').textContent = 'No user selected';
+      document.getElementById('detailEmail').textContent = 'Select a user to view details';
+      document.getElementById('detailRoleBadge').textContent = '—';
+      document.getElementById('detailRoleBadge').className = 'badge hiker';
+      const statusBadge = document.getElementById('detailStatusBadge');
+      statusBadge.textContent = '—';
+      statusBadge.className = 'status-pill';
+      ['detailPhone', 'detailTeam', 'detailMemberSince', 'detailLastActive', 'detailTotalHikes', 'detailDistance', 'detailAlertCount', 'detailArea']
+        .forEach(id => { document.getElementById(id).textContent = '—'; });
+      detailActionButtons.forEach(button => { if (button) button.disabled = true; });
+      if (deactivateUserBtn) deactivateUserBtn.innerHTML = '<i class="fa-solid fa-user-slash"></i>Deactivate User';
+      setResetPasswordStatus('');
+      renderActivities(null);
+      return;
+    }
+
+    document.getElementById('detailAvatar').textContent = getInitials(user.name);
+    document.getElementById('detailName').textContent = user.name;
+    document.getElementById('detailEmail').textContent = user.email;
+
+    const roleBadge = document.getElementById('detailRoleBadge');
+    roleBadge.textContent = user.role;
+    roleBadge.className = `badge ${toBadgeClass(user.role)}`;
+
+    const statusBadge = document.getElementById('detailStatusBadge');
+    statusBadge.textContent = user.status;
+    statusBadge.className = `status-pill ${getUserStatusClass(user.status)}`;
+
+    const alerts = getUserAlerts(user);
+
+    document.getElementById('detailPhone').textContent = user.phone || '—';
+    document.getElementById('detailTeam').textContent = user.team || '—';
+    document.getElementById('detailMemberSince').textContent = formatDisplayDate(user.memberSince);
+    document.getElementById('detailLastActive').textContent = formatDisplayDateTime(user.lastActive);
+    document.getElementById('detailTotalHikes').textContent = user.totalHikes || '—';
+    document.getElementById('detailDistance').textContent = user.totalDistance || '—';
+    document.getElementById('detailAlertCount').textContent = String(alerts.length);
+    document.getElementById('detailArea').textContent = user.area || '—';
+
+    detailActionButtons.forEach(button => { if (button) button.disabled = false; });
+    resetPasswordBtn.disabled = !hasValidEmail(user.email);
+    contactUserBtn.disabled = !(user.phone && user.phone !== '—') && !hasValidEmail(user.email);
+
+    const isInactive = String(user.status || 'Active').toLowerCase() !== 'active';
+    deactivateUserBtn.innerHTML = isInactive
+      ? '<i class="fa-solid fa-user-check"></i>Activate User'
+      : '<i class="fa-solid fa-user-slash"></i>Deactivate User';
+
+    setResetPasswordStatus('');
+    renderActivities(user);
+  };
+
+  // ---------------------------------------------------------------------
+  // Modals
+  // ---------------------------------------------------------------------
   const closeEditUserModal = () => editUserModal.classList.remove('open');
+  const closeAddUserModal = () => addUserModal.classList.remove('open');
+  const closeAssignTeamModal = () => assignTeamModal.classList.remove('open');
+  const closeViewProfileModal = () => viewProfileModal.classList.remove('open');
+
+  const openEditUserModal = () => {
+    const user = getSelectedUser();
+    if (!user) return;
+
+    document.getElementById('editUserName').value = user.name === 'Unnamed user' ? '' : user.name;
+    document.getElementById('editUserEmail').value = hasValidEmail(user.email) ? user.email : '';
+    document.getElementById('editUserStatus').value = user.status;
+    document.getElementById('editUserTeam').value = user.team === '—' ? '' : user.team;
+    document.getElementById('editUserPhone').value = user.phone === '—' ? '' : user.phone;
+    document.getElementById('editUserEmergencyContact').value = user.emergencyContact === '—' ? '' : user.emergencyContact;
+    document.getElementById('editUserArea').value = user.area === '—' ? '' : user.area;
+    editUserModal.classList.add('open');
+    document.getElementById('editUserName').focus();
+  };
+
+  const openAssignTeamModal = () => {
+    const user = getSelectedUser();
+    if (!user) return;
+
+    const teams = [...new Set(state.users.map(item => item.team).filter(team => team && team !== '—'))].sort();
+    assignTeamOptions.innerHTML = teams.map(team => `<option value="${escapeHtml(team)}"></option>`).join('');
+    assignTeamSubtitle.textContent = `Assigning a team for ${user.name}.`;
+    assignTeamInput.value = user.team === '—' ? '' : user.team;
+    assignTeamModal.classList.add('open');
+    assignTeamInput.focus();
+  };
+
+  const deleteSelectedUser = async () => {
+    const user = getSelectedUser();
+    if (!user) return;
+
+    const confirmed = window.confirm(`Delete ${user.name}'s account? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      await deleteDoc(doc(db, 'users', user.id));
+      state.selectedUserId = null;
+      setResetPasswordStatus('User account deleted.', 'success');
+    } catch (error) {
+      console.error('Failed to delete user account:', error);
+      setResetPasswordStatus('Unable to delete this user account right now.', 'error');
+    }
+  };
 
   viewProfileBtn.addEventListener('click', () => {
-    const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
-    if (!selectedUser) return;
+    const user = getSelectedUser();
+    if (!user) return;
 
-    document.getElementById('profileModalAvatar').textContent = getInitials(selectedUser.name);
-    document.getElementById('viewProfileTitle').textContent = selectedUser.name;
-    document.getElementById('profileModalEmail').textContent = selectedUser.email;
-    document.getElementById('profileModalRole').textContent = selectedUser.role;
-    document.getElementById('profileModalStatus').textContent = selectedUser.status;
-    document.getElementById('profileModalTeam').textContent = selectedUser.team;
-    document.getElementById('profileModalPhone').textContent = selectedUser.phone;
-    document.getElementById('profileModalEmergencyContact').textContent = selectedUser.emergencyContact;
-    document.getElementById('profileModalArea').textContent = selectedUser.area;
-    document.getElementById('profileModalMemberSince').textContent = formatDisplayDate(selectedUser.memberSince);
-    document.getElementById('profileModalLastActive').textContent = formatDisplayDateTime(selectedUser.lastActive);
-    document.getElementById('profileModalTotalHikes').textContent = selectedUser.totalHikes;
-    document.getElementById('profileModalTotalDistance').textContent = selectedUser.totalDistance;
+    document.getElementById('profileModalAvatar').textContent = getInitials(user.name);
+    document.getElementById('viewProfileTitle').textContent = user.name;
+    document.getElementById('profileModalEmail').textContent = user.email;
+    document.getElementById('profileModalRole').textContent = user.role;
+    document.getElementById('profileModalStatus').textContent = user.status;
+    document.getElementById('profileModalTeam').textContent = user.team;
+    document.getElementById('profileModalPhone').textContent = user.phone;
+    document.getElementById('profileModalEmergencyContact').textContent = user.emergencyContact;
+    document.getElementById('profileModalArea').textContent = user.area;
+    document.getElementById('profileModalMemberSince').textContent = formatDisplayDate(user.memberSince);
+    document.getElementById('profileModalLastActive').textContent = formatDisplayDateTime(user.lastActive);
+    document.getElementById('profileModalTotalHikes').textContent = user.totalHikes;
+    document.getElementById('profileModalTotalDistance').textContent = user.totalDistance;
     viewProfileModal.classList.add('open');
     closeViewProfileBtn.focus();
   });
 
-  const closeViewProfileModal = () => viewProfileModal.classList.remove('open');
   closeViewProfileBtn.addEventListener('click', closeViewProfileModal);
   viewProfileModal.addEventListener('click', (event) => {
     if (event.target === viewProfileModal) closeViewProfileModal();
   });
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      closeViewProfileModal();
-      closeEditUserModal();
-    }
-  });
 
-  editUserBtn.addEventListener('click', () => {
-    const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
-    if (!selectedUser) return;
-
-    document.getElementById('editUserName').value = selectedUser.name === 'Unnamed user' ? '' : selectedUser.name;
-    document.getElementById('editUserEmail').value = hasValidEmail(selectedUser.email) ? selectedUser.email : '';
-    document.getElementById('editUserStatus').value = selectedUser.status;
-    document.getElementById('editUserTeam').value = selectedUser.team === '—' ? '' : selectedUser.team;
-    document.getElementById('editUserPhone').value = selectedUser.phone === '—' ? '' : selectedUser.phone;
-    document.getElementById('editUserEmergencyContact').value = selectedUser.emergencyContact === '—' ? '' : selectedUser.emergencyContact;
-    document.getElementById('editUserArea').value = selectedUser.area === '—' ? '' : selectedUser.area;
-    editUserModal.classList.add('open');
-    document.getElementById('editUserName').focus();
-  });
-
+  editUserBtn.addEventListener('click', openEditUserModal);
   cancelEditUserBtn.addEventListener('click', closeEditUserModal);
   editUserModal.addEventListener('click', (event) => {
     if (event.target === editUserModal) closeEditUserModal();
   });
 
+  assignTeamBtn.addEventListener('click', openAssignTeamModal);
+  cancelAssignTeamBtn.addEventListener('click', closeAssignTeamModal);
+  assignTeamModal.addEventListener('click', (event) => {
+    if (event.target === assignTeamModal) closeAssignTeamModal();
+  });
+
+  addUserBtn.addEventListener('click', () => {
+    addUserForm.reset();
+    addUserStatusMessage.textContent = '';
+    addUserStatusMessage.className = 'action-status';
+    addUserModal.classList.add('open');
+    document.getElementById('addUserName').focus();
+  });
+
+  cancelAddUserBtn.addEventListener('click', closeAddUserModal);
+  addUserModal.addEventListener('click', (event) => {
+    if (event.target === addUserModal) closeAddUserModal();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    closeViewProfileModal();
+    closeEditUserModal();
+    closeAddUserModal();
+    closeAssignTeamModal();
+    closeRowMenus();
+  });
+
+  viewActivityBtn.addEventListener('click', () => {
+    recentActivitySection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  contactUserBtn.addEventListener('click', () => {
+    const user = getSelectedUser();
+    if (!user) return;
+    const phone = user.phone && user.phone !== '—' ? user.phone : (user.emergencyContact !== '—' ? user.emergencyContact : '');
+    if (phone) {
+      window.location.href = `tel:${phone.replace(/[^\d+]/g, '')}`;
+      return;
+    }
+    if (hasValidEmail(user.email)) {
+      window.location.href = `mailto:${user.email}?subject=${encodeURIComponent('PeakPath emergency contact')}`;
+    }
+  });
+
   editUserForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
-    if (!selectedUser) return;
+    const user = getSelectedUser();
+    if (!user) return;
 
     const formData = new FormData(editUserForm);
     const email = normalizeText(formData.get('email'));
@@ -1477,10 +2140,9 @@
     saveEditUserBtn.disabled = true;
     saveEditUserBtn.textContent = 'Saving...';
     try {
-      await updateDoc(doc(db, 'users', selectedUser.id), {
+      await updateDoc(doc(db, 'users', user.id), {
         fullName: normalizeText(formData.get('fullName')),
         email,
-        role: 'Hiker',
         status: normalizeText(formData.get('status')),
         team: normalizeText(formData.get('team')) || '—',
         phone: normalizeText(formData.get('phone')) || '—',
@@ -1498,103 +2160,193 @@
     }
   });
 
+  addUserForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const formData = new FormData(addUserForm);
+    const email = normalizeText(formData.get('email'));
+    if (!hasValidEmail(email)) return;
+
+    saveAddUserBtn.disabled = true;
+    saveAddUserBtn.textContent = 'Adding...';
+    addUserStatusMessage.textContent = '';
+    addUserStatusMessage.className = 'action-status';
+
+    try {
+      await addDoc(collection(db, 'users'), {
+        fullName: normalizeText(formData.get('fullName')),
+        email,
+        role: normalizeText(formData.get('role')) || 'Hiker',
+        status: normalizeText(formData.get('status')) || 'Active',
+        team: normalizeText(formData.get('team')) || '—',
+        phone: normalizeText(formData.get('phone')) || '—',
+        createdAt: serverTimestamp()
+      });
+      closeAddUserModal();
+      setResetPasswordStatus('New user added.', 'success');
+    } catch (error) {
+      console.error('Failed to add user:', error);
+      addUserStatusMessage.textContent = 'Unable to add this user right now.';
+      addUserStatusMessage.className = 'action-status error';
+    } finally {
+      saveAddUserBtn.disabled = false;
+      saveAddUserBtn.textContent = 'Add User';
+    }
+  });
+
+  assignTeamForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const user = getSelectedUser();
+    if (!user) return;
+
+    const team = normalizeText(assignTeamInput.value) || '—';
+    try {
+      await updateDoc(doc(db, 'users', user.id), { team });
+      closeAssignTeamModal();
+      setResetPasswordStatus(team === '—' ? 'Team cleared.' : `Assigned to ${team}.`, 'success');
+    } catch (error) {
+      console.error('Failed to assign team:', error);
+      setResetPasswordStatus('Unable to update this user\'s team right now.', 'error');
+    }
+  });
+
   resetPasswordBtn.addEventListener('click', async () => {
-    const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
-    if (!selectedUser || !hasValidEmail(selectedUser.email)) {
+    const user = getSelectedUser();
+    if (!user || !hasValidEmail(user.email)) {
       setResetPasswordStatus('A valid email address is required.', 'error');
       return;
     }
 
     resetPasswordBtn.disabled = true;
-    resetPasswordBtn.textContent = 'Sending...';
     setResetPasswordStatus('');
 
     try {
-      await sendPasswordResetEmail(auth, selectedUser.email);
-      setResetPasswordStatus(`Password reset email sent to ${selectedUser.email}.`, 'success');
+      await sendPasswordResetEmail(auth, user.email);
+      setResetPasswordStatus(`Password reset email sent to ${user.email}.`, 'success');
     } catch (error) {
       console.error('Failed to send password reset email:', error);
       setResetPasswordStatus('Unable to send the password reset email right now.', 'error');
     } finally {
       resetPasswordBtn.disabled = false;
-      resetPasswordBtn.textContent = 'Reset Password';
     }
   });
 
-  if (deactivateUserBtn) {
-    deactivateUserBtn.addEventListener('click', async () => {
-      const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
-      if (!selectedUser) return;
+  deactivateUserBtn.addEventListener('click', async () => {
+    const user = getSelectedUser();
+    if (!user) return;
 
-      const nextStatus = String(selectedUser.status || 'Active').toLowerCase() === 'inactive' ? 'Active' : 'Inactive';
+    const nextStatus = String(user.status || 'Active').toLowerCase() === 'active' ? 'Inactive' : 'Active';
 
-      try {
-        await updateDoc(doc(db, 'users', selectedUser.id), {
-          status: nextStatus
-        });
-      } catch (error) {
-        console.error('Failed to update user status:', error);
-        alert('Unable to update this user status right now.');
-      }
-    });
-  }
-
-  deleteAccountBtn.addEventListener('click', async () => {
-    const selectedUser = state.users.find(user => user.id === state.selectedUserId) || state.users[0];
-    if (!selectedUser) return;
-
-    const confirmed = window.confirm(`Delete ${selectedUser.name}'s account? This action cannot be undone.`);
-    if (!confirmed) return;
-
-    deleteAccountBtn.disabled = true;
-    deleteAccountBtn.textContent = 'Deleting...';
     try {
-      await deleteDoc(doc(db, 'users', selectedUser.id));
-      state.selectedUserId = null;
-      setResetPasswordStatus('User account deleted.', 'success');
+      await updateDoc(doc(db, 'users', user.id), { status: nextStatus });
+      setResetPasswordStatus(`User set to ${nextStatus}.`, 'success');
     } catch (error) {
-      console.error('Failed to delete user account:', error);
-      setResetPasswordStatus('Unable to delete this user account right now.', 'error');
-      deleteAccountBtn.disabled = false;
-    } finally {
-      deleteAccountBtn.textContent = 'Delete Account';
+      console.error('Failed to update user status:', error);
+      setResetPasswordStatus('Unable to update this user status right now.', 'error');
     }
   });
+
+  exportUsersBtn.addEventListener('click', () => {
+    const rows = getFilteredUsers();
+    if (!rows.length) {
+      setResetPasswordStatus('There is nothing to export for the current filters.', 'error');
+      return;
+    }
+
+    const headers = ['Name', 'Email', 'Role', 'Team / Group', 'Status', 'Phone', 'Last Active', 'Registered On'];
+    const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const csv = [
+      headers.map(escapeCsv).join(','),
+      ...rows.map(user => [
+        user.name,
+        user.email,
+        user.role,
+        user.team,
+        user.status,
+        user.phone,
+        formatDisplayDateTime(user.lastActive),
+        formatDisplayDate(user.memberSince)
+      ].map(escapeCsv).join(','))
+    ].join('\r\n');
+
+    const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `peakpath-users-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setResetPasswordStatus(`Exported ${rows.length} user${rows.length === 1 ? '' : 's'}.`, 'success');
+  });
+
+  // ---------------------------------------------------------------------
+  // Filter option lists are rebuilt from the data actually in Firestore.
+  // ---------------------------------------------------------------------
+  const syncFilterOptions = () => {
+    const rebuild = (select, allLabel, values) => {
+      const previous = select.value;
+      select.innerHTML = `<option>${allLabel}</option>` + values.map(value => `<option>${escapeHtml(value)}</option>`).join('');
+      select.value = values.includes(previous) ? previous : allLabel;
+    };
+
+    const roles = [...new Set(state.users.map(user => user.role).filter(Boolean))].sort();
+    const teams = [...new Set(state.users.map(user => user.team).filter(team => team && team !== '—'))].sort();
+
+    rebuild(roleFilter, 'All Roles', roles);
+    rebuild(teamFilter, 'All Teams', teams);
+  };
+
+  const refreshAll = () => {
+    syncFilterOptions();
+    renderStats();
+    renderUserTable();
+    renderSelectedUser();
+  };
 
   onSnapshot(collection(db, 'users'), (snapshot) => {
-    state.users = snapshot.docs.map(normalizeUser);
+    state.users = snapshot.docs.map(normalizeUser)
+      .sort((a, b) => (toDate(b.memberSince)?.getTime() || 0) - (toDate(a.memberSince)?.getTime() || 0));
+
     if (!state.users.length) {
       state.selectedUserId = null;
-      usersTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#94a3b8;">No users found in database.</td></tr>';
+      usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#94a3b8;">No users found in database.</td></tr>';
+      userCountSummary.textContent = 'No users to show';
+      userPager.innerHTML = '';
+      renderStats();
       renderSelectedUser();
       return;
     }
 
-    const roleOptions = Array.from(new Set(state.users.map(user => user.role))).filter(Boolean).sort();
-    const previousValue = roleFilter.value;
-    roleFilter.innerHTML = '<option>All Roles</option>' + roleOptions.map(role => `<option>${role}</option>`).join('');
-    roleFilter.value = roleOptions.includes(previousValue) ? previousValue : 'All Roles';
-    renderStats();
-    renderUserTable();
-    renderSelectedUser();
+    refreshAll();
   }, (error) => {
     console.error('Error loading users:', error);
-    usersTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#94a3b8;">Unable to load users from database.</td></tr>';
+    usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#94a3b8;">Unable to load users from database.</td></tr>';
+    userCountSummary.textContent = 'Unable to load users';
   });
 
-  searchInput.addEventListener('input', () => {
-    renderUserTable();
-    renderSelectedUser();
-  });
+  // Supporting collections: they feed the per-user alert count and the
+  // Recent Activities feed, so a failure there must not break the page.
+  const watchCollection = (name, key) => {
+    onSnapshot(collection(db, name), (snapshot) => {
+      state[key] = snapshot.docs.map(snapshotDoc => ({ id: snapshotDoc.id, ...snapshotDoc.data() }));
+      renderStats();
+      renderSelectedUser();
+    }, (error) => {
+      console.error(`Error loading ${name}:`, error);
+    });
+  };
 
-  roleFilter.addEventListener('change', () => {
-    renderUserTable();
-    renderSelectedUser();
-  });
+  watchCollection('reports', 'hazardReports');
+  watchCollection('emergency', 'emergencies');
+  watchCollection('userReported', 'userReports');
 
-  statusFilter.addEventListener('change', () => {
-    renderUserTable();
-    renderSelectedUser();
+  [searchInput, roleFilter, statusFilter, teamFilter].forEach((control) => {
+    control.addEventListener(control === searchInput ? 'input' : 'change', () => {
+      state.page = 1;
+      renderUserTable();
+      renderSelectedUser();
+    });
   });
 </script>
 

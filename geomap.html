@@ -109,6 +109,12 @@
       display:flex;
       flex-direction:column;
       gap:10px;
+      box-shadow:0 18px 36px rgba(15,23,42,0.06);
+      transition:transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 24px 48px rgba(15,23,42,0.08);
     }
     .card-top{
       display:flex;
@@ -127,11 +133,13 @@
       font-size:12px;
       color:var(--text-secondary);
       line-height:1.4;
+      font-weight:600;
     }
     .card .percentage{
       margin-top:4px;
       font-size:11px;
       color:var(--text-muted);
+      font-weight:400;
     }
     .card-icon{
       width:32px;
@@ -199,30 +207,164 @@
       gap:12px
     }
     .status-pair{
-      align-items:stretch !important;
+      /* Flex-wrap instead of a fixed grid: as space runs out, cards drop to
+         2 per row then 1, and a lone leftover card stretches to fill its
+         row instead of leaving an empty grid cell. Extended past the
+         left column's own width (same +320px right-column +12px gap trick
+         as .emergency-alerts-panel below) so the three cards get the same
+         real estate as the full page width, not just the left column's. */
+      display:flex;
+      flex-wrap:wrap;
+      align-items:stretch;
+      width:calc(100% + 332px);
     }
-    .trail-status-panel{
-      height:100%;
+    .status-pair > .info-panel{
+      flex:1 1 280px;
+    }
+    .info-panel{
+      /* Without this, a long unbroken advisory description can inflate this
+         grid item's intrinsic min-width and starve the column next to it. */
+      min-width:0;
+      /* No explicit height here — `.status-pair{align-items:stretch}` is
+         what equalizes these cards' heights. A height:100% here fights that
+         (the % resolves oddly against the flex row's own auto height) and
+         the cards end up sized to their own content instead of matching. */
       display:flex;
       flex-direction:column;
+      /* Lets rows inside react to THIS card's real rendered width (see the
+         @container rules below) instead of only the viewport's. */
+      container-type:inline-size;
     }
-    .trail-status-panel #trailStatusList{
-      flex:1;
-      min-height:0;
-      max-height:220px;
-      overflow-y:auto;
-    }
-    .recent-hazards-panel{
-      height:280px;
+    .info-panel-header{
       display:flex;
-      flex-direction:column;
+      justify-content:space-between;
+      align-items:center;
     }
-    .recent-hazards-panel #recentHazardsList{
+    .info-panel-header strong{font-size:15px;}
+    .info-panel-header a{font-size:12.5px;color:var(--blue-text,#2a63b5);text-decoration:none;font-weight:600;}
+    .info-panel-header a:hover{text-decoration:underline;}
+    .info-panel-list{
       flex:1;
       min-height:0;
-      max-height:none;
+      min-width:0;
+      max-height:230px;
       overflow-y:auto;
+      overflow-x:hidden;
+      margin-top:8px;
+      padding-right:2px;
     }
+    .alert-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:11px 0;
+      border-bottom:1px solid var(--border);
+    }
+    .alert-row:last-child{border-bottom:none;}
+    .alert-row-icon{
+      width:34px;height:34px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      flex-shrink:0;font-size:14px;
+    }
+    .alert-row-body{flex:1;min-width:0;}
+    .alert-row-title{font-weight:700;font-size:13px;color:var(--text-primary,#1c1c1c);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .alert-row-desc{font-size:11.5px;color:var(--text-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .alert-row-meta{flex-shrink:0;text-align:right;font-size:11px;color:var(--text-secondary);line-height:1.5;white-space:nowrap;}
+    /* Below this card width there's no room for the date/time column
+       without crowding the title and pill — drop it rather than let
+       anything overlap. */
+    @container (max-width:300px){
+      .alert-row-meta{display:none;}
+    }
+    @container (max-width:230px){
+      .alert-row-desc{display:none;}
+    }
+    .risk-pill, .status-pill{
+      flex-shrink:0;
+      padding:5px 10px;
+      border-radius:999px;
+      font-size:10.5px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .risk-pill.high{background:var(--red-bg,#fbe9e7);color:var(--red-text,#c8402f);}
+    .risk-pill.moderate{background:var(--amber-bg,#fbf1e2);color:var(--amber-text,#b9791b);}
+    .risk-pill.low{background:var(--green-bg,#e7f5eb);color:var(--green-text,#2f8f4e);}
+    .status-pill.open{background:var(--green-bg,#e7f5eb);color:var(--green-text,#2f8f4e);}
+    .status-pill.closed{background:var(--red-bg,#fbe9e7);color:var(--red-text,#c8402f);}
+    .status-pill.other{background:var(--amber-bg,#fbf1e2);color:var(--amber-text,#b9791b);}
+    .trail-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:11px 0;
+      border-bottom:1px solid var(--border);
+    }
+    .trail-row:last-child{border-bottom:none;}
+    .trail-row-icon{
+      width:30px;height:30px;border-radius:50%;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;font-size:12.5px;
+    }
+    /* Name and distance both shrink and ellipsize; only the icon and the
+       status pill hold their size. Without this the pill was the thing
+       that got pushed out and clipped when a trail had a long name or a
+       long distance string like "18-22 km round trip". */
+    .trail-row-name{
+      font-weight:700;font-size:13px;flex:1 1 auto;
+      min-width:0;max-width:36%;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+    .trail-row-dist{
+      font-size:11.5px;color:var(--text-secondary);
+      flex:0 1 auto;min-width:0;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+    .trail-row-bar{flex:1 1 24px;height:6px;border-radius:999px;background:#eef0ee;overflow:hidden;min-width:24px;}
+    .trail-row-bar-fill{height:100%;border-radius:999px;}
+    /* Same idea as the alert rows: shed secondary info before anything
+       is allowed to overlap or get clipped. The distance goes first, and
+       early enough that it never squeezes down to an unreadable stub. */
+    @container (max-width:360px){
+      .trail-row-dist{display:none;}
+    }
+    @container (max-width:230px){
+      .trail-row-bar{display:none;}
+    }
+    .legend-title{
+      background:#1b211b;
+      color:#fff;
+      text-align:center;
+      font-weight:700;
+      font-size:13px;
+      letter-spacing:.2px;
+      padding:7px 10px;
+      border-radius:7px;
+      margin-bottom:8px;
+    }
+    .legend-list{
+      border-top:1px solid var(--border);
+      padding-top:6px;
+    }
+    .legend-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:4px 3px;
+      font-size:12px;
+      color:var(--text-primary);
+    }
+    .legend-row i,
+    .legend-row svg{
+      width:16px;
+      flex-shrink:0;
+      text-align:center;
+      font-size:12px;
+      color:#1b211b;
+    }
+    .legend-row svg{height:10px;}
+    .legend-row.is-contour i,
+    .legend-row.is-contour svg{color:#2f8f8f;}
+    .legend-row.is-river i{color:var(--blue-text,#2a63b5);}
     .recent-hazard.on-map{
       cursor:pointer;
     }
@@ -238,16 +380,27 @@
     .emergency-alerts-panel{
       width:calc(100% + 300px);
     }
-    .legend, .alerts, .recent{
+    .legend, .alerts{
       background:var(--card-bg);
       border:1px solid var(--border);
       border-radius:10px;
       padding:12px
     }
+    .legend{
+      /* Darker, heavier outline than the neighbouring cards, per the legend
+         design. 2px, not 1.5 — Chromium rounds sub-pixel border widths down
+         to 1px. box-sizing:border-box keeps the outer width identical, so it
+         stays aligned with the Alerts Overview card below it. */
+      border:2px solid #20261f;
+      padding:10px;
+    }
     @media(max-width:980px){
       .content-grid{grid-template-columns:1fr
       }
       .emergency-alerts-panel{
+        width:100%;
+      }
+      .status-pair{
         width:100%;
       }
       }
@@ -369,63 +522,68 @@
             <div id="mapCaption" style="font-size:12px;color:var(--text-secondary);margin-top:8px">Live OpenStreetMap data · Trail and verified hazard markers come from Firestore</div>
           </div>
 
-          <div class="status-pair" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
-            <div class="panel trail-status-panel" style="padding:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
-              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Active Alerts</strong><a href="A&A.html">View All</a></div>
-              <div id="activeAlertsList" style="margin-top:12px;max-height:220px;overflow-y:auto;padding-right:4px"></div>
+          <div class="status-pair" style="gap:12px">
+            <div class="panel info-panel" style="padding:14px 16px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
+              <div class="info-panel-header"><strong>Active Alerts</strong><a href="A&A.html">View All</a></div>
+              <div id="activeAlertsList" class="info-panel-list"></div>
             </div>
-            <div class="panel" style="padding:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
-              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Trail Status</strong><a href="trail.html">View All</a></div>
-              <div id="trailStatusList" style="margin-top:12px;font-size:13px;color:var(--text-secondary);max-height:220px;overflow-y:auto;padding-right:4px"></div>
+            <div class="panel info-panel" style="padding:14px 16px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
+              <div class="info-panel-header"><strong>Trail Status Overview</strong><a href="trail.html">View All</a></div>
+              <div id="trailStatusList" class="info-panel-list"></div>
+            </div>
+            <div class="panel info-panel" style="padding:14px 16px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
+              <div class="info-panel-header"><strong>Recent Hazards</strong><a href="hazardreport.html">View All</a></div>
+              <div id="recentHazardsList" class="info-panel-list"></div>
             </div>
           </div>
 
-          <div class="panel emergency-alerts-panel" style="padding:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;margin-top:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center"><strong>Active Emergency Alerts</strong></div>
-            <div id="emergencyAlertsList" style="margin-top:12px"></div>
+          <div class="panel info-panel emergency-alerts-panel" style="padding:14px 16px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;margin-top:12px;">
+            <div class="info-panel-header"><strong>Active Emergency Alerts</strong><a href="emergency.html">View All</a></div>
+            <div id="emergencyAlertsList" class="info-panel-list" style="max-height:none"></div>
           </div>
         </div>
 
         <aside class="right-column">
           <div class="legend">
-            <strong>Map Legend</strong>
-            <div style="margin-top:8px;font-size:15px;line-height:1.8;color:var(--text-secondary)">
-              <div style="display:flex;align-items:center;gap:6px"><span aria-hidden="true">•📍</span><span> Trail Station</span></div>
-              <div style="display:flex;align-items:center;gap:6px"><span aria-hidden="true">•↔</span><span> Contour Line</span></div>
-              <div style="display:flex;align-items:center;gap:6px"><span aria-hidden="true">•💧</span><span> River/Creek</span></div>
-              <div style="display:flex;align-items:center;gap:6px"><span aria-hidden="true">•📡</span><span> Monitoring Station</span></div>
-              <div style="display:flex;align-items:center;gap:6px"><span aria-hidden="true">•⛺</span><span> Campsite</span></div>
-              <div style="display:flex;align-items:center;gap:6px"><span aria-hidden="true">•🩺</span><span> First Aid Station</span></div>
-              <div style="display:flex;align-items:center;gap:6px"><span aria-hidden="true">•🍽️</span><span> Food Station</span></div>
+            <div class="legend-title">Map Legend</div>
+            <div class="legend-list">
+              <div class="legend-row is-contour"><svg viewBox="0 0 24 10" aria-hidden="true"><path d="M1 6c2.5-6 5.5 6 8 0s5.5-6 8 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Contour Line</span></div>
+              <div class="legend-row is-river"><i class="fa-solid fa-water" aria-hidden="true"></i><span>River/Creek</span></div>
+              <div class="legend-row"><i class="fa-regular fa-circle" aria-hidden="true"></i><span>Trail Station</span></div>
+              <div class="legend-row"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i><span>Monitoring Station</span></div>
+              <div class="legend-row"><i class="fa-solid fa-campground" aria-hidden="true"></i><span>Campsite</span></div>
+              <div class="legend-row"><i class="fa-solid fa-kit-medical" aria-hidden="true"></i><span>First Aid Station</span></div>
+              <div class="legend-row"><i class="fa-solid fa-utensils" aria-hidden="true"></i><span>Food Station</span></div>
             </div>
           </div>
 
-          <div class="alerts" style="line-height:1.5">
+          <div class="alerts" id="alertsOverviewPanel" style="line-height:1.5">
             <strong>Alerts Overview</strong>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px">
-              <div style="flex:1;background:#f4f6f4;border:1px solid #dfe7df;border-radius:8px;padding:10px;text-align:center">
-                <div id="totalRiskCount" style="font-weight:700">0</div>
-                <div style="font-size:12px;color:var(--text-secondary)">Total Alerts</div>
+            <div style="font-size:12.5px;color:var(--text-secondary);margin-top:2px">Summary of current alerts in the area.</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px">
+              <div style="background:var(--red-bg);border-radius:10px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
+                <i class="fa-solid fa-triangle-exclamation" style="color:var(--red-text);font-size:17px"></i>
+                <div id="highRiskCount" style="font-weight:700;font-size:19px;color:#232823">0</div>
+                <div style="font-size:11.5px;color:var(--text-secondary)">High Risk</div>
               </div>
-              <div style="flex:1;background:#fff6f6;border:1px solid #f3d6d6;border-radius:8px;padding:10px;text-align:center">
-                <div id="highRiskCount" style="font-weight:700">0</div>
-                <div style="font-size:12px;color:var(--text-secondary)">High Risk</div>
+              <div style="background:var(--amber-bg);border-radius:10px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
+                <i class="fa-solid fa-triangle-exclamation" style="color:var(--amber-icon);font-size:17px"></i>
+                <div id="moderateRiskCount" style="font-weight:700;font-size:19px;color:#232823">0</div>
+                <div style="font-size:11.5px;color:var(--text-secondary)">Moderate Risk</div>
               </div>
-              <div style="flex:1;background:#fff7e6;border:1px solid #f6e2c8;border-radius:8px;padding:10px;text-align:center">
-                <div id="moderateRiskCount" style="font-weight:700">0</div>
-                <div style="font-size:12px;color:var(--text-secondary)">Moderate Risk</div>
+              <div style="background:var(--green-bg);border-radius:10px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
+                <i class="fa-solid fa-triangle-exclamation" style="color:var(--green-text);font-size:17px"></i>
+                <div id="lowRiskCount" style="font-weight:700;font-size:19px;color:#232823">0</div>
+                <div style="font-size:11.5px;color:var(--text-secondary)">Low Risk</div>
               </div>
-              <div style="flex:1;background:#edf7ff;border:1px solid #cfe4f8;border-radius:8px;padding:10px;text-align:center">
-                <div id="lowRiskCount" style="font-weight:700">0</div>
-                <div style="font-size:12px;color:var(--text-secondary)">Low Risk</div>
+              <div style="background:var(--blue-bg);border-radius:10px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
+                <i class="fa-solid fa-circle-info" style="color:var(--blue-text);font-size:17px"></i>
+                <div id="totalRiskCount" style="font-weight:700;font-size:19px;color:#232823">0</div>
+                <div style="font-size:11.5px;color:var(--text-secondary)">Total Alerts</div>
               </div>
             </div>
           </div>
 
-          <div class="recent recent-hazards-panel">
-            <strong>Recent Hazards</strong>
-            <div id="recentHazardsList" style="margin-top:10px;font-size:13px;color:var(--text-secondary);max-height:220px;overflow-y:auto;padding-right:4px"></div>
-          </div>
         </aside>
       </div>
     </main>
@@ -486,6 +644,12 @@
       const date = toDate(value);
       if (!date) return 'Recent';
       return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
+    const formatAlertTime = (value) => {
+      const date = toDate(value);
+      if (!date) return '';
+      return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     };
 
     const getRiskBucket = (item) => {
@@ -556,17 +720,24 @@
       list.innerHTML = activeAdvisories.map((item) => {
         const riskLabel = getRiskLabel(item);
         const bucket = getRiskBucket(item);
-        const icon = bucket === 'high' ? '!' : bucket === 'moderate' ? '⚠' : 'ℹ';
-        const bg = bucket === 'high' ? '#fdecea' : bucket === 'moderate' ? '#fff7e6' : '#edf7ff';
-        const color = bucket === 'high' ? '#c8402f' : bucket === 'moderate' ? '#c9821f' : '#3d6ec8';
+        const pillClass = bucket === 'high' ? 'high' : bucket === 'moderate' ? 'moderate' : 'low';
+        const icon = bucket === 'high' || bucket === 'moderate' ? 'fa-triangle-exclamation' : 'fa-circle-check';
+        const bg = bucket === 'high' ? 'var(--red-bg)' : bucket === 'moderate' ? 'var(--amber-bg)' : 'var(--green-bg)';
+        const color = bucket === 'high' ? 'var(--red-text)' : bucket === 'moderate' ? 'var(--amber-icon)' : 'var(--green-text)';
+        const date = item.effectiveDate || item.publishedAt || item.createdAt;
 
         return `
-          <div style="display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid var(--border)">
-            <div style="width:36px;height:36;border-radius:50%;background:${bg};display:grid;place-items:center;color:${color}">${icon}</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:700;word-break:break-word">${escapeHtml(item.title || 'Advisory')}</div>
-              <div style="font-size:12px;color:var(--text-secondary)">${formatAlertDate(item.effectiveDate || item.publishedAt || item.createdAt)} — ${riskLabel}</div>
+          <div class="alert-row">
+            <div class="alert-row-icon" style="background:${bg};color:${color}"><i class="fa-solid ${icon}"></i></div>
+            <div class="alert-row-body">
+              <div class="alert-row-title">${escapeHtml(item.title || 'Advisory')}</div>
+              <div class="alert-row-desc">${escapeHtml(item.desc || '')}</div>
             </div>
+            <div class="alert-row-meta">
+              <div>${formatAlertDate(date)}</div>
+              <div>${formatAlertTime(date)}</div>
+            </div>
+            <span class="risk-pill ${pillClass}">${escapeHtml(riskLabel)}</span>
           </div>
         `;
       }).join('');
@@ -587,15 +758,22 @@
 
       list.innerHTML = verifiedHazards.map((item) => {
         const bucket = getRiskBucket(item);
-        const riskText = getRiskLabel(item);
-        const riskColor = bucket === 'high' ? '#c8402f' : bucket === 'moderate' ? '#c9821f' : '#3d6ec8';
+        const riskLabel = getRiskLabel(item);
+        const pillClass = bucket === 'high' ? 'high' : bucket === 'moderate' ? 'moderate' : 'low';
+        const icon = bucket === 'high' || bucket === 'moderate' ? 'fa-triangle-exclamation' : 'fa-circle-check';
+        const bg = bucket === 'high' ? 'var(--red-bg)' : bucket === 'moderate' ? 'var(--amber-bg)' : 'var(--green-bg)';
+        const color = bucket === 'high' ? 'var(--red-text)' : bucket === 'moderate' ? 'var(--amber-icon)' : 'var(--green-text)';
         // Only hazards with a usable position can be clicked to show them on the map.
         const onMap = Boolean(getHazardCoordinates(item));
 
         return `
-          <div class="recent-hazard${onMap ? ' on-map' : ''}" data-id="${escapeHtml(item.id)}"${onMap ? ' role="button" tabindex="0" title="Show on map"' : ''} style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div><span class="recent-hazard-title">${escapeHtml(item.hazardType || item.title || 'Hazard')}</span><br><small style="color:var(--text-secondary)">${escapeHtml(item.location || item.area || 'Mount Makiling')}</small></div>
-            <div style="color:${riskColor};font-weight:700">${riskText}</div>
+          <div class="alert-row recent-hazard${onMap ? ' on-map' : ''}" data-id="${escapeHtml(item.id)}"${onMap ? ' role="button" tabindex="0" title="Show on map"' : ''}>
+            <div class="alert-row-icon" style="background:${bg};color:${color}"><i class="fa-solid ${icon}"></i></div>
+            <div class="alert-row-body">
+              <div class="alert-row-title recent-hazard-title">${escapeHtml(item.hazardType || item.title || 'Hazard')}</div>
+              <div class="alert-row-desc">${escapeHtml(item.location || item.area || 'Mount Makiling')}</div>
+            </div>
+            <span class="risk-pill ${pillClass}">${escapeHtml(riskLabel)}</span>
           </div>
         `;
       }).join('');
@@ -612,15 +790,20 @@
 
       list.innerHTML = trails.map((trail) => {
         const name = trail.Trail || trail.name || trail.trailName || 'Trail';
+        const distance = trail['Approximate Distance'] || '—';
         const status = (trail.Status || trail.status || 'Open').toString();
-        const isOpen = status.toLowerCase() === 'open';
-        const badgeColor = isOpen ? '#dff5e8' : '#fdecea';
-        const textColor = isOpen ? '#1b7f4a' : '#c8402f';
+        const statusLower = status.toLowerCase();
+        const pillClass = statusLower === 'open' ? 'open' : statusLower === 'closed' ? 'closed' : 'other';
+        const barColor = pillClass === 'open' ? 'var(--green-text)' : pillClass === 'closed' ? 'var(--red-text)' : 'var(--amber-icon)';
+        const iconBg = pillClass === 'open' ? 'var(--green-bg)' : pillClass === 'closed' ? 'var(--red-bg)' : 'var(--amber-bg)';
 
         return `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div style="font-weight:600;word-break:break-word">${escapeHtml(name)}</div>
-            <span style="background:${badgeColor};color:${textColor};padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700">${escapeHtml(status)}</span>
+          <div class="trail-row">
+            <div class="trail-row-icon" style="background:${iconBg};color:${barColor}"><i class="fa-solid fa-mountain"></i></div>
+            <div class="trail-row-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+            <div class="trail-row-dist">${escapeHtml(distance)}</div>
+            <div class="trail-row-bar"><div class="trail-row-bar-fill" style="width:100%;background:${barColor}"></div></div>
+            <span class="status-pill ${pillClass}">${escapeHtml(status)}</span>
           </div>
         `;
       }).join('');
@@ -648,19 +831,21 @@
         const status = String(item.status || item.Status || item.state || 'Active');
         const severity = String(item.severity || item.Severity || item.priority || item.Priority || 'Moderate');
         const severityLower = severity.toLowerCase();
-        const badgeColor = /high|critical|urgent/.test(severityLower) ? '#fdecea' : /moderate|medium|warning/.test(severityLower) ? '#fff7e6' : '#edf7ff';
-        const textColor = /high|critical|urgent/.test(severityLower) ? '#c8402f' : /moderate|medium|warning/.test(severityLower) ? '#c9821f' : '#3d6ec8';
+        const isHigh = /high|critical|urgent/.test(severityLower);
+        const isModerate = /moderate|medium|warning/.test(severityLower);
+        const pillClass = isHigh ? 'high' : isModerate ? 'moderate' : 'low';
+        const bg = isHigh ? 'var(--red-bg)' : isModerate ? 'var(--amber-bg)' : 'var(--blue-bg)';
+        const color = isHigh ? 'var(--red-text)' : isModerate ? 'var(--amber-icon)' : 'var(--blue-text)';
 
         return `
-          <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:700;word-break:break-word">${escapeHtml(title)}</div>
-              <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">${escapeHtml(location)}</div>
+          <div class="alert-row">
+            <div class="alert-row-icon" style="background:${bg};color:${color}"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <div class="alert-row-body">
+              <div class="alert-row-title">${escapeHtml(title)}</div>
+              <div class="alert-row-desc">${escapeHtml(location)}</div>
             </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
-              <span style="background:${badgeColor};color:${textColor};padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;">${escapeHtml(status)}</span>
-              <span style="font-size:11px;color:var(--text-secondary);font-weight:600;">${escapeHtml(severity)}</span>
-            </div>
+            <div class="alert-row-meta">${escapeHtml(severity)} severity</div>
+            <span class="risk-pill ${pillClass}">${escapeHtml(status)}</span>
           </div>
         `;
       }).join('');
@@ -862,6 +1047,46 @@
       return button;
     };
     locationControl.addTo(map);
+
+    // Match the map's bottom edge to the bottom of the Alerts Overview
+    // panel in the right column (legend + alerts, not Recent Hazards below
+    // it), so the two columns end at the same line on wide layouts.
+    const mapArea = document.querySelector('.map-area');
+    const mapCaption = document.getElementById('mapCaption');
+    const alertsOverviewPanel = document.getElementById('alertsOverviewPanel');
+    const mapEl = document.getElementById('makilingMap');
+
+    function syncMapHeightToAlerts() {
+      if (!mapArea || !mapCaption || !alertsOverviewPanel || !mapEl) return;
+
+      // Below the responsive breakpoint the columns stack, so the map goes
+      // back to its own natural (CSS) height instead of matching a panel
+      // it's no longer sitting next to.
+      if (window.matchMedia('(max-width: 980px)').matches) {
+        mapEl.style.height = '';
+        map.invalidateSize();
+        return;
+      }
+
+      const areaStyle = getComputedStyle(mapArea);
+      const chrome = parseFloat(areaStyle.paddingTop) + parseFloat(areaStyle.paddingBottom)
+        + parseFloat(getComputedStyle(mapCaption).marginTop) + mapCaption.offsetHeight;
+
+      const desiredAreaHeight = alertsOverviewPanel.getBoundingClientRect().bottom - mapArea.getBoundingClientRect().top;
+      const mapHeight = Math.round(desiredAreaHeight - chrome);
+
+      mapEl.style.height = Math.max(240, mapHeight) + 'px';
+      map.invalidateSize();
+    }
+
+    syncMapHeightToAlerts();
+    window.addEventListener('load', syncMapHeightToAlerts);
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(syncMapHeightToAlerts, 150);
+    });
 
     onSnapshot(collection(db, 'users'), (snapshot) => {
       const hikers = snapshot.docs.filter(document => {
