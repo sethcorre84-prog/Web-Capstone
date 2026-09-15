@@ -20,9 +20,11 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    match /userReported/{reportId} {
-      allow read: if signedIn() && isAdmin();
-      allow create, update, delete: if signedIn() && isAdmin();
+    // Reports hikers file about other users. Any signed-in user may submit
+    // one; only admins can read, act on, or delete them.
+    match /reportedUser/{reportId} {
+      allow create: if signedIn();
+      allow read, update, delete: if isAdmin();
     }
 
     // One document per Manila date, written by analytics.html.

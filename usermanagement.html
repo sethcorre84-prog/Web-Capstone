@@ -920,6 +920,8 @@
     padding: 8px 0;
   }
 
+  a.activity-row:hover .activity-title { text-decoration: underline; }
+
   .activity-icon {
     width: 24px;
     height: 24px;
@@ -1681,7 +1683,8 @@
           icon: 'fa-flag',
           tone: 'blue',
           title: `Reported by another user: ${normalizeText(record.reportType || record.type || record.category) || 'User report'}`,
-          date: pickDate(record, ['createdAt', 'timestamp', 'reportedAt', 'date', 'updatedAt'])
+          date: pickDate(record, ['createdAt', 'timestamp', 'reportedAt', 'date', 'updatedAt']),
+          href: `userreports.html?report=${encodeURIComponent(record.id)}`
         });
       });
 
@@ -1931,15 +1934,18 @@
       return;
     }
 
-    recentActivityList.innerHTML = activities.map((activity) => `
-      <div class="activity-row">
+    recentActivityList.innerHTML = activities.map((activity) => {
+      const tag = activity.href ? 'a' : 'div';
+      return `
+      <${tag} class="activity-row"${activity.href ? ` href="${escapeHtml(activity.href)}"` : ''}>
         <div class="activity-icon ${activity.tone}"><i class="fa-solid ${activity.icon}"></i></div>
         <div>
           <div class="activity-title">${escapeHtml(activity.title)}</div>
           <div class="activity-time">${activity.date ? escapeHtml(formatDisplayDateTime(activity.date)) : 'Date not recorded'}</div>
         </div>
-      </div>
-    `).join('');
+      </${tag}>
+    `;
+    }).join('');
   };
 
   const renderSelectedUser = () => {
@@ -2297,6 +2303,8 @@
     rebuild(teamFilter, 'All Teams', teams);
   };
 
+  let pendingUserLink = new URLSearchParams(window.location.search).get('user');
+
   const refreshAll = () => {
     syncFilterOptions();
     renderStats();
@@ -2318,7 +2326,23 @@
       return;
     }
 
+    // ?user=<id> (linked from the User Reports tab) selects that user and
+    // opens the table page that contains them. Applied on the first load only.
+    const linkedUserId = pendingUserLink;
+    pendingUserLink = null;
+    const linkedIndex = linkedUserId
+      ? state.users.findIndex(user => user.id === linkedUserId || user.uid === linkedUserId)
+      : -1;
+    if (linkedIndex !== -1) {
+      state.selectedUserId = state.users[linkedIndex].id;
+      state.page = Math.floor(linkedIndex / PAGE_SIZE) + 1;
+    }
+
     refreshAll();
+
+    if (linkedIndex !== -1) {
+      userDetailCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }, (error) => {
     console.error('Error loading users:', error);
     usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#94a3b8;">Unable to load users from database.</td></tr>';
@@ -2339,7 +2363,7 @@
 
   watchCollection('reports', 'hazardReports');
   watchCollection('emergency', 'emergencies');
-  watchCollection('userReported', 'userReports');
+  watchCollection('reportedUser', 'userReports');
 
   [searchInput, roleFilter, statusFilter, teamFilter].forEach((control) => {
     control.addEventListener(control === searchInput ? 'input' : 'change', () => {

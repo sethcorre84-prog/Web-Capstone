@@ -86,188 +86,285 @@
   .tab.active{color:var(--accent-dark);border-bottom-color:var(--accent-dark);}
 
   /* ---------------- Stat cards ---------------- */
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
-  .stat-card{display:flex;flex-direction:column;gap:10px;padding:16px 18px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);}
-  .stat-top{display:flex;justify-content:space-between;align-items:center;}
-  .stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .stat-icon svg{width:16px;height:16px;}
-  .stat-value{font-size:24px;font-weight:700;color:var(--text-900);}
-  .stat-label{font-size:12px;color:var(--text-600);}
-  .stat-meta{font-size:11px;font-weight:600;margin-top:2px;}
-  .stat-meta.up{color:var(--green-text);}
-  .stat-meta.down{color:var(--red-text);}
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px;}
+  .stat-card{display:flex;align-items:center;gap:16px;min-width:0;padding:18px 20px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);box-shadow:0 18px 36px rgba(15,23,42,0.06);transition:transform 0.2s ease, box-shadow 0.2s ease;}
+  .stat-card:hover{transform:translateY(-2px);box-shadow:0 24px 48px rgba(15,23,42,0.08);}
+  .stat-icon{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;font-size:21px;}
+  .stat-icon.red{background:#fde8e5;color:#d1453b;}
+  .stat-icon.amber{background:#fdf0dc;color:#e39a2c;}
+  .stat-icon.blue{background:#e3edfb;color:#2a63b5;}
+  .stat-icon.green{background:#e3f3e7;color:#2f8f4e;}
+  .stat-body{min-width:0;}
+  .stat-label{font-size:12.5px;font-weight:600;color:var(--text-900);margin-bottom:2px;}
+  .stat-value{font-size:24px;font-weight:700;line-height:1.2;color:var(--text-900);}
+  .stat-meta{display:flex;align-items:center;gap:5px;margin-top:4px;font-size:11px;color:var(--text-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .stat-meta i{font-size:10px;}
+  .stat-meta.up i{color:var(--green-text);}
+  .stat-meta.down i{color:var(--red-text);}
+  .stat-meta.flat i{color:var(--text-400);}
 
   /* ---------------- Content layout ---------------- */
-  .content-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:18px;align-items:start;min-width:0;}
+  .content-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start;min-width:0;}
   /* Grid items default to min-width:auto, so a wide table would push the column
      past its track and shove the details panel off-screen. */
   .content-grid > div,
   .content-grid > aside{min-width:0;}
 
   .panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:18px 20px;margin-bottom:18px;}
-  .panel-title{font-size:15.5px;font-weight:700;margin-bottom:2px;}
-  .panel-sub{font-size:12px;color:var(--text-600);margin-bottom:14px;}
+  .panel-title{margin:0 0 3px;font-size:16px;font-weight:700;color:var(--text-900);}
+  .panel-sub{margin:0 0 16px;font-size:12px;color:var(--text-600);}
 
   /* Toolbar */
-  .toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
-  .search-box{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fbfcfa;}
-  .search-box input{width:100%;border:none;outline:none;background:transparent;font-size:12.5px;color:var(--text-900);}
-  select.filter{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#fbfcfa;font-size:12.5px;color:var(--text-600);}
-  .filters-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12.5px;font-weight:600;color:var(--text-600);}
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .search-box{position:relative;flex:1 1 200px;min-width:170px;}
+  .search-box input{width:100%;height:36px;padding:0 34px 0 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font:inherit;font-size:12.5px;color:var(--text-900);outline:none;}
+  .search-box input:focus,select.filter:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,143,78,.12);}
+  .search-box i{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12.5px;color:var(--text-400);pointer-events:none;}
+  select.filter{height:36px;min-width:130px;padding:0 30px 0 12px;border:1px solid var(--border);border-radius:8px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235b6b60' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 11px center;font:inherit;font-size:12.5px;color:var(--text-900);outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;}
+  .filters-btn{position:relative;display:flex;align-items:center;gap:7px;height:36px;margin-left:auto;padding:0 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12.5px;font-weight:600;color:var(--text-900);}
+  .filters-btn:hover,.filters-btn.open{background:#f3f6f2;}
+  .filters-count{min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--accent-dark);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;}
+  .filters-count[hidden]{display:none;}
+  .more-filters{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:10px;padding:12px;border:1px dashed var(--border);border-radius:10px;background:#fafbf9;}
+  .more-filters[hidden]{display:none;}
+  .more-filters label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:600;color:var(--text-600);}
+  .link-btn{height:36px;padding:0 10px;border:0;background:transparent;font-size:12.5px;font-weight:600;color:var(--accent-dark);}
+  .link-btn:hover{text-decoration:underline;}
 
   /* Table */
-  .table-wrap{overflow-x:auto;}
-  table{width:100%;border-collapse:collapse;}
-  thead th{padding:9px 6px;border-bottom:1px solid var(--border);text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-400);white-space:nowrap;}
-  tbody td{padding:11px 6px;border-bottom:1px solid var(--border);font-size:12.5px;vertical-align:middle;}
-  tbody tr:hover{background:#f7f9f7;cursor:pointer;}
-  tbody tr.selected{background:#eef6ee;}
-  tbody tr:last-child td{border-bottom:none;}
+  .table-wrap{overflow-x:auto;margin:0 -20px;padding:0 20px;container-type:inline-size;}
+  /* When the table area is too narrow for all nine columns, drop the columns
+     the details panel already shows in full: first the description preview,
+     then the reporter, then the location. Below that the table scrolls sideways. */
+  @container (max-width: 1030px){
+    .reports-table th:nth-child(5),
+    .reports-table td:nth-child(5):not(.table-empty){display:none;}
+  }
+  @container (max-width: 860px){
+    .reports-table th:nth-child(3),
+    .reports-table td:nth-child(3):not(.table-empty){display:none;}
+  }
+  @container (max-width: 720px){
+    .reports-table th:nth-child(6),
+    .reports-table td:nth-child(6):not(.table-empty){display:none;}
+  }
+  .reports-table{width:100%;border-collapse:separate;border-spacing:0;}
+  .reports-table thead th{padding:10px 6px;border-bottom:1px solid var(--border);background:#fff;text-align:left;font-size:11px;font-weight:600;color:var(--text-900);white-space:nowrap;}
+  .reports-table tbody td{padding:11px 6px;border-bottom:1px solid var(--border);background:#fff;font-size:11.5px;color:var(--text-900);vertical-align:middle;transition:background .12s ease;}
+  .reports-table tbody tr[data-report-id]{cursor:pointer;}
+  .reports-table tbody tr[data-report-id]:hover td{background:#f7f9f6;}
+  .reports-table tbody tr.selected td{background:#eef6ef;}
+  .reports-table tbody tr.selected td:first-child{box-shadow:inset 3px 0 0 var(--accent);}
+  /* The Actions column stays in view when the table has to scroll sideways. */
+  .reports-table th:last-child,
+  .reports-table td:last-child:not(.table-empty){position:sticky;right:0;z-index:1;padding-left:10px;}
+  .table-wrap.scrolls .reports-table th:last-child,
+  .table-wrap.scrolls .reports-table td:last-child:not(.table-empty){box-shadow:-10px 0 10px -10px rgba(20,40,25,.28);}
+  .reports-table tbody tr:last-child td{border-bottom:none;}
+  .table-empty{padding:34px 12px !important;text-align:center;color:var(--text-400) !important;cursor:default;}
+  .table-empty i{display:block;margin-bottom:8px;font-size:22px;color:#c9d2cb;}
 
-  .flag{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:6px;flex-shrink:0;}
-  .report-id-cell{display:flex;align-items:center;}
+  .rid{display:flex;align-items:center;gap:7px;white-space:nowrap;}
+  .rid-flag{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;flex-shrink:0;font-size:10.5px;}
+  .rid-text{font-weight:600;}
 
-  .person-cell{display:flex;align-items:center;gap:8px;}
-  .p-avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#fff;}
-  .p-name{font-size:12px;font-weight:600;}
-  .p-email{font-size:10.5px;color:var(--text-400);}
+  .person-cell{display:flex;align-items:center;gap:7px;min-width:0;max-width:140px;}
+  .p-avatar{position:relative;width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;overflow:hidden;font-size:11px;font-weight:700;color:#fff;background:#8aa293;}
+  .p-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
+  .p-text{min-width:0;}
+  .p-name{font-size:11.5px;font-weight:600;color:var(--text-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .p-email{font-size:10.5px;color:var(--text-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
-  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:700;white-space:nowrap;}
-  .badge.harassment{background:var(--red-bg);color:var(--red-text);}
-  .badge.inappropriate{background:var(--orange-bg);color:var(--orange-text);}
-  .badge.rule{background:var(--purple-bg);color:var(--purple-text);}
-  .badge.unsafe{background:var(--red-bg);color:var(--red-text);}
-  .badge.disrespectful{background:var(--orange-bg);color:var(--orange-text);}
-  .badge.pending{background:var(--orange-bg);color:var(--orange-text);}
-  .badge.under-review{background:var(--blue-bg);color:var(--blue-text);}
-  .badge.resolved{background:var(--green-bg);color:var(--green-text);}
+  .badge{display:inline-flex;align-items:center;justify-content:center;max-width:92px;padding:4px 7px;border-radius:5px;font-size:10.5px;font-weight:600;line-height:1.3;text-align:center;}
+  .badge.status{max-width:none;white-space:nowrap;}
+  .badge.status.pending{background:var(--orange-bg);color:var(--orange-text);}
+  .badge.status.review{background:var(--blue-bg);color:var(--blue-text);}
+  .badge.status.resolved{background:var(--green-bg);color:var(--green-text);}
 
-  .desc-preview{color:var(--text-600);font-size:11.5px;max-width:200px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .desc-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-width:130px;max-width:170px;font-size:11px;line-height:1.45;color:var(--text-600);}
+  .loc-text{display:block;min-width:80px;max-width:110px;font-size:11px;line-height:1.45;color:var(--text-900);}
+  .stacked-date{font-size:11px;line-height:1.5;white-space:nowrap;}
+  .stacked-date strong{display:block;font-weight:500;color:var(--text-900);}
+  .stacked-date span{display:block;color:var(--text-400);}
 
-  .row-actions{display:flex;gap:4px;}
-  .icon-btn{width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--text-600);font-size:12px;}
-  .icon-btn:hover{background:#f0f2ee;}
+  .row-actions{display:flex;align-items:center;gap:6px;}
+  .icon-btn{width:28px;height:28px;border:1px solid var(--border);border-radius:7px;background:#fff;display:grid;place-items:center;color:var(--text-900);font-size:12px;}
+  .icon-btn:hover,.icon-btn.open{background:#eef2ed;}
 
-  .table-footer{display:flex;align-items:center;justify-content:space-between;padding:14px 4px 2px 4px;font-size:12px;color:var(--text-600);}
-  .pagination{display:flex;align-items:center;gap:6px;}
-  /* Pagination buttons are styled in pages.css so every table matches. */
+  /* Row menu is fixed-positioned on <body> so the table's horizontal scroll
+     container cannot clip it. */
+  .row-menu{position:fixed;z-index:900;min-width:196px;padding:6px;border:1px solid var(--border);border-radius:10px;background:#fff;box-shadow:0 14px 34px rgba(20,40,25,.16);}
+  .row-menu button,.row-menu a{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:0;border-radius:7px;background:transparent;font-size:12.5px;font-weight:500;color:var(--text-900);text-align:left;}
+  .row-menu button:hover,.row-menu a:hover{background:#f1f4f0;}
+  .row-menu button:disabled{opacity:.45;cursor:not-allowed;background:transparent;}
+  .row-menu i{width:14px;text-align:center;color:var(--text-600);}
+  .row-menu .danger,.row-menu .danger i{color:var(--red-text);}
+  .row-menu hr{margin:5px 2px;border:0;border-top:1px solid var(--border);}
 
-  /* Charts row */
-  /* auto-fit instead of fixed 1fr/1.2fr/1fr tracks: inside the 1.75fr content
-     column three fixed tracks crush each panel to ~210px, which is narrower
-     than the 112px donut + its legend. Panels now reflow to 2-up/1-up instead. */
-  .charts-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;min-width:0;}
-  .chart-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:16px 18px;min-width:0;}
-  .chart-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-  .chart-panel-head h3{font-size:13.5px;font-weight:700;}
-  .period-select{padding:5px 10px;border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--text-600);background:#fbfcfa;}
-  .chart-sub{font-size:11px;color:var(--text-400);margin-bottom:10px;}
+  .table-footer{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:14px 0 0;margin-top:2px;border-top:1px solid var(--border);}
+  .table-footer .pagination{display:flex;align-items:center;gap:6px;}
+  .table-footer .pagination button{width:30px;height:30px;border-radius:7px;}
 
-  .donut-wrap{display:flex;align-items:center;gap:14px;min-width:0;flex-wrap:wrap;}
-  .donut{position:relative;width:112px;height:112px;border-radius:50%;flex-shrink:0;}
-  .donut-hole{position:absolute;inset:18px;background:var(--card);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-  .donut-hole .total{font-size:17px;font-weight:700;}
-  .donut-hole .label{font-size:9.5px;color:var(--text-400);}
+  /* Charts panel: three columns separated by hairlines. The hairline is a
+     hard box-shadow so it follows the columns when they wrap. */
+  .charts-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));padding:0;overflow:hidden;}
+  .chart-col{min-width:0;padding:16px 18px 18px;box-shadow:-1px -1px 0 var(--border);}
+  .chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:28px;margin-bottom:4px;}
+  .chart-head h3{margin:0;font-size:13.5px;font-weight:700;color:var(--text-900);white-space:nowrap;}
+  select.period-select{height:28px;min-width:0;max-width:112px;padding:0 22px 0 8px;font-size:11px;background-position:right 8px center;}
+  .chart-sub{margin-bottom:12px;font-size:11.5px;font-weight:600;color:var(--text-900);}
+  .chart-sub span{font-weight:400;color:var(--text-400);}
 
-  .legend{display:flex;flex-direction:column;gap:7px;font-size:11px;min-width:0;flex:1 1 130px;}
+  .donut-block{display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0;}
+  .donut{position:relative;width:104px;height:104px;flex-shrink:0;}
+  .donut svg{width:100%;height:100%;transform:rotate(-90deg);}
+  .donut circle{transition:stroke-dasharray .4s ease;}
+  .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
+  .donut-center .label{font-size:10.5px;color:var(--text-600);}
+  .donut-center .total{font-size:20px;font-weight:700;line-height:1.1;color:var(--text-900);}
+
+  .legend{display:flex;flex-direction:column;gap:8px;flex:1 1 140px;min-width:0;font-size:11px;}
   .legend-item{display:flex;align-items:center;gap:7px;min-width:0;}
-  .legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+  .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
   /* labels must be able to shrink and wrap, otherwise the longest word
      ("Disrespectful") sets the row width and the values spill past the card */
-  .legend-item span.lname{color:var(--text-900);min-width:0;overflow-wrap:anywhere;}
-  .legend-item span.lval{margin-left:auto;color:var(--text-400);padding-left:8px;flex:0 0 auto;white-space:nowrap;}
+  .legend-item .lname{min-width:0;color:var(--text-900);overflow-wrap:break-word;}
+  .legend-item .lval{margin-left:auto;padding-left:8px;flex:0 0 auto;white-space:nowrap;color:var(--text-600);}
+  .chart-empty{padding:30px 6px;text-align:center;font-size:12px;color:var(--text-400);}
+  .chart-empty button{display:block;margin:6px auto 0;border:0;background:transparent;font-size:12px;font-weight:600;color:var(--accent-dark);}
 
-  .linechart-legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-600);margin-bottom:8px;}
-  .linechart-legend .dot{width:7px;height:7px;border-radius:50%;background:var(--red-text);}
+  .line-legend{display:flex;align-items:center;gap:7px;margin:-4px 0 4px;font-size:11px;color:var(--text-600);}
+  .line-key{position:relative;width:18px;height:2px;background:#d1453b;}
+  .line-key::after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:#d1453b;transform:translate(-50%,-50%);}
+  #timeChart{display:block;width:100%;height:170px;overflow:visible;}
 
-  /* Sidebar / Report details */
-  .details-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
-  .status-pill{background:var(--orange-bg);color:var(--orange-text);font-size:11px;font-weight:700;padding:5px 11px;border-radius:20px;white-space:nowrap;}
+  /* ---------------- Report details ---------------- */
+  .details-panel{padding:18px 18px 20px;}
+  .details-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;}
+  .details-top .panel-title{margin:0;}
+  .status-pill{padding:5px 11px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;background:#eef1ec;color:var(--text-600);}
+  .status-pill.pending{background:var(--orange-bg);color:var(--orange-text);}
+  .status-pill.review{background:var(--blue-bg);color:var(--blue-text);}
+  .status-pill.resolved{background:var(--green-bg);color:var(--green-text);}
 
-  .detail-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
-  .detail-field .lbl{font-size:10.5px;font-weight:700;color:var(--text-400);text-transform:uppercase;letter-spacing:.02em;margin-bottom:3px;}
-  .detail-field .val{font-size:12.5px;font-weight:600;color:var(--text-900);}
+  .d-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+  .d-section{margin-bottom:16px;}
+  .d-label{margin-bottom:6px;font-size:11.5px;font-weight:700;color:var(--text-900);}
+  .d-value{font-size:12.5px;line-height:1.5;color:#3d4a41;overflow-wrap:anywhere;}
+  .d-text{margin:0;font-size:12px;line-height:1.6;color:#3d4a41;overflow-wrap:anywhere;white-space:pre-line;}
 
-  .person-block{margin-bottom:16px;}
-  .person-block .section-label{font-size:12px;font-weight:700;margin-bottom:8px;}
-  .person-row{display:flex;align-items:center;gap:10px;}
-  .person-row .p-avatar{width:36px;height:36px;font-size:12.5px;}
-  .person-row .p-name{font-size:13px;}
-  .person-row .p-email{font-size:11px;}
+  .person-card{display:flex;align-items:center;gap:11px;min-width:0;}
+  .person-card .p-avatar{width:42px;height:42px;font-size:13.5px;}
+  .person-card .p-name{font-size:13px;}
+  .person-card .p-email{font-size:11px;}
+  .person-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:11px;color:var(--text-600);}
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;background:#f0f3ef;font-size:10.5px;font-weight:600;color:var(--text-600);white-space:nowrap;}
+  .chip.good{background:var(--green-bg);color:var(--green-text);}
+  .chip.bad{background:var(--red-bg);color:var(--red-text);}
+  .chip.warn{background:var(--orange-bg);color:var(--orange-text);}
+  .chip.muted{background:#f3f4f2;color:var(--text-400);}
+  .profile-link{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--accent-dark);}
+  .profile-link:hover{text-decoration:underline;}
 
-  .section-block{margin-bottom:16px;}
-  .section-block .section-label{font-size:12px;font-weight:700;margin-bottom:6px;}
-  .section-block .section-text{font-size:12px;color:var(--text-600);line-height:1.55;}
-
-  .evidence-row{display:flex;gap:8px;margin-bottom:16px;}
-  .evidence-thumb{width:56px;height:56px;border-radius:8px;background:linear-gradient(160deg,#7fbf8f,#2f6b45);overflow:hidden;flex-shrink:0;}
-  .evidence-more{width:56px;height:56px;border-radius:8px;background:#eef2ee;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text-600);flex-shrink:0;}
+  .evidence-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;}
+  .evidence-thumb{position:relative;aspect-ratio:1;max-width:100%;padding:0;border:1px solid var(--border);border-radius:8px;background:#eef2ee;overflow:hidden;display:grid;place-items:center;color:var(--text-600);font-size:18px;}
+  .evidence-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .evidence-thumb:hover{box-shadow:0 0 0 2px var(--accent);}
+  .evidence-more{font-size:13px;font-weight:700;line-height:1.25;background:#fff;}
+  .evidence-more small{display:block;font-size:10.5px;font-weight:600;color:var(--text-600);}
+  .evidence-empty{grid-column:1 / -1;padding:12px;border:1px dashed var(--border);border-radius:8px;text-align:center;font-size:11.5px;color:var(--text-400);}
 
   .actions-list{display:flex;flex-direction:column;gap:8px;}
-  .action-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 12px;border-radius:9px;border:none;font-size:12.5px;font-weight:700;}
-  .action-btn.view{background:var(--accent-dark);color:#fff;}
-  .action-btn.contact{background:#2f6fed;color:#fff;}
-  .action-btn.warn{background:#e8a63c;color:#fff;}
-  .action-btn.suspend{background:var(--red-text);color:#fff;}
-  .action-btn.resolve{background:#fff;color:var(--text-900);border:1px solid var(--border);}
+  .action-btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:38px;padding:0 12px;border:1px solid transparent;border-radius:8px;font-size:12.5px;font-weight:600;color:#fff;transition:filter .15s ease;}
+  .action-btn:hover:not(:disabled){filter:brightness(.94);}
+  .action-btn.view{background:var(--accent-dark);}
+  .action-btn.contact{background:#1f73e8;}
+  .action-btn.warn{background:#f2b01e;color:#2a2105;}
+  .action-btn.suspend{background:#e0342a;}
+  .action-btn.resolve{background:#fff;border-color:#cfd6cf;color:var(--text-900);}
   .action-btn:disabled{opacity:.5;cursor:not-allowed;}
-  .action-hint{margin-top:8px;font-size:11px;color:var(--text-400);line-height:1.5;}
+  .action-hint{margin:8px 0 0;font-size:11px;line-height:1.5;color:var(--text-400);}
+  .action-hint:empty{display:none;}
 
   /* ---------------- Action modals ---------------- */
   .modal-overlay{position:fixed;inset:0;z-index:1000;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;background:rgba(15,25,15,.45);}
   .modal-overlay.open{display:flex;}
   .modal{width:100%;max-width:560px;padding:22px 24px 24px;border-radius:12px;background:var(--card);box-shadow:0 18px 48px rgba(20,40,25,.22);}
   .modal h2{margin:0 0 4px;font-size:18px;font-weight:700;color:var(--text-900);}
-  .modal-sub{margin-bottom:16px;font-size:12.5px;color:var(--text-600);line-height:1.5;}
+  .modal-sub{margin:0 0 16px;font-size:12.5px;color:var(--text-600);line-height:1.5;}
   .modal .field{margin-bottom:13px;}
   .modal .field label{display:block;margin-bottom:5px;font-size:12.5px;font-weight:600;color:var(--text-600);}
   .modal .field input,.modal .field select,.modal .field textarea{width:100%;padding:9px 11px;border:1px solid #e2e8f0;border-radius:8px;background:#fbfcfa;color:var(--text-900);font:inherit;font-size:13px;}
   .modal .field textarea{min-height:94px;resize:vertical;line-height:1.5;}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
-  .modal-actions button{padding:9px 16px;border:0;border-radius:8px;font-size:13px;font-weight:700;}
+  .modal-actions button,.modal-actions a{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border:0;border-radius:8px;font-size:13px;font-weight:700;}
   .modal-cancel{background:#f1f3ef;color:var(--text-900);}
   .modal-confirm{background:var(--accent);color:#fff;}
   .modal-confirm.warn{background:#e8a63c;}
   .modal-confirm.danger{background:var(--red-text);}
+  .modal-confirm.blue{background:var(--blue-text);}
   .modal-actions button:disabled{opacity:.6;cursor:not-allowed;}
-  .modal-callout{padding:10px 12px;border-radius:8px;background:var(--orange-bg);color:var(--orange-text);font-size:12px;font-weight:600;line-height:1.5;margin-bottom:14px;}
+  .modal-callout{margin-bottom:14px;padding:10px 12px;border-radius:8px;background:var(--orange-bg);color:var(--orange-text);font-size:12px;font-weight:600;line-height:1.5;}
 
   /* Full details modal */
-  .details-modal{max-width:660px;}
-  .details-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px 18px;margin-bottom:18px;}
+  .details-modal{max-width:700px;}
+  .details-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .details-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;margin-bottom:18px;}
   .details-grid .full{grid-column:1 / -1;}
-  .details-grid .lbl{font-size:10.5px;font-weight:700;color:var(--text-400);text-transform:uppercase;letter-spacing:.02em;margin-bottom:3px;}
-  .details-grid .val{font-size:13px;font-weight:600;color:var(--text-900);line-height:1.5;overflow-wrap:anywhere;}
-  .details-grid .val.body{font-weight:500;color:var(--text-600);}
-  .details-section-label{font-size:12px;font-weight:700;color:var(--text-900);margin-bottom:8px;}
+  .details-grid .lbl{margin-bottom:5px;font-size:10.5px;font-weight:700;color:var(--text-400);text-transform:uppercase;letter-spacing:.03em;}
+  .details-grid .val{font-size:13px;font-weight:600;line-height:1.5;color:var(--text-900);overflow-wrap:anywhere;}
+  .details-grid .val.body{font-weight:500;color:var(--text-600);white-space:pre-line;}
+  .details-section-label{margin:4px 0 8px;font-size:12px;font-weight:700;color:var(--text-900);}
+  .details-block{margin-bottom:18px;}
+  .details-modal .evidence-row{grid-template-columns:repeat(auto-fill,minmax(84px,1fr));}
+
+  .related-list{display:flex;flex-direction:column;gap:6px;}
+  .related-item{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:#fbfcfa;font-size:12px;color:var(--text-900);text-align:left;}
+  .related-item:hover{background:#f1f5f0;}
+  .related-item .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-600);}
 
   .history-list{display:flex;flex-direction:column;gap:8px;max-height:230px;overflow-y:auto;}
   .history-item{display:flex;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:#fbfcfa;}
-  .history-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px;}
-  .history-dot.contact{background:#2f6fed;}
+  .history-dot{width:8px;height:8px;margin-top:5px;border-radius:50%;flex-shrink:0;background:var(--accent);}
+  .history-dot.contact,.history-dot.review{background:#2f6fed;}
   .history-dot.warn{background:#e8a63c;}
   .history-dot.suspend{background:var(--red-text);}
   .history-body{min-width:0;}
   .history-title{font-size:12.5px;font-weight:700;color:var(--text-900);}
-  .history-note{font-size:12px;color:var(--text-600);line-height:1.5;overflow-wrap:anywhere;}
-  .history-meta{font-size:11px;color:var(--text-400);margin-top:3px;}
+  .history-note{font-size:12px;line-height:1.5;color:var(--text-600);overflow-wrap:anywhere;}
+  .history-meta{margin-top:3px;font-size:11px;color:var(--text-400);}
   .history-empty{font-size:12px;color:var(--text-400);}
+
+  /* Evidence viewer */
+  .viewer{max-width:820px;padding:16px;}
+  .viewer-stage{position:relative;display:grid;place-items:center;min-height:260px;max-height:70vh;border-radius:10px;background:#101710;overflow:hidden;}
+  .viewer-stage img{max-width:100%;max-height:70vh;object-fit:contain;display:block;}
+  .viewer-file{padding:40px 20px;text-align:center;color:#dfe8df;font-size:13px;}
+  .viewer-file i{display:block;margin-bottom:10px;font-size:34px;}
+  .viewer-nav{position:absolute;top:50%;width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.88);color:var(--text-900);transform:translateY(-50%);}
+  .viewer-nav.prev{left:10px;}
+  .viewer-nav.next{right:10px;}
+  .viewer-nav[hidden]{display:none;}
+  .viewer-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;font-size:12px;color:var(--text-600);}
+  .viewer-bar a{font-weight:600;color:var(--accent-dark);}
 
   /* Toasts */
   .toast-stack{position:fixed;right:18px;bottom:18px;z-index:1100;display:flex;flex-direction:column;gap:8px;}
-  .toast{padding:11px 15px;border-radius:9px;background:var(--text-900);color:#fff;font-size:12.5px;font-weight:600;line-height:1.45;max-width:330px;box-shadow:0 8px 24px rgba(20,40,25,.24);}
+  .toast{max-width:330px;padding:11px 15px;border-radius:9px;background:var(--text-900);color:#fff;font-size:12.5px;font-weight:600;line-height:1.45;box-shadow:0 8px 24px rgba(20,40,25,.24);}
   .toast.success{background:var(--accent-dark);}
   .toast.error{background:var(--red-text);}
 
-  @media (max-width:1150px){
-    .content-grid{grid-template-columns:1fr;}
-    .charts-row{grid-template-columns:1fr;}
+  @media (max-width:1100px){
+    .stats{grid-template-columns:repeat(2,minmax(0,1fr));}
   }
-  @media (max-width:980px){
-    .stats{grid-template-columns:repeat(2,1fr);}
+  @media (max-width:1150px){
+    .content-grid{grid-template-columns:minmax(0,1fr);}
   }
   @media (max-width:700px){
     .topbar{flex-direction:column;gap:14px;}
+    .stats{grid-template-columns:minmax(0,1fr);}
+    .table-footer{grid-template-columns:1fr;justify-items:start;}
+    .details-grid,.d-grid{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -331,214 +428,211 @@
     </div>
 
     <!-- Stat cards -->
-    <section class="stats">
+    <section class="stats" aria-label="Report totals">
       <div class="stat-card">
-        <div class="stat-top">
-          <span class="stat-value" id="totalReportsValue">0</span>
-          <div class="stat-icon" style="background:var(--red-bg);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--red-text)" stroke-width="2"><path d="M4 21V4"/><path d="M4 4h13l-2.5 4L17 12H4"/></svg>
-          </div>
+        <div class="stat-icon red"><i class="fa-solid fa-flag"></i></div>
+        <div class="stat-body">
+          <div class="stat-label">Total Reports</div>
+          <div class="stat-value" id="totalReportsValue">0</div>
+          <div class="stat-meta flat" id="totalReportsTrend"><i class="fa-solid fa-minus"></i><span>Loading…</span></div>
         </div>
-        <div class="stat-label">Total Reports</div>
-        <div class="stat-meta up">▲ 18% vs last month</div>
       </div>
       <div class="stat-card">
-        <div class="stat-top">
-          <span class="stat-value" id="pendingReportsValue">0</span>
-          <div class="stat-icon" style="background:var(--orange-bg);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange-text)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-          </div>
+        <div class="stat-icon amber"><i class="fa-regular fa-clock"></i></div>
+        <div class="stat-body">
+          <div class="stat-label">Pending Review</div>
+          <div class="stat-value" id="pendingReportsValue">0</div>
+          <div class="stat-meta flat" id="pendingReportsTrend"><i class="fa-solid fa-minus"></i><span>Loading…</span></div>
         </div>
-        <div class="stat-label">Pending Review</div>
-        <div class="stat-meta up">▲ 33% vs last month</div>
       </div>
       <div class="stat-card">
-        <div class="stat-top">
-          <span class="stat-value" id="underReviewValue">0</span>
-          <div class="stat-icon" style="background:var(--blue-bg);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue-text)" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
-          </div>
+        <div class="stat-icon blue"><i class="fa-solid fa-eye"></i></div>
+        <div class="stat-body">
+          <div class="stat-label">Under Review</div>
+          <div class="stat-value" id="underReviewValue">0</div>
+          <div class="stat-meta flat" id="underReviewTrend"><i class="fa-solid fa-minus"></i><span>Loading…</span></div>
         </div>
-        <div class="stat-label">Under Review</div>
-        <div class="stat-meta down">▼ 6% vs last month</div>
       </div>
       <div class="stat-card">
-        <div class="stat-top">
-          <span class="stat-value" id="resolvedReportsValue">0</span>
-          <div class="stat-icon" style="background:var(--green-bg);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--green-text)" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
-          </div>
+        <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+        <div class="stat-body">
+          <div class="stat-label">Resolved</div>
+          <div class="stat-value" id="resolvedReportsValue">0</div>
+          <div class="stat-meta flat" id="resolvedReportsTrend"><i class="fa-solid fa-minus"></i><span>Loading…</span></div>
         </div>
-        <div class="stat-label">Resolved</div>
-        <div class="stat-meta up">▲ 25% vs last month</div>
       </div>
     </section>
 
     <div class="content-grid">
       <div>
         <!-- Reports table -->
-        <div class="panel">
-          <div class="panel-title">Reports About User Behavior</div>
-          <div class="panel-sub">View and manage reports submitted by users regarding the behavior of other users.</div>
+        <section class="panel">
+          <h2 class="panel-title">Reports About User Behavior</h2>
+          <p class="panel-sub">View and manage reports submitted by users regarding the behavior of other users.</p>
 
           <div class="toolbar">
             <div class="search-box">
-              <span>🔎</span>
-              <input id="reportsSearchInput" type="text" placeholder="Search reports...">
+              <input id="reportsSearchInput" type="search" placeholder="Search reports..." aria-label="Search reports">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
             </div>
-            <select id="reportsStatusFilter" class="filter">
-              <option>All Status</option>
-              <option>Pending</option>
-              <option>Under Review</option>
-              <option>Resolved</option>
+            <select id="reportsStatusFilter" class="filter" aria-label="Filter by status">
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="review">Under Review</option>
+              <option value="resolved">Resolved</option>
             </select>
-            <select id="reportsTypeFilter" class="filter">
-              <option>All Report Types</option>
-              <option>Harassment</option>
-              <option>Inappropriate Behavior</option>
-              <option>Rule Violation</option>
-              <option>Unsafe Behavior</option>
-              <option>Disrespectful Conduct</option>
+            <select id="reportsTypeFilter" class="filter" aria-label="Filter by report type">
+              <option value="all">All Report Types</option>
             </select>
-            <select id="reportsDateFilter" class="filter">
-              <option>All Dates</option>
+            <select id="reportsDateFilter" class="filter" aria-label="Filter by date reported">
+              <option value="all">All Dates</option>
+              <option value="today">Today</option>
+              <option value="7">Last 7 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="month">This Month</option>
+              <option value="lastMonth">Last Month</option>
             </select>
-            <button class="filters-btn">▽ Filters</button>
+            <button class="filters-btn" id="filtersToggleBtn" type="button" aria-expanded="false" aria-controls="moreFilters">
+              <i class="fa-solid fa-filter"></i>Filters<span class="filters-count" id="filtersCount" hidden>0</span>
+            </button>
+          </div>
+
+          <div class="more-filters" id="moreFilters" hidden>
+            <label>Location / Trail
+              <select id="reportsLocationFilter" class="filter"><option value="all">All Locations</option></select>
+            </label>
+            <label>Account Link
+              <select id="reportsLinkFilter" class="filter">
+                <option value="all">All Reports</option>
+                <option value="linked">Reported user has an account</option>
+                <option value="unlinked">No matching account</option>
+              </select>
+            </label>
+            <label>Sort By
+              <select id="reportsSortFilter" class="filter">
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+              </select>
+            </label>
+            <button class="link-btn" id="clearFiltersBtn" type="button">Clear all filters</button>
           </div>
 
           <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Report ID</th>
-                <th>Reported User</th>
-                <th>Reported By</th>
-                <th>Report Type</th>
-                <th>Description (Preview)</th>
-                <th>Location / Trail</th>
-                <th>Date Reported</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="userReportsTableBody"></tbody>
-          </table>
+            <table class="reports-table">
+              <thead>
+                <tr>
+                  <th>Report ID</th>
+                  <th>Reported User</th>
+                  <th>Reported By</th>
+                  <th>Report Type</th>
+                  <th>Description (Preview)</th>
+                  <th>Location / Trail</th>
+                  <th>Date Reported</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="userReportsTableBody">
+                <tr><td colspan="9" class="table-empty"><i class="fa-solid fa-spinner fa-spin"></i>Loading reports…</td></tr>
+              </tbody>
+            </table>
           </div>
 
           <div class="table-footer">
             <span id="reportsSummaryText">Showing 0 reports</span>
             <div class="pagination" id="reportsPagination"></div>
+            <span></span>
           </div>
-        </div>
+        </section>
 
-        <!-- Charts row -->
-        <div class="charts-row">
-          <div class="chart-panel">
-            <div class="chart-panel-head">
+        <!-- Charts -->
+        <section class="panel charts-panel" aria-label="Report charts">
+          <div class="chart-col">
+            <div class="chart-head">
               <h3>Reports Overview</h3>
-              <select class="period-select"><option>This Month</option></select>
+              <select id="periodSelect" class="filter period-select" aria-label="Chart period">
+                <option value="7">Last 7 Days</option>
+                <option value="month" selected>This Month</option>
+                <option value="lastMonth">Last Month</option>
+                <option value="90">Last 3 Months</option>
+                <option value="year">This Year</option>
+                <option value="all">All Time</option>
+              </select>
             </div>
-            <div class="chart-sub">Reports by Type</div>
-            <div class="donut-wrap">
-              <div class="donut" id="reportsOverviewDonut" style="background:conic-gradient(#d1453b 0% 35%, #c9821f 35% 59%, #7b4fd1 59% 77%, #2f8f4e 77% 92%, #2a63b5 92% 100%);">
-                <div class="donut-hole"><div class="total" id="reportsOverviewTotal">0</div><div class="label">Total</div></div>
-              </div>
-              <div class="legend" id="reportsOverviewLegend">
-                <div class="legend-item"><span class="legend-dot" style="background:#d1453b;"></span><span class="lname">Harassment</span><span class="lval">0 (0%)</span></div>
-              </div>
-            </div>
+            <div class="chart-sub">Reports by Type <span id="typeChartRange"></span></div>
+            <div id="typeChart"></div>
           </div>
 
-          <div class="chart-panel">
-            <div class="chart-panel-head">
-              <h3>Reports Over Time</h3>
-            </div>
-            <div class="linechart-legend"><span class="dot"></span>Number of Reports</div>
-            <svg id="reportsOverTimeChart" viewBox="0 0 320 150" width="100%" height="150"></svg>
+          <div class="chart-col">
+            <div class="chart-head"><h3>Reports Over Time</h3></div>
+            <div class="chart-sub"><span id="timeChartRange"></span></div>
+            <div class="line-legend"><span class="line-key"></span>Number of Reports</div>
+            <svg id="timeChart" viewBox="0 0 320 170" role="img" aria-label="Number of reports over time"></svg>
           </div>
 
-          <div class="chart-panel">
-            <div class="chart-panel-head">
-              <h3>Report Status Distribution</h3>
-            </div>
-            <div class="donut-wrap" style="flex-direction:column;align-items:center;">
-              <div class="donut" id="statusDistributionDonut" style="background:conic-gradient(#c9821f 0% 35%, #2a63b5 35% 85%, #2f8f4e 85% 100%);">
-                <div class="donut-hole"><div class="total" id="statusDistributionTotal">0</div><div class="label">Total</div></div>
-              </div>
-              <div class="legend" id="statusDistributionLegend" style="width:100%;margin-top:12px;">
-                <div class="legend-item"><span class="legend-dot" style="background:#c9821f;"></span><span class="lname">Pending</span><span class="lval">0 (0%)</span></div>
-              </div>
-            </div>
+          <div class="chart-col">
+            <div class="chart-head"><h3>Report Status Distribution</h3></div>
+            <div class="chart-sub"><span id="statusChartRange"></span></div>
+            <div id="statusChart"></div>
           </div>
-        </div>
+        </section>
       </div>
 
       <!-- Right: Report Details -->
-      <aside>
-        <div class="panel">
+      <aside class="details-col">
+        <section class="panel details-panel" aria-labelledby="detailsHeading">
           <div class="details-top">
-            <div class="panel-title" style="margin-bottom:0;">Report Details</div>
-            <span class="status-pill" id="detailStatusPill">Pending</span>
+            <h2 class="panel-title" id="detailsHeading">Report Details</h2>
+            <span class="status-pill" id="detailStatusPill">—</span>
           </div>
 
-          <div class="detail-fields">
-            <div class="detail-field"><div class="lbl">Report ID</div><div class="val" id="detailReportId">—</div></div>
-            <div class="detail-field"><div class="lbl">Report Type</div><div class="val" id="detailReportType">—</div></div>
+          <div class="d-grid">
+            <div><div class="d-label">Report ID</div><div class="d-value" id="detailReportId">—</div></div>
+            <div><div class="d-label">Report Type</div><div class="d-value" id="detailReportType">—</div></div>
           </div>
 
-          <div class="person-block">
-            <div class="section-label">Reported User</div>
-            <div class="person-row">
-              <div class="p-avatar" id="detailReportedUserAvatar" style="background:linear-gradient(160deg,#e08fa0,#c24a63);">H</div>
-              <div><div class="p-name" id="detailReportedUserName">—</div><div class="p-email" id="detailReportedUserEmail">—</div></div>
-            </div>
+          <div class="d-section">
+            <div class="d-label">Reported User</div>
+            <div id="detailReportedUser"></div>
           </div>
 
-          <div class="person-block">
-            <div class="section-label">Reported By</div>
-            <div class="person-row">
-              <div class="p-avatar" id="detailReportedByAvatar" style="background:linear-gradient(160deg,#7fa8d8,#3a5f9e);">U</div>
-              <div><div class="p-name" id="detailReportedByName">—</div><div class="p-email" id="detailReportedByEmail">—</div></div>
-            </div>
+          <div class="d-section">
+            <div class="d-label">Reported By</div>
+            <div id="detailReportedBy"></div>
           </div>
 
-          <div class="section-block">
-            <div class="section-label">Location / Trail</div>
-            <div class="section-text" id="detailLocation">—</div>
+          <div class="d-section">
+            <div class="d-label">Location / Trail</div>
+            <div class="d-value" id="detailLocation">—</div>
           </div>
 
-          <div class="section-block">
-            <div class="section-label">Date Reported</div>
-            <div class="section-text" id="detailDateReported">—</div>
+          <div class="d-section">
+            <div class="d-label">Date Reported</div>
+            <div class="d-value" id="detailDateReported">—</div>
           </div>
 
-          <div class="section-block">
-            <div class="section-label">Description</div>
-            <p class="section-text" id="detailDescription">—</p>
+          <div class="d-section">
+            <div class="d-label">Description</div>
+            <p class="d-text" id="detailDescription">—</p>
           </div>
 
-          <div class="section-block">
-            <div class="section-label">Evidence / Attachments</div>
-            <div class="evidence-row">
-              <div class="evidence-thumb"></div>
-              <div class="evidence-thumb" style="background:linear-gradient(160deg,#9fb0c0,#4a5f70);"></div>
-              <div class="evidence-thumb" style="background:linear-gradient(160deg,#c0a08f,#6b4530);"></div>
-              <div class="evidence-more">+2<br>More</div>
-            </div>
+          <div class="d-section">
+            <div class="d-label">Evidence / Attachments</div>
+            <div class="evidence-row" id="detailEvidence"></div>
           </div>
 
-          <div class="section-block" style="margin-bottom:0;">
-            <div class="section-label">Actions</div>
+          <div class="d-section" style="margin-bottom:0;">
+            <div class="d-label">Actions</div>
             <div class="actions-list">
-              <button id="viewDetailsBtn" class="action-btn view" type="button">👁 View Full Details</button>
-              <button id="contactUserBtn" class="action-btn contact" type="button">📞 Contact Reported User</button>
-              <button id="warnUserBtn" class="action-btn warn" type="button">⚠ Warn User</button>
-              <button id="suspendUserBtn" class="action-btn suspend" type="button">⛔ Suspend User</button>
-              <button id="resolveReportBtn" class="action-btn resolve" type="button">✔ Mark as Resolved</button>
+              <button id="viewDetailsBtn" class="action-btn view" type="button"><i class="fa-regular fa-eye"></i><span>View Full Details</span></button>
+              <button id="contactUserBtn" class="action-btn contact" type="button"><i class="fa-solid fa-phone"></i><span>Contact Reported User</span></button>
+              <button id="warnUserBtn" class="action-btn warn" type="button"><i class="fa-solid fa-triangle-exclamation"></i><span>Warn User</span></button>
+              <button id="suspendUserBtn" class="action-btn suspend" type="button"><i class="fa-solid fa-circle-xmark"></i><span>Suspend User</span></button>
+              <button id="resolveReportBtn" class="action-btn resolve" type="button"><i class="fa-regular fa-circle-check"></i><span>Mark as Resolved</span></button>
             </div>
             <p class="action-hint" id="actionHint" role="status" aria-live="polite"></p>
           </div>
-        </div>
+        </section>
       </aside>
     </div>
   </main>
@@ -547,19 +641,33 @@
 <!-- View Full Details -->
 <div id="reportDetailsModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reportDetailsTitle">
   <div class="modal details-modal">
-    <h2 id="reportDetailsTitle">Report Details</h2>
-    <p class="modal-sub" id="reportDetailsSub">Full record of the submitted user report.</p>
+    <div class="details-modal-head">
+      <div>
+        <h2 id="reportDetailsTitle">Report Details</h2>
+        <p class="modal-sub" id="reportDetailsSub">Full record of the submitted user report.</p>
+      </div>
+      <span class="status-pill" id="fullStatusPill">—</span>
+    </div>
 
     <div class="details-grid">
       <div><div class="lbl">Report ID</div><div class="val" id="fullReportId">—</div></div>
-      <div><div class="lbl">Status</div><div class="val" id="fullStatus">—</div></div>
       <div><div class="lbl">Report Type</div><div class="val" id="fullReportType">—</div></div>
       <div><div class="lbl">Date Reported</div><div class="val" id="fullDateReported">—</div></div>
-      <div><div class="lbl">Reported User</div><div class="val" id="fullReportedUser">—</div></div>
-      <div><div class="lbl">Reported By</div><div class="val" id="fullReportedBy">—</div></div>
       <div><div class="lbl">Location / Trail</div><div class="val" id="fullLocation">—</div></div>
-      <div><div class="lbl">Linked Account</div><div class="val" id="fullLinkedAccount">—</div></div>
+      <div><div class="lbl">Reported User</div><div id="fullReportedUser"></div></div>
+      <div><div class="lbl">Reported By</div><div id="fullReportedBy"></div></div>
       <div class="full"><div class="lbl">Description</div><div class="val body" id="fullDescription">—</div></div>
+      <div class="full" id="fullResolutionWrap" hidden><div class="lbl">Resolution</div><div class="val body" id="fullResolution">—</div></div>
+    </div>
+
+    <div class="details-block">
+      <div class="details-section-label">Evidence / Attachments</div>
+      <div class="evidence-row" id="fullEvidence"></div>
+    </div>
+
+    <div class="details-block">
+      <div class="details-section-label" id="relatedReportsLabel">Other Reports About This User</div>
+      <div class="related-list" id="relatedReports"></div>
     </div>
 
     <div class="details-section-label">Action History</div>
@@ -594,7 +702,7 @@
 
     <div class="modal-actions">
       <button type="button" class="modal-cancel" data-close-modal="contactUserModal">Cancel</button>
-      <button type="submit" class="modal-confirm" id="sendContactBtn">Open Email Draft</button>
+      <button type="submit" class="modal-confirm blue" id="sendContactBtn">Open Email Draft</button>
     </div>
   </form>
 </div>
@@ -685,6 +793,24 @@
   </form>
 </div>
 
+<!-- Evidence viewer -->
+<div id="evidenceModal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Evidence viewer">
+  <div class="modal viewer">
+    <div class="viewer-stage" id="viewerStage">
+      <button type="button" class="viewer-nav prev" id="viewerPrev" aria-label="Previous attachment"><i class="fa-solid fa-chevron-left"></i></button>
+      <div id="viewerContent"></div>
+      <button type="button" class="viewer-nav next" id="viewerNext" aria-label="Next attachment"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="viewer-bar">
+      <span id="viewerCaption">—</span>
+      <span style="display:flex;gap:14px;align-items:center;">
+        <a id="viewerOpen" href="#" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open original</a>
+        <button type="button" class="modal-cancel" data-close-modal="evidenceModal" style="padding:7px 14px;border:0;border-radius:8px;font-weight:700;">Close</button>
+      </span>
+    </div>
+  </div>
+</div>
+
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
 <script type="module">
@@ -698,598 +824,40 @@
     updateDoc
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-  const state = {
-    reports: [],
-    users: [],
-    selectedReportId: null
-  };
-
   // Same page size as every other paginated table (trail.html, A&A.html,
   // hazardreport.html) so the number of pages is consistent across the portal.
   const PAGE_SIZE = 10;
-  let currentPage = 1;
 
-  const tableBody = document.getElementById('userReportsTableBody');
-  const searchInput = document.getElementById('reportsSearchInput');
-  const statusFilter = document.getElementById('reportsStatusFilter');
-  const typeFilter = document.getElementById('reportsTypeFilter');
-  const dateFilter = document.getElementById('reportsDateFilter');
-  const reportsSummaryText = document.getElementById('reportsSummaryText');
-  const reportsPagination = document.getElementById('reportsPagination');
+  // Firestore collection that holds reports submitted about other users.
+  const REPORTS_COLLECTION = 'reportedUser';
 
-  const totalReportsValue = document.getElementById('totalReportsValue');
-  const pendingReportsValue = document.getElementById('pendingReportsValue');
-  const underReviewValue = document.getElementById('underReviewValue');
-  const resolvedReportsValue = document.getElementById('resolvedReportsValue');
+  const state = {
+    reportDocs: [],     // raw reportedUser snapshots
+    users: [],          // normalized `users` records, same source as usermanagement.html
+    reports: [],        // reportDocs joined with users
+    selectedReportId: null,
+    page: 1,
+    usersLoaded: false,
+    reportsLoaded: false,
+    // ?report=<doc id or report ID> opens a specific report (linked from User Management).
+    deepLinkReport: new URLSearchParams(window.location.search).get('report')
+  };
 
-  const reportsOverviewDonut = document.getElementById('reportsOverviewDonut');
-  const reportsOverviewTotal = document.getElementById('reportsOverviewTotal');
-  const reportsOverviewLegend = document.getElementById('reportsOverviewLegend');
-  const reportsOverTimeChart = document.getElementById('reportsOverTimeChart');
-  const statusDistributionDonut = document.getElementById('statusDistributionDonut');
-  const statusDistributionTotal = document.getElementById('statusDistributionTotal');
-  const statusDistributionLegend = document.getElementById('statusDistributionLegend');
+  const $ = (id) => document.getElementById(id);
 
-  const detailStatusPill = document.getElementById('detailStatusPill');
-  const detailReportId = document.getElementById('detailReportId');
-  const detailReportType = document.getElementById('detailReportType');
-  const detailReportedUserName = document.getElementById('detailReportedUserName');
-  const detailReportedUserEmail = document.getElementById('detailReportedUserEmail');
-  const detailReportedUserAvatar = document.getElementById('detailReportedUserAvatar');
-  const detailReportedByName = document.getElementById('detailReportedByName');
-  const detailReportedByEmail = document.getElementById('detailReportedByEmail');
-  const detailReportedByAvatar = document.getElementById('detailReportedByAvatar');
-  const detailLocation = document.getElementById('detailLocation');
-  const detailDateReported = document.getElementById('detailDateReported');
-  const detailDescription = document.getElementById('detailDescription');
-
+  /* =====================================================================
+     Formatting helpers
+     ===================================================================== */
   const normalizeText = (value) => String(value ?? '').trim();
-
-  const getInitials = (value) => {
-    const safeValue = normalizeText(value) || 'U';
-    return safeValue
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0].toUpperCase())
-      .join('') || 'U';
-  };
-
-  const toBadgeClass = (status) => {
-    const normalized = normalizeText(status).toLowerCase();
-    if (normalized === 'pending') return 'pending';
-    if (normalized === 'under review') return 'under-review';
-    if (normalized === 'resolved') return 'resolved';
-    if (normalized.includes('harassment')) return 'harassment';
-    if (normalized.includes('inappropriate')) return 'inappropriate';
-    if (normalized.includes('rule')) return 'rule';
-    if (normalized.includes('unsafe')) return 'unsafe';
-    if (normalized.includes('disrespectful')) return 'disrespectful';
-    return 'pending';
-  };
-
-  const formatDate = (value) => {
-    if (!value) return '—';
-
-    if (typeof value.toDate === 'function') {
-      const date = value.toDate();
-      return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    }
-
-    if (value instanceof Date) {
-      return value.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    }
-
-    if (typeof value === 'string') {
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric'
-        });
-      }
-      return value;
-    }
-
-    return '—';
-  };
-
-  const formatDateTime = (value) => {
-    if (!value) return '—';
-
-    if (typeof value.toDate === 'function') {
-      const date = value.toDate();
-      return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
-      });
-    }
-
-    if (value instanceof Date) {
-      return value.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
-      });
-    }
-
-    if (typeof value === 'string') {
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit'
-        });
-      }
-      return value;
-    }
-
-    return '—';
-  };
 
   const getFirstAvailable = (...values) => {
     for (const value of values) {
+      if (typeof value !== 'string' && typeof value !== 'number') continue;
       const text = normalizeText(value);
       if (text) return text;
     }
     return '';
   };
-
-  const getPersonData = (report, nameKeys, emailKeys) => {
-    const rawName = getFirstAvailable(
-      ...nameKeys.map((key) => report[key]),
-      ...nameKeys.map((key) => report[key]?.name),
-      ...nameKeys.map((key) => report[key]?.fullName),
-      ...nameKeys.map((key) => report[key]?.displayName),
-      ...nameKeys.map((key) => report[key]?.username)
-    );
-
-    const rawEmail = getFirstAvailable(
-      ...emailKeys.map((key) => report[key]),
-      ...emailKeys.map((key) => report[key]?.email)
-    );
-
-    return {
-      name: rawName || 'Unknown user',
-      email: rawEmail || 'No email provided'
-    };
-  };
-
-  const normalizeReport = (doc) => {
-    const data = doc.data() || {};
-
-    const reportedUser = getPersonData(
-      data,
-      ['reportedUserName', 'reportedUser', 'reportedUsername', 'reported_username', 'reportedUserDisplayName', 'reported_user_name'],
-      ['reportedUserEmail', 'reportedEmail', 'reported_user_email', 'reportedUserMail']
-    );
-
-    const reportedBy = getPersonData(
-      data,
-      ['reportedByName', 'reporterName', 'reporter', 'reportedBy', 'submittedBy', 'submittedByName', 'userName', 'username'],
-      ['reportedByEmail', 'reporterEmail', 'submittedByEmail', 'email']
-    );
-
-    return {
-      id: doc.id,
-      reportId: getFirstAvailable(data.reportId, data.reportID, data.idNumber, doc.id),
-      reportedUserId: getFirstAvailable(data.reportedUserId, data.reportedUserUid, data.reportedUid, data.reportedUserID),
-      actionLog: Array.isArray(data.actionLog) ? data.actionLog : [],
-      warningsIssued: Number(data.warningsIssued) || 0,
-      resolutionOutcome: normalizeText(data.resolutionOutcome),
-      resolutionNote: normalizeText(data.resolutionNote),
-      reportedUserName: reportedUser.name,
-      reportedUserEmail: reportedUser.email,
-      reportedByName: reportedBy.name,
-      reportedByEmail: reportedBy.email,
-      reportType: getFirstAvailable(data.reportType, data.type, data.category, data.report_category, 'User report'),
-      description: getFirstAvailable(data.description, data.details, data.message, data.reason, 'No description provided'),
-      location: getFirstAvailable(data.location, data.trail, data.trailName, data.place, data.area, 'Unknown location'),
-      status: getFirstAvailable(data.status, data.reportStatus, 'Pending'),
-      dateReported: data.dateReported || data.timestamp || data.createdAt || data.reportedAt || data.date || null
-    };
-  };
-
-  const getReportDateValue = (value) => {
-    if (!value) return null;
-
-    if (typeof value.toDate === 'function') {
-      return value.toDate();
-    }
-
-    if (value instanceof Date) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const parsed = new Date(value);
-      return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-
-    return null;
-  };
-
-  const renderOverviewChart = () => {
-    const total = state.reports.length;
-    const typeCounts = {};
-
-    state.reports.forEach((report) => {
-      const key = normalizeText(report.reportType) || 'Unspecified';
-      typeCounts[key] = (typeCounts[key] || 0) + 1;
-    });
-
-    const entries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
-    const palette = ['#d1453b', '#c9821f', '#7b4fd1', '#2f8f4e', '#2a63b5', '#93a199'];
-
-    if (!entries.length) {
-      reportsOverviewTotal.textContent = '0';
-      reportsOverviewDonut.style.background = 'conic-gradient(#dfe5df 0% 100%)';
-      reportsOverviewLegend.innerHTML = '<div class="legend-item"><span class="legend-dot" style="background:#dfe5df;"></span><span class="lname">No reports yet</span><span class="lval">0 (0%)</span></div>';
-      return;
-    }
-
-    let currentStop = 0;
-    const donutSegments = entries.map(([name, count], index) => {
-      const percentage = (count / total) * 100;
-      const start = currentStop;
-      currentStop += percentage;
-      return `${palette[index % palette.length]} ${start}% ${currentStop}%`;
-    });
-
-    reportsOverviewDonut.style.background = `conic-gradient(${donutSegments.join(', ')})`;
-    reportsOverviewTotal.textContent = total;
-    reportsOverviewLegend.innerHTML = entries.map(([name, count], index) => {
-      const percentage = total ? ((count / total) * 100).toFixed(0) : '0';
-      return `
-        <div class="legend-item">
-          <span class="legend-dot" style="background:${palette[index % palette.length]};"></span>
-          <span class="lname">${name}</span>
-          <span class="lval">${count} (${percentage}%)</span>
-        </div>
-      `;
-    }).join('');
-  };
-
-  const renderStatusDistributionChart = () => {
-    const total = state.reports.length;
-    const statusCounts = {};
-
-    state.reports.forEach((report) => {
-      const key = normalizeText(report.status) || 'Pending';
-      statusCounts[key] = (statusCounts[key] || 0) + 1;
-    });
-
-    const entries = Object.entries(statusCounts).sort((a, b) => b[1] - a[1]);
-    const palette = ['#c9821f', '#2a63b5', '#2f8f4e', '#93a199'];
-
-    if (!entries.length) {
-      statusDistributionTotal.textContent = '0';
-      statusDistributionDonut.style.background = 'conic-gradient(#dfe5df 0% 100%)';
-      statusDistributionLegend.innerHTML = '<div class="legend-item"><span class="legend-dot" style="background:#dfe5df;"></span><span class="lname">No reports yet</span><span class="lval">0 (0%)</span></div>';
-      return;
-    }
-
-    let currentStop = 0;
-    const donutSegments = entries.map(([name, count], index) => {
-      const percentage = (count / total) * 100;
-      const start = currentStop;
-      currentStop += percentage;
-      return `${palette[index % palette.length]} ${start}% ${currentStop}%`;
-    });
-
-    statusDistributionDonut.style.background = `conic-gradient(${donutSegments.join(', ')})`;
-    statusDistributionTotal.textContent = total;
-    statusDistributionLegend.innerHTML = entries.map(([name, count], index) => {
-      const percentage = total ? ((count / total) * 100).toFixed(0) : '0';
-      return `
-        <div class="legend-item">
-          <span class="legend-dot" style="background:${palette[index % palette.length]};"></span>
-          <span class="lname">${name}</span>
-          <span class="lval">${count} (${percentage}%)</span>
-        </div>
-      `;
-    }).join('');
-  };
-
-  const renderReportsOverTimeChart = () => {
-    const reportDates = state.reports
-      .map((report) => getReportDateValue(report.dateReported))
-      .filter(Boolean)
-      .sort((a, b) => a.getTime() - b.getTime());
-
-    const chartSvg = reportsOverTimeChart;
-
-    if (!reportDates.length) {
-      chartSvg.innerHTML = `
-        <text x="160" y="82" font-size="12" text-anchor="middle" fill="#93a199" font-family="Arial">No report activity yet</text>
-      `;
-      return;
-    }
-
-    const latestDate = reportDates[reportDates.length - 1];
-    const startDate = new Date(latestDate);
-    startDate.setDate(startDate.getDate() - 6);
-
-    const labels = [];
-    for (let i = 0; i < 7; i += 1) {
-      const currentDate = new Date(startDate);
-      currentDate.setDate(startDate.getDate() + i);
-      labels.push(currentDate);
-    }
-
-    const dailyCounts = labels.map((date) => {
-      const key = date.toISOString().slice(0, 10);
-      return {
-        date,
-        count: state.reports.filter((report) => {
-          const currentDate = getReportDateValue(report.dateReported);
-          return currentDate && currentDate.toISOString().slice(0, 10) === key;
-        }).length
-      };
-    });
-
-    const maxCount = Math.max(...dailyCounts.map((item) => item.count), 1);
-    const xStep = 270 / Math.max(dailyCounts.length - 1, 1);
-    const xStart = 36;
-    const yBottom = 120;
-    const yTop = 18;
-    const yHeight = yBottom - yTop;
-    const pointCoordinates = dailyCounts.map((item, index) => {
-      const x = xStart + (index * xStep);
-      const y = yBottom - ((item.count / maxCount) * yHeight);
-      return { x, y, count: item.count, date: item.date };
-    });
-
-    const polylinePoints = pointCoordinates.map((point) => `${point.x},${point.y}`).join(' ');
-
-    const axisLabels = labels.map((label, index) => {
-      const x = xStart + (index * xStep);
-      const formatted = label.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      return `<text x="${x}" y="134" font-size="8.5" fill="#93a199" font-family="Arial" text-anchor="middle">${formatted}</text>`;
-    }).join('');
-
-    const gridLines = [0, 1, 2, 3, 4].map((step) => {
-      const y = yBottom - (step * (yHeight / 4));
-      const value = Math.round((maxCount / 4) * (4 - step));
-      return `
-        <line x1="28" y1="${y}" x2="310" y2="${y}" stroke="#e7ebe7" stroke-width="1"/>
-        <text x="6" y="${y + 3}" font-size="9" fill="#93a199" font-family="Arial">${value}</text>
-      `;
-    }).join('');
-
-    const circles = pointCoordinates.map((point) => `
-      <circle cx="${point.x}" cy="${point.y}" r="3" fill="#d1453b"/>
-    `).join('');
-
-    chartSvg.innerHTML = `
-      <line x1="28" y1="10" x2="28" y2="120" stroke="#e7ebe7" stroke-width="1"/>
-      <line x1="28" y1="120" x2="310" y2="120" stroke="#e7ebe7" stroke-width="1"/>
-      ${gridLines}
-      <polyline points="${polylinePoints}" fill="none" stroke="#d1453b" stroke-width="2"/>
-      ${circles}
-      ${axisLabels}
-    `;
-  };
-
-  const renderStats = () => {
-    const total = state.reports.length;
-    const pending = state.reports.filter((report) => report.status.toLowerCase() === 'pending').length;
-    const underReview = state.reports.filter((report) => report.status.toLowerCase() === 'under review').length;
-    const resolved = state.reports.filter((report) => report.status.toLowerCase() === 'resolved').length;
-
-    totalReportsValue.textContent = total;
-    pendingReportsValue.textContent = pending;
-    underReviewValue.textContent = underReview;
-    resolvedReportsValue.textContent = resolved;
-
-    renderOverviewChart();
-    renderStatusDistributionChart();
-    renderReportsOverTimeChart();
-  };
-
-  const renderSelectedReport = () => {
-    const selectedReport = state.reports.find((report) => report.id === state.selectedReportId) || state.reports[0];
-
-    if (!selectedReport) {
-      detailStatusPill.textContent = 'No data';
-      detailReportId.textContent = '—';
-      detailReportType.textContent = '—';
-      detailReportedUserName.textContent = '—';
-      detailReportedUserEmail.textContent = '—';
-      detailReportedByName.textContent = '—';
-      detailReportedByEmail.textContent = '—';
-      detailLocation.textContent = '—';
-      detailDateReported.textContent = '—';
-      detailDescription.textContent = '—';
-      detailReportedUserAvatar.textContent = '—';
-      detailReportedByAvatar.textContent = '—';
-      syncActionButtons(null);
-      return;
-    }
-
-    const statusLabel = normalizeText(selectedReport.status) || 'Pending';
-    detailStatusPill.textContent = statusLabel;
-    detailStatusPill.style.background = statusLabel.toLowerCase() === 'resolved'
-      ? 'var(--green-bg)'
-      : statusLabel.toLowerCase() === 'under review'
-        ? 'var(--blue-bg)'
-        : 'var(--orange-bg)';
-    detailStatusPill.style.color = statusLabel.toLowerCase() === 'resolved'
-      ? 'var(--green-text)'
-      : statusLabel.toLowerCase() === 'under review'
-        ? 'var(--blue-text)'
-        : 'var(--orange-text)';
-
-    detailReportId.textContent = selectedReport.reportId;
-    detailReportType.textContent = selectedReport.reportType;
-    detailReportedUserName.textContent = selectedReport.reportedUserName;
-    detailReportedUserEmail.textContent = selectedReport.reportedUserEmail;
-    detailReportedByName.textContent = selectedReport.reportedByName;
-    detailReportedByEmail.textContent = selectedReport.reportedByEmail;
-    detailLocation.textContent = selectedReport.location;
-    detailDateReported.textContent = formatDateTime(selectedReport.dateReported);
-    detailDescription.textContent = selectedReport.description;
-
-    detailReportedUserAvatar.textContent = getInitials(selectedReport.reportedUserName);
-    detailReportedByAvatar.textContent = getInitials(selectedReport.reportedByName);
-
-    syncActionButtons(selectedReport);
-
-    // Keep the details modal in sync while it is open (live snapshot updates).
-    if (reportDetailsModal.classList.contains('open')) {
-      renderFullDetails(selectedReport);
-    }
-  };
-
-  const renderTable = () => {
-    const term = searchInput.value.trim().toLowerCase();
-    const selectedStatus = statusFilter.value;
-    const selectedType = typeFilter.value;
-
-    const filteredReports = state.reports.filter((report) => {
-      const matchesSearch = !term || [
-        report.reportId,
-        report.reportedUserName,
-        report.reportedUserEmail,
-        report.reportedByName,
-        report.reportedByEmail,
-        report.reportType,
-        report.location,
-        report.description
-      ].join(' ').toLowerCase().includes(term);
-
-      const matchesStatus = selectedStatus === 'All Status' || report.status.toLowerCase() === selectedStatus.toLowerCase();
-      const matchesType = selectedType === 'All Report Types' || report.reportType.toLowerCase() === selectedType.toLowerCase();
-
-      return matchesSearch && matchesStatus && matchesType;
-    });
-
-    if (!filteredReports.length) {
-      tableBody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--text-400);">No reports found for the selected filters.</td></tr>';
-      reportsSummaryText.textContent = 'Showing 0 reports';
-      renderPagination(1);
-      return;
-    }
-
-    const totalPages = Math.max(1, Math.ceil(filteredReports.length / PAGE_SIZE));
-    if (currentPage > totalPages) currentPage = totalPages;
-    const startIdx = (currentPage - 1) * PAGE_SIZE;
-    const pageReports = filteredReports.slice(startIdx, startIdx + PAGE_SIZE);
-
-    if (!state.selectedReportId || !filteredReports.some((report) => report.id === state.selectedReportId)) {
-      state.selectedReportId = pageReports[0].id;
-    }
-
-    tableBody.innerHTML = pageReports.map((report) => `
-      <tr data-report-id="${report.id}" class="${report.id === state.selectedReportId ? 'selected' : ''}">
-        <td><div class="report-id-cell"><span class="flag" style="background:${report.status.toLowerCase() === 'resolved' ? '#2f8f4e' : report.status.toLowerCase() === 'under review' ? '#2a63b5' : '#d1453b'};"></span>${report.reportId}</div></td>
-        <td>
-          <div class="person-cell">
-            <div class="p-avatar" style="background:linear-gradient(160deg,#e08fa0,#c24a63);">${getInitials(report.reportedUserName)}</div>
-            <div><div class="p-name">${report.reportedUserName}</div><div class="p-email">${report.reportedUserEmail}</div></div>
-          </div>
-        </td>
-        <td>
-          <div class="person-cell">
-            <div class="p-avatar" style="background:linear-gradient(160deg,#7fa8d8,#3a5f9e);">${getInitials(report.reportedByName)}</div>
-            <div><div class="p-name">${report.reportedByName}</div><div class="p-email">${report.reportedByEmail}</div></div>
-          </div>
-        </td>
-        <td><span class="badge ${toBadgeClass(report.reportType)}">${report.reportType}</span></td>
-        <td><span class="desc-preview">${report.description}</span></td>
-        <td>${report.location}</td>
-        <td>${formatDate(report.dateReported)}<br><span style="color:var(--text-400);font-size:10.5px;">${formatDateTime(report.dateReported).split(',').slice(1).join(',').trim() || ''}</span></td>
-        <td><span class="badge ${toBadgeClass(report.status)}">${report.status}</span></td>
-        <td><div class="row-actions"><button class="icon-btn" type="button" data-view-report="${report.id}" title="View full details">👁</button><button class="icon-btn" type="button">⋮</button></div></td>
-      </tr>
-    `).join('');
-
-    tableBody.querySelectorAll('tr[data-report-id]').forEach((row) => {
-      row.addEventListener('click', () => {
-        state.selectedReportId = row.dataset.reportId;
-        renderTable();
-        renderSelectedReport();
-      });
-    });
-
-    tableBody.querySelectorAll('[data-view-report]').forEach((button) => {
-      button.addEventListener('click', (event) => {
-        event.stopPropagation();
-        state.selectedReportId = button.dataset.viewReport;
-        renderTable();
-        openReportDetails();
-      });
-    });
-
-    reportsSummaryText.textContent =
-      `Showing ${startIdx + 1} to ${Math.min(startIdx + PAGE_SIZE, filteredReports.length)} of ${filteredReports.length} reports`;
-    renderPagination(totalPages);
-    renderSelectedReport();
-  };
-
-  // Mirrors the prev / numbered / next control used by trail.html and
-  // hazardreport.html.
-  const renderPagination = (totalPages) => {
-    if (!reportsPagination) return;
-
-    if (totalPages <= 1) {
-      reportsPagination.innerHTML = '';
-      return;
-    }
-
-    reportsPagination.innerHTML = '';
-
-    const addButton = (label, page, { disabled = false, active = false } = {}) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.innerHTML = label;
-      button.disabled = disabled;
-      if (active) button.classList.add('active');
-      if (!disabled && !active) {
-        button.addEventListener('click', () => { currentPage = page; renderTable(); });
-      }
-      reportsPagination.appendChild(button);
-    };
-
-    addButton('&lsaquo;', currentPage - 1, { disabled: currentPage === 1 });
-    for (let page = 1; page <= totalPages; page++) {
-      addButton(String(page), page, { active: page === currentPage });
-    }
-    addButton('&rsaquo;', currentPage + 1, { disabled: currentPage === totalPages });
-  };
-
-  /* ---------------- Report actions ---------------- */
-
-  const reportDetailsModal = document.getElementById('reportDetailsModal');
-  const contactUserModal = document.getElementById('contactUserModal');
-  const warnUserModal = document.getElementById('warnUserModal');
-  const suspendUserModal = document.getElementById('suspendUserModal');
-  const resolveReportModal = document.getElementById('resolveReportModal');
-
-  const viewDetailsBtn = document.getElementById('viewDetailsBtn');
-  const contactUserBtn = document.getElementById('contactUserBtn');
-  const warnUserBtn = document.getElementById('warnUserBtn');
-  const suspendUserBtn = document.getElementById('suspendUserBtn');
-  const resolveReportBtn = document.getElementById('resolveReportBtn');
-  const actionHint = document.getElementById('actionHint');
-  const toastStack = document.getElementById('toastStack');
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;',
@@ -1300,6 +868,974 @@
   })[char]);
 
   const hasValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeText(value));
+
+  const toDate = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value.toDate === 'function') return value.toDate();
+    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+    if (typeof value === 'object' && typeof value.seconds === 'number') return new Date(value.seconds * 1000);
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const formatDate = (value) => {
+    const date = toDate(value);
+    return date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+  };
+
+  const formatTime = (value) => {
+    const date = toDate(value);
+    return date ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+  };
+
+  const formatDateTime = (value) => {
+    const date = toDate(value);
+    if (!date) return typeof value === 'string' && value.trim() ? value : '—';
+    return `${formatDate(date)} ${formatTime(date)}`;
+  };
+
+  const getInitials = (value) => {
+    const safeValue = normalizeText(value).replace(/[^\p{L}\p{N}\s_.-]/gu, '') || 'U';
+    const parts = safeValue.split(/[\s_.-]+/).filter(Boolean);
+    return (parts.length > 1 ? parts[0][0] + parts[1][0] : safeValue.slice(0, 2)).toUpperCase();
+  };
+
+  const AVATAR_TONES = [
+    ['#7fb08f', '#2f6b45'], ['#e08fa0', '#c24a63'], ['#7fa8d8', '#3a5f9e'], ['#d9a86c', '#9c6424'],
+    ['#a99be0', '#5c46b0'], ['#6fc3c0', '#237a77'], ['#e3a08a', '#b0543a'], ['#9fb0c0', '#4a5f70']
+  ];
+
+  const avatarTone = (seed) => {
+    let hash = 0;
+    for (const char of normalizeText(seed)) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
+    const [from, to] = AVATAR_TONES[Math.abs(hash) % AVATAR_TONES.length];
+    return `linear-gradient(160deg,${from},${to})`;
+  };
+
+  const avatarHtml = (person) => {
+    const image = person.photo
+      ? `<img src="${escapeHtml(person.photo)}" alt="" loading="lazy" onerror="this.remove()">`
+      : '';
+    return `<div class="p-avatar" style="background:${avatarTone(person.email || person.name)}">${escapeHtml(getInitials(person.name))}${image}</div>`;
+  };
+
+  /* =====================================================================
+     Report type and status vocabularies
+     ===================================================================== */
+  const REPORT_TYPES = [
+    { key: 'harassment', label: 'Harassment', pattern: /harass|bully|threat|abus/, chart: '#e0473a', bg: '#fde8e5', text: '#d1453b' },
+    { key: 'inappropriate', label: 'Inappropriate Behavior', pattern: /inappropriate|noise|loud|drunk|indecen/, chart: '#f08a24', bg: '#fdf0dc', text: '#d9791a' },
+    { key: 'rule', label: 'Rule Violation', pattern: /rule|violat|litter|trash|leave no trace|permit|restricted/, chart: '#7b4fd1', bg: '#f1eafb', text: '#6b4cc9' },
+    { key: 'unsafe', label: 'Unsafe Behavior', pattern: /unsafe|danger|reckless|risk|safety/, chart: '#2f8f4e', bg: '#fde8e5', text: '#d1453b' },
+    { key: 'disrespectful', label: 'Disrespectful Conduct', pattern: /disrespect|rude|insult|conduct/, chart: '#e8b720', bg: '#fdf0dc', text: '#d9791a' }
+  ];
+  const OTHER_TYPE = { key: 'other', label: 'Other', chart: '#93a199', bg: '#eef1ec', text: '#5b6b60' };
+
+  const resolveType = (raw) => {
+    const text = normalizeText(raw);
+    const lower = text.toLowerCase();
+    const known = lower && REPORT_TYPES.find((type) => type.pattern.test(lower));
+    if (known) return known;
+    // Keep unrecognised categories visible under their own label.
+    return { ...OTHER_TYPE, key: lower ? `other:${lower}` : 'other', label: text || 'Other' };
+  };
+
+  const STATUSES = {
+    pending: { key: 'pending', label: 'Pending', chart: '#e8a63c' },
+    review: { key: 'review', label: 'Under Review', chart: '#2a63b5' },
+    resolved: { key: 'resolved', label: 'Resolved', chart: '#2f8f4e' }
+  };
+
+  const resolveStatus = (raw) => {
+    const lower = normalizeText(raw).toLowerCase();
+    if (/resolv|closed|done|complete|dismiss/.test(lower)) return STATUSES.resolved;
+    if (/review|investigat|progress|process|ongoing/.test(lower)) return STATUSES.review;
+    return STATUSES.pending;
+  };
+
+  /* =====================================================================
+     Users — normalized exactly like usermanagement.html so the names,
+     roles and statuses shown here match the User Management table.
+     ===================================================================== */
+  const pickPhoto = (data) => getFirstAvailable(
+    data.photoURL, data.photoUrl, data.profilePhoto, data.profileImage, data.profilePicture,
+    data.avatarUrl, data.avatar, data.imageUrl
+  );
+
+  const normalizeUser = (snapshotDoc) => {
+    const data = snapshotDoc.data() || {};
+    const firstName = normalizeText(data.firstName || data.firstname);
+    const lastName = normalizeText(data.lastName || data.lastname);
+    const username = getFirstAvailable(data.username, data.userName);
+
+    return {
+      id: snapshotDoc.id,
+      uid: getFirstAvailable(data.uid, data.userId, snapshotDoc.id),
+      name: getFirstAvailable(
+        data.fullName,
+        data.fullname,
+        data.displayName,
+        data.name,
+        [firstName, lastName].filter(Boolean).join(' ')
+      ) || username || 'Unnamed user',
+      username,
+      email: getFirstAvailable(data.email, data.Email),
+      role: getFirstAvailable(data.role, data.Role, 'Hiker'),
+      status: getFirstAvailable(data.status, data.Status, 'Active'),
+      warnings: Number(data.warnings ?? data.warningCount ?? 0) || 0,
+      photo: pickPhoto(data)
+    };
+  };
+
+  let userIndex = { byId: new Map(), byEmail: new Map(), byUsername: new Map(), byName: new Map() };
+
+  const buildUserIndex = () => {
+    const index = { byId: new Map(), byEmail: new Map(), byUsername: new Map(), byName: new Map() };
+    const add = (map, key, user) => {
+      const normalized = normalizeText(key).toLowerCase();
+      if (normalized && !map.has(normalized)) map.set(normalized, user);
+    };
+    state.users.forEach((user) => {
+      add(index.byId, user.id, user);
+      add(index.byId, user.uid, user);
+      add(index.byEmail, user.email, user);
+      add(index.byUsername, user.username, user);
+      if (user.name !== 'Unnamed user') add(index.byName, user.name, user);
+    });
+    userIndex = index;
+  };
+
+  // Reports identify people loosely, so try uid, then email, then username, then name.
+  const findUser = (ref) => {
+    const lookup = (map, values) => {
+      for (const value of values) {
+        const hit = map.get(normalizeText(value).toLowerCase());
+        if (hit) return hit;
+      }
+      return null;
+    };
+    return lookup(userIndex.byId, ref.ids)
+      || lookup(userIndex.byEmail, ref.emails)
+      || lookup(userIndex.byUsername, ref.usernames)
+      || lookup(userIndex.byName, ref.names)
+      || null;
+  };
+
+  /* =====================================================================
+     Reports
+     ===================================================================== */
+  // Collects every identifier a report stores for one person. A field may hold
+  // a plain string (uid, email, username or name) or an embedded object.
+  const collectPersonRef = (data, fields) => {
+    const ref = { ids: [], emails: [], usernames: [], names: [], photo: '' };
+    const pushAll = (value) => {
+      const text = normalizeText(value);
+      if (!text) return;
+      if (hasValidEmail(text)) ref.emails.push(text);
+      ref.ids.push(text);
+      ref.usernames.push(text);
+      ref.names.push(text);
+    };
+
+    fields.ids.forEach((key) => { if (typeof data[key] === 'string') ref.ids.push(data[key]); });
+    fields.emails.forEach((key) => { if (typeof data[key] === 'string') ref.emails.push(data[key]); });
+    fields.usernames.forEach((key) => { if (typeof data[key] === 'string') ref.usernames.push(data[key]); });
+    fields.names.forEach((key) => { if (typeof data[key] === 'string') ref.names.push(data[key]); });
+    fields.mixed.forEach((key) => {
+      const value = data[key];
+      if (typeof value === 'string') {
+        pushAll(value);
+      } else if (value && typeof value === 'object') {
+        [value.uid, value.id, value.userId].forEach((item) => { if (typeof item === 'string') ref.ids.push(item); });
+        if (typeof value.email === 'string') ref.emails.push(value.email);
+        if (typeof value.username === 'string') ref.usernames.push(value.username);
+        [value.fullName, value.name, value.displayName].forEach((item) => { if (typeof item === 'string') ref.names.push(item); });
+        ref.photo = ref.photo || pickPhoto(value);
+      }
+    });
+
+    ['ids', 'emails', 'usernames', 'names'].forEach((key) => {
+      ref[key] = [...new Set(ref[key].map(normalizeText).filter(Boolean))];
+    });
+    return ref;
+  };
+
+  const REPORTED_FIELDS = {
+    ids: ['reportedUserId', 'reportedUserUid', 'reportedUid', 'reportedUserID', 'targetUserId'],
+    emails: ['reportedUserEmail', 'reportedEmail', 'reported_user_email', 'reportedUserMail'],
+    usernames: ['reportedUsername', 'reportedUserUsername', 'reported_username'],
+    names: ['reportedUserName', 'reportedUserDisplayName', 'reported_user_name', 'reportedName'],
+    mixed: ['reportedUser', 'target']
+  };
+
+  const REPORTER_FIELDS = {
+    ids: ['reportedById', 'reporterId', 'reporterUid', 'submittedById', 'submittedByUid', 'userId', 'uid', 'createdBy'],
+    emails: ['reportedByEmail', 'reporterEmail', 'submittedByEmail', 'userEmail', 'email'],
+    usernames: ['reporterUsername', 'reportedByUsername', 'username'],
+    names: ['reportedByName', 'reporterName', 'submittedByName', 'userName', 'fullName'],
+    mixed: ['reportedBy', 'reporter', 'submittedBy']
+  };
+
+  const toPerson = (ref) => {
+    const user = findUser(ref);
+    const fallbackEmail = ref.emails.find(hasValidEmail) || '';
+    const fallbackName = ref.names.find((name) => !hasValidEmail(name)) || ref.usernames[0] || '';
+    return {
+      user,
+      name: user?.name || fallbackName || fallbackEmail || 'Unknown user',
+      username: user?.username || '',
+      email: user?.email || fallbackEmail || 'No email provided',
+      photo: user?.photo || ref.photo || '',
+      ref
+    };
+  };
+
+  const IMAGE_EXT = /\.(png|jpe?g|gif|webp|bmp|heic|avif)(\?|#|$)/i;
+  const FILE_EXT = /\.(pdf|docx?|xlsx?|mp4|mov|webm|mp3|m4a|wav|zip)(\?|#|$)/i;
+
+  const collectAttachments = (data) => {
+    const found = [];
+    const push = (item, name = '') => {
+      if (!item) return;
+      if (Array.isArray(item)) { item.forEach((entry) => push(entry)); return; }
+      if (typeof item === 'object') {
+        push(item.url || item.downloadUrl || item.downloadURL || item.src || item.photoUrl || item.imageUrl || item.link,
+          item.name || item.fileName || item.label || '');
+        return;
+      }
+      const url = normalizeText(item);
+      if (!/^(https?:\/\/|data:image\/)/i.test(url)) return;
+      let decoded = url.split('?')[0];
+      try { decoded = decodeURIComponent(decoded); } catch { /* malformed %-escape: keep it raw */ }
+      found.push({
+        url,
+        name: name || decoded.split('/').pop() || 'Attachment',
+        isImage: url.startsWith('data:image/') || IMAGE_EXT.test(decoded) || (!FILE_EXT.test(decoded) && /firebasestorage|googleusercontent|cloudinary|imgur/i.test(url))
+      });
+    };
+
+    ['photoUrl', 'photoURL', 'photoUrls', 'photos', 'imageUrl', 'imageURL', 'imageUrls', 'images',
+      'evidence', 'evidenceUrl', 'evidenceUrls', 'attachments', 'attachmentUrls', 'media', 'proof']
+      .forEach((key) => push(data[key]));
+
+    const seen = new Set();
+    return found.filter((file) => (seen.has(file.url) ? false : seen.add(file.url)));
+  };
+
+  const readLocation = (data) => {
+    const raw = [data.location, data.trail, data.trailName, data.place, data.area, data.locationName]
+      .find((value) => (typeof value === "string" ? value.trim() : value));
+    let text = '';
+    if (typeof raw === 'string') {
+      text = raw;
+    } else if (raw && typeof raw === 'object') {
+      if (typeof raw.latitude === 'number' && typeof raw.longitude === 'number') {
+        text = `${raw.latitude.toFixed(5)}, ${raw.longitude.toFixed(5)}`;
+      } else {
+        text = getFirstAvailable(raw.name, raw.trail, raw.trailName, raw.label, raw.address);
+      }
+    }
+    text = normalizeText(text);
+    const section = getFirstAvailable(data.section, data.checkpoint, data.segment);
+    if (text && section && !text.toLowerCase().includes(section.toLowerCase())) text = `${text} (${section})`;
+    return text || 'Unknown location';
+  };
+
+  const parseReportDoc = (snapshotDoc) => {
+    const data = snapshotDoc.data() || {};
+    const rawDate = data.dateReported || data.timestamp || data.createdAt || data.reportedAt || data.date;
+    const date = toDate(rawDate);
+    // Strings like "September 16, 2026" carry no time of day, so none is shown.
+    const dateHasTime = Boolean(date) && !(typeof rawDate === 'string' && !/\d:\d/.test(rawDate));
+    const storedId = getFirstAvailable(data.reportId, data.reportID, data.reportedId, data.referenceId, data.idNumber);
+    const year = (date || new Date()).getFullYear();
+    const type = resolveType(getFirstAvailable(data.reportType, data.type, data.category, data.report_category));
+    const statusRaw = getFirstAvailable(data.status, data.reportStatus, 'Pending');
+    const status = resolveStatus(statusRaw);
+
+    return {
+      id: snapshotDoc.id,
+      // A bare number such as "002" is shown as UR-<year>-002; otherwise the stored
+      // ID is used as-is, falling back to year + the start of the doc id.
+      reportId: /^\d+$/.test(storedId)
+        ? `UR-${year}-${storedId.padStart(3, '0')}`
+        : storedId || `UR-${year}-${snapshotDoc.id.slice(0, 4).toUpperCase()}`,
+      storedId,
+      dateHasTime,
+      type,
+      description: getFirstAvailable(data.description, data.details, data.message, data.reason, data.comment) || 'No description provided',
+      location: readLocation(data),
+      status,
+      date,
+      resolvedAt: toDate(data.resolvedAt),
+      resolutionOutcome: normalizeText(data.resolutionOutcome),
+      resolutionNote: normalizeText(data.resolutionNote),
+      resolvedBy: normalizeText(data.resolvedBy),
+      actionLog: Array.isArray(data.actionLog) ? data.actionLog : [],
+      warningsIssued: Number(data.warningsIssued) || 0,
+      attachments: collectAttachments(data),
+      reportedRef: collectPersonRef(data, REPORTED_FIELDS),
+      reporterRef: collectPersonRef(data, REPORTER_FIELDS)
+    };
+  };
+
+  // Joins reports with users. Runs whenever either collection changes so a
+  // late-arriving users snapshot still links every report.
+  const rebuildReports = () => {
+    state.reports = state.reportDocs.map((report) => ({
+      ...report,
+      reportedUser: toPerson(report.reportedRef),
+      reportedBy: toPerson(report.reporterRef)
+    }));
+  };
+
+  const reportDateLabel = (report) => {
+    if (!report.date) return 'Date not recorded';
+    return report.dateHasTime ? formatDateTime(report.date) : formatDate(report.date);
+  };
+
+  const reportsAgainst = (user) => (user ? state.reports.filter((report) => report.reportedUser.user?.id === user.id) : []);
+
+  /* =====================================================================
+     Stat cards
+     ===================================================================== */
+  const monthRange = (offset) => {
+    const now = new Date();
+    return [new Date(now.getFullYear(), now.getMonth() + offset, 1), new Date(now.getFullYear(), now.getMonth() + offset + 1, 1)];
+  };
+  const inRange = (date, [start, end]) => Boolean(date) && date >= start && date < end;
+
+  const setTrend = (id, current, previous) => {
+    const element = $(id);
+    let tone = 'flat';
+    let icon = 'fa-minus';
+    let text = 'No change vs last month';
+
+    if (!previous && current) {
+      tone = 'up'; icon = 'fa-caret-up';
+      text = `${current} new this month`;
+    } else if (previous) {
+      const change = Math.round(((current - previous) / previous) * 100);
+      if (change !== 0) {
+        tone = change > 0 ? 'up' : 'down';
+        icon = change > 0 ? 'fa-caret-up' : 'fa-caret-down';
+      }
+      text = `${Math.abs(change)}% vs last month`;
+    }
+
+    element.className = `stat-meta ${tone}`;
+    element.innerHTML = `<i class="fa-solid ${icon}"></i><span>${escapeHtml(text)}</span>`;
+  };
+
+  const renderStats = () => {
+    const thisMonth = monthRange(0);
+    const lastMonth = monthRange(-1);
+    const count = (list, range, pickDate = (report) => report.date) => list.filter((report) => inRange(pickDate(report), range)).length;
+    const byStatus = (key) => state.reports.filter((report) => report.status.key === key);
+
+    const pending = byStatus('pending');
+    const review = byStatus('review');
+    const resolved = byStatus('resolved');
+    const resolvedDate = (report) => report.resolvedAt || report.date;
+
+    $('totalReportsValue').textContent = state.reports.length.toLocaleString();
+    $('pendingReportsValue').textContent = pending.length.toLocaleString();
+    $('underReviewValue').textContent = review.length.toLocaleString();
+    $('resolvedReportsValue').textContent = resolved.length.toLocaleString();
+
+    setTrend('totalReportsTrend', count(state.reports, thisMonth), count(state.reports, lastMonth));
+    setTrend('pendingReportsTrend', count(pending, thisMonth), count(pending, lastMonth));
+    setTrend('underReviewTrend', count(review, thisMonth), count(review, lastMonth));
+    setTrend('resolvedReportsTrend', count(resolved, thisMonth, resolvedDate), count(resolved, lastMonth, resolvedDate));
+  };
+
+  /* =====================================================================
+     Filters
+     ===================================================================== */
+  const searchInput = $('reportsSearchInput');
+  const statusFilter = $('reportsStatusFilter');
+  const typeFilter = $('reportsTypeFilter');
+  const dateFilter = $('reportsDateFilter');
+  const locationFilter = $('reportsLocationFilter');
+  const linkFilter = $('reportsLinkFilter');
+  const sortFilter = $('reportsSortFilter');
+  const filtersToggleBtn = $('filtersToggleBtn');
+  const moreFilters = $('moreFilters');
+
+  const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  const dateRangeFor = (value) => {
+    const now = new Date();
+    const tomorrow = new Date(startOfDay(now).getTime() + 86400000);
+    if (value === 'today') return [startOfDay(now), tomorrow];
+    if (value === '7' || value === '30' || value === '90') {
+      return [new Date(startOfDay(now).getTime() - (Number(value) - 1) * 86400000), tomorrow];
+    }
+    if (value === 'month') return monthRange(0);
+    if (value === 'lastMonth') return monthRange(-1);
+    if (value === 'year') return [new Date(now.getFullYear(), 0, 1), new Date(now.getFullYear() + 1, 0, 1)];
+    return null;
+  };
+
+  const rebuildSelect = (select, allLabel, options) => {
+    const previous = select.value;
+    select.innerHTML = `<option value="all">${escapeHtml(allLabel)}</option>`
+      + options.map(({ value, label }) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join('');
+    select.value = options.some((option) => option.value === previous) ? previous : 'all';
+  };
+
+  const syncFilterOptions = () => {
+    const extraTypes = new Map();
+    state.reports.forEach((report) => {
+      if (!REPORT_TYPES.includes(report.type)) extraTypes.set(report.type.key, report.type.label);
+    });
+    rebuildSelect(typeFilter, 'All Report Types', [
+      ...REPORT_TYPES.map((type) => ({ value: type.key, label: type.label })),
+      ...[...extraTypes].map(([value, label]) => ({ value, label }))
+    ]);
+
+    const locations = [...new Set(state.reports.map((report) => report.location).filter((location) => location !== 'Unknown location'))].sort();
+    rebuildSelect(locationFilter, 'All Locations', locations.map((location) => ({ value: location, label: location })));
+  };
+
+  const updateFiltersCount = () => {
+    const active = [locationFilter.value !== 'all', linkFilter.value !== 'all', sortFilter.value !== 'newest'].filter(Boolean).length;
+    $('filtersCount').textContent = active;
+    $('filtersCount').hidden = !active;
+  };
+
+  const getFilteredReports = () => {
+    const term = searchInput.value.trim().toLowerCase();
+    const range = dateRangeFor(dateFilter.value);
+
+    return state.reports
+      .filter((report) => {
+        const haystack = [
+          report.reportId, report.storedId, report.id,
+          report.reportedUser.name, report.reportedUser.email, report.reportedUser.username,
+          report.reportedBy.name, report.reportedBy.email, report.reportedBy.username,
+          report.type.label, report.status.label, report.location, report.description
+        ].join(' ').toLowerCase();
+
+        return (!term || haystack.includes(term))
+          && (statusFilter.value === 'all' || report.status.key === statusFilter.value)
+          && (typeFilter.value === 'all' || report.type.key === typeFilter.value)
+          && (!range || inRange(report.date, range))
+          && (locationFilter.value === 'all' || report.location === locationFilter.value)
+          && (linkFilter.value === 'all' || (linkFilter.value === 'linked') === Boolean(report.reportedUser.user));
+      })
+      .sort((a, b) => {
+        const diff = (b.date?.getTime() || 0) - (a.date?.getTime() || 0);
+        return sortFilter.value === 'oldest' ? -diff : diff;
+      });
+  };
+
+  /* =====================================================================
+     Table
+     ===================================================================== */
+  const tableBody = $('userReportsTableBody');
+  const reportsSummaryText = $('reportsSummaryText');
+  const reportsPagination = $('reportsPagination');
+
+  const personCell = (person) => `
+    <div class="person-cell" title="${escapeHtml(person.user ? `${person.name} · ${person.user.role} · ${person.user.status}` : `${person.name} (no matching account)`)}">
+      ${avatarHtml(person)}
+      <div class="p-text"><div class="p-name">${escapeHtml(person.name)}</div><div class="p-email">${escapeHtml(person.email)}</div></div>
+    </div>`;
+
+  const renderTable = () => {
+    closeRowMenu();
+    if (!state.reportsLoaded) return;
+    const filtered = getFilteredReports();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if (state.page > totalPages) state.page = totalPages;
+
+    if (!filtered.length) {
+      const message = state.reports.length ? 'No reports match the selected filters.' : 'No user reports have been submitted yet.';
+      tableBody.innerHTML = `<tr><td colspan="9" class="table-empty"><i class="fa-regular fa-folder-open"></i>${message}</td></tr>`;
+      reportsSummaryText.textContent = 'Showing 0 reports';
+      renderPagination(1);
+      renderSelectedReport();
+      return;
+    }
+
+    const start = (state.page - 1) * PAGE_SIZE;
+    const pageReports = filtered.slice(start, start + PAGE_SIZE);
+
+    if (!state.selectedReportId || !filtered.some((report) => report.id === state.selectedReportId)) {
+      state.selectedReportId = pageReports[0].id;
+    }
+
+    tableBody.innerHTML = pageReports.map((report) => `
+      <tr data-report-id="${escapeHtml(report.id)}" class="${report.id === state.selectedReportId ? 'selected' : ''}">
+        <td><div class="rid"><span class="rid-flag" style="background:${report.type.bg};color:${report.type.text};"><i class="fa-solid fa-flag"></i></span><span class="rid-text">${escapeHtml(report.reportId)}</span></div></td>
+        <td>${personCell(report.reportedUser)}</td>
+        <td>${personCell(report.reportedBy)}</td>
+        <td><span class="badge" style="background:${report.type.bg};color:${report.type.text};">${escapeHtml(report.type.label)}</span></td>
+        <td><span class="desc-clamp" title="${escapeHtml(report.description)}">${escapeHtml(report.description)}</span></td>
+        <td><span class="loc-text">${escapeHtml(report.location)}</span></td>
+        <td class="stacked-date">${report.date ? `<strong>${formatDate(report.date)}</strong>${report.dateHasTime ? `<span>${formatTime(report.date)}</span>` : ''}` : '<span>—</span>'}</td>
+        <td><span class="badge status ${report.status.key}">${report.status.label}</span></td>
+        <td>
+          <div class="row-actions">
+            <button class="icon-btn" type="button" data-row-action="view" aria-label="View full details" title="View full details"><i class="fa-regular fa-eye"></i></button>
+            <button class="icon-btn" type="button" data-row-action="menu" aria-label="More actions" title="More actions"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    reportsSummaryText.textContent =
+      `Showing ${start + 1} to ${start + pageReports.length} of ${filtered.length.toLocaleString()} report${filtered.length === 1 ? '' : 's'}`;
+    renderPagination(totalPages);
+    renderSelectedReport();
+    syncTableScroll();
+  };
+
+  const selectReport = (reportId) => {
+    state.selectedReportId = reportId;
+    tableBody.querySelectorAll('tr[data-report-id]').forEach((row) => {
+      row.classList.toggle('selected', row.dataset.reportId === reportId);
+    });
+    renderSelectedReport();
+  };
+
+  tableBody.addEventListener('click', (event) => {
+    const row = event.target.closest('tr[data-report-id]');
+    if (!row) return;
+    const action = event.target.closest('[data-row-action]')?.dataset.rowAction;
+
+    selectReport(row.dataset.reportId);
+    if (action === 'view') openReportDetails();
+    if (action === 'menu') {
+      event.stopPropagation();
+      toggleRowMenu(event.target.closest('[data-row-action]'));
+    }
+  });
+
+  // Prev / numbered / next with gaps, like the User Management pager.
+  const renderPagination = (totalPages) => {
+    reportsPagination.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const addButton = (label, page, { disabled = false, active = false, aria = '' } = {}) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.innerHTML = label;
+      button.disabled = disabled;
+      if (aria) button.setAttribute('aria-label', aria);
+      if (active) {
+        button.classList.add('active');
+        button.setAttribute('aria-current', 'page');
+      }
+      if (!disabled && !active) {
+        button.addEventListener('click', () => { state.page = page; renderTable(); });
+      }
+      reportsPagination.appendChild(button);
+    };
+
+    addButton('&lsaquo;', state.page - 1, { disabled: state.page === 1, aria: 'Previous page' });
+
+    const shown = [...new Set([1, 2, state.page - 1, state.page, state.page + 1, totalPages - 1, totalPages])]
+      .filter((page) => page >= 1 && page <= totalPages)
+      .sort((a, b) => a - b);
+
+    let previous = 0;
+    shown.forEach((page) => {
+      if (previous && page - previous > 1) {
+        const gap = document.createElement('span');
+        gap.className = 'dots';
+        gap.textContent = '…';
+        reportsPagination.appendChild(gap);
+      }
+      addButton(String(page), page, { active: page === state.page });
+      previous = page;
+    });
+
+    addButton('&rsaquo;', state.page + 1, { disabled: state.page === totalPages, aria: 'Next page' });
+  };
+
+  /* =====================================================================
+     Row menu
+     ===================================================================== */
+  let openMenu = null;
+
+  const closeRowMenu = () => {
+    if (!openMenu) return;
+    openMenu.menu.remove();
+    openMenu.button.classList.remove('open');
+    openMenu = null;
+  };
+
+  const toggleRowMenu = (button) => {
+    const sameButton = openMenu?.button === button;
+    closeRowMenu();
+    if (sameButton) return;
+
+    const report = getSelectedReport();
+    if (!report) return;
+    const linkedUser = report.reportedUser.user;
+    const isResolved = report.status.key === 'resolved';
+
+    const menu = document.createElement('div');
+    menu.className = 'row-menu';
+    menu.setAttribute('role', 'menu');
+    menu.innerHTML = `
+      <button type="button" data-menu="view"><i class="fa-regular fa-eye"></i>View full details</button>
+      ${report.status.key === 'pending' ? '<button type="button" data-menu="review"><i class="fa-solid fa-magnifying-glass"></i>Mark as under review</button>' : ''}
+      ${linkedUser ? `<a href="usermanagement.html?user=${encodeURIComponent(linkedUser.id)}"><i class="fa-solid fa-user"></i>Open in User Management</a>` : ''}
+      <hr>
+      <button type="button" data-menu="contact" ${hasValidEmail(report.reportedUser.email) ? '' : 'disabled'}><i class="fa-solid fa-phone"></i>Contact reported user</button>
+      <button type="button" data-menu="warn"><i class="fa-solid fa-triangle-exclamation"></i>Warn user</button>
+      <button type="button" data-menu="suspend" class="danger" ${linkedUser ? '' : 'disabled'}><i class="fa-solid fa-circle-xmark"></i>Suspend user</button>
+      <button type="button" data-menu="resolve" ${isResolved ? 'disabled' : ''}><i class="fa-regular fa-circle-check"></i>${isResolved ? 'Already resolved' : 'Mark as resolved'}</button>
+    `;
+    document.body.appendChild(menu);
+
+    const rect = button.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    const top = rect.bottom + 6 + menuRect.height > window.innerHeight ? rect.top - menuRect.height - 6 : rect.bottom + 6;
+    menu.style.top = `${Math.max(8, top)}px`;
+    menu.style.left = `${Math.max(8, Math.min(rect.right - menuRect.width, window.innerWidth - menuRect.width - 8))}px`;
+
+    menu.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const choice = event.target.closest('[data-menu]')?.dataset.menu;
+      if (!choice) return;
+      closeRowMenu();
+      if (choice === 'view') openReportDetails();
+      if (choice === 'review') markUnderReview();
+      if (choice === 'contact') contactUserBtn.click();
+      if (choice === 'warn') warnUserBtn.click();
+      if (choice === 'suspend') suspendUserBtn.click();
+      if (choice === 'resolve') resolveReportBtn.click();
+    });
+
+    button.classList.add('open');
+    openMenu = { menu, button };
+  };
+
+  document.addEventListener('click', closeRowMenu);
+  window.addEventListener('resize', closeRowMenu);
+  document.addEventListener('scroll', closeRowMenu, true);
+
+  /* =====================================================================
+     Charts
+     ===================================================================== */
+  const periodSelect = $('periodSelect');
+
+  const chartRange = () => {
+    const value = periodSelect.value;
+    if (value !== 'all') return dateRangeFor(value);
+    const dates = state.reports.map((report) => report.date).filter(Boolean);
+    const now = new Date();
+    const first = dates.length ? new Date(Math.min(...dates.map((date) => date.getTime()))) : now;
+    return [new Date(first.getFullYear(), first.getMonth(), 1), new Date(startOfDay(now).getTime() + 86400000)];
+  };
+
+  const rangeLabel = ([start, end]) => {
+    const last = new Date(Math.min(end.getTime(), Date.now()) - 1);
+    const sameYear = start.getFullYear() === last.getFullYear();
+    const opts = { month: 'short', day: 'numeric' };
+    return `${start.toLocaleDateString('en-US', sameYear ? opts : { ...opts, year: 'numeric' })} – ${last.toLocaleDateString('en-US', { ...opts, year: 'numeric' })}`;
+  };
+
+  const emptyChart = (message) => {
+    const offerAllTime = periodSelect.value !== 'all' && state.reports.length;
+    return `<div class="chart-empty">${escapeHtml(message)}${offerAllTime ? '<button type="button" data-show-all-time>Show all time</button>' : ''}</div>`;
+  };
+
+  document.querySelector('.charts-panel').addEventListener('click', (event) => {
+    if (!event.target.closest('[data-show-all-time]')) return;
+    periodSelect.value = 'all';
+    renderCharts();
+  });
+
+  const donutHtml = (segments, total) => {
+    const radius = 46;
+    const circumference = 2 * Math.PI * radius;
+    const visible = segments.filter((segment) => segment.value > 0);
+    const gap = visible.length > 1 ? 2 : 0;
+    let offset = 0;
+
+    const arcs = visible.map((segment) => {
+      const length = (segment.value / total) * circumference;
+      const arc = `<circle cx="60" cy="60" r="${radius}" fill="none" stroke="${segment.color}" stroke-width="20"
+        stroke-dasharray="${Math.max(length - gap, 0.5)} ${circumference}" stroke-dashoffset="${-offset}">
+        <title>${escapeHtml(segment.label)}: ${segment.value}</title></circle>`;
+      offset += length;
+      return arc;
+    }).join('');
+
+    return `
+      <div class="donut">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <circle cx="60" cy="60" r="${radius}" fill="none" stroke="#edf0ec" stroke-width="20"/>
+          ${arcs}
+        </svg>
+        <div class="donut-center"><span class="label">Total</span><span class="total">${total.toLocaleString()}</span></div>
+      </div>`;
+  };
+
+  const legendHtml = (segments, total) => `
+    <div class="legend">
+      ${segments.map((segment) => `
+        <div class="legend-item">
+          <span class="legend-dot" style="background:${segment.color};"></span>
+          <span class="lname">${escapeHtml(segment.label)}</span>
+          <span class="lval">${segment.value} (${total ? Math.round((segment.value / total) * 100) : 0}%)</span>
+        </div>`).join('')}
+    </div>`;
+
+  const renderTypeChart = (reports, range) => {
+    $('typeChartRange').textContent = `· ${rangeLabel(range)}`;
+    if (!reports.length) {
+      $('typeChart').innerHTML = emptyChart('No reports in this period.');
+      return;
+    }
+
+    const counts = new Map();
+    reports.forEach((report) => {
+      const entry = counts.get(report.type.key) || { label: report.type.label, color: report.type.chart, value: 0 };
+      entry.value += 1;
+      counts.set(report.type.key, entry);
+    });
+
+    // Known types keep their fixed order so colours stay put between periods.
+    const segments = [
+      ...REPORT_TYPES.filter((type) => counts.has(type.key)).map((type) => counts.get(type.key)),
+      ...[...counts].filter(([key]) => key.startsWith('other')).map(([, entry]) => entry)
+    ];
+
+    $('typeChart').innerHTML = `<div class="donut-block">${donutHtml(segments, reports.length)}${legendHtml(segments, reports.length)}</div>`;
+  };
+
+  const renderStatusChart = (reports, range) => {
+    $('statusChartRange').textContent = rangeLabel(range);
+    if (!reports.length) {
+      $('statusChart').innerHTML = emptyChart('No reports in this period.');
+      return;
+    }
+
+    const segments = Object.values(STATUSES).map((status) => ({
+      label: status.label,
+      color: status.chart,
+      value: reports.filter((report) => report.status.key === status.key).length
+    }));
+
+    $('statusChart').innerHTML = `<div class="donut-block">${donutHtml(segments, reports.length)}${legendHtml(segments, reports.length)}</div>`;
+  };
+
+  const buildBuckets = ([start, end]) => {
+    const days = Math.round((end - start) / 86400000);
+    const buckets = [];
+
+    if (days <= 31) {
+      for (let cursor = new Date(start); cursor < end; cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1)) {
+        const next = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1);
+        buckets.push({ start: cursor, end: next, label: cursor.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) });
+      }
+    } else if (days <= 120) {
+      for (let cursor = new Date(start); cursor < end; cursor = new Date(cursor.getTime() + 7 * 86400000)) {
+        const next = new Date(Math.min(cursor.getTime() + 7 * 86400000, end.getTime()));
+        buckets.push({ start: cursor, end: next, label: cursor.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) });
+      }
+    } else {
+      const months = (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth() + 1;
+      const step = months > 24 ? 12 : 1;
+      for (let cursor = new Date(start.getFullYear(), start.getMonth(), 1); cursor < end; cursor = new Date(cursor.getFullYear(), cursor.getMonth() + step, 1)) {
+        const next = new Date(cursor.getFullYear(), cursor.getMonth() + step, 1);
+        const label = step === 12
+          ? String(cursor.getFullYear())
+          : cursor.toLocaleDateString('en-US', { month: 'short', ...(months > 12 ? { year: '2-digit' } : {}) });
+        buckets.push({ start: cursor, end: next, label });
+      }
+    }
+    return buckets;
+  };
+
+  const renderTimeChart = (reports, range) => {
+    const svg = $('timeChart');
+    $('timeChartRange').textContent = rangeLabel(range);
+
+    // Future days of the current month/year are not plotted.
+    const cappedRange = [range[0], new Date(Math.min(range[1].getTime(), startOfDay(new Date()).getTime() + 86400000))];
+    const buckets = buildBuckets(cappedRange).map((bucket) => ({
+      ...bucket,
+      count: reports.filter((report) => inRange(report.date, [bucket.start, bucket.end])).length
+    }));
+
+    const width = Math.max(220, Math.round(svg.getBoundingClientRect().width) || 320);
+    svg.setAttribute('viewBox', `0 0 ${width} 170`);
+    const left = 26;
+    const right = 8;
+    const top = 10;
+    const bottom = 134;
+    const plotWidth = width - left - right;
+    const maxCount = Math.max(...buckets.map((bucket) => bucket.count), 0);
+    const step = Math.max(1, Math.ceil(maxCount / 4));
+    const yMax = step * 4;
+    const x = (index) => left + (buckets.length === 1 ? plotWidth / 2 : (index * plotWidth) / (buckets.length - 1));
+    const y = (value) => bottom - (value / yMax) * (bottom - top);
+
+    const grid = [0, 1, 2, 3, 4].map((tick) => `
+      <line x1="${left}" y1="${y(tick * step)}" x2="${width - right}" y2="${y(tick * step)}" stroke="#edf0ec" stroke-width="1"/>
+      <text x="${left - 6}" y="${y(tick * step) + 3}" font-size="9" fill="#93a199" text-anchor="end">${tick * step}</text>`).join('');
+
+    const labelEvery = Math.max(1, Math.ceil(buckets.length / Math.max(3, Math.floor((width - left) / 44))));
+    const labels = buckets.map((bucket, index) => (
+      index % labelEvery === 0 || index === buckets.length - 1
+        ? (index !== buckets.length - 1 && buckets.length - 1 - index < labelEvery / 2 ? '' : `<text x="${x(index)}" y="${bottom + 16}" font-size="8.5" fill="#93a199" text-anchor="middle">${escapeHtml(bucket.label)}</text>`)
+        : ''
+    )).join('');
+
+    const points = buckets.map((bucket, index) => `${x(index)},${y(bucket.count)}`);
+    const area = `M${x(0)},${bottom} L${points.join(' L')} L${x(buckets.length - 1)},${bottom} Z`;
+    const dots = buckets.length <= 31
+      ? buckets.map((bucket, index) => `<circle cx="${x(index)}" cy="${y(bucket.count)}" r="3" fill="#fff" stroke="#d1453b" stroke-width="2"><title>${escapeHtml(bucket.label)}: ${bucket.count} report${bucket.count === 1 ? '' : 's'}</title></circle>`).join('')
+      : '';
+
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="timeArea" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#d1453b" stop-opacity=".18"/>
+          <stop offset="100%" stop-color="#d1453b" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      ${grid}
+      <path d="${area}" fill="url(#timeArea)"/>
+      <polyline points="${points.join(' ')}" fill="none" stroke="#d1453b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+      ${labels}
+      ${reports.length ? '' : `<text x="${left + plotWidth / 2}" y="${top + 48}" font-size="11" fill="#93a199" text-anchor="middle">No reports in this period</text>`}
+    `;
+  };
+
+  const renderCharts = () => {
+    const range = chartRange();
+    const reports = state.reports.filter((report) => inRange(report.date, range));
+    renderTypeChart(reports, range);
+    renderTimeChart(reports, range);
+    renderStatusChart(reports, range);
+  };
+
+  periodSelect.addEventListener('change', renderCharts);
+
+  // Redraw the line chart at its new pixel width and refresh the scroll shadow.
+  const tableWrap = document.querySelector('.table-wrap');
+  const syncTableScroll = () => tableWrap.classList.toggle('scrolls', tableWrap.scrollWidth > tableWrap.clientWidth + 1);
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (state.reportsLoaded) renderCharts();
+      syncTableScroll();
+    }, 150);
+  });
+
+  /* =====================================================================
+     Details panel
+     ===================================================================== */
+  const getSelectedReport = () => state.reports.find((report) => report.id === state.selectedReportId) || null;
+
+  const accountChips = (person, { showReports = false } = {}) => {
+    const user = person.user;
+    if (!user) {
+      return `<div class="person-meta"><span class="chip muted"><i class="fa-solid fa-link-slash"></i>No matching account in Users</span></div>`;
+    }
+    const statusLower = user.status.toLowerCase();
+    const statusTone = statusLower === 'active' ? 'good' : statusLower === 'suspended' || statusLower === 'blocked' ? 'bad' : 'muted';
+    const against = showReports ? reportsAgainst(user).length : 0;
+    return `
+      <div class="person-meta">
+        <span class="chip">${escapeHtml(user.role)}</span>
+        <span class="chip ${statusTone}">${escapeHtml(user.status)}</span>
+        ${user.warnings ? `<span class="chip warn">${user.warnings} warning${user.warnings === 1 ? '' : 's'}</span>` : ''}
+        ${showReports && against > 1 ? `<span class="chip bad">${against} reports</span>` : ''}
+        <a class="profile-link" href="usermanagement.html?user=${encodeURIComponent(user.id)}">View profile <i class="fa-solid fa-arrow-right"></i></a>
+      </div>`;
+  };
+
+  const personCardHtml = (person, options) => `
+    <div class="person-card">
+      ${avatarHtml(person)}
+      <div class="p-text">
+        <div class="p-name">${escapeHtml(person.name)}${person.username && person.username !== person.name ? ` <span style="font-weight:500;color:var(--text-400);">@${escapeHtml(person.username)}</span>` : ''}</div>
+        <div class="p-email">${escapeHtml(person.email)}</div>
+      </div>
+    </div>
+    ${accountChips(person, options)}`;
+
+  const evidenceHtml = (report, limit) => {
+    const files = report.attachments;
+    if (!files.length) return '<div class="evidence-empty"><i class="fa-regular fa-image"></i> No attachments submitted</div>';
+
+    const shown = limit && files.length > limit ? files.slice(0, limit - 1) : files;
+    const tiles = shown.map((file, index) => `
+      <button type="button" class="evidence-thumb" data-evidence-index="${index}" title="${escapeHtml(file.name)}">
+        ${file.isImage
+          ? `<img src="${escapeHtml(file.url)}" alt="Attachment ${index + 1}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('i'),{className:'fa-regular fa-file'}))">`
+          : '<i class="fa-regular fa-file-lines"></i>'}
+      </button>`).join('');
+
+    const remaining = files.length - shown.length;
+    return tiles + (remaining > 0
+      ? `<button type="button" class="evidence-thumb evidence-more" data-evidence-index="${shown.length}">+${remaining}<small>More</small></button>`
+      : '');
+  };
+
+  const setStatusPill = (element, report) => {
+    element.textContent = report ? report.status.label : 'No data';
+    element.className = `status-pill${report ? ` ${report.status.key}` : ''}`;
+  };
+
+  const renderSelectedReport = () => {
+    const report = getSelectedReport();
+    setStatusPill($('detailStatusPill'), report);
+
+    if (!report) {
+      ['detailReportId', 'detailReportType', 'detailLocation', 'detailDateReported', 'detailDescription']
+        .forEach((id) => { $(id).textContent = '—'; });
+      const empty = `<div class="d-value" style="color:var(--text-400)">${state.reportsLoaded ? 'Select a report to see details.' : 'Loading…'}</div>`;
+      $('detailReportedUser').innerHTML = empty;
+      $('detailReportedBy').innerHTML = '<div class="d-value">—</div>';
+      $('detailEvidence').innerHTML = '<div class="evidence-empty">—</div>';
+      syncActionButtons(null);
+      return;
+    }
+
+    $('detailReportId').textContent = report.reportId;
+    $('detailReportType').textContent = report.type.label;
+    $('detailReportedUser').innerHTML = personCardHtml(report.reportedUser, { showReports: true });
+    $('detailReportedBy').innerHTML = personCardHtml(report.reportedBy);
+    $('detailLocation').textContent = report.location;
+    $('detailDateReported').textContent = reportDateLabel(report);
+    $('detailDescription').textContent = report.description;
+    $('detailEvidence').innerHTML = evidenceHtml(report, 4);
+
+    syncActionButtons(report);
+
+    // Keep the details modal in sync while it is open (live snapshot updates).
+    if (reportDetailsModal.classList.contains('open')) renderFullDetails(report);
+  };
+
+  /* =====================================================================
+     Modals, toasts and evidence viewer
+     ===================================================================== */
+  const reportDetailsModal = $('reportDetailsModal');
+  const contactUserModal = $('contactUserModal');
+  const warnUserModal = $('warnUserModal');
+  const suspendUserModal = $('suspendUserModal');
+  const resolveReportModal = $('resolveReportModal');
+  const evidenceModal = $('evidenceModal');
+
+  const viewDetailsBtn = $('viewDetailsBtn');
+  const contactUserBtn = $('contactUserBtn');
+  const warnUserBtn = $('warnUserBtn');
+  const suspendUserBtn = $('suspendUserBtn');
+  const resolveReportBtn = $('resolveReportBtn');
+  const actionHint = $('actionHint');
+  const toastStack = $('toastStack');
 
   const showToast = (message, variant = '') => {
     const toast = document.createElement('div');
@@ -1313,7 +1849,7 @@
   const closeModal = (modal) => modal.classList.remove('open');
 
   document.querySelectorAll('[data-close-modal]').forEach((button) => {
-    button.addEventListener('click', () => closeModal(document.getElementById(button.dataset.closeModal)));
+    button.addEventListener('click', () => closeModal($(button.dataset.closeModal)));
   });
 
   document.querySelectorAll('.modal-overlay').forEach((overlay) => {
@@ -1323,40 +1859,52 @@
   });
 
   document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') return;
-    document.querySelectorAll('.modal-overlay.open').forEach(closeModal);
+    if (event.key === 'Escape') {
+      closeRowMenu();
+      // Close only the top-most dialog (the viewer can sit above the details modal).
+      const open = [...document.querySelectorAll('.modal-overlay.open')];
+      if (open.length) closeModal(open[open.length - 1]);
+    }
+    if (evidenceModal.classList.contains('open')) {
+      if (event.key === 'ArrowLeft') showEvidence(viewer.index - 1);
+      if (event.key === 'ArrowRight') showEvidence(viewer.index + 1);
+    }
   });
 
-  document.getElementById('closeReportDetailsBtn').addEventListener('click', () => closeModal(reportDetailsModal));
+  $('closeReportDetailsBtn').addEventListener('click', () => closeModal(reportDetailsModal));
 
-  const getSelectedReport = () =>
-    state.reports.find((report) => report.id === state.selectedReportId) || state.reports[0] || null;
+  const viewer = { files: [], index: 0 };
 
-  // Reports store the reported user loosely, so match on uid first, then email, then name.
-  const findLinkedUser = (report) => {
-    if (!report) return null;
-
-    const uid = normalizeText(report.reportedUserId);
-    if (uid) {
-      const byId = state.users.find((user) => user.id === uid);
-      if (byId) return byId;
-    }
-
-    const email = normalizeText(report.reportedUserEmail).toLowerCase();
-    if (hasValidEmail(email)) {
-      const byEmail = state.users.find((user) => normalizeText(user.email).toLowerCase() === email);
-      if (byEmail) return byEmail;
-    }
-
-    const name = normalizeText(report.reportedUserName).toLowerCase();
-    if (name && name !== 'unknown user') {
-      const byName = state.users.find((user) => normalizeText(user.name).toLowerCase() === name);
-      if (byName) return byName;
-    }
-
-    return null;
+  const showEvidence = (index) => {
+    if (!viewer.files.length) return;
+    viewer.index = (index + viewer.files.length) % viewer.files.length;
+    const file = viewer.files[viewer.index];
+    $('viewerContent').innerHTML = file.isImage
+      ? `<img src="${escapeHtml(file.url)}" alt="${escapeHtml(file.name)}">`
+      : `<div class="viewer-file"><i class="fa-regular fa-file-lines"></i>${escapeHtml(file.name)}<br>Preview not available — open the original file.</div>`;
+    $('viewerCaption').textContent = `${viewer.index + 1} of ${viewer.files.length} · ${file.name}`;
+    $('viewerOpen').href = file.url;
+    $('viewerPrev').hidden = viewer.files.length < 2;
+    $('viewerNext').hidden = viewer.files.length < 2;
   };
 
+  $('viewerPrev').addEventListener('click', () => showEvidence(viewer.index - 1));
+  $('viewerNext').addEventListener('click', () => showEvidence(viewer.index + 1));
+
+  [$('detailEvidence'), $('fullEvidence')].forEach((container) => {
+    container.addEventListener('click', (event) => {
+      const tile = event.target.closest('[data-evidence-index]');
+      const report = getSelectedReport();
+      if (!tile || !report) return;
+      viewer.files = report.attachments;
+      showEvidence(Number(tile.dataset.evidenceIndex));
+      openModal(evidenceModal);
+    });
+  });
+
+  /* =====================================================================
+     Report actions
+     ===================================================================== */
   const currentAdminLabel = () => normalizeText(auth.currentUser?.email) || 'Admin';
 
   const buildLogEntry = (type, title, note) => ({
@@ -1367,52 +1915,54 @@
     at: new Date().toISOString()
   });
 
-  // Firestore rules only expose `users` and `userReported`, so the audit trail
-  // lives on the report document itself instead of a separate log collection.
+  // Firestore rules only expose `users` and the reports collection, so the audit
+  // trail lives on the report document itself instead of a separate log collection.
   const saveReportAction = (report, entry, extraFields = {}) =>
-    updateDoc(doc(db, 'userReported', report.id), {
+    updateDoc(doc(db, REPORTS_COLLECTION, report.id), {
       ...extraFields,
       actionLog: arrayUnion(entry)
     });
 
   const withBusyButton = async (button, busyLabel, task) => {
-    const originalLabel = button.textContent;
+    const originalHtml = button.innerHTML;
     button.disabled = true;
     button.textContent = busyLabel;
     try {
       await task();
     } finally {
       button.disabled = false;
-      button.textContent = originalLabel;
+      button.innerHTML = originalHtml;
     }
   };
 
   const syncActionButtons = (report) => {
-    const linkedUser = findLinkedUser(report);
-    const isResolved = Boolean(report) && normalizeText(report.status).toLowerCase() === 'resolved';
-    const canEmail = Boolean(report) && hasValidEmail(report.reportedUserEmail);
+    const linkedUser = report?.reportedUser.user || null;
+    const isResolved = report?.status.key === 'resolved';
+    const canEmail = Boolean(report) && hasValidEmail(report.reportedUser.email);
 
     viewDetailsBtn.disabled = !report;
     contactUserBtn.disabled = !report || !canEmail;
     warnUserBtn.disabled = !report;
     suspendUserBtn.disabled = !report || !linkedUser;
     resolveReportBtn.disabled = !report || isResolved;
-    resolveReportBtn.textContent = isResolved ? '✔ Resolved' : '✔ Mark as Resolved';
+    resolveReportBtn.querySelector('span').textContent = isResolved ? 'Resolved' : 'Mark as Resolved';
 
     const hints = [];
-    if (!report) {
-      hints.push('Select a report from the table to act on it.');
-    } else {
+    if (report) {
       if (!canEmail) hints.push('This report has no valid email, so the reported user cannot be contacted.');
-      if (!linkedUser) hints.push('No matching account was found in Users, so suspension is unavailable.');
-      else if (normalizeText(linkedUser.status).toLowerCase() === 'suspended') hints.push(`${linkedUser.name} is currently suspended.`);
-      if (isResolved) hints.push('This report is already resolved.');
+      if (!linkedUser) {
+        hints.push(state.usersLoaded
+          ? 'No matching account was found in Users, so suspension is unavailable.'
+          : 'Loading user accounts…');
+      } else if (linkedUser.status.toLowerCase() === 'suspended') {
+        hints.push(`${linkedUser.name} is currently suspended.`);
+      }
     }
     actionHint.textContent = hints.join(' ');
   };
 
   const renderActionHistory = (report) => {
-    const historyList = document.getElementById('fullActionHistory');
+    const historyList = $('fullActionHistory');
     const entries = [...report.actionLog].sort((a, b) => String(b?.at ?? '').localeCompare(String(a?.at ?? '')));
 
     if (!entries.length) {
@@ -1432,29 +1982,63 @@
     `).join('');
   };
 
+  const renderRelatedReports = (report) => {
+    const list = $('relatedReports');
+    const user = report.reportedUser.user;
+    $('relatedReportsLabel').textContent = user ? `Other Reports About ${user.name}` : 'Other Reports About This User';
+
+    if (!user) {
+      list.innerHTML = '<div class="history-empty">The reported user has no matching account, so related reports cannot be linked.</div>';
+      return;
+    }
+
+    const others = reportsAgainst(user)
+      .filter((item) => item.id !== report.id)
+      .sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0));
+
+    list.innerHTML = others.length
+      ? others.map((item) => `
+          <button type="button" class="related-item" data-related-report="${escapeHtml(item.id)}">
+            <strong>${escapeHtml(item.reportId)}</strong>
+            <span class="badge" style="background:${item.type.bg};color:${item.type.text};max-width:none;white-space:nowrap;">${escapeHtml(item.type.label)}</span>
+            <span class="grow">${escapeHtml(item.description)}</span>
+            <span class="badge status ${item.status.key}">${item.status.label}</span>
+          </button>`).join('')
+      : '<div class="history-empty">No other reports have been filed against this user.</div>';
+  };
+
+  $('relatedReports').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-related-report]');
+    if (!button) return;
+    focusReport(button.dataset.relatedReport);
+    renderFullDetails(getSelectedReport());
+  });
+
   const renderFullDetails = (report) => {
     if (!report) return;
 
-    const linkedUser = findLinkedUser(report);
+    $('reportDetailsSub').textContent = `${report.type.label} report filed against ${report.reportedUser.name}.`;
+    setStatusPill($('fullStatusPill'), report);
+    $('fullReportId').textContent = report.reportId;
+    $('fullReportType').textContent = report.type.label;
+    $('fullDateReported').textContent = reportDateLabel(report);
+    $('fullLocation').textContent = report.location;
+    $('fullReportedUser').innerHTML = personCardHtml(report.reportedUser, { showReports: true });
+    $('fullReportedBy').innerHTML = personCardHtml(report.reportedBy);
+    $('fullDescription').textContent = report.description;
 
-    document.getElementById('reportDetailsSub').textContent =
-      `${report.reportType} report filed against ${report.reportedUserName}.`;
-    document.getElementById('fullReportId').textContent = report.reportId;
-    document.getElementById('fullStatus').textContent = report.status;
-    document.getElementById('fullReportType').textContent = report.reportType;
-    document.getElementById('fullDateReported').textContent = formatDateTime(report.dateReported);
-    document.getElementById('fullReportedUser').textContent = `${report.reportedUserName} (${report.reportedUserEmail})`;
-    document.getElementById('fullReportedBy').textContent = `${report.reportedByName} (${report.reportedByEmail})`;
-    document.getElementById('fullLocation').textContent = report.location;
-    document.getElementById('fullDescription').textContent = report.description;
+    const hasResolution = report.status.key === 'resolved' && (report.resolutionOutcome || report.resolutionNote);
+    $('fullResolutionWrap').hidden = !hasResolution;
+    if (hasResolution) {
+      $('fullResolution').textContent = [
+        report.resolutionOutcome,
+        report.resolutionNote,
+        report.resolvedAt ? `Resolved ${formatDateTime(report.resolvedAt)}${report.resolvedBy ? ` by ${report.resolvedBy}` : ''}` : ''
+      ].filter(Boolean).join('\n');
+    }
 
-    const warningsLabel = report.warningsIssued
-      ? ` · ${report.warningsIssued} warning${report.warningsIssued === 1 ? '' : 's'} from this report`
-      : '';
-    document.getElementById('fullLinkedAccount').textContent = linkedUser
-      ? `${linkedUser.name} — ${linkedUser.status}${warningsLabel}`
-      : `No matching user account${warningsLabel}`;
-
+    $('fullEvidence').innerHTML = evidenceHtml(report, 0);
+    renderRelatedReports(report);
     renderActionHistory(report);
   };
 
@@ -1470,42 +2054,55 @@
 
   viewDetailsBtn.addEventListener('click', openReportDetails);
 
+  const markUnderReview = async () => {
+    const report = getSelectedReport();
+    if (!report || report.status.key !== 'pending') return;
+    try {
+      await saveReportAction(report, buildLogEntry('review', 'Report moved to Under Review', ''), { status: 'Under Review' });
+      showToast(`Report ${report.reportId} is now under review.`, 'success');
+    } catch (error) {
+      console.error('Failed to update the report status:', error);
+      showToast('Unable to update this report right now.', 'error');
+    }
+  };
+
   contactUserBtn.addEventListener('click', () => {
     const report = getSelectedReport();
     if (!report) return;
 
-    if (!hasValidEmail(report.reportedUserEmail)) {
+    const person = report.reportedUser;
+    if (!hasValidEmail(person.email)) {
       showToast('This report has no valid email address for the reported user.', 'error');
       return;
     }
 
-    document.getElementById('contactUserSub').textContent =
-      `Opens an email draft to ${report.reportedUserName} and records the contact on report ${report.reportId}.`;
-    document.getElementById('contactUserEmail').value = report.reportedUserEmail;
-    document.getElementById('contactUserSubject').value = `PeakPath: report ${report.reportId} about your trail conduct`;
-    document.getElementById('contactUserMessage').value =
-      `Hello ${report.reportedUserName},\n\n` +
-      `We received a ${report.reportType.toLowerCase()} report regarding your conduct at ${report.location}. ` +
+    $('contactUserSub').textContent =
+      `Opens an email draft to ${person.name} and records the contact on report ${report.reportId}.`;
+    $('contactUserEmail').value = person.email;
+    $('contactUserSubject').value = `PeakPath: report ${report.reportId} about your trail conduct`;
+    $('contactUserMessage').value =
+      `Hello ${person.name},\n\n` +
+      `We received a ${report.type.label.toLowerCase()} report regarding your conduct at ${report.location}. ` +
       `Please reply to this email with your account of what happened so we can review the case.\n\n` +
       `Regards,\nPeakPath Admin Team`;
 
     openModal(contactUserModal);
   });
 
-  document.getElementById('contactUserForm').addEventListener('submit', async (event) => {
+  $('contactUserForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const report = getSelectedReport();
     if (!report) return;
 
-    const email = normalizeText(document.getElementById('contactUserEmail').value);
-    const subject = normalizeText(document.getElementById('contactUserSubject').value);
-    const message = document.getElementById('contactUserMessage').value;
+    const email = normalizeText($('contactUserEmail').value);
+    const subject = normalizeText($('contactUserSubject').value);
+    const message = $('contactUserMessage').value;
 
-    await withBusyButton(document.getElementById('sendContactBtn'), 'Opening...', async () => {
+    await withBusyButton($('sendContactBtn'), 'Opening...', async () => {
       try {
         await saveReportAction(
           report,
-          buildLogEntry('contact', `Contacted ${report.reportedUserName}`, `${subject} (sent to ${email})`),
+          buildLogEntry('contact', `Contacted ${report.reportedUser.name}`, `${subject} (sent to ${email})`),
           { lastContactedAt: new Date().toISOString() }
         );
         closeModal(contactUserModal);
@@ -1522,39 +2119,33 @@
     const report = getSelectedReport();
     if (!report) return;
 
-    const linkedUser = findLinkedUser(report);
-    const callout = document.getElementById('warnUserCallout');
+    const linkedUser = report.reportedUser.user;
+    const callout = $('warnUserCallout');
+    const reasonSelect = $('warnUserReason');
 
-    document.getElementById('warnUserSub').textContent =
-      `Issue a formal warning to ${report.reportedUserName} for report ${report.reportId}.`;
-    document.getElementById('warnUserReason').value =
-      [...document.getElementById('warnUserReason').options].some((option) => option.value === report.reportType)
-        ? report.reportType
-        : 'Other';
-    document.getElementById('warnUserNote').value = '';
+    $('warnUserSub').textContent = `Issue a formal warning to ${report.reportedUser.name} for report ${report.reportId}.`;
+    reasonSelect.value = [...reasonSelect.options].some((option) => option.value === report.type.label) ? report.type.label : 'Other';
+    $('warnUserNote').value = '';
 
     callout.hidden = Boolean(linkedUser);
-    if (!linkedUser) {
-      callout.textContent = 'No matching account was found in Users. The warning is recorded on this report only.';
-    }
+    if (!linkedUser) callout.textContent = 'No matching account was found in Users. The warning is recorded on this report only.';
 
     openModal(warnUserModal);
   });
 
-  document.getElementById('warnUserForm').addEventListener('submit', async (event) => {
+  $('warnUserForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const report = getSelectedReport();
     if (!report) return;
 
-    const reason = document.getElementById('warnUserReason').value;
-    const note = normalizeText(document.getElementById('warnUserNote').value);
+    const reason = $('warnUserReason').value;
+    const note = normalizeText($('warnUserNote').value);
     if (!note) return;
 
-    const linkedUser = findLinkedUser(report);
+    const linkedUser = report.reportedUser.user;
     const nowIso = new Date().toISOString();
-    const isPending = normalizeText(report.status).toLowerCase() === 'pending';
 
-    await withBusyButton(document.getElementById('confirmWarnBtn'), 'Issuing...', async () => {
+    await withBusyButton($('confirmWarnBtn'), 'Issuing...', async () => {
       try {
         if (linkedUser) {
           await updateDoc(doc(db, 'users', linkedUser.id), {
@@ -1571,17 +2162,12 @@
             warningsIssued: increment(1),
             lastWarningAt: nowIso,
             // A warned report is actively being handled, so pull it out of the pending queue.
-            ...(isPending ? { status: 'Under Review' } : {})
+            ...(report.status.key === 'pending' ? { status: 'Under Review' } : {})
           }
         );
 
         closeModal(warnUserModal);
-        showToast(
-          linkedUser
-            ? `Warning issued to ${linkedUser.name}.`
-            : 'Warning recorded on the report (no linked account).',
-          'success'
-        );
+        showToast(linkedUser ? `Warning issued to ${linkedUser.name}.` : 'Warning recorded on the report (no linked account).', 'success');
       } catch (error) {
         console.error('Failed to issue the warning:', error);
         showToast('Unable to issue this warning right now.', 'error');
@@ -1593,45 +2179,42 @@
     const report = getSelectedReport();
     if (!report) return;
 
-    const linkedUser = findLinkedUser(report);
+    const linkedUser = report.reportedUser.user;
     if (!linkedUser) {
       showToast('No matching user account was found for this report.', 'error');
       return;
     }
 
-    const callout = document.getElementById('suspendUserCallout');
-    const alreadySuspended = normalizeText(linkedUser.status).toLowerCase() === 'suspended';
+    const callout = $('suspendUserCallout');
+    const alreadySuspended = linkedUser.status.toLowerCase() === 'suspended';
 
-    document.getElementById('suspendUserSub').textContent =
+    $('suspendUserSub').textContent =
       `Sets ${linkedUser.name}'s account status to Suspended and records the action on report ${report.reportId}.`;
-    document.getElementById('suspendReason').value = '';
-    document.getElementById('suspendDuration').value = '30';
+    $('suspendReason').value = '';
+    $('suspendDuration').value = '30';
 
     callout.hidden = !alreadySuspended;
-    if (alreadySuspended) {
-      callout.textContent = `${linkedUser.name} is already suspended. Confirming will replace the existing suspension terms.`;
-    }
+    if (alreadySuspended) callout.textContent = `${linkedUser.name} is already suspended. Confirming will replace the existing suspension terms.`;
 
     openModal(suspendUserModal);
   });
 
-  document.getElementById('suspendUserForm').addEventListener('submit', async (event) => {
+  $('suspendUserForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const report = getSelectedReport();
     if (!report) return;
 
-    const linkedUser = findLinkedUser(report);
+    const linkedUser = report.reportedUser.user;
     if (!linkedUser) {
       showToast('No matching user account was found for this report.', 'error');
       return;
     }
 
-    const reason = normalizeText(document.getElementById('suspendReason').value);
+    const reason = normalizeText($('suspendReason').value);
     if (!reason) return;
 
-    const duration = document.getElementById('suspendDuration').value;
+    const duration = $('suspendDuration').value;
     const nowIso = new Date().toISOString();
-    const isPending = normalizeText(report.status).toLowerCase() === 'pending';
 
     let suspendedUntil = 'Permanent';
     let durationLabel = 'permanently';
@@ -1642,7 +2225,7 @@
       durationLabel = `for ${duration} days (until ${formatDate(until)})`;
     }
 
-    await withBusyButton(document.getElementById('confirmSuspendBtn'), 'Suspending...', async () => {
+    await withBusyButton($('confirmSuspendBtn'), 'Suspending...', async () => {
       try {
         await updateDoc(doc(db, 'users', linkedUser.id), {
           status: 'Suspended',
@@ -1657,7 +2240,7 @@
           {
             suspendedUserId: linkedUser.id,
             lastSuspendedAt: nowIso,
-            ...(isPending ? { status: 'Under Review' } : {})
+            ...(report.status.key === 'pending' ? { status: 'Under Review' } : {})
           }
         );
 
@@ -1674,29 +2257,28 @@
     const report = getSelectedReport();
     if (!report) return;
 
-    if (normalizeText(report.status).toLowerCase() === 'resolved') {
+    if (report.status.key === 'resolved') {
       showToast('This report is already resolved.');
       return;
     }
 
-    document.getElementById('resolveReportSub').textContent =
-      `Close report ${report.reportId} against ${report.reportedUserName} and record the outcome.`;
-    document.getElementById('resolveOutcome').value = report.warningsIssued ? 'Warning issued' : 'No action needed';
-    document.getElementById('resolveNote').value = '';
+    $('resolveReportSub').textContent = `Close report ${report.reportId} against ${report.reportedUser.name} and record the outcome.`;
+    $('resolveOutcome').value = report.warningsIssued ? 'Warning issued' : 'No action needed';
+    $('resolveNote').value = '';
 
     openModal(resolveReportModal);
   });
 
-  document.getElementById('resolveReportForm').addEventListener('submit', async (event) => {
+  $('resolveReportForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const report = getSelectedReport();
     if (!report) return;
 
-    const outcome = document.getElementById('resolveOutcome').value;
-    const note = normalizeText(document.getElementById('resolveNote').value);
+    const outcome = $('resolveOutcome').value;
+    const note = normalizeText($('resolveNote').value);
     if (!note) return;
 
-    await withBusyButton(document.getElementById('confirmResolveBtn'), 'Saving...', async () => {
+    await withBusyButton($('confirmResolveBtn'), 'Saving...', async () => {
       try {
         await saveReportAction(
           report,
@@ -1719,58 +2301,104 @@
     });
   });
 
+  /* =====================================================================
+     Wiring and live data
+     ===================================================================== */
   const applyFilters = () => {
-    currentPage = 1;
+    state.page = 1;
+    updateFiltersCount();
     renderTable();
   };
 
   searchInput.addEventListener('input', applyFilters);
-  statusFilter.addEventListener('change', applyFilters);
-  typeFilter.addEventListener('change', applyFilters);
-  dateFilter.addEventListener('change', applyFilters);
+  [statusFilter, typeFilter, dateFilter, locationFilter, linkFilter, sortFilter]
+    .forEach((select) => select.addEventListener('change', applyFilters));
 
-  // Nothing is selectable until the first snapshot lands.
-  syncActionButtons(null);
+  filtersToggleBtn.addEventListener('click', () => {
+    moreFilters.hidden = !moreFilters.hidden;
+    filtersToggleBtn.classList.toggle('open', !moreFilters.hidden);
+    filtersToggleBtn.setAttribute('aria-expanded', String(!moreFilters.hidden));
+  });
 
-  const normalizeUser = (docSnapshot) => {
-    const data = docSnapshot.data() || {};
-    const firstName = normalizeText(data.firstName || data.firstname);
-    const lastName = normalizeText(data.lastName || data.lastname);
+  $('clearFiltersBtn').addEventListener('click', () => {
+    searchInput.value = '';
+    [statusFilter, typeFilter, dateFilter, locationFilter, linkFilter].forEach((select) => { select.value = 'all'; });
+    sortFilter.value = 'newest';
+    applyFilters();
+  });
 
-    return {
-      id: docSnapshot.id,
-      name: getFirstAvailable(
-        data.fullName,
-        data.fullname,
-        data.displayName,
-        data.name,
-        [firstName, lastName].filter(Boolean).join(' ')
-      ) || 'Unnamed user',
-      email: getFirstAvailable(data.email, data.Email),
-      status: getFirstAvailable(data.status, data.Status, 'Active'),
-      warnings: Number(data.warnings || data.warningCount || 0) || 0
-    };
+  // Selects a report and moves the table to the page that contains it,
+  // clearing filters that would hide it.
+  const focusReport = (reportId) => {
+    let filtered = getFilteredReports();
+    if (!filtered.some((report) => report.id === reportId)) {
+      $('clearFiltersBtn').click();
+      filtered = getFilteredReports();
+    }
+    const index = filtered.findIndex((report) => report.id === reportId);
+    if (index === -1) return false;
+    state.selectedReportId = reportId;
+    state.page = Math.floor(index / PAGE_SIZE) + 1;
+    renderTable();
+    return true;
   };
+
+  const refreshAll = () => {
+    rebuildReports();
+    syncFilterOptions();
+    renderStats();
+    renderCharts();
+
+    if (state.deepLinkReport && state.reportsLoaded) {
+      const wanted = state.deepLinkReport.toLowerCase();
+      const match = state.reports.find((report) => report.id.toLowerCase() === wanted || report.reportId.toLowerCase() === wanted);
+      state.deepLinkReport = null;
+      if (match && focusReport(match.id)) return;
+      showToast('The linked report could not be found.', 'error');
+    }
+
+    renderTable();
+  };
+
+  syncActionButtons(null);
+  renderSelectedReport();
 
   onSnapshot(collection(db, 'users'), (snapshot) => {
     state.users = snapshot.docs.map(normalizeUser);
-    renderSelectedReport();
+    state.usersLoaded = true;
+    buildUserIndex();
+    refreshAll();
   }, (error) => {
-    console.error('Failed to load users for report actions:', error);
+    console.error('Failed to load users for report linking:', error);
     state.users = [];
-    renderSelectedReport();
+    state.usersLoaded = true;
+    buildUserIndex();
+    refreshAll();
   });
 
-  onSnapshot(collection(db, 'userReported'), (snapshot) => {
-    state.reports = snapshot.docs.map(normalizeReport);
-    renderStats();
-    renderTable();
+  onSnapshot(collection(db, REPORTS_COLLECTION), (snapshot) => {
+    // One malformed document must not blank the whole table.
+    state.reportDocs = snapshot.docs.flatMap((snapshotDoc) => {
+      try {
+        return [parseReportDoc(snapshotDoc)];
+      } catch (error) {
+        console.error(`Skipping unreadable report "${snapshotDoc.id}":`, error);
+        return [];
+      }
+    });
+    console.info(`Loaded ${snapshot.size} document(s) from "${REPORTS_COLLECTION}".`);
+    state.reportsLoaded = true;
+    refreshAll();
   }, (error) => {
-    console.error('Failed to load user reports:', error);
-    tableBody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:#94a3b8;">Unable to load reports from the database.</td></tr>';
+    console.error(`Failed to load user reports from "${REPORTS_COLLECTION}":`, error);
+    state.reportDocs = [];
+    state.reportsLoaded = true;
+    refreshAll();
+    const reason = error?.code === 'permission-denied'
+      ? `Access to the "${REPORTS_COLLECTION}" collection was denied. Check the Firestore security rules.`
+      : 'Unable to load reports from the database.';
+    tableBody.innerHTML = `<tr><td colspan="9" class="table-empty"><i class="fa-solid fa-triangle-exclamation"></i>${reason}</td></tr>`;
     reportsSummaryText.textContent = 'Unable to load reports';
-    state.reports = [];
-    syncActionButtons(null);
   });
 </script>
 </body>
