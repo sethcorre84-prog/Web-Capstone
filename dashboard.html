@@ -1,7 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
+    <!-- ===== PERF: resource hints =========================================
+         Opens DNS+TCP+TLS to the third-party origins while the HTML is still
+         parsing, instead of paying that round-trip later when the parser
+         first reaches each <script>/<link>. Costs no bandwidth, unlike preload/
+         modulepreload -- those were measured here and made first paint WORSE,
+         because ~830KB of Firebase+webfont competed with the page's own CSS.
+         ============================================================== -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <!-- Trail/report images are served from Firebase Storage. Remove this line
+         if the images end up coming from somewhere else. -->
+    <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="dns-prefetch" href="https://a.tile.openstreetmap.org">
+    <link rel="dns-prefetch" href="https://b.tile.openstreetmap.org">
+    <link rel="dns-prefetch" href="https://c.tile.openstreetmap.org">
+<!-- ===== end resource hints ===== -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="sidebar.js"></script>
     <script type="module" src="dashboard-guard.js"></script>
@@ -10,7 +28,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link rel="stylesheet" href="pages.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <style>
         @view-transition {
             navigation: auto;

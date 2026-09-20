@@ -1,7 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="utf-8">
+<meta charset="UTF-8">
+	<!-- ===== PERF: resource hints =========================================
+	     Opens DNS+TCP+TLS to the third-party origins while the HTML is still
+	     parsing, instead of paying that round-trip later when the parser
+	     first reaches each <script>/<link>. Costs no bandwidth, unlike preload/
+	     modulepreload -- those were measured here and made first paint WORSE,
+	     because ~830KB of Firebase+webfont competed with the page's own CSS.
+	     ============================================================== -->
+	<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+	<!-- Trail/report images are served from Firebase Storage. Remove this line
+	     if the images end up coming from somewhere else. -->
+	<link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
+	<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+	<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<!-- ===== end resource hints ===== -->
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 	<script src="sidebar.js"></script>
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
@@ -397,12 +411,12 @@
 </div>
 
 	<script type="module">
-		import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+		import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 		import {
 			getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, getDoc,
 			serverTimestamp, orderBy, query, Timestamp
-		} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-		import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+		} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+		import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 		// PeakPath Firebase project config
 		const firebaseConfig = {

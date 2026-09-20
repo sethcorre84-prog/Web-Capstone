@@ -1,11 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta charset="UTF-8">
+<!-- ===== PERF: resource hints =========================================
+     Opens DNS+TCP+TLS to the third-party origins while the HTML is still
+     parsing, instead of paying that round-trip later when the parser
+     first reaches each <script>/<link>. Costs no bandwidth, unlike preload/
+     modulepreload -- those were measured here and made first paint WORSE,
+     because ~830KB of Firebase+webfont competed with the page's own CSS.
+     ============================================================== -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<!-- Trail/report images are served from Firebase Storage. Remove this line
+     if the images end up coming from somewhere else. -->
+<link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="dns-prefetch" href="https://a.tile.openstreetmap.org">
+<link rel="dns-prefetch" href="https://b.tile.openstreetmap.org">
+<link rel="dns-prefetch" href="https://c.tile.openstreetmap.org">
+<!-- ===== end resource hints ===== -->
 <script src="sidebar.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="pages.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
   @view-transition {
   navigation: auto;
@@ -18,7 +37,6 @@
 </style>
 <script type="module" src="dashboard-guard.js"></script>
 <script type="module" src="notification.js"></script>
-<meta charset="UTF-8">
 <title>PeakPath — Trail Management</title>
 <style>
   /* Palette, radii and typography come from pages.css (:root). */
@@ -1109,7 +1127,7 @@ tbody tr:last-child td{
           <label style="font-size:12px;color:var(--text-secondary);">Entry Type</label>
           <select id="newTrailEntryType" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
             <option>Legal Entry</option>
-            <option>Illegal Entry</option>
+            <option>Unregistered Map</option>
           </select>
         </div>
       </div>
@@ -1447,7 +1465,7 @@ function openEditMode() {
   document.getElementById('detailEntryType').innerHTML = `
     <select id="editEntryType" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;">
       <option ${currentEntryType === "Legal Entry" ? "selected" : ""}>Legal Entry</option>
-      <option ${currentEntryType === "Illegal Entry" ? "selected" : ""}>Illegal Entry</option>
+      <option ${currentEntryType === "Unregistered Map" ? "selected" : ""}>Unregistered Map</option>
     </select>`;
 
   const currentDiff = t.Difficulty || "Undefined";

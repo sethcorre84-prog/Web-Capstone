@@ -2,13 +2,27 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- ===== PERF: resource hints =========================================
+     Opens DNS+TCP+TLS to the third-party origins while the HTML is still
+     parsing, instead of paying that round-trip later when the parser
+     first reaches each <script>/<link>. Costs no bandwidth, unlike preload/
+     modulepreload -- those were measured here and made first paint WORSE,
+     because ~830KB of Firebase+webfont competed with the page's own CSS.
+     ============================================================== -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<!-- Trail/report images are served from Firebase Storage. Remove this line
+     if the images end up coming from somewhere else. -->
+<link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<!-- ===== end resource hints ===== -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="sidebar.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="pages.css">
 <script type="module" src="notification.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <title>PeakPath Admin — Hazard Reports</title>
 <style>
   @view-transition {
@@ -1333,9 +1347,9 @@ body[data-theme="dark"] .admin-dropdown a:hover{
 
 <!-- Firebase -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch, deleteDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch, deleteDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // Firebase Configuration
 const firebaseConfig = {
