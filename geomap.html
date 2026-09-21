@@ -187,7 +187,10 @@
       width:100%;
       height:320px;
       border-radius:8px;
-      overflow:hidden
+      overflow:hidden;
+      /* Matches the mask drawn over everything outside Mount Makiling, so the
+         area with no tiles blends into it instead of showing Leaflet's grey. */
+      background:#e8edf0
     }
     .location-control{
       background:#fff;
@@ -537,7 +540,7 @@
         <div class="left-column">
           <div class="map-area">
             <div id="makilingMap" aria-label="Map of Mount Makiling"></div>
-            <div id="mapCaption" style="font-size:12px;color:var(--text-secondary);margin-top:8px">Live OpenStreetMap data · Trail and verified hazard markers come from Firestore</div>
+            <div id="mapCaption" style="font-size:12px;color:var(--text-secondary);margin-top:8px">Mount Makiling · Trail and verified hazard markers come from Firestore</div>
           </div>
 
           <div class="status-pair" style="gap:12px">
@@ -621,12 +624,70 @@
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
 
-    const makilingCenter = [14.136, 121.197];
-    const map = L.map('makilingMap').setView(makilingCenter, 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    /* This is a Mount Makiling map only: everything outside a 6 km radius of
+       the summit is greyed out, and panning/zooming is locked to that area so
+       the view can never wander off the mountain. */
+    const makilingCenter = [14.1325, 121.1936];
+    const MAKILING_RADIUS_M = 6000;
+
+    // The mountain's edge as a polygon, reused both as the outline drawn on
+    // the map and as the hole cut out of the grey mask.
+    const makilingRing = (() => {
+      const latDegrees = MAKILING_RADIUS_M / 111320;
+      const lngDegrees = latDegrees / Math.cos(makilingCenter[0] * Math.PI / 180);
+      const points = [];
+      for (let step = 0; step < 180; step += 1) {
+        const angle = (step / 180) * 2 * Math.PI;
+        points.push([
+          makilingCenter[0] + latDegrees * Math.cos(angle),
+          makilingCenter[1] + lngDegrees * Math.sin(angle)
+        ]);
+      }
+      return points;
+    })();
+    const makilingBounds = L.latLngBounds(makilingRing);
+
+    const map = L.map('makilingMap', {
+      center: makilingCenter,
+      zoom: 13,
+      minZoom: 13,
       maxZoom: 19,
+      maxBounds: makilingBounds,
+      maxBoundsViscosity: 1
+    });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      minZoom: 13,
+      maxZoom: 19,
+      bounds: makilingBounds,
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
+
+    // Grey out everything beyond the mountain: one polygon covering the world
+    // with the Makiling ring punched out of it as a hole.
+    L.polygon([
+      [[-90, -180], [-90, 180], [90, 180], [90, -180]],
+      makilingRing
+    ], {
+      stroke: false,
+      fillColor: '#e8edf0',
+      fillOpacity: 0.94,
+      interactive: false
+    }).addTo(map);
+    L.polygon(makilingRing, {
+      fill: false,
+      color: '#2f8f4e',
+      weight: 2,
+      dashArray: '6 6',
+      interactive: false
+    }).addTo(map);
+
+    // Keeps a requested view inside the mountain, so hazard framing and the
+    // Locate me button can never push the map past the masked edge.
+    const clampToMakiling = (latLng) => {
+      const point = L.latLng(latLng);
+      return makilingBounds.contains(point) ? point : makilingBounds.getCenter();
+    };
+
     const trailLayer = L.layerGroup().addTo(map);
     const hazardLayer = L.layerGroup().addTo(map);
 
@@ -647,6 +708,13 @@
       if (direct) return direct;
       const match = String(report.location ?? '').match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
       return match ? getCoordinates({ latitude: match[1], longitude: match[2] }) : null;
+    };
+
+    // The map covers Mount Makiling only, so a report fixed somewhere else has
+    // no spot on it even though its coordinates are perfectly valid.
+    const getMappableHazardCoordinates = (report) => {
+      const coordinates = getHazardCoordinates(report);
+      return coordinates && makilingBounds.contains(coordinates) ? coordinates : null;
     };
 
     const isVerified = (report) => String(report.status ?? 'pending').trim().toLowerCase() === 'verified';
@@ -781,8 +849,9 @@
         const icon = bucket === 'high' || bucket === 'moderate' ? 'fa-triangle-exclamation' : 'fa-circle-check';
         const bg = bucket === 'high' ? 'var(--red-bg)' : bucket === 'moderate' ? 'var(--amber-bg)' : 'var(--green-bg)';
         const color = bucket === 'high' ? 'var(--red-text)' : bucket === 'moderate' ? 'var(--amber-icon)' : 'var(--green-text)';
-        // Only hazards with a usable position can be clicked to show them on the map.
-        const onMap = Boolean(getHazardCoordinates(item));
+        // Only hazards with a usable position on the mountain can be clicked
+        // to show them on the map.
+        const onMap = Boolean(getMappableHazardCoordinates(item));
 
         return `
           <div class="alert-row recent-hazard${onMap ? ' on-map' : ''}" data-id="${escapeHtml(item.id)}"${onMap ? ' role="button" tabindex="0" title="Show on map"' : ''}>
@@ -890,7 +959,8 @@
       trailLayer.clearLayers();
       trails.forEach((data) => {
         const coordinates = getCoordinates(data);
-        if (!coordinates) return;
+        // Trails off the mountain would land under the grey mask, out of reach.
+        if (!coordinates || !makilingBounds.contains(coordinates)) return;
         const status = data.Status || data.status || 'Open';
         L.marker(coordinates)
           .bindPopup(`<strong>${escapeHtml(data.Trail || data.name || 'Trail')}</strong><br>Status: ${escapeHtml(status)}`)
@@ -939,7 +1009,7 @@
       const verifiedHazards = hazardData.filter(isVerified);
 
       verifiedHazards.forEach((data) => {
-        const coordinates = getHazardCoordinates(data);
+        const coordinates = getMappableHazardCoordinates(data);
         if (!coordinates) return;
         const reportedDate = toDate(data.createdAt) || toDate(data.timestamp);
         const marker = L.circleMarker(coordinates, {
@@ -957,20 +1027,23 @@
       });
 
       const plotted = hazardMarkers.size;
-      const unplotted = verifiedHazards.length - plotted;
+      const noPosition = verifiedHazards.filter((data) => !getHazardCoordinates(data)).length;
+      const offMountain = verifiedHazards.length - plotted - noPosition;
       const caption = document.getElementById('mapCaption');
       if (caption) {
         caption.textContent = verifiedHazards.length
-          ? `Live OpenStreetMap data · ${plotted} of ${verifiedHazards.length} verified hazard${verifiedHazards.length === 1 ? '' : 's'} on the map` +
-            (unplotted ? ` · ${unplotted} ha${unplotted === 1 ? 's' : 've'} no latitude/longitude` : '')
-          : 'Live OpenStreetMap data · No verified hazards to plot';
+          ? `Mount Makiling · ${plotted} of ${verifiedHazards.length} verified hazard${verifiedHazards.length === 1 ? '' : 's'} on the map` +
+            (noPosition ? ` · ${noPosition} ha${noPosition === 1 ? 's' : 've'} no latitude/longitude` : '') +
+            (offMountain ? ` · ${offMountain} outside Mount Makiling` : '')
+          : 'Mount Makiling · No verified hazards to plot';
       }
 
       // Frame the hazards once on load; later live updates leave the admin's view alone.
       if (!hazardViewFitted && plotted) {
         hazardViewFitted = true;
         const bounds = L.latLngBounds([...hazardMarkers.values()].map((marker) => marker.getLatLng()));
-        map.fitBounds(bounds.pad(0.2), { maxZoom: 15 });
+        // Never frame wider than the mountain itself.
+        map.fitBounds(makilingBounds.contains(bounds.pad(0.2)) ? bounds.pad(0.2) : makilingBounds, { maxZoom: 15 });
       }
     }, (error) => {
       console.error('Error loading hazard map markers:', error);
@@ -1044,7 +1117,7 @@
               fillOpacity: 0.12,
               weight: 1
             }).addTo(map);
-            map.setView(coordinates, Math.max(map.getZoom(), 15));
+            map.setView(clampToMakiling(coordinates), Math.max(map.getZoom(), 15));
           } else {
             userLocationMarker.setLatLng(coordinates);
             userLocationAccuracy.setLatLng(coordinates).setRadius(accuracy);
