@@ -35,6 +35,7 @@
 </style>
   <script type="module" src="dashboard-guard.js"></script>
   <script type="module" src="notification.js"></script>
+  <script type="module" src="admin-identity.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PeakPath — Geomap Monitoring</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
@@ -677,6 +678,7 @@
   <script type="module">
     import { db } from "./firebase-config.js";
     import { collection, onSnapshot, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { formatPortalDate, formatPortalTime, portalTimeZone } from "./datetime-prefs.js";
 
     const setSummaryValue = (id, value) => {
       document.getElementById(id).textContent = value;
@@ -792,17 +794,10 @@
       return Number.isNaN(date.getTime()) ? null : date;
     };
 
-    const formatAlertDate = (value) => {
-      const date = toDate(value);
-      if (!date) return 'Recent';
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-    };
+    // Follow Settings > Date & Time (datetime-prefs.js).
+    const formatAlertDate = (value) => formatPortalDate(toDate(value)) || 'Recent';
 
-    const formatAlertTime = (value) => {
-      const date = toDate(value);
-      if (!date) return '';
-      return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    };
+    const formatAlertTime = (value) => formatPortalTime(toDate(value));
 
     const getRiskBucket = (item) => {
       const value = String(item?.riskLevel ?? item?.risk ?? item?.severity ?? item?.priority ?? item?.type ?? '').trim().toLowerCase();
@@ -1457,15 +1452,19 @@
     setInterval(updateWeather, 5 * 60 * 1000);
 
 function updateTime() {
+    // The clock shows the time zone chosen in Settings > Date & Time.
     const now = new Date();
+    const timeZone = portalTimeZone();
 
     const date = now.toLocaleDateString([], {
+        timeZone,
         year: 'numeric',
         month: 'long',
         day: 'numeric'
     });
 
     const time = now.toLocaleTimeString([], {
+        timeZone,
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',

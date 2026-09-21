@@ -31,6 +31,7 @@
 </style>
 <script type="module" src="dashboard-guard.js"></script>
 <script type="module" src="notification.js"></script>
+<script type="module" src="admin-identity.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PeakPath Admin — User Reports</title>
 <style>
@@ -840,6 +841,7 @@
 
 <script type="module">
   import { auth, db } from './firebase-config.js';
+  import { formatPortalDate, formatPortalTime } from './datetime-prefs.js';
   import {
     arrayUnion,
     collection,
@@ -903,14 +905,16 @@
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   };
 
+  // Dates follow Settings > Date & Time (datetime-prefs.js). Chart axis
+  // labels further down keep their own short "Sep 21" style on purpose.
   const formatDate = (value) => {
     const date = toDate(value);
-    return date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+    return date ? formatPortalDate(date) : '—';
   };
 
   const formatTime = (value) => {
     const date = toDate(value);
-    return date ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+    return date ? formatPortalTime(date) : '';
   };
 
   const formatDateTime = (value) => {

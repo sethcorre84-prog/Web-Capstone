@@ -24,6 +24,7 @@
     <script src="sidebar.js"></script>
     <script type="module" src="dashboard-guard.js"></script>
     <script type="module" src="notification.js"></script>
+    <script type="module" src="admin-identity.js"></script>
     <title>PeakPath Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link rel="stylesheet" href="pages.css">
@@ -478,16 +479,14 @@
     <script type="module">
         import { db } from "./firebase-config.js";
         import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { formatPortalDate, portalTimeZone } from "./datetime-prefs.js";
 
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, character => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[character]));
 
-        const formatReportDate = (timestamp) => {
-            if (!timestamp) return 'Date unavailable';
-            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-            return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleDateString();
-        };
+        // Follows Settings > Date & Time (datetime-prefs.js).
+        const formatReportDate = (timestamp) => formatPortalDate(timestamp) || 'Date unavailable';
 
         const getRecordDate = (...values) => {
             for (const value of values) {
@@ -619,13 +618,17 @@
             const day = document.getElementById('live-day');
             if (!clock || !day) return;
 
+            // The clock shows the time zone chosen in Settings > Date & Time.
             const now = new Date();
+            const timeZone = portalTimeZone();
             clock.textContent = now.toLocaleTimeString([], {
+                timeZone,
                 hour: 'numeric',
                 minute: '2-digit',
                 second: '2-digit'
             });
             day.textContent = now.toLocaleDateString([], {
+                timeZone,
                 weekday: 'long'
             });
         }

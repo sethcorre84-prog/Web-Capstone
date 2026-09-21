@@ -31,6 +31,7 @@
 </style>
 <script type="module" src="dashboard-guard.js"></script>
 <script type="module" src="notification.js"></script>
+<script type="module" src="admin-identity.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PeakPath — Emergency Monitoring</title>
 <style>
@@ -586,19 +587,26 @@ tbody td{
     </div>
   </main>
 </div>
-<script>
+<!-- A module so it can import the Settings > Date & Time zone; nothing else
+     on the page calls updateEmergencyClock, so module scope costs nothing. -->
+<script type="module">
+    import { portalTimeZone } from './datetime-prefs.js';
+
     function updateEmergencyClock() {
         const dateEl = document.getElementById('live-date');
         const timeEl = document.getElementById('live-time');
         if (!dateEl || !timeEl) return;
 
         const now = new Date();
+        const timeZone = portalTimeZone();
         dateEl.textContent = now.toLocaleDateString([], {
+            timeZone,
             year: 'numeric',
             month: 'long',
             day: 'numeric'
         });
         timeEl.textContent = now.toLocaleTimeString([], {
+            timeZone,
             hour: 'numeric',
             minute: '2-digit',
             second: '2-digit'

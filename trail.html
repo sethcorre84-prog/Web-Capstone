@@ -38,6 +38,7 @@
 </style>
 <script type="module" src="dashboard-guard.js"></script>
 <script type="module" src="notification.js"></script>
+<script type="module" src="admin-identity.js"></script>
 <title>PeakPath — Trail Management</title>
 <style>
   /* Palette, radii and typography come from pages.css (:root). */
@@ -1222,15 +1223,14 @@ tbody tr:last-child td{
 </div>
 
 <script type="module">
-  function formatTimestamp(ts) {
-  if (!ts) return "No updates yet";
-  const date = ts.toDate ? ts.toDate() : new Date(ts);
-  return date.toLocaleString([], {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: 'numeric', minute: '2-digit'
-  });
-}
 import { db } from "./firebase-config.js";
+import { formatPortalDateTime } from "./datetime-prefs.js";
+
+// Follows Settings > Date & Time (datetime-prefs.js).
+function formatTimestamp(ts) {
+  if (!ts) return "No updates yet";
+  return formatPortalDateTime(ts) || "No updates yet";
+}
 import {
   collection,
   onSnapshot,
