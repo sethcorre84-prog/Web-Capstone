@@ -881,6 +881,12 @@
     font-size: 13px;
   }
 
+  /* View Activity focuses this block so a screen reader lands on it; it is
+     not in the tab order, so the programmatic focus ring is just noise. */
+  #profileModalActivitySection:focus {
+    outline: none;
+  }
+
   @media (max-width: 640px) {
     .profile-modal-grid { grid-template-columns: 1fr; }
   }
@@ -1461,6 +1467,14 @@
       <div class="field"><label>Total Hikes</label><div id="profileModalTotalHikes" class="profile-modal-value">—</div></div>
       <div class="field"><label>Total Distance</label><div id="profileModalTotalDistance" class="profile-modal-value">—</div></div>
     </div>
+
+    <!-- Filled from the same activity data as the Recent Activities list in
+         the detail panel, so View Profile and View Activity agree. -->
+    <div class="activity-section" id="profileModalActivitySection" tabindex="-1">
+      <h3>Recent Activity</h3>
+      <div id="profileModalActivity"></div>
+    </div>
+
     <div class="modal-actions">
       <button id="closeViewProfileBtn" class="modal-cancel" type="button">Close</button>
     </div>
@@ -1500,10 +1514,11 @@
   const contactUserBtn = document.getElementById('contactUserBtn');
   const resetPasswordStatus = document.getElementById('resetPasswordStatus');
   const recentActivityList = document.getElementById('recentActivityList');
-  const recentActivitySection = document.getElementById('recentActivitySection');
 
   const viewProfileModal = document.getElementById('viewProfileModal');
   const closeViewProfileBtn = document.getElementById('closeViewProfileBtn');
+  const profileModalActivity = document.getElementById('profileModalActivity');
+  const profileModalActivitySection = document.getElementById('profileModalActivitySection');
 
   const editUserModal = document.getElementById('editUserModal');
   const editUserForm = document.getElementById('editUserForm');
@@ -1961,19 +1976,17 @@
 
   const getSelectedUser = () => state.users.find(user => user.id === state.selectedUserId) || null;
 
-  const renderActivities = (user) => {
-    if (!user) {
-      recentActivityList.innerHTML = '<div class="activity-empty">Select a user to see their activity.</div>';
-      return;
-    }
+  /* The detail panel's Recent Activities list and the profile modal's Recent
+     Activity block are the same rows, so both render through this. */
+  const activityRowsHtml = (user, emptyMessage) => {
+    if (!user) return `<div class="activity-empty">${escapeHtml(emptyMessage)}</div>`;
 
     const activities = getUserActivities(user);
     if (!activities.length) {
-      recentActivityList.innerHTML = '<div class="activity-empty">No recorded activity for this user yet.</div>';
-      return;
+      return '<div class="activity-empty">No recorded activity for this user yet.</div>';
     }
 
-    recentActivityList.innerHTML = activities.map((activity) => {
+    return activities.map((activity) => {
       const tag = activity.href ? 'a' : 'div';
       return `
       <${tag} class="activity-row"${activity.href ? ` href="${escapeHtml(activity.href)}"` : ''}>
@@ -1985,6 +1998,10 @@
       </${tag}>
     `;
     }).join('');
+  };
+
+  const renderActivities = (user) => {
+    recentActivityList.innerHTML = activityRowsHtml(user, 'Select a user to see their activity.');
   };
 
   const renderSelectedUser = () => {
@@ -2096,7 +2113,10 @@
     }
   };
 
-  viewProfileBtn.addEventListener('click', () => {
+  /* One dialog behind both detail buttons: View Profile opens it at the top,
+     View Activity opens the same profile and brings the activity block into
+     view, so either way the admin sees who the user is. */
+  const openUserProfileModal = ({ focusActivity = false } = {}) => {
     const user = getSelectedUser();
     if (!user) return;
 
@@ -2113,9 +2133,24 @@
     document.getElementById('profileModalLastActive').textContent = formatDisplayDateTime(user.lastActive);
     document.getElementById('profileModalTotalHikes').textContent = user.totalHikes;
     document.getElementById('profileModalTotalDistance').textContent = user.totalDistance;
+    profileModalActivity.innerHTML = activityRowsHtml(user, 'No recorded activity for this user yet.');
+
     viewProfileModal.classList.add('open');
+
+    if (focusActivity) {
+      // The overlay is the scroller, so scroll after the browser has laid the
+      // just-shown dialog out, or there is nothing to scroll to yet.
+      requestAnimationFrame(() => {
+        profileModalActivitySection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        profileModalActivitySection.focus({ preventScroll: true });
+      });
+      return;
+    }
+
     closeViewProfileBtn.focus();
-  });
+  };
+
+  viewProfileBtn.addEventListener('click', () => openUserProfileModal());
 
   closeViewProfileBtn.addEventListener('click', closeViewProfileModal);
   viewProfileModal.addEventListener('click', (event) => {
@@ -2156,9 +2191,7 @@
     closeRowMenus();
   });
 
-  viewActivityBtn.addEventListener('click', () => {
-    recentActivitySection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  });
+  viewActivityBtn.addEventListener('click', () => openUserProfileModal({ focusActivity: true }));
 
   contactUserBtn.addEventListener('click', () => {
     const user = getSelectedUser();
