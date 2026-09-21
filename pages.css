@@ -93,6 +93,8 @@
     --verified-text: #2f8f4e;
     --rejected-bg: #fbe9e7;
     --rejected-text: #c8402f;
+    --resolved-bg: #e6f0ff;
+    --resolved-text: #2a63b5;
 }
 
 /* Shared page chrome: identical background, text colour and typography on

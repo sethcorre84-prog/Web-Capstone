@@ -297,6 +297,7 @@ body[data-theme="dark"]{
     --pending-bg:#3a2f1c;
     --verified-bg:#1d3324;
     --rejected-bg:#3a1f1c;
+    --resolved-bg:#1c2a3d;
 }
 body[data-theme="dark"] .search-box,
 body[data-theme="dark"] select.filter-select,
@@ -541,6 +542,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   .badge.pending{background:var(--pending-bg);color:var(--pending-text);}
   .badge.verified{background:var(--verified-bg);color:var(--verified-text);}
   .badge.rejected{background:var(--rejected-bg);color:var(--rejected-text);}
+  .badge.resolved{background:var(--resolved-bg);color:var(--resolved-text);}
   .badge.high{background:#fde9e8;color:#c8402f;}
   .badge.moderate{background:#fff5df;color:#b9791b;}
   .badge.low{background:#eaf5ff;color:#2d6ab3;}
@@ -567,13 +569,13 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   /* Pagination buttons are styled in pages.css so every table matches. */
 
   /* Report details card */
+  /* Grows with its content (the page scrolls, not the card), so a long
+     description is always shown in full without an inner scrollbar. */
   .details-card{
     padding:18px 20px 22px 20px;
     display:flex;
     flex-direction:column;
     gap:16px;
-    overflow-y:auto;
-    max-height:calc(100vh - 200px);
   }
   .details-card.empty{
     align-items:center;
@@ -627,6 +629,8 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     color:var(--text-600);
     line-height:1.55;
     margin:0;
+    /* Break long words/links instead of widening the card sideways. */
+    overflow-wrap:anywhere;
   }
 
   .map-wrap{
@@ -689,6 +693,8 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   .btn-verify{background:#2f8f4e;color:#fff;}
   .btn-reject{background:#d1453b;color:#fff;}
   .btn-info{background:#2f6fed;color:#fff;}
+  .btn-resolve{background:#2a63b5;color:#fff;}
+  .admin-actions .action-hint{font-size:11.5px;color:var(--text-400);line-height:1.45;}
 
   .history-list{
     display:flex;
@@ -710,16 +716,29 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     flex-shrink:0;
   }
   .history-item.pending .history-dot{background:var(--amber-icon);}
+  .history-item.resolved .history-dot{background:var(--resolved-text);}
   .history-text strong{font-size:12.5px;font-weight:600;display:block;color:var(--text-900);}
   .history-text span{font-size:11px;color:var(--text-400);}
 
-  /* Rejected panel header + archive action */
+  /* Rejected + Resolved panels, side by side under the reports list */
+  .closed-panels{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:18px;
+    margin-top:18px;
+    align-items:start;
+  }
+
+  /* Rejected/Resolved panel header + archive action */
   .panel-header{
     display:flex;
     align-items:center;
     justify-content:space-between;
     gap:12px;
     margin-bottom:12px;
+    /* Same height with or without the 36px archive button, so the two
+       panels' lists line up. */
+    min-height:36px;
   }
   .panel-header h2{margin:0;}
   .archive-action-wrap{
@@ -768,10 +787,12 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   }
   .archive-action:hover .archive-tooltip,
   .archive-action:focus-visible .archive-tooltip{opacity:1;transform:translateY(0);}
-  .rejected-row{
+  .rejected-row,
+  .resolved-row{
     transition:transform .15s ease,box-shadow .15s ease,background .15s ease,padding .15s ease;
   }
-  .rejected-row.archive-selected{
+  .rejected-row.archive-selected,
+  .resolved-row.is-selected{
     background:var(--accent-light);
     border-radius:8px;
     padding-left:8px;
@@ -825,6 +846,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   }
   .modal-icon.verify{background:var(--green-bg);color:var(--green-text);}
   .modal-icon.reject{background:var(--red-bg);color:var(--red-text);}
+  .modal-icon.resolve{background:var(--resolved-bg);color:var(--resolved-text);}
   .modal-header h3{
     margin:0;
     font-size:17px;
@@ -908,6 +930,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   .modal-btn.cancel:hover{background:#f2f4f2;}
   .modal-btn.confirm-verify{background:#2f8f4e;color:#fff;}
   .modal-btn.confirm-reject{background:#d1453b;color:#fff;}
+  .modal-btn.confirm-resolve{background:#2a63b5;color:#fff;}
   .modal-btn:disabled{
     opacity:.65;
     cursor:not-allowed;
@@ -992,6 +1015,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   }
   @media (max-width: 760px){
     .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+    .closed-panels{grid-template-columns:minmax(0,1fr);}
     .report-form-grid{grid-template-columns:1fr;}
     .date-range-row{flex-wrap:wrap;}
   }
@@ -1119,7 +1143,8 @@ body[data-theme="dark"] .admin-dropdown a:hover{
       <!-- Panels -->
       <div class="panels">
 
-        <!-- LEFT: Reports list -->
+        <!-- LEFT: Reports list, with the Rejected and Resolved panels under it -->
+        <div>
         <div class="card">
           <div class="list-card-header">
   <div class="list-header-top">
@@ -1190,24 +1215,35 @@ body[data-theme="dark"] .admin-dropdown a:hover{
 </div>
   </div>
 
-        <!-- RIGHT: Report details + Rejected list -->
+        <div class="closed-panels">
+          <div class="card" id="rejectedPanel" style="padding:18px 20px">
+            <div class="panel-header">
+              <h2 style="font-size:16px;font-weight:700">Rejected Reports</h2>
+              <div class="archive-action-wrap">
+                <button class="archive-action" id="archiveSelectedBtn" type="button" aria-label="Archive selected report" disabled>
+                  <svg viewBox="0 0 24 24"><path d="M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M8 7V4h8v3"/><path d="M9 12h6"/></svg>
+                  <span class="archive-tooltip">Archive</span>
+                </button>
+              </div>
+            </div>
+            <div id="rejectedList" style="display:flex;flex-direction:column;gap:2px"></div>
+            <div class="pagination" id="rejectedPagination" style="margin-top:10px;justify-content:flex-end;width:100%"></div>
+          </div>
+
+          <div class="card" id="resolvedPanel" style="padding:18px 20px">
+            <div class="panel-header">
+              <h2 style="font-size:16px;font-weight:700">Resolved Reports</h2>
+            </div>
+            <div id="resolvedList" style="display:flex;flex-direction:column;gap:2px"></div>
+            <div class="pagination" id="resolvedPagination" style="margin-top:10px;justify-content:flex-end;width:100%"></div>
+          </div>
+        </div>
+        </div>
+
+        <!-- RIGHT: Report details -->
       <div>
       <div class="card details-card empty" id="detailsCard">
       <p>Select a report to view details</p>
-      </div>
-
-      <div class="card" id="rejectedPanel" style="margin-top:18px;padding:18px 20px">
-      <div class="panel-header">
-        <h2 style="font-size:16px;font-weight:700">Rejected Reports</h2>
-        <div class="archive-action-wrap">
-          <button class="archive-action" id="archiveSelectedBtn" type="button" aria-label="Archive selected report" disabled>
-            <svg viewBox="0 0 24 24"><path d="M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M8 7V4h8v3"/><path d="M9 12h6"/></svg>
-            <span class="archive-tooltip">Archive</span>
-          </button>
-        </div>
-      </div>
-      <div id="rejectedList" style="display:flex;flex-direction:column;gap:2px"></div>
-      <div class="pagination" id="rejectedPagination" style="margin-top:10px;justify-content:flex-end;width:100%"></div>
       </div>
       </div>
       </div>
@@ -1398,6 +1434,8 @@ const itemsPerPage = 10;
 let currentFilteredReports = [];
 let rejectedPage = 1;
 const rejectedPageSize = 5;
+let resolvedPage = 1;
+const resolvedPageSize = 5;
 
 // Hazard type icons mapping
 const hazardIcons = {
@@ -1425,6 +1463,22 @@ function getStatusBadgeClass(status) {
 }
 
 // Format date
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Firestore Timestamp, Date or date string -> Date (null if missing/invalid).
+function toJsDate(value) {
+  if (!value) return null;
+  const date = value.toDate ? value.toDate() : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function formatDate(timestamp) {
   if (!timestamp) return 'N/A';
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -1439,7 +1493,8 @@ function getStatusPillStyle(status) {
   const styles = {
     'pending': 'background:var(--pending-bg);color:var(--pending-text);',
     'verified': 'background:var(--verified-bg);color:var(--verified-text);',
-    'rejected': 'background:var(--rejected-bg);color:var(--rejected-text);'
+    'rejected': 'background:var(--rejected-bg);color:var(--rejected-text);',
+    'resolved': 'background:var(--resolved-bg);color:var(--resolved-text);'
   };
   return styles[statusLower] || styles['pending'];
 }
@@ -1661,10 +1716,11 @@ function renderRejectedList() {
   updateArchiveButtonState();
 }
 
-// Prev / numbered / next control for the Rejected Reports panel, styled the
-// same as every other paginated list in the portal (see pages.css).
-function renderRejectedPagination(totalPages) {
-  const wrap = document.getElementById('rejectedPagination');
+// Prev / numbered / next control for the Rejected and Resolved panels,
+// styled the same as every other paginated list in the portal (see
+// pages.css). goToPage(page) sets that panel's page and re-renders it.
+function renderPanelPagination(wrapId, totalPages, currentPage, goToPage) {
+  const wrap = document.getElementById(wrapId);
   if (!wrap) return;
   wrap.innerHTML = '';
   if (totalPages <= 1) return;
@@ -1676,16 +1732,84 @@ function renderRejectedPagination(totalPages) {
     btn.innerHTML = label;
     btn.disabled = disabled;
     if (!disabled && !active) {
-      btn.addEventListener('click', () => { rejectedPage = page; renderRejectedList(); });
+      btn.addEventListener('click', () => goToPage(page));
     }
     wrap.appendChild(btn);
   };
 
-  addButton('&lsaquo;', rejectedPage - 1, { disabled: rejectedPage === 1 });
+  addButton('&lsaquo;', currentPage - 1, { disabled: currentPage === 1 });
   for (let page = 1; page <= totalPages; page++) {
-    addButton(String(page), page, { active: page === rejectedPage });
+    addButton(String(page), page, { active: page === currentPage });
   }
-  addButton('&rsaquo;', rejectedPage + 1, { disabled: rejectedPage === totalPages });
+  addButton('&rsaquo;', currentPage + 1, { disabled: currentPage === totalPages });
+}
+
+function renderRejectedPagination(totalPages) {
+  renderPanelPagination('rejectedPagination', totalPages, rejectedPage, (page) => {
+    rejectedPage = page;
+    renderRejectedList();
+  });
+}
+
+// Verified hazards an admin has since marked as cleared. Newest first
+// (allReports is already sorted), 5 per page like the Rejected panel.
+function renderResolvedList() {
+  const wrap = document.getElementById('resolvedList');
+  if (!wrap) return;
+  const resolved = allReports.filter(r => r.status === 'resolved');
+  wrap.innerHTML = '';
+
+  if (!resolved.length) {
+    wrap.innerHTML = '<div style="padding:10px 0;color:var(--text-400);font-size:12.5px">No resolved reports.</div>';
+    renderResolvedPagination(0);
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(resolved.length / resolvedPageSize));
+  if (resolvedPage > totalPages) resolvedPage = totalPages;
+  const start = (resolvedPage - 1) * resolvedPageSize;
+
+  resolved.slice(start, start + resolvedPageSize).forEach(report => {
+    const isSelected = selectedReport?.id === report.id;
+    const resolvedOn = toJsDate(report.resolvedAt);
+    const row = document.createElement('div');
+    row.className = 'resolved-row' + (isSelected ? ' is-selected' : '');
+    row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
+    row.onclick = (e) => {
+      e.stopPropagation();
+      // The details panel shows one report at a time, so picking a resolved
+      // report drops any Rejected panel selection too.
+      selectedArchiveIds.clear();
+      if (isSelected) {
+        selectedReport = null;
+        filterReports(false);
+        renderReportDetails(null);
+        renderResolvedList();
+      } else {
+        window.selectReport(report.id);
+      }
+      renderRejectedList();
+    };
+    row.innerHTML = `
+      <span class="hazard-icon" style="flex-shrink:0">${getHazardIcon(report.hazardType)}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:12.5px">${escapeHtml(report.hazardType || 'Unknown')}</div>
+        <div style="font-size:11px;color:var(--text-400);margin-top:1px">${escapeHtml(report.location || 'N/A')} · ${escapeHtml(report.reportId || '')}</div>
+        ${resolvedOn ? `<div style="font-size:11px;color:var(--text-400);margin-top:1px">Resolved ${resolvedOn.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>` : ''}
+      </div>
+      <span class="badge resolved" style="flex-shrink:0">Resolved</span>
+    `;
+    wrap.appendChild(row);
+  });
+
+  renderResolvedPagination(totalPages);
+}
+
+function renderResolvedPagination(totalPages) {
+  renderPanelPagination('resolvedPagination', totalPages, resolvedPage, (page) => {
+    resolvedPage = page;
+    renderResolvedList();
+  });
 }
 
 // -----------------------------
@@ -1915,7 +2039,19 @@ function renderReportDetails(report) {
   const statusStyle = getStatusPillStyle(report.status);
   const hazardIcon = getHazardIcon(report.hazardType);
   const risk = getRiskLevel(report);
-  
+  const isResolved = report.status === 'resolved';
+  const resolvedOn = toJsDate(report.resolvedAt);
+
+  // Only a verified (confirmed, still active) hazard can be resolved.
+  const resolveBlockedReason = isResolved
+    ? 'This hazard is already resolved.'
+    : report.status === 'rejected'
+      ? 'Rejected reports cannot be resolved.'
+      : 'Verify the hazard before marking it resolved.';
+  const resolveButton = report.status === 'verified'
+    ? `<button class="btn btn-resolve" onclick="updateReportStatus('${report.id}', 'resolved')"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Resolve Report</button>`
+    : `<button class="btn btn-resolve" disabled style="opacity:.6;cursor:not-allowed" title="${resolveBlockedReason}"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Resolve Report</button>`;
+
   detailsCard.className = 'card details-card';
   detailsCard.innerHTML = `
     <div class="details-top">
@@ -1987,11 +2123,15 @@ function renderReportDetails(report) {
             ? `<button class="btn btn-verify" disabled style="opacity:.6;cursor:not-allowed">✔ Verify Hazard</button>`
             : `<button class="btn btn-verify" onclick="updateReportStatus('${report.id}', 'verified')">✔ Verify Hazard</button>`
           }
-          ${report.status === 'rejected' || risk.className === 'unknown' ?
+          ${report.status === 'rejected' || isResolved || risk.className === 'unknown' ?
             `<button class="btn btn-reject" disabled style="opacity:.6;cursor:not-allowed">✖ Reject Report</button>` :
             `<button class="btn btn-reject" onclick="updateReportStatus('${report.id}', 'rejected')">✖ Reject Report</button>`
           }
       </div>
+      <div class="row">${resolveButton}</div>
+      ${isResolved ? `
+        <div class="action-hint">Resolved${resolvedOn ? ` on ${resolvedOn.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}. If the hazard comes back, Verify Hazard reopens it and alerts hikers again.</div>
+      ` : ''}
     </div>
 
     <div>
@@ -2004,6 +2144,15 @@ function renderReportDetails(report) {
             <span>${formatDate(report.timestamp)}</span>
           </div>
         </div>
+        ${isResolved ? `
+        <div class="history-item resolved">
+          <span class="history-dot"></span>
+          <div class="history-text">
+            <strong>Hazard resolved</strong>
+            <span>${resolvedOn ? formatDate(report.resolvedAt) : 'Date not recorded'}</span>
+            ${report.resolutionNote ? `<span style="display:block;margin-top:3px;color:var(--text-600)">${escapeHtml(report.resolutionNote)}</span>` : ''}
+          </div>
+        </div>` : ''}
       </div>
     </div>
   `;
@@ -2053,6 +2202,15 @@ function openStatusModal(reportId, newStatus) {
     confirmBtn.textContent = 'Verify Report';
     reasonLabel.textContent = 'Verification note (optional)';
     reason.placeholder = 'Add a note about why this hazard was verified...';
+  } else if (newStatus === 'resolved') {
+    icon.className = 'modal-icon resolve';
+    icon.textContent = '✓';
+    title.textContent = 'Resolve Hazard Report';
+    subtitle.textContent = 'Mark this hazard as resolved? It leaves the active list and the map, and moves to Resolved Reports.';
+    confirmBtn.className = 'modal-btn confirm-resolve';
+    confirmBtn.textContent = 'Resolve Report';
+    reasonLabel.textContent = 'Resolution note (optional)';
+    reason.placeholder = 'e.g. Fallen tree cleared by rangers; trail is safe again.';
   } else {
     icon.className = 'modal-icon reject';
     icon.textContent = '✕';
@@ -2118,11 +2276,14 @@ async function confirmStatusUpdate() {
   const { reportId, newStatus, report } = pendingStatusAction;
   const reason = document.getElementById('statusReason').value.trim();
   const confirmBtn = document.getElementById('modalConfirmBtn');
+  const [idleLabel, busyLabel] = {
+    verified: ['Verify Report', 'Verifying...'],
+    rejected: ['Reject Report', 'Rejecting...'],
+    resolved: ['Resolve Report', 'Resolving...']
+  }[newStatus];
 
   confirmBtn.disabled = true;
-  confirmBtn.textContent = newStatus === 'verified'
-    ? 'Verifying...'
-    : 'Rejecting...';
+  confirmBtn.textContent = busyLabel;
 
   try {
     // reportId here is the Firestore document ID (docSnapshot.id).
@@ -2133,8 +2294,14 @@ async function confirmStatusUpdate() {
       updatedAt: new Date()
     };
 
-    // Save an admin note when one was entered.
-    if (reason) {
+    if (newStatus === 'resolved') {
+      // Kept apart from statusNote so the verification note survives, and
+      // always written so re-resolving never shows an older note.
+      updateData.resolutionNote = reason || null;
+      updateData.resolvedAt = serverTimestamp();
+      updateData.resolvedBy = auth.currentUser?.uid || null;
+    } else if (reason) {
+      // Save an admin note when one was entered.
       updateData.statusNote = reason;
     }
 
@@ -2230,9 +2397,7 @@ async function confirmStatusUpdate() {
     console.error('Error updating report status:', error);
 
     confirmBtn.disabled = false;
-    confirmBtn.textContent = newStatus === 'verified'
-      ? 'Verify Report'
-      : 'Reject Report';
+    confirmBtn.textContent = idleLabel;
 
     showStatusModalMessage(
       error?.code === 'permission-denied'
@@ -2244,7 +2409,7 @@ async function confirmStatusUpdate() {
 
 // This is called by the Verify and Reject buttons in the report details.
 window.updateReportStatus = (reportId, newStatus) => {
-  if (!['verified', 'rejected'].includes(newStatus)) {
+  if (!['verified', 'rejected', 'resolved'].includes(newStatus)) {
     console.error('Invalid report status:', newStatus);
     return;
   }
@@ -2424,6 +2589,7 @@ window.selectReport = (reportId) => {
   selectedReport = allReports.find(r => r.id === reportId);
   filterReports(false);
   renderReportDetails(selectedReport);
+  renderResolvedList(); // moves the Resolved panel's highlight
 };
 
 // Update statistics
@@ -2466,7 +2632,8 @@ function filterReports(resetPage = true) {
   const hazardFilter = document.getElementById('hazardFilter').value;
   const dateFilter = document.getElementById('dateFilter').value;
 
-  let filtered = allReports.filter(r => r.status !== 'rejected' && r.status !== 'archived');
+  // Rejected and resolved reports have their own panels under the list.
+  let filtered = allReports.filter(r => !['rejected', 'archived', 'resolved'].includes(r.status));
 
   if (searchTerm) {
     filtered = filtered.filter(r =>
@@ -2590,6 +2757,7 @@ function loadReports() {
         }
 
         clearReportIdFromURL();
+        renderResolvedList();
         return;
       }
     }
@@ -2601,6 +2769,8 @@ function loadReports() {
       selectedReport = allReports[0];
       renderReportDetails(selectedReport);
     }
+    // After the selection is settled, so its row is highlighted.
+    renderResolvedList();
   }, (error) => {
     console.error('Error loading reports:', error);
     document.getElementById('reportsTable').innerHTML = `
