@@ -881,12 +881,6 @@
     font-size: 13px;
   }
 
-  /* View Activity focuses this block so a screen reader lands on it; it is
-     not in the tab order, so the programmatic focus ring is just noise. */
-  #profileModalActivitySection:focus {
-    outline: none;
-  }
-
   @media (max-width: 640px) {
     .profile-modal-grid { grid-template-columns: 1fr; }
   }
@@ -1150,7 +1144,6 @@
         <p>Manage hikers and view user reports about other users' behavior.</p>
       </div>
       <div class="topbar-right">
-        <div class="location-chip"></div>
         <div class="bell-wrap">
           <button class="bell-btn" type="button" aria-label="Open notifications"></button>
           <span class="bell-badge" hidden>0</span>
@@ -1158,8 +1151,6 @@
         <div class="admin-mini">
           <div class="avatar">AU</div>
           <div class="admin-mini-text">
-            <div class="admin-mini-name">Admin User</div>
-            <div class="admin-mini-role">Super Administrator</div>
           </div>
         </div>
       </div>
@@ -1315,9 +1306,7 @@
           <button id="viewProfileBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-eye"></i>View Profile</button>
           <button id="editUserBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-pen"></i>Edit User</button>
           <button id="resetPasswordBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-rotate"></i>Reset Password</button>
-          <button id="assignTeamBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-user-group"></i>Assign Team</button>
           <button id="deactivateUserBtn" class="action-btn danger" type="button" disabled><i class="fa-solid fa-user-slash"></i>Deactivate User</button>
-          <button id="viewActivityBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-chart-line"></i>View Activity</button>
         </div>
         <p id="resetPasswordStatus" class="action-status" role="status" aria-live="polite"></p>
 
@@ -1430,22 +1419,6 @@
   </form>
 </div>
 
-<div id="assignTeamModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="assignTeamTitle">
-  <form id="assignTeamForm" class="modal">
-    <h2 id="assignTeamTitle">Assign Team</h2>
-    <p id="assignTeamSubtitle" class="action-status" style="margin-bottom:12px;">—</p>
-    <div class="field">
-      <label for="assignTeamInput">Team / Group</label>
-      <input id="assignTeamInput" name="team" type="text" list="assignTeamOptions" placeholder="e.g. Makiling Adventurers">
-      <datalist id="assignTeamOptions"></datalist>
-    </div>
-    <div class="modal-actions">
-      <button id="cancelAssignTeamBtn" class="modal-cancel" type="button">Cancel</button>
-      <button id="saveAssignTeamBtn" class="modal-save" type="submit">Save Team</button>
-    </div>
-  </form>
-</div>
-
 <div id="viewProfileModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="viewProfileTitle">
   <section class="modal profile-modal">
     <div class="profile-modal-header">
@@ -1466,13 +1439,6 @@
       <div class="field"><label>Last Active</label><div id="profileModalLastActive" class="profile-modal-value">—</div></div>
       <div class="field"><label>Total Hikes</label><div id="profileModalTotalHikes" class="profile-modal-value">—</div></div>
       <div class="field"><label>Total Distance</label><div id="profileModalTotalDistance" class="profile-modal-value">—</div></div>
-    </div>
-
-    <!-- Filled from the same activity data as the Recent Activities list in
-         the detail panel, so View Profile and View Activity agree. -->
-    <div class="activity-section" id="profileModalActivitySection" tabindex="-1">
-      <h3>Recent Activity</h3>
-      <div id="profileModalActivity"></div>
     </div>
 
     <div class="modal-actions">
@@ -1508,17 +1474,13 @@
   const viewProfileBtn = document.getElementById('viewProfileBtn');
   const editUserBtn = document.getElementById('editUserBtn');
   const resetPasswordBtn = document.getElementById('resetPasswordBtn');
-  const assignTeamBtn = document.getElementById('assignTeamBtn');
   const deactivateUserBtn = document.getElementById('deactivateUserBtn');
-  const viewActivityBtn = document.getElementById('viewActivityBtn');
   const contactUserBtn = document.getElementById('contactUserBtn');
   const resetPasswordStatus = document.getElementById('resetPasswordStatus');
   const recentActivityList = document.getElementById('recentActivityList');
 
   const viewProfileModal = document.getElementById('viewProfileModal');
   const closeViewProfileBtn = document.getElementById('closeViewProfileBtn');
-  const profileModalActivity = document.getElementById('profileModalActivity');
-  const profileModalActivitySection = document.getElementById('profileModalActivitySection');
 
   const editUserModal = document.getElementById('editUserModal');
   const editUserForm = document.getElementById('editUserForm');
@@ -1532,12 +1494,6 @@
   const saveAddUserBtn = document.getElementById('saveAddUserBtn');
   const addUserStatusMessage = document.getElementById('addUserStatusMessage');
 
-  const assignTeamModal = document.getElementById('assignTeamModal');
-  const assignTeamForm = document.getElementById('assignTeamForm');
-  const assignTeamInput = document.getElementById('assignTeamInput');
-  const assignTeamOptions = document.getElementById('assignTeamOptions');
-  const assignTeamSubtitle = document.getElementById('assignTeamSubtitle');
-  const cancelAssignTeamBtn = document.getElementById('cancelAssignTeamBtn');
 
   const exportUsersBtn = document.getElementById('exportUsersBtn');
 
@@ -1946,17 +1902,12 @@
         menu.className = 'row-menu';
         menu.innerHTML = `
           <button type="button" data-menu="reset"><i class="fa-solid fa-rotate"></i>Reset Password</button>
-          <button type="button" data-menu="team"><i class="fa-solid fa-user-group"></i>Assign Team</button>
           <button type="button" class="danger" data-menu="delete"><i class="fa-solid fa-trash"></i>Delete Account</button>
         `;
         menu.addEventListener('click', (menuEvent) => menuEvent.stopPropagation());
         menu.querySelector('[data-menu="reset"]').addEventListener('click', () => {
           closeRowMenus();
           resetPasswordBtn.click();
-        });
-        menu.querySelector('[data-menu="team"]').addEventListener('click', () => {
-          closeRowMenus();
-          openAssignTeamModal();
         });
         menu.querySelector('[data-menu="delete"]').addEventListener('click', () => {
           closeRowMenus();
@@ -1972,12 +1923,11 @@
   // ---------------------------------------------------------------------
   // Selected user panel
   // ---------------------------------------------------------------------
-  const detailActionButtons = [viewProfileBtn, editUserBtn, resetPasswordBtn, assignTeamBtn, deactivateUserBtn, viewActivityBtn, contactUserBtn];
+  const detailActionButtons = [viewProfileBtn, editUserBtn, resetPasswordBtn, deactivateUserBtn, contactUserBtn];
 
   const getSelectedUser = () => state.users.find(user => user.id === state.selectedUserId) || null;
 
-  /* The detail panel's Recent Activities list and the profile modal's Recent
-     Activity block are the same rows, so both render through this. */
+  // Render the selected user's Recent Activities list.
   const activityRowsHtml = (user, emptyMessage) => {
     if (!user) return `<div class="activity-empty">${escapeHtml(emptyMessage)}</div>`;
 
@@ -2066,7 +2016,6 @@
   // ---------------------------------------------------------------------
   const closeEditUserModal = () => editUserModal.classList.remove('open');
   const closeAddUserModal = () => addUserModal.classList.remove('open');
-  const closeAssignTeamModal = () => assignTeamModal.classList.remove('open');
   const closeViewProfileModal = () => viewProfileModal.classList.remove('open');
 
   const openEditUserModal = () => {
@@ -2082,18 +2031,6 @@
     document.getElementById('editUserArea').value = user.area === '—' ? '' : user.area;
     editUserModal.classList.add('open');
     document.getElementById('editUserName').focus();
-  };
-
-  const openAssignTeamModal = () => {
-    const user = getSelectedUser();
-    if (!user) return;
-
-    const teams = [...new Set(state.users.map(item => item.team).filter(team => team && team !== '—'))].sort();
-    assignTeamOptions.innerHTML = teams.map(team => `<option value="${escapeHtml(team)}"></option>`).join('');
-    assignTeamSubtitle.textContent = `Assigning a team for ${user.name}.`;
-    assignTeamInput.value = user.team === '—' ? '' : user.team;
-    assignTeamModal.classList.add('open');
-    assignTeamInput.focus();
   };
 
   const deleteSelectedUser = async () => {
@@ -2113,10 +2050,7 @@
     }
   };
 
-  /* One dialog behind both detail buttons: View Profile opens it at the top,
-     View Activity opens the same profile and brings the activity block into
-     view, so either way the admin sees who the user is. */
-  const openUserProfileModal = ({ focusActivity = false } = {}) => {
+  const openUserProfileModal = () => {
     const user = getSelectedUser();
     if (!user) return;
 
@@ -2133,19 +2067,8 @@
     document.getElementById('profileModalLastActive').textContent = formatDisplayDateTime(user.lastActive);
     document.getElementById('profileModalTotalHikes').textContent = user.totalHikes;
     document.getElementById('profileModalTotalDistance').textContent = user.totalDistance;
-    profileModalActivity.innerHTML = activityRowsHtml(user, 'No recorded activity for this user yet.');
 
     viewProfileModal.classList.add('open');
-
-    if (focusActivity) {
-      // The overlay is the scroller, so scroll after the browser has laid the
-      // just-shown dialog out, or there is nothing to scroll to yet.
-      requestAnimationFrame(() => {
-        profileModalActivitySection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        profileModalActivitySection.focus({ preventScroll: true });
-      });
-      return;
-    }
 
     closeViewProfileBtn.focus();
   };
@@ -2161,12 +2084,6 @@
   cancelEditUserBtn.addEventListener('click', closeEditUserModal);
   editUserModal.addEventListener('click', (event) => {
     if (event.target === editUserModal) closeEditUserModal();
-  });
-
-  assignTeamBtn.addEventListener('click', openAssignTeamModal);
-  cancelAssignTeamBtn.addEventListener('click', closeAssignTeamModal);
-  assignTeamModal.addEventListener('click', (event) => {
-    if (event.target === assignTeamModal) closeAssignTeamModal();
   });
 
   addUserBtn.addEventListener('click', () => {
@@ -2187,11 +2104,8 @@
     closeViewProfileModal();
     closeEditUserModal();
     closeAddUserModal();
-    closeAssignTeamModal();
     closeRowMenus();
   });
-
-  viewActivityBtn.addEventListener('click', () => openUserProfileModal({ focusActivity: true }));
 
   contactUserBtn.addEventListener('click', () => {
     const user = getSelectedUser();
@@ -2268,22 +2182,6 @@
     } finally {
       saveAddUserBtn.disabled = false;
       saveAddUserBtn.textContent = 'Add User';
-    }
-  });
-
-  assignTeamForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const user = getSelectedUser();
-    if (!user) return;
-
-    const team = normalizeText(assignTeamInput.value) || '—';
-    try {
-      await updateDoc(doc(db, 'users', user.id), { team });
-      closeAssignTeamModal();
-      setResetPasswordStatus(team === '—' ? 'Team cleared.' : `Assigned to ${team}.`, 'success');
-    } catch (error) {
-      console.error('Failed to assign team:', error);
-      setResetPasswordStatus('Unable to update this user\'s team right now.', 'error');
     }
   });
 
