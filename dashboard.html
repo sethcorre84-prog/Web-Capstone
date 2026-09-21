@@ -36,17 +36,28 @@
         }
         html, body {
           visibility: visible;
-          opacity: 1;   
+          opacity: 1;
           background: #132313;  /* Match sidebar color */
         }
-        /* Palette, radii and typography come from pages.css (:root). */
+
+        /* ==========================================
+           DASHBOARD
+           Built on the portal's shared tokens in pages.css (--page-bg,
+           --card-bg, --border, --accent, the status pill pairs), so this page
+           reads as part of the same product as every other page rather than
+           carrying its own slate palette. One card style, one list style and
+           one button style throughout; colour is kept for meaning (status,
+           hazards, weather) instead of decoration.
+        ========================================== */
         * { box-sizing: border-box; }
         body {
             margin: 0;
             min-height: 100vh;
-            background: #f1f5f9;
-            color: #102a43;
+            background: var(--page-bg);
+            color: var(--text-primary);
+            font-size: 14px;
         }
+        a { color: inherit; text-decoration: none; }
         .app {
             display: flex;
             min-height: 100vh;
@@ -55,306 +66,233 @@
             display: flex;
             flex-direction: column;
             flex: 1;
-            padding: 24px;
+            min-width: 0;
+            padding: 26px 32px;
         }
+
+        /* ---- Page header: plain text on the page, like every other page ---- */
         .top-bar {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            gap: 18px;
-            background: #ffffff;
-            padding: 28px 30px;
-            box-shadow: 0 20px 40px rgba(15,23,42,0.08);
-            border-radius: 12px;
-            margin-bottom: 24px;
-        }
-        .top-copy h1 { margin: 0; font-size: 32px; color: #0f172a; font-weight: 700; }
-        .top-copy p { margin: 8px 0 0; color: #475569; font-size: 15px; }
-        .topbar-right {
-            display: flex;
             align-items: center;
             gap: 18px;
+            margin-bottom: 20px;
         }
-        .top-meta { text-align: right; }
+        .top-copy h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; color: var(--text-primary); }
+        .top-copy p { margin: 0; font-size: 13.5px; color: var(--text-secondary); }
         .top-meta {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
         }
-        .top-meta .meta-label { color: #94a3b8; font-size: 13px; }
-        .top-meta strong { display: block; color: #0f172a; font-size: 18px; }
+        .top-meta i { color: var(--accent); }
+        /* Fixed-width digits, so the ticking clock does not jiggle. */
+        .top-meta strong { font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+        /* ---- Stat row ---- */
         .hero-grid {
             display: grid;
             grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 18px;
-            margin-bottom: 24px;
+            gap: 14px;
+            margin-bottom: 18px;
         }
         .hero-card {
-            background: #ffffff;
-            padding: 24px;
-            box-shadow: 0 18px 36px rgba(15,23,42,0.06);
-            border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            transition: all 0.2s ease;
-        }
-        .hero-card:hover {
-            box-shadow: 0 24px 48px rgba(15,23,42,0.08);
-            transform: translateY(-2px);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+            padding: 16px 18px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-card);
         }
         .hero-card-title {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         .hero-card-title i {
-            width: 34px;
-            height: 34px;
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
             display: grid;
             place-items: center;
-            background: #e2f8ed;
-            color: #15803d;
-            border-radius: 10px;
-            font-size: 15px;
+            border-radius: 8px;
+            background: var(--green-bg);
+            color: var(--green-text);
+            font-size: 14px;
         }
-        .hero-card.alert-card .hero-card-title i,
-        .hero-card.alert-card {
-            background: #fff1f2;
-            color: #dc2626;
-        }
-        .hero-card.weather-card .hero-card-title i,
-        .hero-card.weather-card {
-            background: #eff6ff;
-            color: #2563eb;
-        }
-        .hero-card h3 { margin: 0; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: #64748b; font-weight: 600; }
-        .hero-card p { margin: 0; font-size: 28px; font-weight: 700; color: #0f172a; }
-        .hero-card span { display: block; margin-top: 10px; font-size: 13px; color: #64748b; }
+        /* Only the icon carries the colour; the card itself stays white. */
+        .hero-card.alert-card .hero-card-title i { background: var(--red-bg); color: var(--red-text); }
+        .hero-card.weather-card .hero-card-title i { background: var(--blue-bg); color: var(--blue-text); }
+        .hero-card h3 { margin: 0; font-size: 12.5px; font-weight: 600; line-height: 1.3; color: var(--text-secondary); }
+        .hero-card p { margin: 0; font-size: 24px; font-weight: 700; line-height: 1.15; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+        .hero-card span { display: block; font-size: 12px; line-height: 1.4; color: var(--text-muted); }
+
+        /* ---- Content grid ---- */
         .dashboard-grid {
             display: grid;
-            grid-template-columns: 2.25fr 1fr;
-            gap: 24px;
-            align-items: stretch;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+            gap: 18px;
+            /* Cards size to their content instead of being stretched to
+               match each other, which is what left big empty gaps. */
+            align-items: start;
         }
         .left-column,
         .right-column {
             display: grid;
-            gap: 24px;
-            align-content: start;
-            grid-auto-rows: 1fr;
+            gap: 18px;
+            min-width: 0;
         }
         .card {
-            background: #ffffff;
-            padding: 26px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 18px 36px rgba(15,23,42,0.06);
-            height: 100%;
             display: flex;
             flex-direction: column;
-            border-radius: 12px;
-            transition: all 0.2s ease;
+            min-width: 0;
+            padding: 18px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-card);
         }
-        .card:hover {
-            box-shadow: 0 24px 48px rgba(15,23,42,0.08);
-        }
-        .card h2 { margin: 0 0 16px; font-size: 20px; color: #0f172a; font-weight: 700; }
-        .card .card-top {
+        .card-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 18px;
+            gap: 12px;
+            margin-bottom: 14px;
         }
-        .card select {
-            border: 1px solid #cbd5e1;
-            background: #f8fafc;
-            color: #0f172a;
-            font-size: 14px;
-            padding: 8px 12px;
-            border-radius: 6px;
+        .card h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--text-primary); }
+        .card-link {
+            flex-shrink: 0;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--accent);
+            white-space: nowrap;
         }
-        .chart-placeholder {
-            min-height: 260px;
-            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
-            display: grid;
-            place-items: center;
-            color: #475569;
-            font-size: 15px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
+        .card-link:hover { text-decoration: underline; }
+
+        /* Both cards in the visitor row stretch to one height. */
+        .visitor-row {
+            margin-top: 18px;
+            align-items: stretch;
         }
+        .visitor-row .empty-state { flex: 1; }
+
         #dashboardMap {
-            width: 100%;
-            height: 100%;
-            flex: 1;
-            min-height: 260px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
+            height: 400px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
             overflow: hidden;
         }
-        .chart-row {
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
+
+        /* Where a chart will go once visitor data exists: an intentional
+           empty state instead of a grey "placeholder" box. */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 160px;
+            padding: 20px;
+            border: 1px dashed var(--border);
+            border-radius: 10px;
+            background: #fafbf9;
+            text-align: center;
+            font-size: 12.5px;
+            color: var(--text-secondary);
         }
-        .mini-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            margin-top: 18px;
-        }
+        .empty-state i { margin-bottom: 4px; font-size: 20px; color: var(--text-muted); }
+        .empty-state strong { font-size: 13.5px; color: var(--text-primary); }
+
+        /* ---- Lists: divided rows, no box around every item ---- */
         .pill-list {
             list-style: none;
             margin: 0;
             padding: 0;
-            display: grid;
         }
         .pill-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 18px;
-            border: 1px solid #e2e8f0;
-            background: #f8fafc;
-            transition: all 0.2s ease;
-        }
-        .pill-item:hover {
-            background: #f1f5f9;
-        }
-        .pill-item strong { color: #0f172a; font-size: 14px; }
-        .pill-chip {
-            padding: 8px 12px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #ffffff;
-            border-radius: 6px;
-        }
-        .pill-green { background: #22c55e; }
-        .pill-red { background: #ef4444; }
-        .pill-yellow { background: #eab308; }
-        .summary-list {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            margin-top: 18px;
-        }
-        .summary-item {
-            display: flex;
-            align-items: center;
-            padding: 16px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
             gap: 12px;
-            border-radius: 8px;
+            padding: 11px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            color: var(--text-secondary);
         }
-        .summary-icon {
-            width: 44px;
-            height: 44px;
-            display: grid;
-            place-items: center;
-            background: #e2f8ed;
-            color: #15803d;
-            font-size: 18px;
-            border-radius: 8px;
+        .pill-item:first-child { padding-top: 0; }
+        .pill-item:last-child { padding-bottom: 0; border-bottom: none; }
+        .pill-item strong { min-width: 0; font-size: 13px; font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere; }
+        .item-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .item-meta { font-size: 12px; color: var(--text-muted); }
+        /* Soft status pills, the same pairs the other pages use. */
+        .pill-chip {
             flex-shrink: 0;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 11.5px;
+            font-weight: 600;
+            text-transform: capitalize;
+            white-space: nowrap;
         }
-        .summary-info strong { display: block; color: #0f172a; font-size: 18px; }
-        .summary-info span { color: #64748b; font-size: 13px; }
-        .side-panel {
-            display: grid;
-            gap: 24px;
-            align-content: start;
-        }
-        .side-card {
-            background: #ffffff;
-            padding: 24px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 18px 36px rgba(15,23,42,0.06);
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            border-radius: 12px;
-            transition: all 0.2s ease;
-        }
-        .side-card:hover {
-            box-shadow: 0 24px 48px rgba(15,23,42,0.08);
-        }
-        .side-card h3 { margin: 0 0 16px; font-size: 17px; color: #0f172a; font-weight: 700; }
-        .side-card .side-list {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: grid;
-        }
-        .side-card .side-list li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 16px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s ease;
-        }
-        .side-card .side-list li:hover {
-            background: #f1f5f9;
-        }
-        .side-card .side-list li strong { font-size: 14px; color: #0f172a; }
-        .side-card .side-list li span { font-size: 13px; color: #475569; }
+        .pill-green { background: var(--green-bg); color: var(--green-text); }
+        .pill-red { background: var(--red-bg); color: var(--red-text); }
+        .pill-yellow { background: var(--amber-bg); color: var(--amber-text); }
+
+        /* ---- Quick actions: one neutral style, one primary ---- */
         .action-grid {
             display: grid;
-            gap: 10px;
-            margin-top: 16px;
+            gap: 8px;
         }
         .button {
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 14px 18px;
-            font-weight: 700;
-            text-decoration: none;
-            color: #ffffff;
-            border-radius: 8px;
+            gap: 10px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            background: var(--card-bg);
             font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: none;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: background .15s ease, border-color .15s ease;
         }
-        .button-green { background: #15803d; }
-        .button-green:hover { background: #166a3c; }
-        .button-blue { background: #0f62fe; }
-        .button-blue:hover { background: #0e56e1; }
-        .button-purple { background: #7c3aed; }
-        .button-purple:hover { background: #6d28d9; }
-        .button-outline {
-            background: #ffffff;
-            color: #0f172a;
-            border: 1px solid #cbd5e1;
-        }
-        .button-outline:hover {
-            background: #f8fafc;
-            border-color: #94a3b8;
-        }
+        .button i { width: 16px; text-align: center; color: var(--accent); }
+        .button:hover { background: var(--accent-light); border-color: rgba(47, 143, 78, .3); }
+        .button-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .button-primary i { color: #fff; }
+        .button-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+
         /* ==========================================
            RESPONSIVE
            Shared chrome (sidebar rail, page padding, header stacking) lives
            in pages.css; these are this page's own grids.
         ========================================== */
-        @media (max-width: 1120px) {
+        @media (max-width: 1240px) {
             .hero-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         }
-        @media (max-width: 900px) {
-            .hero-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        @media (max-width: 980px) {
             .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
-            .summary-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            /* Two charts side by side are unreadable at this width. */
-            .chart-row { grid-template-columns: minmax(0, 1fr); }
         }
         @media (max-width: 760px) {
-            .hero-grid { gap: 12px; margin-bottom: 18px; }
-            .hero-card { padding: 18px; }
-            .hero-card p { font-size: 24px; }
-            .top-meta strong { font-size: 16px; }
+            .hero-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            .hero-card p { font-size: 22px; }
+            .card { padding: 16px; }
+            #dashboardMap { height: 280px; }
+            .top-meta { align-self: flex-start; }
         }
         @media (max-width: 560px) {
             .hero-grid { grid-template-columns: minmax(0, 1fr); }
-            .summary-list { grid-template-columns: minmax(0, 1fr); }
-            .mini-grid { grid-template-columns: minmax(0, 1fr); }
         }
     </style>
 </head>
@@ -398,17 +336,17 @@
             <section class="top-bar">
                 <div class="top-copy">
                     <h1>Welcome back, Admin!</h1>
-                    <p>Mount Makiling Overview Dashboard</p>
+                    <p>Mount Makiling overview</p>
                 </div>
-                <div class="topbar-right">
-                    <div class="top-meta">
-                        <div class="meta-label">Today</div>
-                        <strong id="live-clock">10:30 AM</strong>
-                        <span id="live-day">Tuesday</span>
-                        <span>Admin User • Super Administrator</span>
-                    </div>
+                <!-- Who is signed in is already in the sidebar account chip, so
+                     the header only carries the day and a live clock. -->
+                <div class="top-meta" aria-label="Current day and time">
+                    <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                    <span id="live-day">Tuesday</span>
+                    <strong id="live-clock">10:30 AM</strong>
                 </div>
             </section>
+
             <section class="hero-grid">
                 <article class="hero-card">
                     <div class="hero-card-title"><i class="fa-solid fa-person-hiking"></i><h3>Active Hikers Today</h3></div>
@@ -431,46 +369,75 @@
                     <p id="totalVisitorsValue">—</p><span>Visitor data unavailable</span>
                 </article>
             </section>
+
+            <!-- Live content first. The two visitor sections have no data
+                 source yet, so they share their own row at the bottom. -->
             <section class="dashboard-grid">
                 <div class="left-column">
-                    <div class="card">
-                        <div class="card-top"><h2>Visitor Trends (Mount Makiling)</h2><select><option>This Month</option><option>Last Month</option></select></div>
-                        <div class="chart-placeholder">Line chart placeholder</div>
-                    </div>
                     <div class="card map-card">
-                        <div class="card-top"><h2>Mount Makiling Map Overview</h2><span>Legend: Open Trail, Closed Trail, Checkpoint, Campsite, Ranger Station, Hazard Area</span></div>
+                        <div class="card-top">
+                            <h2>Mount Makiling Map</h2>
+                            <a class="card-link" href="geomap.html">Open Geomap →</a>
+                        </div>
                         <div id="dashboardMap" aria-label="Interactive map of Mount Makiling"></div>
                     </div>
+
                     <div class="card">
-                        <h2>Trail Status Overview</h2>
+                        <div class="card-top">
+                            <h2>Trail Status</h2>
+                            <a class="card-link" href="trail.html">Manage trails →</a>
+                        </div>
                         <ul class="pill-list" id="trailStatusList"><li class="pill-item"><span>Loading trails...</span></li></ul>
                     </div>
                 </div>
+
                 <div class="right-column">
                     <div class="card">
-                        <div class="card-top"><h2>Visitors per Trail (This Month)</h2><span>Visitor data unavailable</span></div>
-                        <div class="chart-placeholder">Pie chart placeholder</div>
-                        <div class="mini-grid"><div class="summary-item"><div class="summary-info"><span>Visitor collection is not configured.</span></div></div></div>
+                        <div class="card-top">
+                            <h2>Recent Hazard Reports</h2>
+                            <a class="card-link" href="hazardreport.html">View all →</a>
+                        </div>
+                        <ul class="pill-list" id="recentHazardsList"><li class="pill-item"><span>Loading hazard reports...</span></li></ul>
                     </div>
-                    <div class="side-panel">
-                        <div class="side-card">
-                            <h3>Recent Hazard Reports</h3>
-                            <ul class="pill-list" id="recentHazardsList"><li class="pill-item"><span>Loading hazard reports...</span></li></ul>
+
+                    <div class="card">
+                        <div class="card-top">
+                            <h2>Recent Announcements</h2>
+                            <a class="card-link" href="A&amp;A.html">View all →</a>
                         </div>
-                        <div class="side-card">
-                            <h3>Recent Announcements</h3>
-                            <ul class="pill-list" id="recentAnnouncementsList"><li class="pill-item"><span>Loading announcements...</span></li></ul>
+                        <ul class="pill-list" id="recentAnnouncementsList"><li class="pill-item"><span>Loading announcements...</span></li></ul>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-top"><h2>Quick Actions</h2></div>
+                        <div class="action-grid">
+                            <a class="button button-primary" href="trail.html"><i class="fa-solid fa-plus" aria-hidden="true"></i>Add Trail</a>
+                            <a class="button" href="trail.html"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>Add Checkpoint</a>
+                            <a class="button" href="A&amp;A.html"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i>Post Announcement</a>
+                            <a class="button" href="hazardreport.html"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>View Reports</a>
+                            <a class="button" href="geomap.html"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>Open Geomap Monitoring</a>
                         </div>
-                        <div class="side-card">
-                            <h3>Quick Actions</h3>
-                            <div class="action-grid">
-                                <a class="button button-green" href="#">+ Add Trail</a>
-                                <a class="button button-green" href="#">+ Add Checkpoint</a>
-                                <a class="button button-blue" href="#">Post Announcement</a>
-                                <a class="button button-purple" href="#">View Reports</a>
-                                <a class="button button-outline" href="#">Open Geomap Monitoring</a>
-                            </div>
-                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Same 2:1 columns as above, so the cards line up with the map
+                 and the side column. -->
+            <section class="dashboard-grid visitor-row">
+                <div class="card">
+                    <div class="card-top"><h2>Visitor Trends</h2></div>
+                    <div class="empty-state">
+                        <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+                        <strong>No visitor data yet</strong>
+                        <span>Trends will appear here once visitor check-ins are recorded.</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-top"><h2>Visitors per Trail</h2></div>
+                    <div class="empty-state">
+                        <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
+                        <strong>No visitor data yet</strong>
+                        <span>A per-trail breakdown will appear once visitor check-ins are recorded.</span>
                     </div>
                 </div>
             </section>
@@ -558,7 +525,8 @@
                 ? recentReports.map(report => {
                     const status = report.status || 'pending';
                     const chipClass = status === 'verified' ? 'pill-green' : 'pill-yellow';
-                    return `<li class="pill-item"><strong>${escapeHtml(report.hazardType || 'Unknown hazard')}</strong><span class="pill-chip ${chipClass}">${escapeHtml(status)} · ${escapeHtml(formatReportDate(report.timestamp || report.createdAt))}</span></li>`;
+                    // Date on its own muted line; the pill only carries the status.
+                    return `<li class="pill-item"><div class="item-main"><strong>${escapeHtml(report.hazardType || 'Unknown hazard')}</strong><span class="item-meta">${escapeHtml(formatReportDate(report.timestamp || report.createdAt))}</span></div><span class="pill-chip ${chipClass}">${escapeHtml(status)}</span></li>`;
                 }).join('')
                 : '<li class="pill-item"><span>No hazard reports found.</span></li>';
         }, (error) => {
@@ -576,7 +544,7 @@
                 })
                 .slice(0, 3);
             document.getElementById('recentAnnouncementsList').innerHTML = advisories.length
-                ? advisories.map(advisory => `<li class="pill-item"><strong>${escapeHtml(advisory.title || 'Untitled advisory')}</strong><span>${escapeHtml(formatReportDate(advisory.effectiveDate || advisory.createdAt || advisory.publishedAt))}</span></li>`).join('')
+                ? advisories.map(advisory => `<li class="pill-item"><div class="item-main"><strong>${escapeHtml(advisory.title || 'Untitled advisory')}</strong><span class="item-meta">${escapeHtml(formatReportDate(advisory.effectiveDate || advisory.createdAt || advisory.publishedAt))}</span></div></li>`).join('')
                 : '<li class="pill-item"><span>No announcements found.</span></li>';
         }, (error) => {
             console.error('Error loading dashboard announcements:', error);
