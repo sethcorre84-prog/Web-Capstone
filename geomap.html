@@ -386,6 +386,22 @@
     .legend-row.is-contour i,
     .legend-row.is-contour svg{color:#2f8f8f;}
     .legend-row.is-river i{color:var(--blue-text,#2a63b5);}
+    /* Same look as the hazard circle markers — keep in sync with HAZARD_RISK_COLORS. */
+    .hazard-dot{width:12px;height:12px;margin:0 2px;flex-shrink:0;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.28);}
+    .hazard-dot.high{background:#c8402f;}
+    .hazard-dot.moderate{background:#f4c20d;}
+    .hazard-dot.low{background:#2a63b5;}
+    /* Live hiker pins (an L.divIcon) and their legend swatches. */
+    .hiker-marker{background:none;border:none;}
+    .hiker-pin{position:relative;display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);color:#fff;font-size:12px;}
+    .hiker-pin.online{background:#16a34a;}
+    .hiker-pin.offline{background:#8a948c;}
+    .hiker-pin.online::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid #16a34a;animation:hikerPulse 2s ease-out infinite;}
+    @keyframes hikerPulse{from{transform:scale(.8);opacity:.8;}to{transform:scale(1.5);opacity:0;}}
+    @media (prefers-reduced-motion: reduce){.hiker-pin.online::after{animation:none;opacity:0;}}
+    .legend-row .hiker-pin{width:16px;height:16px;border-width:1px;flex-shrink:0;}
+    .legend-row .hiker-pin i{width:auto;font-size:8px;color:#fff;}
+    .legend-row .hiker-pin::after{display:none;}
     .recent-hazard.on-map{
       cursor:pointer;
     }
@@ -568,6 +584,11 @@
           <div class="legend">
             <div class="legend-title">Map Legend</div>
             <div class="legend-list">
+              <div class="legend-row"><span class="hazard-dot high" aria-hidden="true"></span><span>High Risk Hazard</span></div>
+              <div class="legend-row"><span class="hazard-dot moderate" aria-hidden="true"></span><span>Moderate Risk Hazard</span></div>
+              <div class="legend-row"><span class="hazard-dot low" aria-hidden="true"></span><span>Low Risk Hazard</span></div>
+              <div class="legend-row"><span class="hiker-pin online" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Hiker (online)</span></div>
+              <div class="legend-row"><span class="hiker-pin offline" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Hiker (last seen)</span></div>
               <div class="legend-row is-contour"><svg viewBox="0 0 24 10" aria-hidden="true"><path d="M1 6c2.5-6 5.5 6 8 0s5.5-6 8 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Contour Line</span></div>
               <div class="legend-row is-river"><i class="fa-solid fa-water" aria-hidden="true"></i><span>River/Creek</span></div>
               <div class="legend-row"><i class="fa-regular fa-circle" aria-hidden="true"></i><span>Trail Station</span></div>
@@ -611,7 +632,7 @@
   </div>
   <script type="module">
     import { db } from "./firebase-config.js";
-    import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { collection, onSnapshot, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const setSummaryValue = (id, value) => {
       document.getElementById(id).textContent = value;
@@ -690,6 +711,7 @@
 
     const trailLayer = L.layerGroup().addTo(map);
     const hazardLayer = L.layerGroup().addTo(map);
+    const hikerLayer = L.layerGroup().addTo(map);
 
     const getCoordinates = (data) => {
       const latitude = Number(data.latitude ?? data.lat ?? data.coordinates?.latitude);
@@ -753,6 +775,11 @@
       if (bucket === 'low') return 'Low Risk';
       return 'Unknown Risk';
     };
+
+    // Hazard marker fill per risk level — keep in sync with .hazard-dot in the legend.
+    const HAZARD_RISK_COLORS = { high: '#c8402f', moderate: '#f4c20d', low: '#2a63b5', unknown: '#8a948c' };
+    // Higher risk is drawn later so it sits on top where markers overlap.
+    const HAZARD_DRAW_ORDER = { unknown: 0, low: 1, moderate: 2, high: 3 };
 
     const renderAlertOverview = (advisories, reports) => {
       const highRiskCount = document.getElementById('highRiskCount');
@@ -975,6 +1002,16 @@
       }
     });
 
+    // The caption under the map summarises both hazards and hikers, which
+    // arrive from separate queries.
+    let hazardCaption = '';
+    let hikerCaption = '';
+    const updateMapCaption = () => {
+      const caption = document.getElementById('mapCaption');
+      if (!caption) return;
+      caption.textContent = [hazardCaption, hikerCaption].filter(Boolean).join(' · ');
+    };
+
     // Marker per report id, so a Recent Hazards item can bring its marker into view.
     const hazardMarkers = new Map();
     let hazardViewFitted = false;
@@ -1008,18 +1045,23 @@
       hazardMarkers.clear();
       const verifiedHazards = hazardData.filter(isVerified);
 
-      verifiedHazards.forEach((data) => {
+      const hazardsByRisk = [...verifiedHazards]
+        .sort((a, b) => HAZARD_DRAW_ORDER[getRiskBucket(a)] - HAZARD_DRAW_ORDER[getRiskBucket(b)]);
+
+      hazardsByRisk.forEach((data) => {
         const coordinates = getMappableHazardCoordinates(data);
         if (!coordinates) return;
         const reportedDate = toDate(data.createdAt) || toDate(data.timestamp);
+        const riskColor = HAZARD_RISK_COLORS[getRiskBucket(data)];
         const marker = L.circleMarker(coordinates, {
           radius: 9,
           color: '#ffffff',
           weight: 2,
-          fillColor: '#c8402f',
+          fillColor: riskColor,
           fillOpacity: 0.9
         }).bindPopup(`
           <strong>${escapeHtml(data.hazardType || 'Verified hazard')}</strong><br>
+          <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${riskColor}"></span>${escapeHtml(getRiskLabel(data))}</span><br>
           ${data.trail ? `${escapeHtml(data.trail)}<br>` : ''}
           <small>${reportedDate ? `Reported ${escapeHtml(formatAlertDate(reportedDate))} · ` : ''}${coordinates.map((value) => value.toFixed(5)).join(', ')}</small>
         `).addTo(hazardLayer);
@@ -1029,14 +1071,12 @@
       const plotted = hazardMarkers.size;
       const noPosition = verifiedHazards.filter((data) => !getHazardCoordinates(data)).length;
       const offMountain = verifiedHazards.length - plotted - noPosition;
-      const caption = document.getElementById('mapCaption');
-      if (caption) {
-        caption.textContent = verifiedHazards.length
-          ? `Mount Makiling · ${plotted} of ${verifiedHazards.length} verified hazard${verifiedHazards.length === 1 ? '' : 's'} on the map` +
-            (noPosition ? ` · ${noPosition} ha${noPosition === 1 ? 's' : 've'} no latitude/longitude` : '') +
-            (offMountain ? ` · ${offMountain} outside Mount Makiling` : '')
-          : 'Mount Makiling · No verified hazards to plot';
-      }
+      hazardCaption = verifiedHazards.length
+        ? `Mount Makiling · ${plotted} of ${verifiedHazards.length} verified hazard${verifiedHazards.length === 1 ? '' : 's'} on the map` +
+          (noPosition ? ` · ${noPosition} ha${noPosition === 1 ? 's' : 've'} no latitude/longitude` : '') +
+          (offMountain ? ` · ${offMountain} outside Mount Makiling` : '')
+        : 'Mount Makiling · No verified hazards to plot';
+      updateMapCaption();
 
       // Frame the hazards once on load; later live updates leave the admin's view alone.
       if (!hazardViewFitted && plotted) {
@@ -1064,9 +1104,128 @@
       }
     });
 
+    /* Live hiker positions from the PeakPath app (locations/{uid}), written
+       about once a second while a hiker is signed in. Polled rather than
+       listened to: a live listener is billed one read per phone per second
+       for as long as this page is open. The thresholds match the app's own
+       teammate pins — silent for 2 minutes means the signal was lost or the
+       app closed (kept as "last seen"), and after 12 hours the hike is over. */
+    const HIKER_REFRESH_MS = 10 * 1000;
+    const HIKER_ONLINE_MS = 2 * 60 * 1000;
+    const HIKER_EXPIRY_MS = 12 * 60 * 60 * 1000;
+    const hikerMarkers = new Map();
+    let hikerDocs = [];
+    let hikerRefreshing = false;
+
+    const formatAgo = (date) => {
+      const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
+      if (minutes < 1) return 'just now';
+      if (minutes < 60) return `${minutes} min ago`;
+      const hours = Math.floor(minutes / 60);
+      return `${hours} hr${hours === 1 ? '' : 's'} ago`;
+    };
+
+    const hikerIcon = (online) => L.divIcon({
+      className: 'hiker-marker',
+      html: `<span class="hiker-pin ${online ? 'online' : 'offline'}"><i class="fa-solid fa-person-hiking"></i></span>`,
+      iconSize: [26, 26],
+      iconAnchor: [13, 13],
+      popupAnchor: [0, -14]
+    });
+
+    const hikerPopup = (data, coordinates, updatedAt, online) => {
+      const details = [];
+      const speed = Number(data.speed);
+      if (Number.isFinite(speed) && speed >= 0) details.push(`${(speed * 3.6).toFixed(1)} km/h`);
+      const altitude = Number(data.altitude);
+      if (Number.isFinite(altitude)) details.push(`${Math.round(altitude)} m elevation`);
+      const accuracy = Number(data.accuracy);
+      if (Number.isFinite(accuracy) && accuracy > 0) details.push(`±${Math.round(accuracy)} m`);
+      const teammates = Array.isArray(data.sharedWith) ? data.sharedWith.length : 0;
+      return `
+        <strong>${escapeHtml(data.name || 'Hiker')}</strong><br>
+        <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${online ? '#16a34a' : '#8a948c'}"></span>${online ? 'Online' : 'Offline · last seen'} ${escapeHtml(formatAgo(updatedAt))}</span><br>
+        ${teammates ? `Sharing with ${teammates} teammate${teammates === 1 ? '' : 's'}` : 'Solo hiker'}<br>
+        <small>${details.length ? `${escapeHtml(details.join(' · '))} · ` : ''}${coordinates.map((value) => value.toFixed(5)).join(', ')}</small>
+      `;
+    };
+
+    const renderHikers = () => {
+      const now = Date.now();
+      const shown = new Set();
+      let online = 0;
+      let offline = 0;
+      let offMountain = 0;
+
+      hikerDocs.forEach((data) => {
+        const updatedAt = toDate(data.updatedAt);
+        const coordinates = data.position ? getCoordinates(data.position) : null;
+        if (!updatedAt || !coordinates || now - updatedAt.getTime() > HIKER_EXPIRY_MS) return;
+        if (!makilingBounds.contains(coordinates)) {
+          offMountain += 1;
+          return;
+        }
+        const isOnline = now - updatedAt.getTime() <= HIKER_ONLINE_MS;
+        if (isOnline) online += 1; else offline += 1;
+        shown.add(data.id);
+
+        const popup = hikerPopup(data, coordinates, updatedAt, isOnline);
+        const marker = hikerMarkers.get(data.id);
+        if (!marker) {
+          const created = L.marker(coordinates, { icon: hikerIcon(isOnline), zIndexOffset: 1000 })
+            .bindPopup(popup)
+            .addTo(hikerLayer);
+          created.isOnline = isOnline;
+          hikerMarkers.set(data.id, created);
+          return;
+        }
+        // Moved in place rather than redrawn, so an open popup stays open.
+        marker.setLatLng(coordinates).setPopupContent(popup);
+        if (marker.isOnline !== isOnline) {
+          marker.setIcon(hikerIcon(isOnline));
+          marker.isOnline = isOnline;
+        }
+      });
+
+      hikerMarkers.forEach((marker, id) => {
+        if (shown.has(id)) return;
+        hikerLayer.removeLayer(marker);
+        hikerMarkers.delete(id);
+      });
+
+      hikerCaption = `${online} hiker${online === 1 ? '' : 's'} online` +
+        (offline ? ` · ${offline} recently offline` : '') +
+        (offMountain ? ` · ${offMountain} signed in outside Mount Makiling` : '');
+      updateMapCaption();
+    };
+
+    const refreshHikers = async () => {
+      if (hikerRefreshing) return;
+      hikerRefreshing = true;
+      try {
+        const cutoff = Timestamp.fromMillis(Date.now() - HIKER_EXPIRY_MS);
+        const snapshot = await getDocs(query(collection(db, 'locations'), where('updatedAt', '>', cutoff)));
+        hikerDocs = snapshot.docs.map((snap) => ({ id: snap.id, ...snap.data() }));
+        renderHikers();
+      } catch (error) {
+        console.error('Error loading hiker locations:', error);
+        hikerCaption = error?.code === 'permission-denied'
+          ? 'Hiker locations blocked by Firestore rules'
+          : 'Unable to load hiker locations';
+        updateMapCaption();
+      } finally {
+        hikerRefreshing = false;
+      }
+    };
+
+    refreshHikers();
+    setInterval(() => { if (!document.hidden) refreshHikers(); }, HIKER_REFRESH_MS);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshHikers(); });
+
     L.control.layers(null, {
       'Trails': trailLayer,
-      'Verified hazards': hazardLayer
+      'Verified hazards': hazardLayer,
+      'Hikers': hikerLayer
     }).addTo(map);
 
     let locationWatchId = null;

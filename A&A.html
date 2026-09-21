@@ -165,6 +165,34 @@
 		.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
 		.btn-secondary{background:#f1f3ef;color:var(--text-primary);border:none;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13px}
 		.btn-primary{background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13px}
+		.btn-primary:disabled,.btn-secondary:disabled{opacity:.6;cursor:not-allowed}
+		/* Photos & videos — upload area in the create/edit modal */
+		.media-drop{border:1.5px dashed var(--border);border-radius:10px;padding:14px;display:flex;align-items:center;gap:14px;cursor:pointer;background:#fbfcfa;transition:border-color .15s,background .15s}
+		.media-drop:hover,.media-drop:focus-visible,.media-drop.dragover{border-color:var(--accent);background:var(--accent-light);outline:none}
+		.media-drop.disabled{pointer-events:none;opacity:.55}
+		.media-drop-icon{width:40px;height:40px;border-radius:9px;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+		.media-drop-icon svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+		.media-drop-title{font-size:13px;font-weight:600;color:var(--text-primary)}
+		.media-drop-hint{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+		.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:10px}
+		.media-grid:empty{display:none}
+		.media-item{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:#f1f3ef;border:1px solid var(--border)}
+		.media-item img,.media-item video{width:100%;height:100%;object-fit:cover;display:block}
+		.media-kind{position:absolute;left:5px;bottom:7px;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;letter-spacing:.02em}
+		.media-remove{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center}
+		.media-remove:hover{background:var(--danger)}
+		.media-remove:disabled{display:none}
+		.media-progress{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(0,0,0,.18);display:none}
+		.media-progress span{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+		.media-item.uploading .media-progress{display:block}
+		.media-error{font-size:12px;color:var(--danger);margin-top:6px}
+		.media-error:empty{display:none}
+		/* Photos & videos — shown in the detail panel */
+		.detail-media{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+		.detail-media a,.detail-media video{display:block;width:100%;aspect-ratio:4/3;border-radius:8px;overflow:hidden;background:#f1f3ef;border:1px solid var(--border)}
+		.detail-media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s}
+		.detail-media a:hover img{transform:scale(1.04)}
+		.detail-media video{object-fit:contain;background:#000}
 		@media(max-width:980px){.content-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}}
 	</style>
 </head>
@@ -274,6 +302,11 @@
 								<div class="detail-desc" id="dDesc">—</div>
 							</div>
 
+							<div class="detail-section" id="dMediaSection" style="display:none">
+								<div class="label">Photos &amp; Videos</div>
+								<div class="detail-media" id="dMedia"></div>
+							</div>
+
 							<div class="detail-section">
 								<div class="label">Recommended Actions</div>
 								<ul id="recommendations" style="color:var(--text-secondary);margin-left:18px;line-height:1.6;font-size:13px"></ul>
@@ -336,6 +369,18 @@
 				</div>
 			</div>
 			<div class="field"><label>Description</label><textarea id="mDesc" placeholder="Full details shown to hikers"></textarea></div>
+			<div class="field"><label for="mMediaInput">Photos &amp; Videos (optional)</label>
+				<div class="media-drop" id="mMediaDrop" tabindex="0" role="button" aria-describedby="mMediaHint">
+					<div class="media-drop-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg></div>
+					<div style="flex:1;min-width:0">
+						<div class="media-drop-title" id="mMediaTitle">Click to upload or drag files here</div>
+						<div class="media-drop-hint" id="mMediaHint">Images up to 10 MB · Videos (MP4 recommended) up to 100 MB · Max 6 files</div>
+					</div>
+				</div>
+				<input type="file" id="mMediaInput" accept="image/*,video/*" multiple hidden>
+				<div class="media-grid" id="mMediaList"></div>
+				<div class="media-error" id="mMediaError" role="alert"></div>
+			</div>
 			<div class="field"><label>Recommended Actions (one per line)</label><textarea id="mActions" placeholder="Avoid the area until further notice.&#10;Take alternative trails."></textarea></div>
 			<div class="modal-actions">
 				<button class="btn-secondary" id="modalCancel">Cancel</button>
@@ -413,10 +458,13 @@
 	<script type="module">
 		import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 		import {
-			getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, getDoc,
+			getFirestore, collection, onSnapshot, updateDoc, setDoc, doc, getDoc,
 			serverTimestamp, orderBy, query, Timestamp
 		} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 		import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+		import {
+			getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject
+		} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 		// PeakPath Firebase project config
 		const firebaseConfig = {
@@ -432,6 +480,7 @@
 		const app = initializeApp(firebaseConfig);
 		const db = getFirestore(app);
 		const auth = getAuth(app);
+		const storage = getStorage(app);
 		const advisoryCol = collection(db, 'Advisory');
 
 		// Auth guard — this page requires a signed-in admin. Without this,
@@ -845,6 +894,47 @@ async function syncExpiredAdvisories(){
 			addButton('&rsaquo;', expiredPage + 1, { disabled: expiredPage === totalPages });
 		}
 
+		// Photos/videos saved on the advisory as `media: [{ url, path, type, name, ... }]`.
+		function getMedia(it){
+			return Array.isArray(it?.media) ? it.media.filter(m => m && m.url) : [];
+		}
+
+		function renderDetailMedia(it){
+			const section = document.getElementById('dMediaSection');
+			const grid = document.getElementById('dMedia');
+			const media = getMedia(it);
+			section.style.display = media.length ? '' : 'none';
+
+			// selectAdvisory re-runs on every snapshot; only rebuild when the
+			// media actually changed so a playing video isn't reset.
+			const key = media.map(m => m.url).join('|');
+			if (grid.dataset.key === key) return;
+			grid.dataset.key = key;
+			grid.innerHTML = '';
+
+			media.forEach(m => {
+				if (m.type === 'video') {
+					const video = document.createElement('video');
+					video.src = m.url;
+					video.controls = true;
+					video.preload = 'metadata';
+					grid.appendChild(video);
+				} else {
+					const link = document.createElement('a');
+					link.href = m.url;
+					link.target = '_blank';
+					link.rel = 'noopener';
+					link.title = m.name || 'Open full size';
+					const img = document.createElement('img');
+					img.src = m.url;
+					img.alt = m.name || 'Advisory photo';
+					img.loading = 'lazy';
+					link.appendChild(img);
+					grid.appendChild(link);
+				}
+			});
+		}
+
 		function selectAdvisory(id) {
 			const it = allItems.find(d => d.id === id);
 			if (!it) return;
@@ -873,6 +963,7 @@ async function syncExpiredAdvisories(){
 			document.getElementById('dPublishedBy').textContent = it.publishedBy || 'Admin User';
 			document.getElementById('dVisibility').textContent = it.visibility || 'All Users';
 			document.getElementById('dDesc').textContent = it.desc || 'No description provided.';
+			renderDetailMedia(it);
 
 			const chanEl = document.getElementById('dChannels');
 			chanEl.innerHTML = '';
@@ -957,11 +1048,229 @@ setInterval(() => {
 
 		// ---- Modal (Create / Edit) ----
 		const overlay = document.getElementById('modalOverlay');
+		const saveBtn = document.getElementById('modalSave');
+		const cancelBtn = document.getElementById('modalCancel');
+		let isSaving = false;
+		// The advisory's document ref, chosen when the modal opens so a new
+		// advisory already has an id to upload its photos/videos under.
+		let draftRef = null;
+
+		// ---- Photos & videos picker ----
+		// Picked files are previewed from memory and only uploaded to Firebase
+		// Storage (advisories/{advisoryId}/...) when the advisory is saved.
+		const MAX_MEDIA_FILES = 6;
+		const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+		const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
+
+		const mediaDrop = document.getElementById('mMediaDrop');
+		const mediaTitle = document.getElementById('mMediaTitle');
+		const mediaInput = document.getElementById('mMediaInput');
+		const mediaList = document.getElementById('mMediaList');
+		const mediaError = document.getElementById('mMediaError');
+
+		// Each entry is either { saved } — already in Storage — or
+		// { file, kind, previewUrl } — picked but not uploaded yet.
+		let mediaItems = [];
+		// Saved files the admin removed. Deleted from Storage only once the
+		// advisory is saved without them; Cancel leaves them untouched.
+		let removedMedia = [];
+		// Uploaded by a save that then failed. Deleted if the admin cancels.
+		let unsavedUploads = [];
+
+		function mediaKind(file){
+			if (file.type.startsWith('image/')) return 'image';
+			if (file.type.startsWith('video/')) return 'video';
+			return null;
+		}
+
+		function resetMediaPicker(savedMedia){
+			mediaItems.forEach(item => { if (item.previewUrl) URL.revokeObjectURL(item.previewUrl); });
+			mediaItems = savedMedia.map(saved => ({ saved }));
+			removedMedia = [];
+			mediaError.textContent = '';
+			renderMediaPicker();
+		}
+
+		function addMediaFiles(files){
+			const problems = [];
+			for (const file of files) {
+				const kind = mediaKind(file);
+				if (!kind) { problems.push(`${file.name} is not an image or video.`); continue; }
+				const limit = kind === 'video' ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+				if (file.size > limit) { problems.push(`${file.name} is larger than ${limit / 1024 / 1024} MB.`); continue; }
+				if (mediaItems.length >= MAX_MEDIA_FILES) { problems.push(`Only ${MAX_MEDIA_FILES} files can be attached.`); break; }
+				mediaItems.push({ file, kind, previewUrl: URL.createObjectURL(file) });
+			}
+			mediaError.textContent = problems.join(' ');
+			renderMediaPicker();
+		}
+
+		function removeMediaItem(index){
+			const [item] = mediaItems.splice(index, 1);
+			if (!item) return;
+			if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+			if (item.saved) removedMedia.push(item.saved);
+			mediaError.textContent = '';
+			renderMediaPicker();
+		}
+
+		function renderMediaPicker(){
+			mediaList.innerHTML = '';
+			mediaItems.forEach((item, index) => {
+				const kind = item.saved ? item.saved.type : item.kind;
+				const name = item.saved ? item.saved.name : item.file.name;
+				const tile = el('div', 'media-item');
+				tile.title = name || '';
+
+				const preview = document.createElement(kind === 'video' ? 'video' : 'img');
+				preview.src = item.saved ? item.saved.url : item.previewUrl;
+				if (kind === 'video') {
+					preview.muted = true;
+					preview.preload = 'metadata';
+				} else {
+					preview.alt = name || 'Advisory photo';
+				}
+				tile.appendChild(preview);
+
+				if (kind === 'video') {
+					const badge = el('span', 'media-kind');
+					badge.textContent = 'VIDEO';
+					tile.appendChild(badge);
+				}
+
+				const remove = el('button', 'media-remove');
+				remove.type = 'button';
+				remove.innerHTML = '&times;';
+				remove.title = 'Remove';
+				remove.setAttribute('aria-label', `Remove ${name || 'file'}`);
+				remove.disabled = isSaving;
+				remove.addEventListener('click', () => removeMediaItem(index));
+				tile.appendChild(remove);
+
+				const progress = el('div', 'media-progress');
+				progress.appendChild(document.createElement('span'));
+				tile.appendChild(progress);
+
+				item.tile = tile;
+				mediaList.appendChild(tile);
+			});
+
+			const full = mediaItems.length >= MAX_MEDIA_FILES;
+			mediaDrop.classList.toggle('disabled', isSaving || full);
+			mediaDrop.setAttribute('aria-disabled', String(isSaving || full));
+			mediaTitle.textContent = full
+				? `Maximum of ${MAX_MEDIA_FILES} files attached`
+				: 'Click to upload or drag files here';
+		}
+
+		function uploadMediaFile(advisoryId, item){
+			const safeName = item.file.name.replace(/[^\w.-]+/g, '_').slice(-80);
+			const path = `advisories/${advisoryId}/${Date.now()}-${safeName}`;
+			const task = uploadBytesResumable(storageRef(storage, path), item.file, { contentType: item.file.type });
+			const bar = item.tile?.querySelector('.media-progress span');
+			item.tile?.classList.add('uploading');
+
+			return new Promise((resolve, reject) => {
+				task.on('state_changed',
+					(snap) => { if (bar) bar.style.width = `${(snap.bytesTransferred / snap.totalBytes) * 100}%`; },
+					reject,
+					async () => {
+						try {
+							resolve({
+								url: await getDownloadURL(task.snapshot.ref),
+								path,
+								type: item.kind,
+								name: item.file.name,
+								contentType: item.file.type,
+								size: item.file.size
+							});
+						} catch (err) {
+							reject(err);
+						}
+					});
+			}).finally(() => item.tile?.classList.remove('uploading'));
+		}
+
+		// Uploads every file that isn't in Storage yet, one at a time so the
+		// progress bars fill in order, and returns the full media list to save.
+		async function uploadPendingMedia(advisoryId){
+			const pending = mediaItems.filter(item => item.file);
+			for (const [i, item] of pending.entries()) {
+				saveBtn.textContent = `Uploading ${i + 1} of ${pending.length}…`;
+				const saved = await uploadMediaFile(advisoryId, item);
+				URL.revokeObjectURL(item.previewUrl);
+				Object.assign(item, { saved, file: null, previewUrl: null });
+				unsavedUploads.push(saved);
+			}
+			return mediaItems.map(item => item.saved);
+		}
+
+		function deleteMediaFiles(list){
+			list.forEach(m => {
+				if (!m?.path) return;
+				deleteObject(storageRef(storage, m.path))
+					.catch(err => console.warn('Could not delete advisory media', m.path, err.code || err.message));
+			});
+		}
+
+		function describeSaveError(err){
+			switch (err?.code) {
+				case 'storage/unauthorized':
+					return 'Upload was blocked by the Firebase Storage rules. Publish storage.rules in the Firebase console.';
+				case 'storage/unknown':
+				case 'storage/bucket-not-found':
+				case 'storage/project-not-found':
+					return 'Firebase Storage is not set up for this project yet, so photos/videos cannot be uploaded.';
+				case 'storage/quota-exceeded':
+					return 'The Firebase Storage quota has been reached.';
+				case 'storage/retry-limit-exceeded':
+					return 'The upload timed out. Check your connection and try again.';
+				default:
+					return err?.message || String(err);
+			}
+		}
+
+		function setSaving(on){
+			isSaving = on;
+			saveBtn.disabled = on;
+			cancelBtn.disabled = on;
+			if (!on) saveBtn.textContent = editingId ? 'Edit Advisory' : 'Create Advisory';
+			renderMediaPicker();
+		}
+
+		mediaDrop.addEventListener('click', () => mediaInput.click());
+		mediaDrop.addEventListener('keydown', (e) => {
+			if (e.key !== 'Enter' && e.key !== ' ') return;
+			e.preventDefault();
+			if (!mediaDrop.classList.contains('disabled')) mediaInput.click();
+		});
+		mediaInput.addEventListener('change', () => {
+			addMediaFiles(mediaInput.files);
+			mediaInput.value = '';
+		});
+		mediaDrop.addEventListener('dragover', (e) => {
+			e.preventDefault();
+			mediaDrop.classList.add('dragover');
+		});
+		mediaDrop.addEventListener('dragleave', (e) => {
+			if (!mediaDrop.contains(e.relatedTarget)) mediaDrop.classList.remove('dragover');
+		});
+		mediaDrop.addEventListener('drop', (e) => {
+			e.preventDefault();
+			mediaDrop.classList.remove('dragover');
+			addMediaFiles(e.dataTransfer.files);
+		});
+		// A file dropped anywhere else on the modal must not make the browser
+		// navigate away to open it.
+		overlay.addEventListener('dragover', (e) => e.preventDefault());
+		overlay.addEventListener('drop', (e) => e.preventDefault());
+
 		function openModal(id){
 			editingId = id || null;
 			const it = id ? allItems.find(d => d.id === id) : null;
+			draftRef = id ? doc(db, 'Advisory', id) : doc(advisoryCol);
 			document.getElementById('modalTitle').textContent = it ? 'Edit Advisory' : 'Create New Advisory';
-			document.getElementById('modalSave').textContent = it ? 'Edit Advisory' : 'Create Advisory';
+			saveBtn.textContent = it ? 'Edit Advisory' : 'Create Advisory';
 			document.getElementById('mTitle').value = it?.title || '';
 			document.getElementById('mType').value = it?.type || 'Advisory';
 			document.getElementById('mStatus').value = it?.status || 'Active';
@@ -976,9 +1285,19 @@ setInterval(() => {
 			document.getElementById('mChanEmail').checked = channels.includes('Email');
 			document.getElementById('mDesc').value = it?.desc || '';
 			document.getElementById('mActions').value = (it?.recommendedActions || []).join('\n');
+			unsavedUploads = [];
+			resetMediaPicker(getMedia(it));
 			overlay.classList.add('open');
 		}
-		function closeModal(){ overlay.classList.remove('open'); editingId = null; }
+		function closeModal(){
+			if (isSaving) return;
+			deleteMediaFiles(unsavedUploads);
+			unsavedUploads = [];
+			resetMediaPicker([]);
+			overlay.classList.remove('open');
+			editingId = null;
+			draftRef = null;
+		}
 		document.getElementById('createBtn').addEventListener('click', () => openModal(null));
 		document.getElementById('modalCancel').addEventListener('click', closeModal);
 		overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
@@ -1000,7 +1319,8 @@ setInterval(() => {
     }
 });
 
-		document.getElementById('modalSave').addEventListener('click', async () => {
+		saveBtn.addEventListener('click', async () => {
+			if (isSaving) return;
 			const title = document.getElementById('mTitle').value.trim();
 			if (!title) return showAlert('Title is required.');
 
@@ -1042,17 +1362,28 @@ setInterval(() => {
 				payload.restoredAt = serverTimestamp();
 			}
 
+			const wasEditing = !!editingId;
+			setSaving(true);
 			try {
-				const wasEditing = !!editingId;
-				if (editingId) {
-					await updateDoc(doc(db, 'Advisory', editingId), payload);
+				payload.media = await uploadPendingMedia(draftRef.id);
+				saveBtn.textContent = 'Saving…';
+				if (wasEditing) {
+					await updateDoc(draftRef, payload);
 				} else {
-					await addDoc(advisoryCol, { ...payload, visible: true, createdAt: serverTimestamp() });
+					await setDoc(draftRef, { ...payload, visible: true, createdAt: serverTimestamp() });
 				}
+
+				// The advisory now references every upload, and no longer
+				// references the files the admin removed.
+				unsavedUploads = [];
+				deleteMediaFiles(removedMedia);
+				removedMedia = [];
+				setSaving(false);
 				closeModal();
 				showConfirm(wasEditing ? 'Successfully Edited' : 'Advisory Created');
 			} catch (err) {
-				showAlert('Failed to save advisory: ' + err.message);
+				setSaving(false);
+				showAlert('Failed to save advisory: ' + describeSaveError(err));
 			}
 		});
 

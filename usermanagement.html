@@ -1648,6 +1648,22 @@
   const EMERGENCY_USER_FIELDS = ['userId', 'uid', 'hikerId', 'hikerName', 'userName', 'reportedBy', 'name', 'email'];
   const REPORTED_USER_FIELDS = ['reportedUserId', 'reportedUserUid', 'reportedUid', 'reportedUserID', 'reportedUserEmail', 'reportedUserName', 'reportedUser'];
 
+  // The mobile app saves a user report's category as a `reason` key; these
+  // are the same labels the User Reports page shows for them.
+  const USER_REPORT_TYPE_LABELS = {
+    harassment: 'Harassment',
+    hate_speech: 'Hate Speech',
+    spam_scam: 'Spam or Scams',
+    inappropriate: 'Inappropriate Behavior',
+    false_reports: 'False Hazard Reports',
+    other: 'Other'
+  };
+
+  const getUserReportType = (record) => {
+    const raw = normalizeText(record.reason || record.reportType || record.type || record.category);
+    return USER_REPORT_TYPE_LABELS[raw.toLowerCase()] || raw;
+  };
+
   const pickDate = (record, fields) => {
     for (const field of fields) {
       const date = toDate(record?.[field]);
@@ -1696,7 +1712,7 @@
         activities.push({
           icon: 'fa-flag',
           tone: 'blue',
-          title: `Reported by another user: ${normalizeText(record.reportType || record.type || record.category) || 'User report'}`,
+          title: `Reported by another user: ${getUserReportType(record) || 'User report'}`,
           date: pickDate(record, ['createdAt', 'timestamp', 'reportedAt', 'date', 'updatedAt']),
           href: `userreports.html?report=${encodeURIComponent(record.id)}`
         });
@@ -2254,14 +2270,27 @@
     const user = getSelectedUser();
     if (!user) return;
 
-    const nextStatus = String(user.status || 'Active').toLowerCase() === 'active' ? 'Inactive' : 'Active';
+    // The PeakPath app watches this status: Inactive (or Suspended) signs
+    // the user out and blocks them from signing in until set back to Active.
+    const deactivating = String(user.status || 'Active').toLowerCase() === 'active';
+    const nextStatus = deactivating ? 'Inactive' : 'Active';
 
+    const confirmed = window.confirm(deactivating
+      ? `Deactivate ${user.name}? They will be signed out of the PeakPath app and won't be able to sign in until you activate them again.`
+      : `Activate ${user.name}? They will be able to sign in to the PeakPath app again.`);
+    if (!confirmed) return;
+
+    deactivateUserBtn.disabled = true;
     try {
       await updateDoc(doc(db, 'users', user.id), { status: nextStatus });
-      setResetPasswordStatus(`User set to ${nextStatus}.`, 'success');
+      setResetPasswordStatus(deactivating
+        ? `${user.name} has been deactivated and can no longer sign in to the app.`
+        : `${user.name} has been activated and can sign in to the app again.`, 'success');
     } catch (error) {
       console.error('Failed to update user status:', error);
       setResetPasswordStatus('Unable to update this user status right now.', 'error');
+    } finally {
+      deactivateUserBtn.disabled = false;
     }
   });
 

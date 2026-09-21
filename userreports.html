@@ -945,13 +945,22 @@
   ];
   const OTHER_TYPE = { key: 'other', label: 'Other', chart: '#93a199', bg: '#eef1ec', text: '#5b6b60' };
 
+  // Reason keys the mobile app saves that none of the types above match,
+  // shown with the same wording the hiker picked instead of the raw key.
+  const APP_REASON_LABELS = {
+    hate_speech: 'Hate Speech',
+    spam_scam: 'Spam or Scams',
+    false_reports: 'False Hazard Reports'
+  };
+
   const resolveType = (raw) => {
     const text = normalizeText(raw);
     const lower = text.toLowerCase();
     const known = lower && REPORT_TYPES.find((type) => type.pattern.test(lower));
     if (known) return known;
+    if (!lower || lower === 'other') return { ...OTHER_TYPE };
     // Keep unrecognised categories visible under their own label.
-    return { ...OTHER_TYPE, key: lower ? `other:${lower}` : 'other', label: text || 'Other' };
+    return { ...OTHER_TYPE, key: `other:${lower}`, label: APP_REASON_LABELS[lower] || text };
   };
 
   const STATUSES = {
@@ -1163,7 +1172,9 @@
     const dateHasTime = Boolean(date) && !(typeof rawDate === 'string' && !/\d:\d/.test(rawDate));
     const storedId = getFirstAvailable(data.reportId, data.reportID, data.reportedId, data.referenceId, data.idNumber);
     const year = (date || new Date()).getFullYear();
-    const type = resolveType(getFirstAvailable(data.reportType, data.type, data.category, data.report_category));
+    // The mobile app saves the chosen category as `reason`; the other names
+    // only cover older documents.
+    const type = resolveType(getFirstAvailable(data.reason, data.reportType, data.type, data.category, data.report_category));
     const statusRaw = getFirstAvailable(data.status, data.reportStatus, 'Pending');
     const status = resolveStatus(statusRaw);
 
@@ -1177,7 +1188,7 @@
       storedId,
       dateHasTime,
       type,
-      description: getFirstAvailable(data.description, data.details, data.message, data.reason, data.comment) || 'No description provided',
+      description: getFirstAvailable(data.description, data.details, data.message, data.comment) || 'No description provided',
       location: readLocation(data),
       status,
       date,
