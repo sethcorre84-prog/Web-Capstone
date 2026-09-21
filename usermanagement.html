@@ -220,11 +220,16 @@
     border-radius: 6px;
   }
   
+  /* Search + filter row — same look as the Trail, Hazard Reports and
+     Advisories pages. Text colours are the pages.css values written out,
+     because this page's :root redefines --text-primary/--text-secondary as
+     light sidebar colours. */
   .toolbar {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
   }
 
   .card-head {
@@ -269,6 +274,38 @@
   }
 
   .btn-ghost:hover { background: #f8fafc; }
+
+  /* Icon-only button whose label appears on hover/focus — same tooltip as
+     the Hazard Reports page's download button. */
+  .icon-only {
+    position: relative;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+  }
+
+  .btn-tooltip {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 5;
+    white-space: nowrap;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: #1d2b1d;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: all .15s ease;
+    box-shadow: 0 8px 18px rgba(0,0,0,.12);
+  }
+
+  .icon-only:hover .btn-tooltip,
+  .icon-only:focus-visible .btn-tooltip { opacity: 1; transform: translateY(0); }
 
   .table-foot {
     display: flex;
@@ -393,52 +430,54 @@
   .location-chip i { color: #16a34a; font-size: 12px; }
 
   .search-box {
+    flex: 1;
+    min-width: 160px;
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1;
-    min-width: 0;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 8px 10px;
-    background: #f8fafc;
+    padding: 8px 12px;
+    background: #fbfcfa;
   }
-  
-  .search-box > i { color: #94a3b8; font-size: 12.5px; flex-shrink: 0; }
+
+  .search-box svg { flex-shrink: 0; }
 
   .search-box input {
-    flex: 1;
+    width: 100%;
     min-width: 0;
     border: none;
-    background: transparent;
     outline: none;
-    color: #0f172a;
+    background: transparent;
     font-size: 13px;
+    color: #1c231c;
   }
-  
-  .filter-box {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    min-width: 130px;
-    border: 1px solid #cbd5e1;
+
+  .toolbar select.filter {
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 8px 10px;
-    background: #f8fafc;
-    color: #475569;
+    background: #fbfcfa;
     font-size: 13px;
+    color: #5b6b60;
   }
-  
-  .filter-box select {
-    appearance: none;
-    border: none;
-    background: transparent;
-    color: #475569;
-    outline: none;
+
+  .clear-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    font: inherit;
     font-size: 13px;
-    padding-right: 4px;
+    font-weight: 400;
+    color: #5b6b60;
+    cursor: pointer;
   }
+
+  .clear-btn:hover { background: #f5f5f2; }
   
   .user-list-table {
     width: 100%;
@@ -1088,7 +1127,8 @@
     .top-bar { flex-direction: column; gap: 14px; }
     .topbar-right { flex-wrap: wrap; }
     .toolbar { flex-direction: column; align-items: stretch; }
-    .search-box, .filter-box { width: 100%; }
+    .search-box, .toolbar select.filter, .clear-btn { width: 100%; }
+    .clear-btn { justify-content: center; }
     .card-head { flex-direction: column; align-items: stretch; }
     .card-head-actions { justify-content: flex-end; }
     .detail-actions { grid-template-columns: 1fr; }
@@ -1220,37 +1260,32 @@
           <h2>User List</h2>
           <div class="card-head-actions">
             <button id="addUserBtn" class="btn-primary" type="button"><i class="fa-solid fa-plus"></i>Add User</button>
-            <button id="exportUsersBtn" class="btn-ghost" type="button"><i class="fa-solid fa-download"></i>Export</button>
+            <button id="exportUsersBtn" class="btn-ghost icon-only" type="button" aria-label="Export"><i class="fa-solid fa-download" aria-hidden="true"></i><span class="btn-tooltip">Export</span></button>
           </div>
         </div>
 
         <div class="toolbar">
           <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass"></i>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#93a199" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
             <input type="text" id="userSearchInput" placeholder="Search users..." />
           </div>
-          <div class="filter-box">
-            <select id="userRoleFilter">
-              <option>All Roles</option>
-            </select>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
-          <div class="filter-box">
-            <select id="userStatusFilter">
-              <option>All Status</option>
-              <option>Active</option>
-              <option>Inactive</option>
-              <option>Pending</option>
-              <option>Suspended</option>
-            </select>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
-          <div class="filter-box">
-            <select id="userTeamFilter">
-              <option>All Teams</option>
-            </select>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
+          <select class="filter" id="userRoleFilter" aria-label="Filter by role">
+            <option>All Roles</option>
+          </select>
+          <select class="filter" id="userStatusFilter" aria-label="Filter by status">
+            <option>All Status</option>
+            <option>Active</option>
+            <option>Inactive</option>
+            <option>Pending</option>
+            <option>Suspended</option>
+          </select>
+          <select class="filter" id="userTeamFilter" aria-label="Filter by team">
+            <option>All Teams</option>
+          </select>
+          <button class="clear-btn" id="clearUserFiltersBtn" type="button">
+            <i class="fa-solid fa-filter" aria-hidden="true"></i>
+            Clear Filters
+          </button>
         </div>
 
         <div class="table-wrapper">
@@ -1467,6 +1502,7 @@
   const roleFilter = document.getElementById('userRoleFilter');
   const statusFilter = document.getElementById('userStatusFilter');
   const teamFilter = document.getElementById('userTeamFilter');
+  const clearUserFiltersBtn = document.getElementById('clearUserFiltersBtn');
   const userCountSummary = document.getElementById('userCountSummary');
   const userPager = document.getElementById('userPager');
 
@@ -2354,6 +2390,15 @@
       renderUserTable();
       renderSelectedUser();
     });
+  });
+
+  // Each filter's first option is its "All ..." choice.
+  clearUserFiltersBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    [roleFilter, statusFilter, teamFilter].forEach((select) => { select.selectedIndex = 0; });
+    state.page = 1;
+    renderUserTable();
+    renderSelectedUser();
   });
 </script>
 

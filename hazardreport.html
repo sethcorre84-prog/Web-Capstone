@@ -302,6 +302,7 @@ body[data-theme="dark"]{
 body[data-theme="dark"] .search-box,
 body[data-theme="dark"] select.filter-select,
 body[data-theme="dark"] .btn-outline,
+body[data-theme="dark"] .export-btn,
 body[data-theme="dark"] .bell-wrap,
 body[data-theme="dark"] .card{
     background:var(--card);
@@ -334,7 +335,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   /* Stat cards */
     .stats{
     display:grid;
-    grid-template-columns:repeat(5,minmax(0,1fr));
+    grid-template-columns:repeat(6,minmax(0,1fr));
     gap:14px;
   }
   .stat-card{
@@ -368,6 +369,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   .stat-icon.pending{background:var(--amber-bg);}
   .stat-icon.verified{background:var(--green-bg);}
   .stat-icon.rejected{background:var(--red-bg);}
+  .stat-icon.resolved{background:var(--resolved-bg);}
   .stat-value{
     font-size:24px;
     font-weight:700;
@@ -386,12 +388,20 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   }
 
   /* Panels */
+  /* The list and details cards stretch to the taller of the two, so their
+     bottom edges line up; neither card scrolls on its own. */
   .panels{
     display:grid;
     grid-template-columns:1.7fr 1fr;
     gap:18px;
-    align-items:start;
+    align-items:stretch;
   }
+  .list-card{
+    display:flex;
+    flex-direction:column;
+  }
+  /* When the card is stretched, keep the count + pagination on its bottom edge. */
+  .list-card .table-footer{margin-top:auto;}
 
   .card{
     background:var(--card);
@@ -720,12 +730,13 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   .history-text strong{font-size:12.5px;font-weight:600;display:block;color:var(--text-900);}
   .history-text span{font-size:11px;color:var(--text-400);}
 
-  /* Rejected + Resolved panels, side by side under the reports list */
+  /* Rejected + Resolved panels, side by side in their own full-width row
+     under both the reports list and the details card. */
   .closed-panels{
+    grid-column:1 / -1;
     display:grid;
     grid-template-columns:repeat(2,minmax(0,1fr));
     gap:18px;
-    margin-top:18px;
     align-items:start;
   }
 
@@ -787,6 +798,44 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   }
   .archive-action:hover .archive-tooltip,
   .archive-action:focus-visible .archive-tooltip{opacity:1;transform:translateY(0);}
+
+  /* Icon-only Export button with a hover label — same as User Management's. */
+  .export-btn{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:38px;height:38px;
+    padding:0;
+    border:1px solid #cbd5e1;
+    border-radius:8px;
+    background:#ffffff;
+    color:#334155;
+    font-size:13px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .export-btn:hover{background:#f8fafc;}
+  .export-btn .btn-tooltip{
+    position:absolute;
+    top:calc(100% + 8px);
+    right:0;
+    z-index:5;
+    white-space:nowrap;
+    padding:6px 8px;
+    border-radius:8px;
+    background:#1d2b1d;
+    color:#fff;
+    font-size:11px;
+    font-weight:400;
+    opacity:0;
+    transform:translateY(-4px);
+    pointer-events:none;
+    transition:all .15s ease;
+    box-shadow:0 8px 18px rgba(0,0,0,.12);
+  }
+  .export-btn:hover .btn-tooltip,
+  .export-btn:focus-visible .btn-tooltip{opacity:1;transform:translateY(0);}
   .rejected-row,
   .resolved-row{
     transition:transform .15s ease,box-shadow .15s ease,background .15s ease,padding .15s ease;
@@ -1009,6 +1058,8 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   ========================================== */
   @media (max-width: 1150px){
     .panels{grid-template-columns:minmax(0,1fr);}
+    /* Six stat cards get cramped in one row below this width. */
+    .stats{grid-template-columns:repeat(3,minmax(0,1fr));}
   }
   @media (max-width: 980px){
     .stats{grid-template-columns:repeat(3,minmax(0,1fr));}
@@ -1120,6 +1171,16 @@ body[data-theme="dark"] .admin-dropdown a:hover{
 
         <div class="stat-card">
           <div class="stat-top">
+            <span class="stat-value" id="resolvedReports">0</span>
+            <div class="stat-icon resolved">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--resolved-text)" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+            </div>
+          </div>
+          <div class="stat-label">Resolved<div class="meta-line" id="resolvedMeta">0% of total</div></div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-top">
             <span class="stat-value" id="rejectedReports">0</span>
             <div class="stat-icon rejected">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--red-text)" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg>
@@ -1143,16 +1204,15 @@ body[data-theme="dark"] .admin-dropdown a:hover{
       <!-- Panels -->
       <div class="panels">
 
-        <!-- LEFT: Reports list, with the Rejected and Resolved panels under it -->
-        <div>
-        <div class="card">
+        <!-- LEFT: Reports list -->
+        <div class="card list-card">
           <div class="list-card-header">
   <div class="list-header-top">
   <h2>Hazard Reports List</h2>
   <div class="archive-action-wrap">
-    <button class="archive-action" id="viewReportsBtn" type="button" aria-label="View reports">
-      <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
-      <span class="archive-tooltip">View reports</span>
+    <button class="export-btn" id="viewReportsBtn" type="button" aria-label="Export">
+      <i class="fa-solid fa-download" aria-hidden="true"></i>
+      <span class="btn-tooltip">Export</span>
     </button>
   </div>
 </div>
@@ -1215,6 +1275,12 @@ body[data-theme="dark"] .admin-dropdown a:hover{
 </div>
   </div>
 
+        <!-- RIGHT: Report details -->
+      <div class="card details-card empty" id="detailsCard">
+      <p>Select a report to view details</p>
+      </div>
+
+        <!-- BOTTOM: Rejected + Resolved, full width under both columns -->
         <div class="closed-panels">
           <div class="card" id="rejectedPanel" style="padding:18px 20px">
             <div class="panel-header">
@@ -1238,14 +1304,6 @@ body[data-theme="dark"] .admin-dropdown a:hover{
             <div class="pagination" id="resolvedPagination" style="margin-top:10px;justify-content:flex-end;width:100%"></div>
           </div>
         </div>
-        </div>
-
-        <!-- RIGHT: Report details -->
-      <div>
-      <div class="card details-card empty" id="detailsCard">
-      <p>Select a report to view details</p>
-      </div>
-      </div>
       </div>
     </div>
   </div>
@@ -1430,7 +1488,7 @@ let hazardTypes = new Set();
 let selectedArchiveIds = new Set();
 let pendingArchiveIds = [];
 let currentPage = 1;
-const itemsPerPage = 10;
+const itemsPerPage = 7;
 let currentFilteredReports = [];
 let rejectedPage = 1;
 const rejectedPageSize = 5;
@@ -1935,7 +1993,8 @@ let editReportTargetId = null;
 
 function openEditReportModal(reportId) {
   const report = allReports.find(r => r.id === reportId);
-  if (!report) return;
+  // Resolving is final, so a resolved report can't be edited either.
+  if (!report || report.status === 'resolved') return;
   editReportTargetId = reportId;
 
   document.getElementById('editHazardType').value = report.hazardType || '';
@@ -2111,7 +2170,9 @@ function renderReportDetails(report) {
       </div>
     </div>
       <div>
-      <button class="btn btn-info" style="width:100%" onclick="openEditReportModal('${report.id}')">✎ Edit Information</button>
+      ${isResolved
+        ? `<button class="btn btn-info" style="width:100%;opacity:.6;cursor:not-allowed" disabled title="Resolved reports can't be edited.">✎ Edit Information</button>`
+        : `<button class="btn btn-info" style="width:100%" onclick="openEditReportModal('${report.id}')">✎ Edit Information</button>`}
     </div>
     <div class="admin-actions">
       <p class="section-label">Admin Actions</p>
@@ -2119,7 +2180,7 @@ function renderReportDetails(report) {
         <div class="form-error" style="margin-bottom:2px;">Set a valid risk level before this report can be verified or rejected.</div>
       ` : ''}
       <div class="row">
-          ${report.status === 'verified' || risk.className === 'unknown'
+          ${report.status === 'verified' || isResolved || risk.className === 'unknown'
             ? `<button class="btn btn-verify" disabled style="opacity:.6;cursor:not-allowed">✔ Verify Hazard</button>`
             : `<button class="btn btn-verify" onclick="updateReportStatus('${report.id}', 'verified')">✔ Verify Hazard</button>`
           }
@@ -2130,7 +2191,7 @@ function renderReportDetails(report) {
       </div>
       <div class="row">${resolveButton}</div>
       ${isResolved ? `
-        <div class="action-hint">Resolved${resolvedOn ? ` on ${resolvedOn.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}. If the hazard comes back, Verify Hazard reopens it and alerts hikers again.</div>
+        <div class="action-hint">Resolved${resolvedOn ? ` on ${resolvedOn.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}. Resolving is final — this report can't be reopened or edited. If the hazard comes back, it needs a new report.</div>
       ` : ''}
     </div>
 
@@ -2206,7 +2267,7 @@ function openStatusModal(reportId, newStatus) {
     icon.className = 'modal-icon resolve';
     icon.textContent = '✓';
     title.textContent = 'Resolve Hazard Report';
-    subtitle.textContent = 'Mark this hazard as resolved? It leaves the active list and the map, and moves to Resolved Reports.';
+    subtitle.textContent = 'Mark this hazard as resolved? It leaves the active list and the map, and moves to Resolved Reports with a new RES number. This cannot be undone.';
     confirmBtn.className = 'modal-btn confirm-resolve';
     confirmBtn.textContent = 'Resolve Report';
     reasonLabel.textContent = 'Resolution note (optional)';
@@ -2311,20 +2372,33 @@ async function confirmStatusUpdate() {
 
     const batch = writeBatch(db);
 
-    if (newStatus === 'rejected') {
-      // New rejections are appended after however many rejected reports
-      // already exist for the year — not a full resync of every ID.
-      const rejectedCount = allReports.filter(r =>
-        r.id !== reportId &&
-        r.status === 'rejected' &&
-        (r.timestamp ? (r.timestamp.toDate ? r.timestamp.toDate() : new Date(r.timestamp)).getFullYear() : new Date().getFullYear()) === reportYear
-      ).length;
-      updateData.reportId = `R-${reportYear}-${String(rejectedCount + 1).padStart(3, '0')}`;
+    if (newStatus === 'rejected' || newStatus === 'resolved') {
+      if (newStatus === 'rejected') {
+        // New rejections are appended after however many rejected reports
+        // already exist for the year — not a full resync of every ID.
+        const rejectedCount = allReports.filter(r =>
+          r.id !== reportId &&
+          r.status === 'rejected' &&
+          (r.timestamp ? (r.timestamp.toDate ? r.timestamp.toDate() : new Date(r.timestamp)).getFullYear() : new Date().getFullYear()) === reportYear
+        ).length;
+        updateData.reportId = `R-${reportYear}-${String(rejectedCount + 1).padStart(3, '0')}`;
+      } else {
+        // Resolved reports get their own sequence (RES-YYYY-001, 002, ...),
+        // continuing after the highest one used that year. Resolving is
+        // final, so these numbers never shift afterwards.
+        const lastResolvedNumber = allReports.reduce((max, r) => {
+          const match = /^RES-(\d{4})-(\d+)$/.exec(r.reportId || '');
+          return match && Number(match[1]) === reportYear ? Math.max(max, Number(match[2])) : max;
+        }, 0);
+        updateData.reportId = `RES-${reportYear}-${String(lastResolvedNumber + 1).padStart(3, '0')}`;
+      }
 
       // This report is leaving the active HR list, so close the gap it
-      // leaves behind there too: whoever was next in line moves up.
+      // leaves behind there too: whoever was next in line moves up. (The
+      // mobile app numbers new reports by counting HR- IDs, so a gap would
+      // make it hand out a duplicate number.)
       const remainingActive = allReports
-        .filter(r => r.id !== reportId && r.status !== 'rejected' && r.status !== 'archived')
+        .filter(r => r.id !== reportId && !['rejected', 'archived', 'resolved'].includes(r.status))
         .map(r => {
           const match = /^HR-(\d{4})-(\d+)$/.exec(r.reportId || '');
           return { id: r.id, reportId: r.reportId, year: match ? Number(match[1]) : reportYear, num: match ? Number(match[2]) : Infinity };
@@ -2342,7 +2416,7 @@ async function confirmStatusUpdate() {
       // Restoring a rejected report picks up right after the last HR number
       // in the active (pending/verified) list, instead of shifting others.
       const lastHrNumber = allReports.reduce((max, r) => {
-        if (r.id === reportId || r.status === 'rejected' || r.status === 'archived') return max;
+        if (r.id === reportId || ['rejected', 'archived', 'resolved'].includes(r.status)) return max;
         const match = /^HR-(\d{4})-(\d+)$/.exec(r.reportId || '');
         if (!match || Number(match[1]) !== reportYear) return max;
         return Math.max(max, Number(match[2]));
@@ -2415,6 +2489,8 @@ window.updateReportStatus = (reportId, newStatus) => {
   }
 
   const report = allReports.find(r => r.id === reportId);
+  // Resolving is final: a resolved report's status never changes again.
+  if (report?.status === 'resolved') return;
   // If verifying a rejected report, show styled edit-confirm modal first
   if (newStatus === 'verified' && report && report.status === 'rejected') {
     openEditConfirmModal(reportId);
@@ -2499,7 +2575,8 @@ async function renumberReports() {
       const date = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
       return { docSnap, data, date };
     })
-    .filter(({ data }) => data.status !== 'archived')
+    // Archived and resolved reports keep their A-/RES- numbers for good.
+    .filter(({ data }) => !['archived', 'resolved'].includes(data.status))
     .sort((a, b) => b.date - a.date); // newest first
 
   docs.forEach(({ docSnap, data, date }) => {
@@ -2597,22 +2674,26 @@ function updateStats() {
   const total = allReports.length;
   const pending = allReports.filter(r => r.status === 'pending').length;
   const verified = allReports.filter(r => r.status === 'verified').length;
+  const resolved = allReports.filter(r => r.status === 'resolved').length;
   const rejected = allReports.filter(r => r.status === 'rejected').length;
   const archived = allReports.filter(r => r.status === 'archived').length;
 
   document.getElementById('totalReports').textContent = total;
   document.getElementById('pendingReports').textContent = pending;
   document.getElementById('verifiedReports').textContent = verified;
+  document.getElementById('resolvedReports').textContent = resolved;
   document.getElementById('rejectedReports').textContent = rejected;
   document.getElementById('archivedReports').textContent = archived;
   
   const pendingPercent = total ? Math.round((pending / total) * 100) : 0;
   const verifiedPercent = total ? Math.round((verified / total) * 100) : 0;
+  const resolvedPercent = total ? Math.round((resolved / total) * 100) : 0;
   const rejectedPercent = total ? Math.round((rejected / total) * 100) : 0;
   const archivedPercent = total ? Math.round((archived / total) * 100) : 0;
 
   document.getElementById('pendingMeta').textContent = pendingPercent + '% of total';
   document.getElementById('verifiedMeta').textContent = verifiedPercent + '% of total';
+  document.getElementById('resolvedMeta').textContent = resolvedPercent + '% of total';
   document.getElementById('rejectedMeta').textContent = rejectedPercent + '% of total';
   document.getElementById('archivedMeta').textContent = archivedPercent + '% of total';
   // NOTE: reportCount is now set by renderReportsTable() with accurate,
