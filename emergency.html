@@ -378,17 +378,58 @@ tbody td{
   color:var(--danger);
   font-weight:700;
 }
+/* ==========================================
+   RESPONSIVE
+   Shared chrome (sidebar rail, page padding, header stacking, table
+   scrolling) lives in pages.css; these are this page's own grids. The five
+   cards step down 5 -> 3 -> 2 -> 1 instead of collapsing straight to one
+   column, so a tablet still gets a usable row.
+========================================== */
+@media(max-width:1150px){
+  .grid-2{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .map-panel{
+    grid-template-columns:minmax(0,1fr);
+  }
+}
 @media(max-width:1080px){
-  .cards-row,.grid-2{
-    grid-template-columns:1fr;
-    }
-    .topbar{
-      flex-direction:column;
-      gap:16px;
-      }
-      .map-panel{
-        grid-template-columns:1fr;
-        }}
+  .cards-row{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .topbar{
+    flex-direction:column;
+    gap:16px;
+  }
+}
+@media(max-width:860px){
+  .cards-row{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+  }
+  /* Four tabs will not fit side by side; let them scroll as one row rather
+     than wrap into a ragged block. */
+  .tabs{
+    overflow-x:auto;
+    flex-wrap:nowrap;
+    gap:14px;
+  }
+  .tab{
+    white-space:nowrap;
+  }
+}
+@media(max-width:560px){
+  .cards-row{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .panel{
+    padding:14px;
+  }
+  /* Hold the table at a legible width and let .table-wrap scroll it. */
+  .table-wrap table{
+    min-width:620px;
+  }
+}
 </style>
 </head>
 <body>

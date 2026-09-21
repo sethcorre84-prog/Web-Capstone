@@ -380,6 +380,17 @@
     .table-footer{grid-template-columns:1fr;justify-items:start;}
     .details-grid,.d-grid{grid-template-columns:1fr;}
   }
+  @media (max-width:560px){
+    /* .table-wrap bleeds the table to the panel edges with a -20px margin,
+       which would overhang once the panel's own padding shrinks. */
+    .panel{padding:14px;}
+    .table-wrap{margin:0 -14px;padding:0 14px;}
+    .charts-panel{padding:0;}
+    .evidence-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+    /* A fixed 330px toast is wider than a small phone. */
+    .toast-stack{right:10px;left:10px;bottom:10px;}
+    .toast{max-width:100%;}
+  }
 </style>
 </head>
 <body>

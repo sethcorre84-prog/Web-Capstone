@@ -513,15 +513,20 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 1080px) {
   .cards-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 980px) {
-  .main { padding: 18px 16px; }
-}
+/* Content padding steps down in pages.css now, for every page at once. */
 @media (max-width: 860px) {
   .panel-grid, .bottom-panel { grid-template-columns: 1fr; }
 }
+@media (max-width: 760px) {
+  .panel { padding: 13px; }
+  .cards-row { gap: 10px; }
+}
 @media (max-width: 620px) {
-  .cards-row { grid-template-columns: 1fr; }
+  .cards-row { grid-template-columns: minmax(0, 1fr); }
   .topbar { flex-direction: column; }
+  /* Seven day-columns leave ~35px each on a phone; shrink the gutters and
+     the chart's floor so the bars stay readable instead of hair-thin. */
+  .usage-grid { gap: 3px; min-height: 140px; }
 }
 </style>
 </head>

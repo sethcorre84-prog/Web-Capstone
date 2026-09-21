@@ -601,3 +601,146 @@ body[data-theme="dark"] .pagination button.current {
     text-align: center;
     font-size: 13px;
 }
+
+/* ==========================================================================
+   Responsive layer — one set of rules that makes every admin page usable
+   from a 4K monitor down to a 320px phone.
+
+   Why the selectors are `body .main` and not `.main`: each page carries its
+   own inline <style> AFTER this file, so a bare `.main` here loses to the
+   page's own `.main{padding:26px 32px}`. Prefixing with `body` adds the one
+   point of specificity needed to win, without resorting to !important.
+
+   Breakpoints used across the portal (keep pages in step with these):
+     1150px  side column drops under the main column
+      980px  wide stat rows halve
+      760px  sidebar becomes an icon rail (see above); header stacks
+      560px  single column everywhere; toolbars and footers stack
+      400px  smallest phones: tighter rail, tighter padding
+   ========================================================================== */
+
+/* A flex child will not shrink below its content unless told to, which is how
+   one wide table ends up scrolling the whole page sideways. */
+body .app {
+    min-width: 0;
+}
+body .main,
+body .main-panel {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Media never forces the layout wider than its column. Leaflet ships its own
+   `max-width:none!important` for tile/marker images, so maps are unaffected. */
+img,
+svg,
+video,
+canvas {
+    max-width: 100%;
+}
+img {
+    height: auto;
+}
+
+/* Long ids, emails and URLs are the other common cause of sideways scroll. */
+body {
+    overflow-wrap: break-word;
+}
+
+/* Any table wide enough to need it scrolls inside its own panel rather than
+   stretching the page. All three wrapper names in the portal are covered. */
+.table-wrap,
+.table-wrapper,
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Inputs inherit the page font so iOS does not zoom in on focus (it does that
+   for anything under 16px, which silently breaks the layout on an iPhone). */
+@media (max-width: 760px) {
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 980px) {
+    body .main,
+    body .main-panel {
+        padding: 22px 20px;
+    }
+}
+
+@media (max-width: 760px) {
+    body .main,
+    body .main-panel {
+        padding: 18px 14px;
+    }
+
+    /* The page header: title on one line, controls under it, instead of the
+       two being squeezed side by side. */
+    body .topbar,
+    body .top-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    body .topbar-right,
+    body .top-bar-right,
+    body .topbar .admin-mini,
+    body .top-bar .admin-mini {
+        flex-wrap: wrap;
+    }
+
+    /* Search + filter rows wrap instead of overflowing. */
+    body .toolbar,
+    body .filters,
+    body .filter-row {
+        flex-wrap: wrap;
+    }
+
+    /* "Showing 1 to 10 of 40" and the page buttons stack rather than collide. */
+    body .table-footer,
+    body .pagination {
+        flex-wrap: wrap;
+        row-gap: 10px;
+    }
+}
+
+@media (max-width: 560px) {
+    body .main,
+    body .main-panel {
+        padding: 14px 12px;
+    }
+    body .topbar h1,
+    body .top-bar h1,
+    body .topbar-left h1,
+    body .top-copy h1 {
+        font-size: 19px;
+    }
+
+    /* A full-width control is easier to hit than a row of tiny ones. */
+    body .toolbar > *,
+    body .filters > * {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+}
+
+/* Smallest phones: give the content every pixel the rail can spare. The
+   `.collapsed` and `.sidebar-was-collapsed` selectors are matched here too,
+   or their 76px would outrank this rule when the rail is already collapsed. */
+@media (max-width: 400px) {
+    .sidebar,
+    .sidebar.collapsed,
+    .sidebar-was-collapsed .sidebar {
+        width: 60px;
+        padding: 18px 6px;
+    }
+    body .main,
+    body .main-panel {
+        padding: 12px 10px;
+    }
+}

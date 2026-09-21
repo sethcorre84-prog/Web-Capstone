@@ -193,7 +193,35 @@
 		.detail-media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s}
 		.detail-media a:hover img{transform:scale(1.04)}
 		.detail-media video{object-fit:contain;background:#000}
-		@media(max-width:980px){.content-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}}
+		/* ==========================================
+		   RESPONSIVE
+		   Shared chrome (sidebar rail, page padding, header stacking, table
+		   scrolling) lives in pages.css; these are this page's own grids.
+		========================================== */
+		@media(max-width:1150px){
+			.content-grid{grid-template-columns:minmax(0,1fr)}
+		}
+		@media(max-width:980px){
+			.content-grid{grid-template-columns:minmax(0,1fr)}
+			.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+		}
+		@media(max-width:760px){
+			.panel{padding:14px}
+			.stats-grid{gap:10px}
+			.modal{padding:18px 16px 20px}
+			.modal-overlay{padding:20px 12px}
+		}
+		@media(max-width:560px){
+			.stats-grid{grid-template-columns:minmax(0,1fr)}
+			.field-row{grid-template-columns:1fr}
+			.checks{gap:10px}
+			.modal-actions{flex-direction:column-reverse}
+			.modal-actions button{width:100%}
+			/* Six columns will not fit a phone legibly: hold the table at a
+			   readable width and let its wrapper scroll sideways. */
+			.table-scroll table{min-width:620px}
+			.media-grid{grid-template-columns:repeat(auto-fill,minmax(80px,1fr))}
+		}
 	</style>
 </head>
 <body>
@@ -262,10 +290,12 @@
     					 Clear Filters
 					</button>
         		</div>
-        		<table>
-            		<thead><tr><th>Title</th><th>Type</th><th>Target</th><th>Status</th><th>Published / Scheduled</th><th>Actions</th></tr></thead>
-            		<tbody id="listBody"></tbody>
-        		</table>
+        		<div class="table-scroll">
+        			<table>
+            			<thead><tr><th>Title</th><th>Type</th><th>Target</th><th>Status</th><th>Published / Scheduled</th><th>Actions</th></tr></thead>
+            			<tbody id="listBody"></tbody>
+        			</table>
+        		</div>
         		<div class="pagination">
             		<div id="pageInfo">Loading…</div>
             		<div class="page-controls" id="pageControls"></div>

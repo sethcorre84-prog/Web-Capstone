@@ -1083,7 +1083,7 @@
   }
 
   @media (max-width:700px) {
-    .main-panel { padding: 16px; }
+    /* Content padding steps down in pages.css now, for every page at once. */
     .hero-grid { grid-template-columns: 1fr; }
     .top-bar { flex-direction: column; gap: 14px; }
     .topbar-right { flex-wrap: wrap; }
@@ -1092,6 +1092,15 @@
     .card-head { flex-direction: column; align-items: stretch; }
     .card-head-actions { justify-content: flex-end; }
     .detail-actions { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width:560px) {
+    .modal .field-row { grid-template-columns: 1fr; }
+    .modal-actions { flex-direction: column-reverse; }
+    .modal-actions button { width: 100%; }
+    /* The user list has more columns than a phone can show legibly: hold it
+       at a readable width and let .table-wrapper scroll it sideways. */
+    .user-list-table { min-width: 720px; }
   }
 </style>
 </head>

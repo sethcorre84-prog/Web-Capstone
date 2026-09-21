@@ -329,13 +329,31 @@
             background: #f8fafc;
             border-color: #94a3b8;
         }
+        /* ==========================================
+           RESPONSIVE
+           Shared chrome (sidebar rail, page padding, header stacking) lives
+           in pages.css; these are this page's own grids.
+        ========================================== */
         @media (max-width: 1120px) {
-            .hero-grid { grid-template-columns: repeat(3, 1fr); }
+            .hero-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         }
         @media (max-width: 900px) {
-            .hero-grid { grid-template-columns: 1fr 1fr; }
-            .dashboard-grid { grid-template-columns: 1fr; }
-            .summary-list { grid-template-columns: 1fr 1fr; }
+            .hero-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+            .summary-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            /* Two charts side by side are unreadable at this width. */
+            .chart-row { grid-template-columns: minmax(0, 1fr); }
+        }
+        @media (max-width: 760px) {
+            .hero-grid { gap: 12px; margin-bottom: 18px; }
+            .hero-card { padding: 18px; }
+            .hero-card p { font-size: 24px; }
+            .top-meta strong { font-size: 16px; }
+        }
+        @media (max-width: 560px) {
+            .hero-grid { grid-template-columns: minmax(0, 1fr); }
+            .summary-list { grid-template-columns: minmax(0, 1fr); }
+            .mini-grid { grid-template-columns: minmax(0, 1fr); }
         }
     </style>
 </head>
