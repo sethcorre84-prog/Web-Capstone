@@ -21,8 +21,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="pages.css">
 <script type="module" src="notification.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <title>PeakPath Admin — Hazard Reports</title>
 <style>
   @view-transition {
@@ -302,7 +300,6 @@ body[data-theme="dark"]{
 body[data-theme="dark"] .search-box,
 body[data-theme="dark"] select.filter-select,
 body[data-theme="dark"] .btn-outline,
-body[data-theme="dark"] .export-btn,
 body[data-theme="dark"] .bell-wrap,
 body[data-theme="dark"] .card{
     background:var(--card);
@@ -335,7 +332,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   /* Stat cards */
     .stats{
     display:grid;
-    grid-template-columns:repeat(6,minmax(0,1fr));
+    grid-template-columns:repeat(5,minmax(0,1fr));
     gap:14px;
   }
   .stat-card{
@@ -369,7 +366,6 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   .stat-icon.pending{background:var(--amber-bg);}
   .stat-icon.verified{background:var(--green-bg);}
   .stat-icon.rejected{background:var(--red-bg);}
-  .stat-icon.resolved{background:var(--resolved-bg);}
   .stat-value{
     font-size:24px;
     font-weight:700;
@@ -557,6 +553,42 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   .badge.moderate{background:#fff5df;color:#b9791b;}
   .badge.low{background:#eaf5ff;color:#2d6ab3;}
   .badge.unknown{background:#eef2ee;color:#5b6b60;}
+
+  /* One text size across the whole Hazard Reports List — headers, cells,
+     badges, the time under each date, icons, footer and page buttons —
+     matching the 13px search/filter controls above the table. */
+  .list-card th,
+  .list-card td,
+  .list-card td .sub,
+  .list-card .badge,
+  .list-card .hazard-icon,
+  .list-card .actions-btn,
+  .list-card .table-footer,
+  .list-card .pagination button{font-size:13px;}
+
+  /* Every page of the list is exactly the same size: fixed column widths
+     (the <colgroup>), one row height, cell text cut to two lines (full text
+     on hover), and blank filler rows topping short pages up to a full page. */
+  .list-card table{table-layout:fixed;min-width:700px;}
+  .list-card tbody tr{height:80px;}
+  .list-card td{padding:14px 8px;line-height:1.35;overflow:hidden;}
+  .list-card th{padding:13px 8px;}
+  .list-card th:last-child,
+  .list-card td:last-child{padding-left:0;padding-right:0;text-align:center;}
+  .list-card .clamp-2{
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    line-clamp:2;
+    overflow:hidden;
+    overflow-wrap:anywhere;
+  }
+  .list-card .hazard-cell{min-width:0;}
+  .list-card td.date-cell,
+  .list-card td.date-cell .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .list-card tbody tr.filler-row,
+  .list-card tbody tr.filler-row:hover{cursor:default;background:transparent;}
+  .list-card tbody tr.filler-row td{border-bottom-color:transparent;}
 
   .actions-btn{
     background:none;border:none;color:var(--text-400);
@@ -798,44 +830,6 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   }
   .archive-action:hover .archive-tooltip,
   .archive-action:focus-visible .archive-tooltip{opacity:1;transform:translateY(0);}
-
-  /* Icon-only Export button with a hover label — same as User Management's. */
-  .export-btn{
-    position:relative;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    width:38px;height:38px;
-    padding:0;
-    border:1px solid #cbd5e1;
-    border-radius:8px;
-    background:#ffffff;
-    color:#334155;
-    font-size:13px;
-    cursor:pointer;
-    transition:all .15s ease;
-  }
-  .export-btn:hover{background:#f8fafc;}
-  .export-btn .btn-tooltip{
-    position:absolute;
-    top:calc(100% + 8px);
-    right:0;
-    z-index:5;
-    white-space:nowrap;
-    padding:6px 8px;
-    border-radius:8px;
-    background:#1d2b1d;
-    color:#fff;
-    font-size:11px;
-    font-weight:400;
-    opacity:0;
-    transform:translateY(-4px);
-    pointer-events:none;
-    transition:all .15s ease;
-    box-shadow:0 8px 18px rgba(0,0,0,.12);
-  }
-  .export-btn:hover .btn-tooltip,
-  .export-btn:focus-visible .btn-tooltip{opacity:1;transform:translateY(0);}
   .rejected-row,
   .resolved-row{
     transition:transform .15s ease,box-shadow .15s ease,background .15s ease,padding .15s ease;
@@ -1058,8 +1052,6 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   ========================================== */
   @media (max-width: 1150px){
     .panels{grid-template-columns:minmax(0,1fr);}
-    /* Six stat cards get cramped in one row below this width. */
-    .stats{grid-template-columns:repeat(3,minmax(0,1fr));}
   }
   @media (max-width: 980px){
     .stats{grid-template-columns:repeat(3,minmax(0,1fr));}
@@ -1171,16 +1163,6 @@ body[data-theme="dark"] .admin-dropdown a:hover{
 
         <div class="stat-card">
           <div class="stat-top">
-            <span class="stat-value" id="resolvedReports">0</span>
-            <div class="stat-icon resolved">
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--resolved-text)" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
-            </div>
-          </div>
-          <div class="stat-label">Resolved<div class="meta-line" id="resolvedMeta">0% of total</div></div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-top">
             <span class="stat-value" id="rejectedReports">0</span>
             <div class="stat-icon rejected">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--red-text)" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg>
@@ -1196,7 +1178,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
         <svg viewBox="0 0 24 24" fill="none" stroke="var(--red-text)" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg>
       </div>
     </div>
-    <div class="stat-label">Archived<div class="meta-line" id="archivedMeta">0% of total</div></div>
+    <div class="stat-label">Archived<div class="meta-line" id="archivedMeta">0 reports · 0 resolved · 0% of total</div></div>
   </div>
 </div>
       </div>
@@ -1209,12 +1191,6 @@ body[data-theme="dark"] .admin-dropdown a:hover{
           <div class="list-card-header">
   <div class="list-header-top">
   <h2>Hazard Reports List</h2>
-  <div class="archive-action-wrap">
-    <button class="export-btn" id="viewReportsBtn" type="button" aria-label="Export">
-      <i class="fa-solid fa-download" aria-hidden="true"></i>
-      <span class="btn-tooltip">Export</span>
-    </button>
-  </div>
 </div>
   <div class="filters-row">
               <div class="search-box">
@@ -1247,6 +1223,17 @@ body[data-theme="dark"] .admin-dropdown a:hover{
 
           <div class="table-scroll">
             <table>
+            <!-- Fixed column widths, so columns don't shift between pages. -->
+            <colgroup>
+              <col style="width:12%">   <!-- Report ID -->
+              <col style="width:17%">   <!-- Hazard Type -->
+              <col style="width:15%">   <!-- Location / Trail -->
+              <col style="width:12%">   <!-- Reported By -->
+              <col style="width:13.5%"> <!-- Risk Level -->
+              <col style="width:12.5%"> <!-- Status -->
+              <col style="width:14%">   <!-- Reported On -->
+              <col style="width:4%">    <!-- actions -->
+            </colgroup>
             <thead>
               <tr>
                 <th>Report ID</th>
@@ -1488,7 +1475,7 @@ let hazardTypes = new Set();
 let selectedArchiveIds = new Set();
 let pendingArchiveIds = [];
 let currentPage = 1;
-const itemsPerPage = 7;
+const itemsPerPage = 8;
 let currentFilteredReports = [];
 let rejectedPage = 1;
 const rejectedPageSize = 5;
@@ -1598,22 +1585,33 @@ function renderReportsTable(reports) {
     return;
   }
 
-  tbody.innerHTML = paginatedReports.map((report, index) => {
+  // Text cells are cut to two lines so every row is the same height; the
+  // full text is in the tooltip.
+  const clampCell = (text) => `<span class="clamp-2" title="${escapeHtml(text)}">${escapeHtml(text)}</span>`;
+
+  const rowsHtml = paginatedReports.map((report, index) => {
     const risk = getRiskLevel(report);
     const globalIndex = startIndex + index;
     return `
       <tr class="${selectedReport?.id === report.id ? 'selected' : ''}" data-report-id="${report.id}" onclick="selectReport('${report.id}')">
-        <td>${report.reportId || `HR-${globalIndex + 1}`}</td>
-        <td><div class="hazard-cell"><span class="hazard-icon">${getHazardIcon(report.hazardType)}</span>${report.hazardType}</div></td>
-        <td>${report.location || 'N/A'}</td>
-        <td>${report.reportedBy || 'Anonymous'}</td>
+        <td>${clampCell(report.reportId || `HR-${globalIndex + 1}`)}</td>
+        <td><div class="hazard-cell"><span class="hazard-icon">${getHazardIcon(report.hazardType)}</span>${clampCell(report.hazardType)}</div></td>
+        <td>${clampCell(report.location || 'N/A')}</td>
+        <td>${clampCell(report.reportedBy || 'Anonymous')}</td>
         <td><span class="badge ${risk.className}">${risk.label}</span></td>
         <td><span class="badge ${getStatusBadgeClass(report.status)}">${report.status.charAt(0).toUpperCase() + report.status.slice(1)}</span></td>
-        <td>${formatDate(report.timestamp)}</td>
+        <td class="date-cell">${formatDate(report.timestamp)}</td>
         <td><button class="actions-btn" onclick="event.stopPropagation(); openDeleteModal('${report.id}')">⋮</button></td>
       </tr>
     `;
   }).join('');
+
+  // Blank rows top up a short (usually the last) page, so every page is
+  // exactly as tall as a full first page and nothing below it jumps.
+  const fillerRows = '<tr class="filler-row" aria-hidden="true"><td colspan="8"></td></tr>'
+    .repeat(itemsPerPage - paginatedReports.length);
+
+  tbody.innerHTML = rowsHtml + fillerRows;
 
   const showingStart = startIndex + 1;
   const showingEnd = Math.min(startIndex + itemsPerPage, reports.length);
@@ -1621,53 +1619,6 @@ function renderReportsTable(reports) {
     `Showing ${showingStart} to ${showingEnd} of ${reports.length} reports`;
 
   renderPagination(reports.length);
-}
-
-// Export the currently filtered hazard reports (respects active
-// search/status/hazard/date filters, exports ALL matching pages —
-// not just the one visible on screen) as a downloadable PDF.
-function exportReportsToPDF() {
-  const { jsPDF } = window.jspdf;
-  const docPdf = new jsPDF({ orientation: 'landscape' });
-
-  const reports = currentFilteredReports.length ? currentFilteredReports : allReports;
-
-  docPdf.setFontSize(14);
-  docPdf.text('PeakPath — Verified/Pending Hazard Reports', 14, 15);
-  docPdf.setFontSize(10);
-  docPdf.setTextColor(100);
-  docPdf.text(`Generated ${new Date().toLocaleString('en-US')} • ${reports.length} report(s)`, 14, 21);
-
-  const rows = reports.map((report, index) => {
-    const risk = getRiskLevel(report);
-    const date = report.timestamp
-      ? (report.timestamp.toDate ? report.timestamp.toDate() : new Date(report.timestamp))
-      : null;
-    const dateStr = date ? date.toLocaleString('en-US', {
-      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    }) : 'N/A';
-
-    return [
-      report.reportId || `HR-${index + 1}`,
-      report.hazardType || 'Unknown',
-      report.location || 'N/A',
-      report.reportedBy || 'Anonymous',
-      risk.label,
-      report.status ? report.status.charAt(0).toUpperCase() + report.status.slice(1) : '',
-      dateStr
-    ];
-  });
-
-  docPdf.autoTable({
-    startY: 26,
-    head: [['Report ID', 'Hazard Type', 'Location / Trail', 'Reported By', 'Risk Level', 'Status', 'Reported On']],
-    body: rows,
-    styles: { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: [47, 143, 78] }, // matches --accent
-    alternateRowStyles: { fillColor: [247, 249, 247] }
-  });
-
-  docPdf.save(`hazard-reports-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
 function renderPagination(totalItems) {
@@ -2681,21 +2632,26 @@ function updateStats() {
   document.getElementById('totalReports').textContent = total;
   document.getElementById('pendingReports').textContent = pending;
   document.getElementById('verifiedReports').textContent = verified;
-  document.getElementById('resolvedReports').textContent = resolved;
   document.getElementById('rejectedReports').textContent = rejected;
-  document.getElementById('archivedReports').textContent = archived;
-  
+  // Archived covers both archives in Settings: Archived Hazard Reports and
+  // Archived Resolved Reports.
+  document.getElementById('archivedReports').textContent = archived + resolved;
+
   const pendingPercent = total ? Math.round((pending / total) * 100) : 0;
   const verifiedPercent = total ? Math.round((verified / total) * 100) : 0;
-  const resolvedPercent = total ? Math.round((resolved / total) * 100) : 0;
   const rejectedPercent = total ? Math.round((rejected / total) * 100) : 0;
-  const archivedPercent = total ? Math.round((archived / total) * 100) : 0;
+  const archivedPercent = total ? Math.round(((archived + resolved) / total) * 100) : 0;
 
   document.getElementById('pendingMeta').textContent = pendingPercent + '% of total';
   document.getElementById('verifiedMeta').textContent = verifiedPercent + '% of total';
-  document.getElementById('resolvedMeta').textContent = resolvedPercent + '% of total';
   document.getElementById('rejectedMeta').textContent = rejectedPercent + '% of total';
-  document.getElementById('archivedMeta').textContent = archivedPercent + '% of total';
+  // Each piece stays whole, so a narrow card wraps between pieces rather
+  // than in the middle of "56% of total". (Numbers only — safe as HTML.)
+  document.getElementById('archivedMeta').innerHTML = [
+    `${archived} report${archived === 1 ? '' : 's'}`,
+    `${resolved} resolved`,
+    `${archivedPercent}% of total`
+  ].map((part) => `<span style="white-space:nowrap">${part}</span>`).join(' · ');
   // NOTE: reportCount is now set by renderReportsTable() with accurate,
   // pagination-aware numbers. Do not overwrite it here.
 }
@@ -2876,8 +2832,6 @@ document.getElementById('clearFiltersBtn').addEventListener('click', () => {
   filterReports();
 });
 
-document.getElementById('viewReportsBtn')?.addEventListener('click', exportReportsToPDF);
-  document.querySelector('table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
 // Modal event handlers
 document.getElementById('modalCancelBtn').addEventListener('click', closeStatusModal);
