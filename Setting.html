@@ -28,7 +28,7 @@
   html, body {
     visibility: visible;
     opacity: 1;
-    background: #eef1ec;
+    background: var(--dm-page, #eef1ec);
   }
 </style>
 <script type="module" src="dashboard-guard.js"></script>
@@ -133,7 +133,7 @@
   }
   .setting-row:last-child{border-bottom:none;padding-bottom:4px;}
   .setting-row:first-child{padding-top:4px;}
-  .setting-row:hover{background:#f7f9f7;}
+  .setting-row:hover{background:var(--dm-surface-2, #f7f9f7);}
 
   .setting-left{
     display:flex;
@@ -172,7 +172,7 @@
     padding:7px 10px;
     border:1px solid var(--border);
     border-radius:8px;
-    background:#fbfcfa;
+    background:var(--dm-surface-2, #fbfcfa);
     font-size:12.5px;
     color:var(--text-900);
   }
@@ -189,7 +189,7 @@
     position:absolute;
     cursor:pointer;
     inset:0;
-    background:#d8ded7;
+    background:var(--dm-surface-3, #d8ded7);
     border-radius:999px;
     transition:.2s;
   }
@@ -198,7 +198,7 @@
     position:absolute;
     width:16px;height:16px;
     left:3px;top:3px;
-    background:#fff;
+    background:var(--dm-surface, #fff);
     border-radius:50%;
     transition:.2s;
     box-shadow:0 1px 2px rgba(0,0,0,.15);
@@ -273,7 +273,7 @@
   .modal-backdrop.visible{display:flex;}
   .modal-card{
     width:min(460px, 100%);
-    background:#fff;
+    background:var(--dm-surface, #fff);
     border-radius:16px;
     border:1px solid var(--border);
     box-shadow:0 18px 40px rgba(22,34,24,.2);
@@ -294,7 +294,7 @@
   width:32px;height:32px;
   border-radius:8px;
   border:1px solid var(--border);
-  background:#f6f8f6;
+  background:var(--dm-surface-2, #f6f8f6);
   color:var(--text-600);
   transition:all .15s ease;
 }
@@ -317,16 +317,16 @@
 .close-btn.export-mode{
   position:relative;
   width:38px;height:38px;
-  border:1px solid #cbd5e1;
-  background:#ffffff;
-  color:#334155;
+  border:1px solid var(--dm-border, #cbd5e1);
+  background:var(--dm-surface, #ffffff);
+  color:var(--dm-text-2, #334155);
   font-size:13px;
   cursor:pointer;
 }
 .close-btn.export-mode:hover{
-  background:#f8fafc;
-  color:#334155;
-  border-color:#cbd5e1;
+  background:var(--dm-surface-2, #f8fafc);
+  color:var(--dm-text-2, #334155);
+  border-color:var(--dm-border, #cbd5e1);
 }
 .close-btn .btn-tooltip{
   position:absolute;
@@ -353,7 +353,7 @@
    Archived Hazard Reports, Archived Resolved Reports, Expired Advisories and
    their Unarchive confirmations, in the PeakPath mountain greens (the same
    tokens as the sidebar and accent). */
-.archive-theme{border-color:#cfe3d5;}
+.archive-theme{border-color:var(--dm-border, #cfe3d5);}
 .archive-theme .modal-header{
   background:linear-gradient(135deg, var(--sidebar-bg-light) 0%, var(--accent-dark) 55%, var(--accent) 100%);
   border-bottom:none;
@@ -374,19 +374,19 @@
   color:#fff;
 }
 .archive-theme .close-btn .btn-tooltip{background:var(--sidebar-bg);}
-.archive-theme .modal-body{background:#f6faf7;}
+.archive-theme .modal-body{background:var(--dm-surface-2, #f6faf7);}
 .archive-theme .field-hint{color:var(--accent-dark);}
 .archive-theme .archive-item{
-  background:#fff;
-  border:1px solid #d3e8d9;
+  background:var(--dm-surface, #fff);
+  border:1px solid var(--dm-border, #d3e8d9);
   border-left:3px solid var(--accent);
 }
 .archive-theme .archive-item-title{color:var(--sidebar-bg);}
 .archive-theme .archive-item-meta,
 .archive-theme .archive-item-note,
-.archive-theme .archive-empty{color:#4f6e58;}
+.archive-theme .archive-empty{color:var(--dm-text-2, #4f6e58);}
 .archive-theme .ghost-btn{
-  background:#fff;
+  background:var(--dm-surface, #fff);
   border-color:var(--accent);
   color:var(--accent-dark);
   cursor:pointer;
@@ -396,15 +396,15 @@
   .form-grid{display:grid;gap:12px;}
   .field label{display:block;font-size:12px;font-weight:600;color:var(--text-600);margin-bottom:6px;}
   .field input, .field textarea, .field select{
-    width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:#fbfcfa;color:var(--text-900);
+    width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--dm-surface-2, #fbfcfa);color:var(--text-900);
   }
   /* Shown, not editable (the Profile dialog's Role). */
-  .field input[readonly]{background:#f1f3ef;color:var(--text-600);cursor:default;}
+  .field input[readonly]{background:var(--dm-surface-2, #f1f3ef);color:var(--text-600);cursor:default;}
   .field input:disabled{opacity:.6;}
   .field-hint{font-size:11.5px;color:var(--text-600);margin-top:6px;}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:14px;}
   .ghost-btn{
-    border:1px solid var(--border);background:#fff;border-radius:8px;padding:9px 14px;color:var(--text-900);
+    border:1px solid var(--border);background:var(--dm-surface, #fff);border-radius:8px;padding:9px 14px;color:var(--text-900);
   }
   a.ghost-btn{display:inline-block;text-decoration:none;font-size:13px;}
   .archive-item-note{font-size:12px;color:var(--text-600);margin-top:6px;line-height:1.45;overflow-wrap:anywhere;}
@@ -435,7 +435,7 @@
     margin-top:12px;
   }
   .archive-item{
-    background:#f7f9f7;
+    background:var(--dm-surface-2, #f7f9f7);
     border:1px solid var(--border);
     border-radius:10px;
     padding:12px 12px;
@@ -579,6 +579,23 @@
             </div>
           </div>
           <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+
+        <!-- Applied instantly across the portal by sidebar.js; no Save needed. -->
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">🌙</div>
+            <div class="setting-text">
+              <div class="label" id="darkModeLabel">Dark Mode</div>
+              <div class="desc">Use a dark theme on every admin page in this browser.</div>
+            </div>
+          </div>
+          <div class="setting-right">
+            <label class="switch">
+              <input type="checkbox" id="darkModeToggle" aria-labelledby="darkModeLabel">
+              <span class="slider"></span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -1888,6 +1905,35 @@
       persistSettings();
     });
   });
+
+  /* Dark Mode. sidebar.js owns the theme (it applies it before paint on
+     every page); this switch just flips it, so the change is instant and
+     needs no Save. */
+  const darkModeToggle = document.getElementById('darkModeToggle');
+  if (darkModeToggle && window.PeakPathTheme) {
+    const syncDarkModeToggle = () => {
+      darkModeToggle.checked = window.PeakPathTheme.get() === 'dark';
+    };
+    syncDarkModeToggle();
+
+    darkModeToggle.addEventListener('change', () => {
+      try {
+        window.PeakPathTheme.set(darkModeToggle.checked ? 'dark' : 'light');
+      } catch (error) {
+        // localStorage can be blocked (private mode, site-data settings).
+        console.error('Failed to save dark mode:', error);
+        syncDarkModeToggle();
+        showToast('Your browser blocked saving this setting.');
+        return;
+      }
+      statusText.textContent = darkModeToggle.checked ? 'Dark mode on' : 'Dark mode off';
+    });
+
+    // Switched from another open tab.
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'peakpath-theme') syncDarkModeToggle();
+    });
+  }
 
   saveButton.addEventListener('click', () => {
     persistSettings();

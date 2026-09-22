@@ -15,10 +15,14 @@
 <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="dns-prefetch" href="https://a.tile.openstreetmap.org">
 <!-- ===== end resource hints ===== -->
 <script src="sidebar.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
   @view-transition {
   navigation: auto;
@@ -26,7 +30,7 @@
   html, body {
     visibility: visible;
     opacity: 1;
-    background: #eef1ec;
+    background: var(--dm-page, #eef1ec);
   }
 </style>
 <script type="module" src="dashboard-guard.js"></script>
@@ -140,7 +144,7 @@ margin-bottom:18px;
   border-radius:8px;
   display:grid;
   place-items:center;
-  background:#f7faf7;
+  background:var(--dm-surface-2, #f7faf7);
   color:var(--accent);
   font-size:14px;
   flex-shrink:0;
@@ -200,7 +204,7 @@ margin-bottom:18px;
 .tabs{
   display:flex;
   gap:16px;
-  border-bottom:1px solid #f0f3f0;
+  border-bottom:1px solid var(--dm-border, #f0f3f0);
   padding-bottom:10px;
   margin-bottom:14px;
 }
@@ -231,7 +235,7 @@ thead th{
 }
 tbody td{
   padding:12px 8px;
-  border-bottom:1px solid #f0f3f0;
+  border-bottom:1px solid var(--dm-border, #f0f3f0);
   font-size:13px;
   color:var(--text-secondary);
 }
@@ -271,26 +275,6 @@ tbody td{
   grid-template-rows:1fr auto;
   gap:14px;
 }
-.map-box{
-  background:#f8fbf8;
-  border-radius:18px;
-  border:1px solid var(--border);
-  position:relative;
-  min-height:320px;
-  overflow:hidden;
-}
-.map-overlay{
-  position:absolute;
-  bottom:16px;
-  right:16px;
-  background:rgba(255,255,255,.96);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:12px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
 .map-legend{
   display:flex;
   gap:12px;
@@ -310,15 +294,6 @@ tbody td{
 .trends-panel{
   margin-top:14px;
 }
-.chart-placeholder{
-  height:240px;
-  border-radius:18px;
-  background:linear-gradient(180deg,#f7faf7,#e9f3ea);
-  display:grid;
-  place-items:center;
-  color:var(--text-secondary);
-  font-size:13px;
-}
 .activity-panel{
   margin-top:14px;
 }
@@ -328,7 +303,7 @@ tbody td{
   align-items:flex-start;
   gap:10px;
   padding:12px 0;
-  border-top:1px solid #f0f3f0;
+  border-top:1px solid var(--dm-border, #f0f3f0);
 }
 .activity-item:first-child{
   border-top:none;
@@ -374,11 +349,396 @@ tbody td{
 .alert-button{
   padding:10px 16px;
   border-radius:10px;
-  background:#fff;
+  background:var(--dm-surface, #fff);
   border:1px solid var(--border);
   color:var(--danger);
   font-weight:700;
 }
+/* ==========================================
+   LIVE DATA
+   Styles for what the script renders from the emergency collection.
+========================================== */
+/* Several elements below set their own display, which would otherwise win
+   over the hidden attribute the script toggles. */
+[hidden]{
+  display:none !important;
+}
+.main{
+  min-width:0;
+}
+.link-btn{
+  background:none;
+  border:none;
+  padding:0;
+  font:inherit;
+  font-size:13px;
+  font-weight:600;
+  color:var(--blue);
+  cursor:pointer;
+}
+.link-btn:hover{
+  text-decoration:underline;
+}
+/* The tabs are real buttons now, so they need the button chrome removed. */
+.tab{
+  background:none;
+  border:none;
+  border-bottom:2px solid transparent;
+  padding:0 0 8px;
+  font:inherit;
+  font-size:13px;
+}
+.tab:focus-visible,
+tbody tr[data-id]:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+tbody tr[data-id]{
+  cursor:pointer;
+}
+tbody tr[data-id]:hover td{
+  background:var(--dm-surface-2, #f7f9f6);
+}
+/* A new alert that arrives while the page is open pulses for a few seconds. */
+tbody tr.is-new td{
+  animation:newAlert 1.6s ease-in-out 4;
+}
+@keyframes newAlert{
+  50%{ background:var(--red-bg); }
+}
+.type-badge{
+  display:inline-flex;
+  align-items:center;
+  padding:5px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  color:#fff;
+  white-space:nowrap;
+}
+.status-badge{
+  white-space:nowrap;
+}
+.status-badge.active{
+  background:rgba(200,64,47,.12);
+  color:#b3261e;
+}
+.status-badge.cancelled{
+  background:var(--dm-page, #eef1ec);
+  color:var(--text-secondary);
+}
+.cell-name{
+  font-weight:600;
+  color:var(--text-primary);
+}
+.cell-sub{
+  display:block;
+  margin-top:2px;
+  font-size:11.5px;
+  color:var(--text-muted);
+}
+.actions-cell{
+  white-space:nowrap;
+}
+.action-btn{
+  background:var(--dm-surface, #fff);
+  font-size:13px;
+  cursor:pointer;
+  margin-right:6px;
+}
+.action-btn:hover:not(:disabled){
+  background:var(--accent-light);
+  color:var(--accent-dark);
+}
+.action-btn:disabled{
+  opacity:.4;
+  cursor:not-allowed;
+}
+.table-empty{
+  padding:28px 12px !important;
+  text-align:center;
+  color:var(--text-muted) !important;
+}
+
+/* ---- Map ---- */
+.map-panel{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.map-panel .panel-header{
+  margin-bottom:0;
+}
+.panel-header-right{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.weather-chip{
+  padding:4px 10px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  font-size:12px;
+  color:var(--text-secondary);
+  white-space:nowrap;
+}
+#emergencyMap{
+  height:320px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+}
+.map-legend{
+  flex-wrap:wrap;
+  color:var(--text-secondary);
+}
+.map-caption{
+  font-size:12px;
+  color:var(--text-secondary);
+  text-align:center;
+}
+
+/* ---- Trends ---- */
+.trend-chart{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:10px;
+  height:200px;
+  padding-top:6px;
+}
+.trend-col{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  min-width:0;
+}
+.trend-bar{
+  width:100%;
+  max-width:38px;
+  border-radius:8px 8px 0 0;
+  background:var(--accent);
+  opacity:.75;
+}
+.trend-col.today .trend-bar{
+  opacity:1;
+}
+.trend-value{
+  font-size:11.5px;
+  font-weight:700;
+  color:var(--text-primary);
+}
+.trend-label{
+  font-size:11.5px;
+  color:var(--text-secondary);
+}
+.trend-col.today .trend-label{
+  font-weight:700;
+  color:var(--text-primary);
+}
+.trend-summary{
+  margin-top:10px;
+  font-size:13px;
+  color:var(--text-secondary);
+}
+
+/* ---- Activity ---- */
+.activity-main{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  min-width:0;
+}
+.activity-icon{
+  flex-shrink:0;
+  font-size:13px;
+}
+.activity-title{
+  font-weight:700;
+  font-size:13px;
+}
+.activity-sub,
+.activity-time{
+  font-size:12px;
+  color:var(--text-secondary);
+}
+.activity-time{
+  flex-shrink:0;
+  white-space:nowrap;
+}
+.activity-empty{
+  padding:16px 0;
+  font-size:13px;
+  color:var(--text-muted);
+}
+
+/* ---- Banner ---- */
+.alert-banner{
+  margin-bottom:20px;
+}
+/* Weather, not an unanswered alert: amber instead of red. */
+.alert-banner.warning{
+  background:var(--amber-bg);
+  border-color:rgba(201,130,31,.25);
+}
+.alert-banner.warning strong{
+  color:var(--amber-text);
+}
+.alert-banner.warning .alert-button{
+  color:var(--amber-text);
+}
+.alert-button{
+  cursor:pointer;
+  white-space:nowrap;
+}
+
+/* ---- Details dialog ---- */
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  z-index:1300;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:40px 16px;
+  overflow-y:auto;
+  background:rgba(15,25,15,.45);
+}
+.modal{
+  width:100%;
+  max-width:560px;
+  padding:22px 24px 24px;
+  border-radius:14px;
+  background:var(--card-bg);
+  box-shadow:0 20px 50px rgba(15,35,20,.25);
+}
+.modal-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:16px;
+}
+.modal-badges{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:8px;
+}
+.modal-head h3{
+  font-size:18px;
+}
+.modal-close{
+  width:32px;
+  height:32px;
+  flex-shrink:0;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--dm-surface, #fff);
+  font-size:20px;
+  line-height:1;
+  color:var(--text-secondary);
+  cursor:pointer;
+}
+.detail-grid{
+  display:grid;
+  grid-template-columns:max-content minmax(0,1fr);
+  gap:8px 16px;
+  font-size:13px;
+}
+.detail-grid dt{
+  color:var(--text-secondary);
+}
+.detail-grid dd{
+  color:var(--text-primary);
+  font-weight:600;
+  overflow-wrap:anywhere;
+}
+.resolve-form{
+  display:grid;
+  gap:12px;
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid var(--border);
+}
+.resolve-form .field label{
+  display:block;
+  margin-bottom:5px;
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--text-secondary);
+}
+.resolve-form .optional{
+  font-weight:400;
+  color:var(--text-muted);
+}
+.resolve-form input,
+.resolve-form textarea{
+  width:100%;
+  padding:9px 11px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--dm-surface-2, #fbfcfa);
+  font:inherit;
+  font-size:13px;
+  color:var(--text-primary);
+}
+.resolve-form textarea{
+  resize:vertical;
+}
+.form-error{
+  min-height:16px;
+  margin-top:12px;
+  font-size:12.5px;
+  color:var(--danger);
+}
+.modal-actions{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:8px;
+}
+.btn{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:9px 14px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:var(--dm-surface, #fff);
+  font:inherit;
+  font-size:13px;
+  font-weight:600;
+  color:var(--text-primary);
+  cursor:pointer;
+}
+.btn:hover:not(:disabled):not(.is-disabled){
+  background:var(--dm-surface-2, #f5f7f3);
+}
+.btn:disabled,
+.btn.is-disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+.btn-warn{
+  border-color:#e9b56a;
+  background:var(--amber-bg);
+  color:var(--amber-text);
+}
+.btn-warn:hover:not(:disabled){
+  filter:brightness(.96);
+}
+.btn-primary{
+  border-color:var(--accent);
+  background:var(--accent);
+  color:#fff;
+}
+.btn-primary:hover:not(:disabled){
+  background:var(--accent-dark);
+}
+
 /* ==========================================
    RESPONSIVE
    Shared chrome (sidebar rail, page padding, header stacking, table
@@ -485,108 +845,889 @@ tbody td{
         </div>
       </div>
     </div>
-        <div class="cards-row">
+    <!-- Every number, row, marker and bar below is filled from the Firestore
+         `emergency` collection by the script at the end of the page. -->
+    <div class="cards-row">
       <div class="card">
         <div class="card-top">
-          <span class="card-content"><div class="value">23</div></span>
+          <span class="card-content"><div class="value" id="statActive">—</div></span>
           <div class="card-icon danger">SOS</div>
         </div>
-        <div class="card-content"><div class="label">Active Emergencies</div><div class="hint">15% vs yesterday</div></div>
+        <div class="card-content"><div class="label">Active Emergencies</div><div class="hint" id="statActiveHint">Loading…</div></div>
       </div>
       <div class="card">
         <div class="card-top">
-          <span class="card-content"><div class="value">12</div></span>
+          <span class="card-content"><div class="value" id="statResponding">—</div></span>
           <div class="card-icon orange">⏳</div>
         </div>
-        <div class="card-content"><div class="label">Responding</div><div class="hint">9% vs yesterday</div></div>
+        <div class="card-content"><div class="label">Responding</div><div class="hint" id="statRespondingHint">Loading…</div></div>
       </div>
       <div class="card">
         <div class="card-top">
-          <span class="card-content"><div class="value">18</div></span>
+          <span class="card-content"><div class="value" id="statResolvedToday">—</div></span>
           <div class="card-icon blue">✔</div>
         </div>
-        <div class="card-content"><div class="label">Resolved Today</div><div class="hint">20% vs yesterday</div></div>
+        <div class="card-content"><div class="label">Resolved Today</div><div class="hint" id="statResolvedHint">Loading…</div></div>
       </div>
       <div class="card">
         <div class="card-top">
-          <span class="card-content"><div class="value">37</div></span>
+          <span class="card-content"><div class="value" id="statPeople">—</div></span>
           <div class="card-icon">👥</div>
         </div>
-        <div class="card-content"><div class="label">People Assisted</div><div class="hint">18% vs yesterday</div></div>
+        <div class="card-content"><div class="label">People Assisted</div><div class="hint" id="statPeopleHint">Loading…</div></div>
       </div>
       <div class="card">
         <div class="card-top">
-          <span class="card-content"><div class="value">25m 18s</div></span>
+          <span class="card-content"><div class="value" id="statResponseTime">—</div></span>
           <div class="card-icon blue">⏱</div>
         </div>
-        <div class="card-content"><div class="label">Avg. Response Time</div><div class="hint">8% vs yesterday</div></div>
+        <div class="card-content"><div class="label">Avg. Response Time</div><div class="hint" id="statResponseHint">Loading…</div></div>
       </div>
     </div>
+
+    <div class="alert-banner" id="alertBanner" hidden>
+      <div><strong id="alertBannerTitle"></strong><p id="alertBannerText"></p></div>
+      <button class="alert-button" id="alertBannerButton" type="button"></button>
+    </div>
+
     <div class="grid-2">
-      <div class="panel">
-        <div class="panel-header"><h2>Active Emergencies</h2><a href="#">View All</a></div>
-        <div class="tabs"><div class="tab active">All (23)</div><div class="tab">SOS Alerts (14)</div><div class="tab">Medical (6)</div><div class="tab">Lost / Missing (3)</div></div>
+      <div class="panel" id="emergencyTablePanel">
+        <div class="panel-header">
+          <h2 id="emergencyTableTitle">Active Emergencies</h2>
+          <button class="link-btn" id="toggleClosedBtn" type="button" aria-pressed="false">Show resolved</button>
+        </div>
+        <div class="tabs" role="tablist" aria-label="Filter by emergency type">
+          <button class="tab active" type="button" role="tab" data-type="all" aria-selected="true">All (<span data-count="all">0</span>)</button>
+          <button class="tab" type="button" role="tab" data-type="sos" aria-selected="false">SOS Alerts (<span data-count="sos">0</span>)</button>
+          <button class="tab" type="button" role="tab" data-type="medical" aria-selected="false">Medical (<span data-count="medical">0</span>)</button>
+          <button class="tab" type="button" role="tab" data-type="lost" aria-selected="false">Lost / Missing (<span data-count="lost">0</span>)</button>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr><th>Type</th><th>Hiker / Group</th><th>Location</th><th>Time</th><th>Status</th><th>Actions</th></tr>
             </thead>
-            <tbody>
-              <tr><td><span class="status-badge danger">SOS</span></td><td>Hiker_0211</td><td>Sipit Trail (Section 2)</td><td>10:25 AM</td><td><span class="status-badge responding">Responding</span></td><td><span class="action-btn">👁</span><span class="action-btn">📞</span></td></tr>
-              <tr><td><span class="status-badge danger">+</span></td><td>Group of 2</td><td>Makiling Rainforest Trail</td><td>10:18 AM</td><td><span class="status-badge responding">Responding</span></td><td><span class="action-btn">👁</span><span class="action-btn">📞</span></td></tr>
-              <tr><td><span class="status-badge orange">🔍</span></td><td>Hiker_0387</td><td>Forestry Trail (UPLB Area)</td><td>09:58 AM</td><td><span class="status-badge searching">Searching</span></td><td><span class="action-btn">👁</span><span class="action-btn">📞</span></td></tr>
-              <tr><td><span class="status-badge danger">SOS</span></td><td>Hiker_0663</td><td>Mariang Makiling Trail</td><td>09:45 AM</td><td><span class="status-badge responding">Responding</span></td><td><span class="action-btn">👁</span><span class="action-btn">📞</span></td></tr>
-              <tr><td><span class="status-badge danger">+</span></td><td>Hiker_0741</td><td>Landslide Risk Area (Upper)</td><td>09:30 AM</td><td><span class="status-badge responding">Responding</span></td><td><span class="action-btn">👁</span><span class="action-btn">📞</span></td></tr>
+            <tbody id="emergencyTableBody">
+              <tr><td colspan="6" class="table-empty">Loading emergencies…</td></tr>
             </tbody>
           </table>
         </div>
       </div>
+
       <div class="panel map-panel">
-        <div class="panel-header"><h2>Live Emergency Map</h2><a href="#">View</a></div>
-        <div class="map-box">
-          <svg width="100%" height="100%" viewBox="0 0 900 320" preserveAspectRatio="none">
-            <rect width="900" height="320" fill="#e6efe0"/>
-            <path d="M40 220 Q180 150 320 190 T560 170 T840 190" fill="none" stroke="#2f8f4e" stroke-width="3" stroke-dasharray="8 6"/>
-            <circle cx="310" cy="190" r="10" fill="#2f6b45"/>
-            <circle cx="560" cy="170" r="10" fill="#2f8f4e"/>
-            <path d="M50 260 Q200 120 320 110 T520 140 T760 170" fill="none" stroke="#c9821f" stroke-width="3" stroke-dasharray="8 6"/>
-            <circle cx="760" cy="170" r="10" fill="#c9821f"/>
-            <path d="M520 170 Q620 150 700 100" fill="none" stroke="#c8402f" stroke-width="3" stroke-dasharray="8 6"/>
-            <circle cx="700" cy="100" r="10" fill="#c8402f"/>
-          </svg>
-          <div class="map-overlay">
-            <div class="legend-item"><div class="legend-dot" style="background:#c8402f"></div>SOS Alert</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#2563eb"></div>Medical</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#c9821f"></div>Lost / Missing</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#2f8f4e"></div>Ranger / Responder</div>
-          </div>
-          <div class="map-overlay" style="top:auto;bottom:16px;left:16px;right:auto;display:flex;align-items:center;gap:10px;">
-            <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px;display:flex;align-items:center;gap:10px;">22℃ Light Rain</div>
+        <div class="panel-header">
+          <h2>Live Emergency Map</h2>
+          <div class="panel-header-right">
+            <span class="weather-chip" id="weatherChip">Loading weather…</span>
+            <a href="geomap.html">Geomap →</a>
           </div>
         </div>
+        <div id="emergencyMap" aria-label="Map of emergency locations on Mount Makiling"></div>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#c8402f"></div>SOS Alert</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#2563eb"></div>Medical</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#c9821f"></div>Lost / Missing</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#5b6b60"></div>Other</div>
+        </div>
+        <div class="map-caption" id="mapCaption">Loading emergency locations…</div>
       </div>
     </div>
+
     <div class="grid-2">
       <div class="panel trends-panel">
-        <div class="panel-header"><h2>Emergency Trends</h2><div class="meta">This Week</div></div>
-        <div class="chart-placeholder">Line chart placeholder</div>
-        <div style="margin-top:10px;color:var(--text-secondary);font-size:13px;">18% more emergencies compared to last week.</div>
+        <div class="panel-header"><h2>Emergency Trends</h2><div class="meta">Last 7 days</div></div>
+        <div class="trend-chart" id="trendChart" aria-label="Emergencies per day over the last seven days"></div>
+        <div class="trend-summary" id="trendSummary">Loading…</div>
       </div>
       <div class="panel activity-panel">
-        <div class="panel-header"><h2>Recent Emergency Activities</h2><a href="#">View All</a></div>
-        <div class="activity-item"><div><div style="font-weight:700">New SOS alert from Hiker_0211</div><div style="font-size:12px;color:var(--text-secondary)">Sipit Trail (Section 2)</div></div><div style="font-size:12px;color:var(--text-secondary)">10:25 AM</div></div>
-        <div class="activity-item"><div><div style="font-weight:700">Ranger Team assigned to emergency</div><div style="font-size:12px;color:var(--text-secondary)">Mariang Makiling Trail</div></div><div style="font-size:12px;color:var(--text-secondary)">10:20 AM</div></div>
-        <div class="activity-item"><div><div style="font-weight:700">Medical assistance provided</div><div style="font-size:12px;color:var(--text-secondary)">Makiling Rainforest Trail</div></div><div style="font-size:12px;color:var(--text-secondary)">10:05 AM</div></div>
-        <div class="activity-item"><div><div style="font-weight:700">Search operation started</div><div style="font-size:12px;color:var(--text-secondary)">Forestry Trail (UPLB Area)</div></div><div style="font-size:12px;color:var(--text-secondary)">09:58 AM</div></div>
-        <div class="activity-item"><div><div style="font-weight:700">Emergency resolved</div><div style="font-size:12px;color:var(--text-secondary)">Group of 2 • Camp 2</div></div><div style="font-size:12px;color:var(--text-secondary)">09:40 AM</div></div>
+        <div class="panel-header"><h2>Recent Emergency Activities</h2></div>
+        <div id="activityList"><div class="activity-empty">Loading…</div></div>
       </div>
-    </div>
-    <div class="alert-banner">
-      <div><strong>High Risk Conditions in Mount Makiling</strong><p>Light to moderate rains expected. Trails may be slippery. Please monitor weather updates and advisories.</p></div>
-      <button class="alert-button">View Weather &amp; Advisories</button>
     </div>
   </main>
 </div>
+<!-- Emergency details. Opened from a table row, its eye button, or a map
+     marker; the actions write the status back to the emergency record. -->
+<div class="modal-overlay" id="emergencyModal" role="dialog" aria-modal="true" aria-labelledby="emModalTitle" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-badges" id="emModalBadges"></div>
+        <h3 id="emModalTitle">Emergency</h3>
+      </div>
+      <button class="modal-close" id="emModalClose" type="button" aria-label="Close">×</button>
+    </div>
+
+    <dl class="detail-grid" id="emModalDetails"></dl>
+
+    <!-- Resolving asks how many people were helped: that is what the
+         People Assisted card counts. -->
+    <form class="resolve-form" id="resolveForm" novalidate hidden>
+      <div class="field">
+        <label for="resolvePeople">People assisted</label>
+        <input id="resolvePeople" type="number" min="0" max="999" step="1" required>
+      </div>
+      <div class="field">
+        <label for="resolveNote">Resolution note <span class="optional">(optional)</span></label>
+        <textarea id="resolveNote" rows="2" maxlength="500" placeholder="e.g. Hiker escorted to the UPLB entry point, no injuries"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="resolveCancel" type="button">Back</button>
+        <button class="btn btn-primary" id="resolveConfirm" type="submit">Confirm resolved</button>
+      </div>
+    </form>
+
+    <div class="form-error" id="emModalError" role="alert"></div>
+
+    <div class="modal-actions" id="emModalActions">
+      <button class="btn" id="emLocateBtn" type="button"><i class="fa-solid fa-location-crosshairs"></i>Show on map</button>
+      <a class="btn" id="emCallBtn"><i class="fa-solid fa-phone"></i>Call hiker</a>
+      <button class="btn btn-warn" id="emRespondBtn" type="button"><i class="fa-solid fa-person-running"></i>Mark responding</button>
+      <button class="btn btn-primary" id="emResolveBtn" type="button"><i class="fa-solid fa-check"></i>Mark resolved</button>
+    </div>
+  </div>
+</div>
+<script type="module">
+  import { auth, db } from './firebase-config.js';
+  import { collection, doc, onSnapshot, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { formatPortalDate, formatPortalDateTime, formatPortalTime, portalTimeZone, toPortalDate } from './datetime-prefs.js';
+  import { createMakilingMap } from './makiling-area.js';
+
+  const $ = (id) => document.getElementById(id);
+
+  const escapeHtml = (value) => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+  // Objects (GeoPoints, maps) are not text, and user records store "—" for a
+  // blank field, so both read as empty.
+  const text = (value) => {
+    if (value === null || value === undefined || typeof value === 'object') return '';
+    const clean = String(value).trim();
+    return clean === '—' ? '' : clean;
+  };
+  const pick = (record, keys) => {
+    for (const key of keys) {
+      if (text(record?.[key])) return record[key];
+    }
+    return undefined;
+  };
+
+  // ---------------------------------------------------------------------
+  // Reading an emergency record
+  //
+  // The mobile app writes these and their shape is not fixed yet, so every
+  // field is read through the same aliases geomap.html, analytics.html and
+  // usermanagement.html already use for this collection.
+  // ---------------------------------------------------------------------
+  const TYPES = {
+    sos: { label: 'SOS', badge: 'SOS', color: '#c8402f', activity: 'sos' },
+    medical: { label: 'Medical', badge: '+ Medical', color: '#2563eb', activity: 'med' },
+    lost: { label: 'Lost / Missing', badge: 'Lost', color: '#c9821f', activity: 'search' },
+    other: { label: 'Emergency', badge: 'Other', color: '#5b6b60', activity: 'sos' }
+  };
+
+  const STATUSES = {
+    active: { label: 'Awaiting response', badge: 'active' },
+    responding: { label: 'Responding', badge: 'responding' },
+    resolved: { label: 'Resolved', badge: 'closed' },
+    cancelled: { label: 'Cancelled', badge: 'cancelled' }
+  };
+  const isOpen = (record) => record.status === 'active' || record.status === 'responding';
+
+  const typeOf = (data) => {
+    const raw = text(pick(data, ['type', 'Type', 'category', 'emergencyType', 'title', 'Title'])).toLowerCase();
+    if (/sos|panic|distress/.test(raw)) return 'sos';
+    if (/medic|injur|hurt|sick|first aid|health|bleed|faint/.test(raw)) return 'medical';
+    if (/lost|missing|search|stray/.test(raw)) return 'lost';
+    return 'other';
+  };
+
+  // Same closed words as analytics.html's CLOSED_EMERGENCY_STATUS, so the two
+  // pages always agree on what is still open.
+  const statusOf = (data) => {
+    const raw = text(data.status ?? data.Status ?? data.state ?? 'active').toLowerCase();
+    if (/cancel|false alarm|dismiss/.test(raw)) return 'cancelled';
+    if (/resolv|closed|complet|rescued|safe/.test(raw)) return 'resolved';
+    if (/respond|dispatch|assign|progress|en route|search/.test(raw)) return 'responding';
+    return 'active';
+  };
+
+  const COORDINATE_STRING = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
+  const toPair = (lat, lng) => {
+    const a = Number(lat);
+    const b = Number(lng);
+    return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a) <= 90 && Math.abs(b) <= 180 && (a || b) ? [a, b] : null;
+  };
+
+  /* A position can arrive as lat/lng fields, a Firestore GeoPoint, or — like
+     hazard reports from the mobile app — one "14.136000, 121.197000" string
+     in `location`. */
+  const coordinatesOf = (data) => {
+    const direct = toPair(
+      data.latitude ?? data.lat ?? data.coordinates?.latitude ?? data.location?.latitude ?? data.geo?.latitude,
+      data.longitude ?? data.lng ?? data.coordinates?.longitude ?? data.location?.longitude ?? data.geo?.longitude
+    );
+    if (direct) return direct;
+    const match = text(data.location ?? data.Location).match(COORDINATE_STRING);
+    return match ? toPair(match[1], match[2]) : null;
+  };
+
+  const locationTextOf = (data, coords) => {
+    const place = text(data.location ?? data.Location);
+    if (place && !COORDINATE_STRING.test(place)) return place;
+    const named = text(pick(data, ['trail', 'trailName', 'Trail', 'area', 'Area', 'locationName']));
+    if (named) return named;
+    if (coords) return `${coords[0].toFixed(5)}, ${coords[1].toFixed(5)}`;
+    return 'Location not shared';
+  };
+
+  // Hikers, so a record carrying only a user id still shows a name and phone.
+  const usersById = new Map();
+  const userFor = (data) => {
+    for (const key of ['userId', 'uid', 'hikerId', 'userID']) {
+      const user = usersById.get(text(data[key]));
+      if (user) return user;
+    }
+    return null;
+  };
+
+  const normalize = (snapshot) => {
+    const data = snapshot.data() || {};
+    const user = userFor(data) || {};
+    const coords = coordinatesOf(data);
+    const group = Number(pick(data, ['groupSize', 'peopleCount', 'people', 'numberOfPeople']));
+    const assisted = Number(data.peopleAssisted);
+    const userName = text(user.fullName ?? user.name ?? user.displayName)
+      || [text(user.firstName), text(user.lastName)].filter(Boolean).join(' ');
+
+    return {
+      id: snapshot.id,
+      type: typeOf(data),
+      status: statusOf(data),
+      title: text(pick(data, ['title', 'Title'])),
+      name: text(pick(data, ['hikerName', 'userName', 'name', 'reportedBy'])) || userName
+        || text(data.email) || text(user.email) || 'Unknown hiker',
+      groupSize: Number.isFinite(group) && group > 0 ? Math.round(group) : 1,
+      phone: text(pick(data, ['phone', 'phoneNumber', 'contactNumber', 'mobile']))
+        || text(user.phone ?? user.phoneNumber ?? user.contactNumber ?? user.mobile),
+      emergencyContact: text(pick(data, ['emergencyContact', 'emergencyPhone']))
+        || text(user.emergencyContact ?? user.emergencyPhone ?? user.emergency_number),
+      message: text(pick(data, ['message', 'description', 'details', 'notes'])),
+      coords,
+      location: locationTextOf(data, coords),
+      created: toPortalDate(pick(data, ['timestamp', 'createdAt', 'reportedAt', 'date', 'time'])),
+      respondedAt: toPortalDate(data.respondedAt),
+      resolvedAt: toPortalDate(pick(data, ['resolvedAt', 'closedAt'])) ,
+      updatedAt: toPortalDate(data.updatedAt),
+      respondedBy: text(data.respondedBy),
+      resolvedBy: text(data.resolvedBy),
+      peopleAssisted: Number.isFinite(assisted) && assisted >= 0 ? assisted : null,
+      resolutionNote: text(data.resolutionNote)
+    };
+  };
+
+  // ---------------------------------------------------------------------
+  // Small helpers
+  // ---------------------------------------------------------------------
+  // The day a date falls on in the Settings > Date & Time zone, as YYYY-MM-DD.
+  const dayKey = (date) => date.toLocaleDateString('en-CA', { timeZone: portalTimeZone() });
+
+  const telHref = (number) => {
+    const digits = text(number).replace(/[^\d+]/g, '');
+    return digits.length >= 7 ? `tel:${digits}` : '';
+  };
+
+  const formatDuration = (ms) => {
+    const totalSeconds = Math.max(0, Math.round(ms / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours) return `${hours}h ${minutes}m`;
+    if (minutes) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
+  };
+
+  const plural = (count, word, words = `${word}s`) => `${count} ${count === 1 ? word : words}`;
+
+  // Awaiting response first, then responding, then closed; newest first
+  // within each, so the alert that most needs someone is always on top.
+  const STATUS_ORDER = { active: 0, responding: 1, resolved: 2, cancelled: 3 };
+  const byPriority = (a, b) => (STATUS_ORDER[a.status] - STATUS_ORDER[b.status])
+    || ((b.created?.getTime() || 0) - (a.created?.getTime() || 0));
+
+  // ---------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------
+  let emergencySnaps = null;   // null = still loading
+  let loadError = null;
+  let records = [];
+  let activeTab = 'all';
+  let showClosed = false;
+  let modalId = null;
+  let weather = null;
+  const knownIds = new Set();
+  const freshIds = new Set();  // arrived since the page loaded; highlighted briefly
+
+  // ---------------------------------------------------------------------
+  // Map
+  // ---------------------------------------------------------------------
+  const { map, bounds: makilingBounds } = createMakilingMap('emergencyMap');
+  const markerLayer = L.layerGroup().addTo(map);
+  const markersById = new Map();
+
+  const renderMap = (visible) => {
+    markerLayer.clearLayers();
+    markersById.clear();
+    let noPosition = 0;
+    let offMountain = 0;
+
+    visible.forEach((record) => {
+      if (!record.coords) { noPosition += 1; return; }
+      if (!makilingBounds.contains(record.coords)) { offMountain += 1; return; }
+      const type = TYPES[record.type];
+      const marker = L.circleMarker(record.coords, {
+        radius: 9,
+        color: '#ffffff',
+        weight: 2,
+        fillColor: type.color,
+        fillOpacity: isOpen(record) ? 0.95 : 0.45
+      }).bindPopup(`
+        <strong>${escapeHtml(type.label)}: ${escapeHtml(record.name)}</strong><br>
+        ${escapeHtml(record.location)}<br>
+        <small>${escapeHtml(STATUSES[record.status].label)}${record.created ? ` · ${escapeHtml(formatPortalDateTime(record.created))}` : ''}</small><br>
+        <a href="#" data-open="${escapeHtml(record.id)}">View details</a>
+      `).addTo(markerLayer);
+      markersById.set(record.id, marker);
+    });
+
+    const plotted = markersById.size;
+    const caption = [`${plural(plotted, 'alert')} on the map`];
+    if (noPosition) caption.push(`${noPosition} without a location`);
+    if (offMountain) caption.push(`${offMountain} outside Mount Makiling`);
+    $('mapCaption').textContent = visible.length ? caption.join(' · ') : 'No emergencies to show on the map.';
+  };
+
+  // "View details" inside a marker popup.
+  map.on('popupopen', (event) => {
+    const link = event.popup.getElement()?.querySelector('[data-open]');
+    link?.addEventListener('click', (click) => {
+      click.preventDefault();
+      openModal(link.dataset.open);
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // Stat cards
+  // ---------------------------------------------------------------------
+  const STAT_IDS = [
+    ['statActive', 'statActiveHint'], ['statResponding', 'statRespondingHint'],
+    ['statResolvedToday', 'statResolvedHint'], ['statPeople', 'statPeopleHint'],
+    ['statResponseTime', 'statResponseHint']
+  ];
+
+  const renderStats = () => {
+    // A failed load must not read as "0 emergencies".
+    if (loadError) {
+      STAT_IDS.forEach(([value, hint]) => { $(value).textContent = '—'; $(hint).textContent = 'Unavailable'; });
+      return;
+    }
+    const today = dayKey(new Date());
+    const open = records.filter(isOpen);
+    const awaiting = records.filter((r) => r.status === 'active');
+    const responding = records.filter((r) => r.status === 'responding');
+    const resolved = records.filter((r) => r.status === 'resolved');
+    const resolvedToday = resolved.filter((r) => {
+      const when = r.resolvedAt || r.updatedAt;
+      return when && dayKey(when) === today;
+    });
+    const newToday = records.filter((r) => r.created && dayKey(r.created) === today);
+
+    $('statActive').textContent = open.length;
+    $('statActiveHint').textContent = `${newToday.length} new today`;
+
+    $('statResponding').textContent = responding.length;
+    $('statRespondingHint').textContent = awaiting.length
+      ? `${awaiting.length} still awaiting response`
+      : 'None awaiting response';
+
+    $('statResolvedToday').textContent = resolvedToday.length;
+    $('statResolvedHint').textContent = `${resolved.length} resolved in total`;
+
+    // Counted from what the admin entered when resolving; older records fall
+    // back to the size of the group that raised the alert.
+    const people = resolved.reduce((sum, r) => sum + (r.peopleAssisted ?? r.groupSize), 0);
+    $('statPeople').textContent = people;
+    $('statPeopleHint').textContent = `across ${plural(resolved.length, 'resolved alert')}`;
+
+    const timed = records.filter((r) => r.created && r.respondedAt && r.respondedAt >= r.created);
+    if (timed.length) {
+      const average = timed.reduce((sum, r) => sum + (r.respondedAt - r.created), 0) / timed.length;
+      $('statResponseTime').textContent = formatDuration(average);
+      $('statResponseHint').textContent = `from ${plural(timed.length, 'responded alert')}`;
+    } else {
+      $('statResponseTime').textContent = '—';
+      $('statResponseHint').textContent = 'No responses recorded yet';
+    }
+  };
+
+  // ---------------------------------------------------------------------
+  // Table
+  // ---------------------------------------------------------------------
+  const visibleRecords = () => records.filter((r) => showClosed || isOpen(r));
+
+  const renderTabs = (base) => {
+    const counts = { all: base.length, sos: 0, medical: 0, lost: 0 };
+    base.forEach((r) => { if (r.type in counts) counts[r.type] += 1; });
+    document.querySelectorAll('[data-count]').forEach((el) => { el.textContent = counts[el.dataset.count]; });
+    document.querySelectorAll('.tabs .tab').forEach((tab) => {
+      const selected = tab.dataset.type === activeTab;
+      tab.classList.toggle('active', selected);
+      tab.setAttribute('aria-selected', String(selected));
+    });
+  };
+
+  const timeCell = (date) => {
+    if (!date) return 'Not recorded';
+    if (dayKey(date) === dayKey(new Date())) return escapeHtml(formatPortalTime(date));
+    return `${escapeHtml(formatPortalDate(date))}<span class="cell-sub">${escapeHtml(formatPortalTime(date))}</span>`;
+  };
+
+  const renderTable = (base) => {
+    const body = $('emergencyTableBody');
+    $('emergencyTableTitle').textContent = showClosed ? 'All Emergencies' : 'Active Emergencies';
+    $('toggleClosedBtn').textContent = showClosed ? 'Hide resolved' : 'Show resolved';
+    $('toggleClosedBtn').setAttribute('aria-pressed', String(showClosed));
+
+    if (loadError) {
+      body.innerHTML = `<tr><td colspan="6" class="table-empty">${escapeHtml(loadError)}</td></tr>`;
+      return;
+    }
+    if (emergencySnaps === null) return;
+
+    const rows = base
+      .filter((r) => activeTab === 'all' || r.type === activeTab)
+      .sort(byPriority);
+
+    if (!rows.length) {
+      const scope = activeTab === 'all' ? '' : ` ${TYPES[activeTab].label.toLowerCase()}`;
+      body.innerHTML = `<tr><td colspan="6" class="table-empty">${
+        showClosed ? `No${scope} emergencies recorded.` : `No active${scope} emergencies. New alerts from the PeakPath app appear here as they come in.`
+      }</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = rows.map((r) => {
+      const type = TYPES[r.type];
+      const status = STATUSES[r.status];
+      const tel = telHref(r.phone);
+      return `
+        <tr data-id="${escapeHtml(r.id)}" class="${freshIds.has(r.id) ? 'is-new' : ''}" tabindex="0">
+          <td><span class="type-badge" style="background:${type.color}">${escapeHtml(type.badge)}</span></td>
+          <td><span class="cell-name">${escapeHtml(r.name)}</span>${r.groupSize > 1 ? `<span class="cell-sub">Group of ${r.groupSize}</span>` : ''}</td>
+          <td>${escapeHtml(r.location)}</td>
+          <td>${timeCell(r.created)}</td>
+          <td><span class="status-badge ${status.badge}">${escapeHtml(status.label)}</span></td>
+          <td class="actions-cell">
+            <button class="action-btn" type="button" data-view title="View details" aria-label="View details for ${escapeHtml(r.name)}"><i class="fa-solid fa-eye"></i></button>
+            ${tel
+              ? `<a class="action-btn" href="${escapeHtml(tel)}" title="Call ${escapeHtml(r.phone)}" aria-label="Call ${escapeHtml(r.name)}"><i class="fa-solid fa-phone"></i></a>`
+              : '<button class="action-btn" type="button" disabled title="No phone number on record" aria-label="No phone number on record"><i class="fa-solid fa-phone"></i></button>'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  };
+
+  $('emergencyTableBody').addEventListener('click', (event) => {
+    if (event.target.closest('a')) return; // the call link does its own thing
+    const row = event.target.closest('tr[data-id]');
+    if (row) openModal(row.dataset.id);
+  });
+  $('emergencyTableBody').addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const row = event.target.closest('tr[data-id]');
+    if (!row || event.target !== row) return;
+    event.preventDefault();
+    openModal(row.dataset.id);
+  });
+
+  document.querySelectorAll('.tabs .tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      activeTab = tab.dataset.type;
+      render();
+    });
+  });
+  $('toggleClosedBtn').addEventListener('click', () => {
+    showClosed = !showClosed;
+    render();
+  });
+
+  // ---------------------------------------------------------------------
+  // Trends: alerts per day for the last 7 days, against the 7 before
+  // ---------------------------------------------------------------------
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const renderTrends = () => {
+    const now = Date.now();
+    const counts = new Map();
+    records.forEach((r) => {
+      if (!r.created) return;
+      const key = dayKey(r.created);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+
+    const days = [];
+    for (let back = 6; back >= 0; back -= 1) {
+      const date = new Date(now - back * DAY_MS);
+      days.push({
+        key: dayKey(date),
+        label: date.toLocaleDateString('en-US', { timeZone: portalTimeZone(), weekday: 'short' }),
+        today: back === 0
+      });
+    }
+    days.forEach((day) => { day.count = counts.get(day.key) || 0; });
+    let previous = 0;
+    for (let back = 13; back >= 7; back -= 1) previous += counts.get(dayKey(new Date(now - back * DAY_MS))) || 0;
+
+    const peak = Math.max(1, ...days.map((d) => d.count));
+    $('trendChart').innerHTML = days.map((day) => `
+      <div class="trend-col${day.today ? ' today' : ''}" title="${escapeHtml(`${day.label}: ${plural(day.count, 'emergency', 'emergencies')}`)}">
+        <div class="trend-value">${day.count}</div>
+        <div class="trend-bar" style="height:${Math.max(3, Math.round((day.count / peak) * 100))}%"></div>
+        <div class="trend-label">${escapeHtml(day.today ? 'Today' : day.label)}</div>
+      </div>
+    `).join('');
+
+    const thisWeek = days.reduce((sum, d) => sum + d.count, 0);
+    let summary;
+    if (!thisWeek && !previous) summary = 'No emergencies in the last two weeks.';
+    else if (!previous) summary = `${plural(thisWeek, 'emergency', 'emergencies')} this week, none the week before.`;
+    else {
+      const change = Math.round(((thisWeek - previous) / previous) * 100);
+      summary = `${plural(thisWeek, 'emergency', 'emergencies')} this week vs ${previous} the week before`
+        + (change ? ` (${Math.abs(change)}% ${change > 0 ? 'more' : 'fewer'}).` : ' (no change).');
+    }
+    $('trendSummary').textContent = summary;
+  };
+
+  // ---------------------------------------------------------------------
+  // Recent activity: raised, response started, resolved
+  // ---------------------------------------------------------------------
+  const renderActivities = () => {
+    const events = [];
+    records.forEach((r) => {
+      const who = r.groupSize > 1 ? `${r.name} (group of ${r.groupSize})` : r.name;
+      if (r.created) events.push({ when: r.created, icon: TYPES[r.type].activity, glyph: 'fa-bell', title: `New ${TYPES[r.type].label} alert from ${who}`, sub: r.location });
+      if (r.respondedAt) events.push({ when: r.respondedAt, icon: 'search', glyph: 'fa-person-running', title: `Response started for ${who}`, sub: r.respondedBy ? `by ${r.respondedBy}` : r.location });
+      if (r.resolvedAt) events.push({ when: r.resolvedAt, icon: 'resolved', glyph: 'fa-check', title: `Emergency resolved: ${who}`, sub: r.resolutionNote || (r.peopleAssisted !== null ? `${plural(r.peopleAssisted, 'person', 'people')} assisted` : r.location) });
+    });
+    events.sort((a, b) => b.when - a.when);
+
+    $('activityList').innerHTML = events.length
+      ? events.slice(0, 6).map((e) => `
+          <div class="activity-item">
+            <div class="activity-main">
+              <div class="activity-icon ${e.icon}"><i class="fa-solid ${e.glyph}"></i></div>
+              <div>
+                <div class="activity-title">${escapeHtml(e.title)}</div>
+                <div class="activity-sub">${escapeHtml(e.sub)}</div>
+              </div>
+            </div>
+            <div class="activity-time">${escapeHtml(dayKey(e.when) === dayKey(new Date()) ? formatPortalTime(e.when) : formatPortalDate(e.when))}</div>
+          </div>
+        `).join('')
+      : '<div class="activity-empty">No emergency activity yet.</div>';
+  };
+
+  // ---------------------------------------------------------------------
+  // Banner: alerts nobody has picked up come first, then bad weather
+  // ---------------------------------------------------------------------
+  const renderBanner = () => {
+    const banner = $('alertBanner');
+    const awaiting = records.filter((r) => r.status === 'active').length;
+    const button = $('alertBannerButton');
+
+    if (awaiting) {
+      banner.hidden = false;
+      banner.classList.remove('warning');
+      $('alertBannerTitle').textContent = `${plural(awaiting, 'emergency alert')} awaiting response`;
+      $('alertBannerText').textContent = 'Open an alert to mark that a response is under way, or resolve it once the hiker is safe.';
+      button.textContent = 'Review alerts';
+      button.onclick = () => {
+        activeTab = 'all';
+        showClosed = false;
+        render();
+        $('emergencyTablePanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      return;
+    }
+    if (weather && weather.code >= 51) {
+      banner.hidden = false;
+      banner.classList.add('warning');
+      $('alertBannerTitle').textContent = `${weather.condition} on Mount Makiling`;
+      $('alertBannerText').textContent = 'Trails may be slippery. Keep advisories up to date for hikers on the mountain.';
+      button.textContent = 'View advisories';
+      button.onclick = () => { window.location.href = 'A&A.html'; };
+      return;
+    }
+    banner.hidden = true;
+  };
+
+  // ---------------------------------------------------------------------
+  // Details dialog and the status actions
+  // ---------------------------------------------------------------------
+  const modal = $('emergencyModal');
+  const resolveForm = $('resolveForm');
+  const modalError = $('emModalError');
+
+  const detailRow = (label, value) => value
+    ? `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd>`
+    : '';
+
+  const fillModal = () => {
+    const r = records.find((item) => item.id === modalId);
+    if (!r) { closeModal(); return; }
+    const type = TYPES[r.type];
+    const status = STATUSES[r.status];
+
+    $('emModalBadges').innerHTML = `
+      <span class="type-badge" style="background:${type.color}">${escapeHtml(type.badge)}</span>
+      <span class="status-badge ${status.badge}">${escapeHtml(status.label)}</span>`;
+    $('emModalTitle').textContent = r.title || `${type.label} alert`;
+    $('emModalDetails').innerHTML = [
+      detailRow('Hiker', r.name),
+      detailRow('Group size', r.groupSize > 1 ? String(r.groupSize) : ''),
+      detailRow('Phone', r.phone || 'Not on record'),
+      detailRow('Emergency contact', r.emergencyContact),
+      detailRow('Location', r.location),
+      detailRow('Coordinates', r.coords ? `${r.coords[0].toFixed(5)}, ${r.coords[1].toFixed(5)}` : ''),
+      detailRow('Raised', r.created ? formatPortalDateTime(r.created) : 'Not recorded'),
+      detailRow('Response started', r.respondedAt ? `${formatPortalDateTime(r.respondedAt)}${r.respondedBy ? ` by ${r.respondedBy}` : ''}` : ''),
+      detailRow('Resolved', r.resolvedAt ? `${formatPortalDateTime(r.resolvedAt)}${r.resolvedBy ? ` by ${r.resolvedBy}` : ''}` : ''),
+      detailRow('People assisted', r.peopleAssisted !== null ? String(r.peopleAssisted) : ''),
+      detailRow('Message', r.message),
+      detailRow('Resolution note', r.resolutionNote)
+    ].join('');
+
+    const tel = telHref(r.phone);
+    const call = $('emCallBtn');
+    call.classList.toggle('is-disabled', !tel);
+    if (tel) {
+      call.href = tel;
+      call.removeAttribute('aria-disabled');
+      call.title = `Call ${r.phone}`;
+    } else {
+      call.removeAttribute('href');
+      call.setAttribute('aria-disabled', 'true');
+      call.title = 'No phone number on record';
+    }
+
+    const onMap = r.coords && makilingBounds.contains(r.coords);
+    $('emLocateBtn').disabled = !onMap;
+    $('emLocateBtn').title = onMap ? '' : (r.coords ? 'This location is outside Mount Makiling' : 'No location shared');
+    $('emRespondBtn').hidden = r.status !== 'active';
+    $('emResolveBtn').hidden = !isOpen(r);
+  };
+
+  function openModal(id) {
+    modalId = id;
+    modalError.textContent = '';
+    resolveForm.hidden = true;
+    $('emModalActions').hidden = false;
+    fillModal();
+    modal.hidden = false;
+    $('emModalClose').focus();
+  }
+
+  function closeModal() {
+    modal.hidden = true;
+    modalId = null;
+  }
+
+  $('emModalClose').addEventListener('click', closeModal);
+  modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+
+  $('emLocateBtn').addEventListener('click', () => {
+    const marker = markersById.get(modalId);
+    const record = records.find((item) => item.id === modalId);
+    closeModal();
+    if (!record?.coords) return;
+    if (!marker) {
+      // Closed alerts are only drawn while resolved ones are shown.
+      showClosed = true;
+      render();
+    }
+    $('emergencyMap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    map.flyTo(record.coords, Math.max(map.getZoom(), 16));
+    markersById.get(record.id)?.openPopup();
+  });
+
+  const writeError = (error) => (error?.code === 'permission-denied'
+    ? 'Your account is not allowed to update emergencies. The Firestore rules for the emergency collection need to allow admin writes.'
+    : 'Could not save the change. Check your connection and try again.');
+
+  const adminName = () => auth.currentUser?.displayName || auth.currentUser?.email || 'Admin';
+
+  const setBusy = (busy) => {
+    ['emRespondBtn', 'emResolveBtn', 'resolveConfirm'].forEach((id) => { $(id).disabled = busy; });
+  };
+
+  $('emRespondBtn').addEventListener('click', async () => {
+    if (!modalId) return;
+    modalError.textContent = '';
+    setBusy(true);
+    try {
+      await updateDoc(doc(db, 'emergency', modalId), {
+        status: 'responding',
+        respondedAt: serverTimestamp(),
+        respondedBy: adminName(),
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error('Failed to mark emergency as responding:', error);
+      modalError.textContent = writeError(error);
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  $('emResolveBtn').addEventListener('click', () => {
+    const record = records.find((item) => item.id === modalId);
+    if (!record) return;
+    modalError.textContent = '';
+    $('resolvePeople').value = record.groupSize;
+    $('resolveNote').value = '';
+    $('emModalActions').hidden = true;
+    resolveForm.hidden = false;
+    $('resolvePeople').focus();
+  });
+
+  $('resolveCancel').addEventListener('click', () => {
+    resolveForm.hidden = true;
+    $('emModalActions').hidden = false;
+    modalError.textContent = '';
+  });
+
+  resolveForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!modalId) return;
+    // Number('') is 0, so a blank box must be caught before it is converted,
+    // or leaving it empty would silently record nobody as assisted.
+    const raw = $('resolvePeople').value.trim();
+    const people = Number(raw);
+    if (raw === '' || !Number.isInteger(people) || people < 0 || people > 999) {
+      modalError.textContent = 'Enter how many people were assisted (0 or more).';
+      $('resolvePeople').focus();
+      return;
+    }
+    modalError.textContent = '';
+    setBusy(true);
+    try {
+      await updateDoc(doc(db, 'emergency', modalId), {
+        status: 'resolved',
+        resolvedAt: serverTimestamp(),
+        resolvedBy: adminName(),
+        peopleAssisted: people,
+        resolutionNote: $('resolveNote').value.trim(),
+        updatedAt: serverTimestamp()
+      });
+      closeModal();
+    } catch (error) {
+      console.error('Failed to resolve emergency:', error);
+      modalError.textContent = writeError(error);
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // Render everything from the latest data
+  // ---------------------------------------------------------------------
+  function render() {
+    records = (emergencySnaps || []).map(normalize);
+    const base = visibleRecords();
+    renderTabs(base);
+    renderTable(base);
+    if (emergencySnaps === null) return;
+    renderStats();
+    renderMap(base);
+    renderTrends();
+    renderActivities();
+    renderBanner();
+    if (modalId) fillModal();
+  }
+
+  onSnapshot(collection(db, 'emergency'), (snapshot) => {
+    const firstLoad = emergencySnaps === null;
+    emergencySnaps = snapshot.docs;
+    loadError = null;
+
+    // Highlight alerts that arrive while the page is open, not the backlog.
+    snapshot.docs.forEach((snap) => {
+      if (!firstLoad && !knownIds.has(snap.id)) {
+        freshIds.add(snap.id);
+        setTimeout(() => { freshIds.delete(snap.id); render(); }, 12000);
+      }
+      knownIds.add(snap.id);
+    });
+    render();
+  }, (error) => {
+    console.error('Error loading emergencies:', error);
+    loadError = error?.code === 'permission-denied'
+      ? 'Emergency alerts are blocked by the Firestore rules for this account.'
+      : 'Unable to load emergency alerts. Check your connection and refresh.';
+    emergencySnaps = [];
+    render();
+    $('mapCaption').textContent = loadError;
+  });
+
+  // Hiker names and phone numbers for records that only carry a user id.
+  onSnapshot(collection(db, 'users'), (snapshot) => {
+    usersById.clear();
+    snapshot.docs.forEach((snap) => {
+      const data = snap.data() || {};
+      usersById.set(snap.id, data);
+      if (text(data.uid)) usersById.set(text(data.uid), data);
+    });
+    render();
+  }, (error) => {
+    console.warn('Could not load users for emergency contact details:', error.message);
+  });
+
+  // ---------------------------------------------------------------------
+  // Weather on the mountain (same free Open-Meteo source as the dashboard)
+  // ---------------------------------------------------------------------
+  const WEATHER_CODES = {
+    0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+    45: 'Fog', 48: 'Rime fog', 51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
+    61: 'Light rain', 63: 'Rain', 65: 'Heavy rain', 80: 'Light showers', 81: 'Showers',
+    82: 'Heavy showers', 95: 'Thunderstorm', 96: 'Thunderstorm with hail', 99: 'Severe thunderstorm'
+  };
+
+  async function updateWeather() {
+    try {
+      const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=14.136&longitude=121.197&current=temperature_2m,weather_code&timezone=Asia%2FManila', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Weather request failed with ${response.status}`);
+      const { current } = await response.json();
+      weather = {
+        code: Number(current.weather_code),
+        condition: WEATHER_CODES[current.weather_code] || 'Current conditions'
+      };
+      $('weatherChip').textContent = `${Math.round(current.temperature_2m)}°C · ${weather.condition}`;
+    } catch (error) {
+      console.error('Error loading Mount Makiling weather:', error);
+      weather = null;
+      $('weatherChip').textContent = 'Weather unavailable';
+    }
+    renderBanner();
+  }
+  updateWeather();
+  setInterval(updateWeather, 10 * 60 * 1000);
+</script>
 <!-- A module so it can import the Settings > Date & Time zone; nothing else
      on the page calls updateEmergencyClock, so module scope costs nothing. -->
 <script type="module">

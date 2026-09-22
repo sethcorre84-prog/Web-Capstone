@@ -97,6 +97,140 @@
     --resolved-text: #2a63b5;
 }
 
+/* ==========================================================================
+   Dark mode — Settings > General Settings > Dark Mode.
+
+   sidebar.js stamps data-theme="dark" on <html> before the first paint, so
+   there is no white flash, and this block swaps every token above. The
+   `:root[data-theme]` selector outranks a plain `:root`, so it also wins
+   over the few pages that redefine tokens in their own <style>.
+
+   The --dm-* tokens exist only here. Pages write hardcoded neutral colours as
+   `var(--dm-surface, #fff)`: undefined in light mode, so the original colour
+   is used untouched, and the dark value takes over in dark mode.
+     --dm-page       page background
+     --dm-surface    white cards, panels, dialogs, menus
+     --dm-surface-2  subtle fills: inputs, hover rows, table heads
+     --dm-surface-3  stronger fills: pressed/selected, tracks, dividers
+     --dm-text       near-black text
+     --dm-text-2     dark-grey text
+     --dm-border     light hairlines
+   ========================================================================== */
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --dm-page: #111410;
+    --dm-surface: #1a1e18;
+    --dm-surface-2: #20251e;
+    --dm-surface-3: #293026;
+    --dm-text: #e8ece6;
+    --dm-text-2: #b7c1b4;
+    --dm-border: #2e352b;
+
+    /* Sidebar stays the brand green; only a touch deeper beside dark pages. */
+    --sidebar-bg: #0f1c0f;
+    --sidebar-bg-light: #1a2e1a;
+
+    /* Brand: a little brighter so it keeps its contrast on dark surfaces. */
+    --accent: #3a9d5a;
+    --accent-dark: #2f8f4e;
+    --accent-light: #1d3324;
+
+    /* Surfaces */
+    --page-bg: #111410;
+    --bg: #111410;
+    --card-bg: #1a1e18;
+    --card: #1a1e18;
+    --panel-bg: #1a1e18;
+    --border: #2e352b;
+    --border-color: #2e352b;
+
+    /* Text */
+    --text-primary: #e8ece6;
+    --text-900: #e8ece6;
+    --text-dark: #e8ece6;
+    --text-secondary: #a9b4a6;
+    --text-600: #a9b4a6;
+    --text-soft: #a9b4a6;
+    --text-muted: #7f8b7c;
+    --text-400: #7f8b7c;
+
+    /* Elevation: shadows read as depth on dark only when they are darker. */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-hover: 0 6px 18px rgba(0, 0, 0, 0.5);
+
+    /* Status: text lifted, tints deepened, so pills stay legible. */
+    --danger: #e0604f;
+    --danger-light: #3a1f1c;
+    --warning: #e0a03a;
+    --warning-light: #3a2e17;
+    --success: #4cb46c;
+    --success-light: #1d3324;
+    --blue: #6fa4ec;
+    --blue-light: #17263d;
+    --orange: #e0a03a;
+    --yellow: #e0a03a;
+    --purple: #a58cf0;
+
+    --red-bg: #3a1f1c;
+    --red-text: #f08a7c;
+    --green-bg: #1d3324;
+    --green-text: #6fcf8e;
+    --orange-bg: #3a2e17;
+    --orange-text: #e8b45c;
+    --amber-bg: #3a2e17;
+    --amber-text: #e8b45c;
+    --amber-icon: #f0bc5e;
+    --blue-bg: #17263d;
+    --blue-text: #86b6f5;
+    --purple-bg: #2a2140;
+    --purple-text: #b9a3f0;
+    --pending-bg: #3a2e17;
+    --pending-text: #e8b45c;
+    --verified-bg: #1d3324;
+    --verified-text: #6fcf8e;
+    --rejected-bg: #3a1f1c;
+    --rejected-text: #f08a7c;
+    --resolved-bg: #17263d;
+    --resolved-text: #86b6f5;
+}
+
+/* The page background behind everything, including overscroll. */
+:root[data-theme="dark"],
+:root[data-theme="dark"] body {
+    background: var(--dm-page);
+}
+
+/* Form controls the pages leave to the browser. Zero specificity (:where), so
+   any page that styles its own inputs, e.g. a transparent field inside a
+   search box, keeps its styling. */
+:where(:root[data-theme="dark"]) :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) {
+    background-color: var(--dm-surface-2);
+    color: var(--dm-text);
+    border-color: var(--dm-border);
+}
+:root[data-theme="dark"] ::placeholder {
+    color: var(--text-muted);
+}
+
+/* Leaflet ships white popups and controls, and the OSM tiles are bright. */
+:root[data-theme="dark"] .leaflet-popup-content-wrapper,
+:root[data-theme="dark"] .leaflet-popup-tip,
+:root[data-theme="dark"] .leaflet-bar a,
+:root[data-theme="dark"] .leaflet-control-layers,
+:root[data-theme="dark"] .leaflet-control-attribution {
+    background: var(--dm-surface);
+    color: var(--dm-text);
+    border-color: var(--dm-border);
+}
+:root[data-theme="dark"] .leaflet-control-attribution a {
+    color: var(--blue);
+}
+:root[data-theme="dark"] .leaflet-tile-pane {
+    filter: brightness(0.82) contrast(1.05);
+}
+
 /* Shared page chrome: identical background, text colour and typography on
    every admin page. */
 body {
@@ -188,16 +322,16 @@ body {
 }
 
 /* Current page. `.current` is A&A's class name, `.active` everywhere else.
-   The dark-theme selectors are listed so a page's `body[data-theme="dark"]
+   The dark-theme selectors are listed so a page's `:root[data-theme="dark"]
    .page-btn` rule cannot out-rank the highlight and flatten the control. */
 .page-btn.active,
 .page-btn.current,
 .pagination button.active,
 .pagination button.current,
-body[data-theme="dark"] .page-btn.active,
-body[data-theme="dark"] .page-btn.current,
-body[data-theme="dark"] .pagination button.active,
-body[data-theme="dark"] .pagination button.current {
+:root[data-theme="dark"] .page-btn.active,
+:root[data-theme="dark"] .page-btn.current,
+:root[data-theme="dark"] .pagination button.active,
+:root[data-theme="dark"] .pagination button.current {
     background: var(--accent-dark);
     border-color: var(--accent-dark);
     color: #fff;
@@ -524,11 +658,11 @@ body[data-theme="dark"] .pagination button.current {
     align-items: center;
     padding: 14px 16px;
     border-bottom: 1px solid var(--border, #e4e7e1);
-    color: #000;
+    color: var(--dm-text, #000);
     font-size: 11px;
 }
 .notification-header strong {
-    color: #000;
+    color: var(--dm-text, #000);
     font-size: 14px;
 }
 .notification-mark-all {
@@ -548,7 +682,7 @@ body[data-theme="dark"] .pagination button.current {
     display: flex;
     gap: 10px;
     padding: 13px 16px;
-    color: #000;
+    color: var(--dm-text, #000);
     text-decoration: none;
     border-bottom: 1px solid var(--border, #e4e7e1);
 
@@ -573,7 +707,7 @@ body[data-theme="dark"] .pagination button.current {
     flex: 0 0 24px;
     border-radius: 50%;
     background: var(--danger, #c8402f);
-    color: #060606;
+    color: var(--dm-text, #060606);
     font-weight: 700;
 }
 .notification-copy {
@@ -584,14 +718,14 @@ body[data-theme="dark"] .pagination button.current {
     line-height: 1.35;
 }
 .notification-copy strong {
-    color: #000;
+    color: var(--dm-text, #000);
     font-size: 13px;
 }
 .notification-copy span {
-    color: #000;
+    color: var(--dm-text, #000);
 }
 .notification-copy small {
-    color: #000;
+    color: var(--dm-text, #000);
 }
 .notification-copy small.notification-retrieved {
     color: var(--text-muted, #6b7a6b);
@@ -599,7 +733,7 @@ body[data-theme="dark"] .pagination button.current {
 }
 .notification-empty {
     padding: 24px 16px;
-    color: #000;
+    color: var(--dm-text, #000);
     text-align: center;
     font-size: 13px;
 }

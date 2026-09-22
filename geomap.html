@@ -30,7 +30,7 @@
   html, body {
     visibility: visible;
     opacity: 1;
-    background: #eef1ec;
+    background: var(--dm-page, #eef1ec);
   }
 </style>
   <script type="module" src="dashboard-guard.js"></script>
@@ -178,7 +178,7 @@
       stroke-linejoin:round;
     }
     .map-area{
-      background:linear-gradient(180deg,#f8fbf8,#eaf4e9);
+      background:var(--dm-surface, linear-gradient(180deg,#f8fbf8,#eaf4e9));
       border-radius:10px;
       padding:18px;
       border:1px solid var(--border);
@@ -191,10 +191,10 @@
       overflow:hidden;
       /* Matches the mask drawn over everything outside Mount Makiling, so the
          area with no tiles blends into it instead of showing Leaflet's grey. */
-      background:#e8edf0
+      background:var(--dm-surface-3, #e8edf0)
     }
     .location-control{
-      background:#fff;
+      background:var(--dm-surface, #fff);
       border:1px solid rgba(0,0,0,.2);
       border-radius:4px;
       box-shadow:0 1px 5px rgba(0,0,0,.25);
@@ -341,7 +341,7 @@
       flex:0 1 auto;min-width:0;
       overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
     }
-    .trail-row-bar{flex:1 1 24px;height:6px;border-radius:999px;background:#eef0ee;overflow:hidden;min-width:24px;}
+    .trail-row-bar{flex:1 1 24px;height:6px;border-radius:999px;background:var(--dm-surface-2, #eef0ee);overflow:hidden;min-width:24px;}
     .trail-row-bar-fill{height:100%;border-radius:999px;}
     /* Same idea as the alert rows: shed secondary info before anything
        is allowed to overlap or get clipped. The distance goes first, and
@@ -381,7 +381,7 @@
       flex-shrink:0;
       text-align:center;
       font-size:12px;
-      color:#1b211b;
+      color:var(--dm-text, #1b211b);
     }
     .legend-row svg{height:10px;}
     .legend-row.is-contour i,
@@ -560,7 +560,7 @@
         <div class="card">
           <div class="card-top">
             <span class="value" id="openTrailsValue">—</span>
-            <div class="card-icon" aria-hidden="true" style="background:#eaf7ee;color:#1f7a45;">
+            <div class="card-icon" aria-hidden="true" style="background:var(--dm-surface-2, #eaf7ee);color:#1f7a45;">
               <svg viewBox="0 0 24 24"><path d="M4 18l5-9 4 6 3-5 4 8"/><path d="M3 18h18"/></svg>
             </div>
           </div>
@@ -584,7 +584,7 @@
         <div class="card">
           <div class="card-top">
             <span class="value" id="weatherTemperature">—</span>
-            <div class="card-icon" aria-hidden="true" style="background:#edf5ff;color:#3d6ec8;">
+            <div class="card-icon" aria-hidden="true" style="background:var(--dm-surface-3, #edf5ff);color:#3d6ec8;">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
             </div>
           </div>
@@ -650,22 +650,22 @@
             <div class="risk-tiles">
               <div style="background:var(--red-bg);border-radius:10px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
                 <i class="fa-solid fa-triangle-exclamation" style="color:var(--red-text);font-size:17px"></i>
-                <div id="highRiskCount" style="font-weight:700;font-size:19px;color:#232823">0</div>
+                <div id="highRiskCount" style="font-weight:700;font-size:19px;color:var(--dm-text, #232823)">0</div>
                 <div style="font-size:11.5px;color:var(--text-secondary)">High Risk</div>
               </div>
               <div style="background:var(--amber-bg);border-radius:10px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
                 <i class="fa-solid fa-triangle-exclamation" style="color:var(--amber-icon);font-size:17px"></i>
-                <div id="moderateRiskCount" style="font-weight:700;font-size:19px;color:#232823">0</div>
+                <div id="moderateRiskCount" style="font-weight:700;font-size:19px;color:var(--dm-text, #232823)">0</div>
                 <div style="font-size:11.5px;color:var(--text-secondary)">Moderate Risk</div>
               </div>
               <div style="background:var(--green-bg);border-radius:10px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
                 <i class="fa-solid fa-triangle-exclamation" style="color:var(--green-text);font-size:17px"></i>
-                <div id="lowRiskCount" style="font-weight:700;font-size:19px;color:#232823">0</div>
+                <div id="lowRiskCount" style="font-weight:700;font-size:19px;color:var(--dm-text, #232823)">0</div>
                 <div style="font-size:11.5px;color:var(--text-secondary)">Low Risk</div>
               </div>
               <div style="background:var(--blue-bg);border-radius:10px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
                 <i class="fa-solid fa-circle-info" style="color:var(--blue-text);font-size:17px"></i>
-                <div id="totalRiskCount" style="font-weight:700;font-size:19px;color:#232823">0</div>
+                <div id="totalRiskCount" style="font-weight:700;font-size:19px;color:var(--dm-text, #232823)">0</div>
                 <div style="font-size:11.5px;color:var(--text-secondary)">Total Alerts</div>
               </div>
             </div>
@@ -679,6 +679,7 @@
     import { db } from "./firebase-config.js";
     import { collection, onSnapshot, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { formatPortalDate, formatPortalTime, portalTimeZone } from "./datetime-prefs.js";
+    import { createMakilingMap } from "./makiling-area.js";
 
     const setSummaryValue = (id, value) => {
       document.getElementById(id).textContent = value;
@@ -693,60 +694,9 @@
 
     /* This is a Mount Makiling map only: everything outside a 6 km radius of
        the summit is greyed out, and panning/zooming is locked to that area so
-       the view can never wander off the mountain. */
-    const makilingCenter = [14.1325, 121.1936];
-    const MAKILING_RADIUS_M = 6000;
-
-    // The mountain's edge as a polygon, reused both as the outline drawn on
-    // the map and as the hole cut out of the grey mask.
-    const makilingRing = (() => {
-      const latDegrees = MAKILING_RADIUS_M / 111320;
-      const lngDegrees = latDegrees / Math.cos(makilingCenter[0] * Math.PI / 180);
-      const points = [];
-      for (let step = 0; step < 180; step += 1) {
-        const angle = (step / 180) * 2 * Math.PI;
-        points.push([
-          makilingCenter[0] + latDegrees * Math.cos(angle),
-          makilingCenter[1] + lngDegrees * Math.sin(angle)
-        ]);
-      }
-      return points;
-    })();
-    const makilingBounds = L.latLngBounds(makilingRing);
-
-    const map = L.map('makilingMap', {
-      center: makilingCenter,
-      zoom: 13,
-      minZoom: 13,
-      maxZoom: 19,
-      maxBounds: makilingBounds,
-      maxBoundsViscosity: 1
-    });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      minZoom: 13,
-      maxZoom: 19,
-      bounds: makilingBounds,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    // Grey out everything beyond the mountain: one polygon covering the world
-    // with the Makiling ring punched out of it as a hole.
-    L.polygon([
-      [[-90, -180], [-90, 180], [90, 180], [90, -180]],
-      makilingRing
-    ], {
-      stroke: false,
-      fillColor: '#e8edf0',
-      fillOpacity: 0.94,
-      interactive: false
-    }).addTo(map);
-    L.polygon(makilingRing, {
-      fill: false,
-      color: '#2f8f4e',
-      weight: 2,
-      dashArray: '6 6',
-      interactive: false
-    }).addTo(map);
+       the view can never wander off the mountain. The area itself is defined
+       once in makiling-area.js, shared with the dashboard map. */
+    const { map, bounds: makilingBounds } = createMakilingMap('makilingMap');
 
     // Keeps a requested view inside the mountain, so hazard framing and the
     // Locate me button can never push the map past the masked edge.

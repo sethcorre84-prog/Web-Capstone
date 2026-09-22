@@ -206,7 +206,7 @@
             padding: 20px;
             border: 1px dashed var(--border);
             border-radius: 10px;
-            background: #fafbf9;
+            background: var(--dm-surface-2, #fafbf9);
             text-align: center;
             font-size: 12.5px;
             color: var(--text-secondary);
@@ -447,6 +447,7 @@
         import { db } from "./firebase-config.js";
         import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { formatPortalDate, portalTimeZone } from "./datetime-prefs.js";
+        import { createMakilingMap } from "./makiling-area.js";
 
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, character => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
@@ -464,13 +465,11 @@
             return new Date(0);
         };
 
-        const makilingCenter = [14.136, 121.197];
-        const dashboardMap = L.map('dashboardMap').setView(makilingCenter, 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(dashboardMap);
-        L.marker(makilingCenter)
+        /* Mount Makiling only: the same 6 km area as the Geomap page, from
+           makiling-area.js. Everything past it is greyed out and the view
+           cannot be panned or zoomed off the mountain. */
+        const { map: dashboardMap, bounds: makilingBounds } = createMakilingMap('dashboardMap');
+        L.marker([14.136, 121.197])
             .bindPopup('<strong>Mount Makiling</strong><br>1,096 m')
             .addTo(dashboardMap);
         const trailLayer = L.layerGroup().addTo(dashboardMap);
@@ -488,7 +487,9 @@
             trailLayer.clearLayers();
             trails.forEach(trail => {
                 const coordinates = getCoordinates(trail);
-                if (!coordinates) return;
+                // A trail pinned off the mountain would land under the grey
+                // mask, out of reach; it still counts in the stats and list.
+                if (!coordinates || !makilingBounds.contains(coordinates)) return;
                 L.marker(coordinates)
                     .bindPopup(`<strong>${escapeHtml(trail.Trail || 'Trail')}</strong><br>${escapeHtml(trail.Status || 'Open')}`)
                     .addTo(trailLayer);

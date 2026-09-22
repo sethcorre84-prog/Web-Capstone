@@ -33,7 +33,7 @@
   html, body {
     visibility: visible;
     opacity: 1;
-    background: #eef1ec;
+    background: var(--dm-page, #eef1ec);
   }
 </style>
 <script type="module" src="dashboard-guard.js"></script>
@@ -52,43 +52,31 @@
     min-height:100vh;
 }
 
-/* Dark theme overrides */
-body[data-theme="dark"]{
-    --page-bg:#12140f;
-    --card-bg:#1b1f18;
-    --text-primary:#eef1ec;
-    --text-secondary:#a7b0a3;
-    --text-muted:#7c847a;
-    --border:#2c3229;
-    --accent-light:#1d3324;
-    --success-light:#1d3324;
-    --danger-light:#3a1f1c;
-}
-body[data-theme="dark"] .search-box,
-body[data-theme="dark"] select.filter,
-body[data-theme="dark"] .clear-btn,
-body[data-theme="dark"] .icon-btn,
-body[data-theme="dark"] .page-btn,
-body[data-theme="dark"] .btn-secondary,
-body[data-theme="dark"] .quick-btn.outline,
-body[data-theme="dark"] .bell-wrap{
+:root[data-theme="dark"] .search-box,
+:root[data-theme="dark"] select.filter,
+:root[data-theme="dark"] .clear-btn,
+:root[data-theme="dark"] .icon-btn,
+:root[data-theme="dark"] .page-btn,
+:root[data-theme="dark"] .btn-secondary,
+:root[data-theme="dark"] .quick-btn.outline,
+:root[data-theme="dark"] .bell-wrap{
     background:var(--card-bg);
     color:var(--text-primary);
 }
-body[data-theme="dark"] tbody tr:hover{
+:root[data-theme="dark"] tbody tr:hover{
     background:#232922;
 }
-body[data-theme="dark"] tbody tr.selected{
+:root[data-theme="dark"] tbody tr.selected{
     background:#1d3324;
 }
-body[data-theme="dark"] .admin-dropdown{
+:root[data-theme="dark"] .admin-dropdown{
     background:var(--card-bg);
     border-color:var(--border);
 }
-body[data-theme="dark"] .admin-dropdown a{
+:root[data-theme="dark"] .admin-dropdown a{
     color:var(--text-primary);
 }
-body[data-theme="dark"] .admin-dropdown a:hover{
+:root[data-theme="dark"] .admin-dropdown a:hover{
     background:#232922;
 }
 
@@ -96,9 +84,9 @@ body[data-theme="dark"] .admin-dropdown a:hover{
 .display-submenu{
     display:none;
     flex-direction:column;
-    background:#f8f9f7;
+    background:var(--dm-surface-2, #f8f9f7);
 }
-body[data-theme="dark"] .display-submenu{
+:root[data-theme="dark"] .display-submenu{
     background:#141712;
 }
 .display-submenu.open{
@@ -134,9 +122,9 @@ body[data-theme="dark"] .display-submenu{
 .settings-submenu{
     display:none;
     flex-direction:column;
-    background:#f8f9f7;
+    background:var(--dm-surface-2, #f8f9f7);
 }
-body[data-theme="dark"] .settings-submenu{
+:root[data-theme="dark"] .settings-submenu{
     background:#141712;
 }
 .settings-submenu.open{
@@ -298,7 +286,7 @@ body[data-theme="dark"] .settings-submenu{
     top:calc(100% + 10px);
     right:0;
     width:200px;
-    background:#fff;
+    background:var(--dm-surface, #fff);
     border:1px solid var(--border);
     border-radius:10px;
     box-shadow:0 10px 30px rgba(0,0,0,.15);
@@ -318,7 +306,7 @@ body[data-theme="dark"] .settings-submenu{
     color:var(--text-primary);
 }
 .admin-dropdown a:hover{
-    background:#f5f7f3;
+    background:var(--dm-surface-2, #f5f7f3);
 }
 .admin-dropdown a svg{
     width:16px;
@@ -446,7 +434,7 @@ body[data-theme="dark"] .settings-submenu{
     border:1px solid var(--border);
     border-radius:8px;
     padding:8px 12px;
-    background:#fbfcfa;
+    background:var(--dm-surface-2, #fbfcfa);
 }
 
 .search-box input{
@@ -462,7 +450,7 @@ select.filter{
     border:1px solid var(--border);
     border-radius:8px;
     padding:8px 10px;
-    background:#fbfcfa;
+    background:var(--dm-surface-2, #fbfcfa);
     font-size:13px;
     color:var(--text-secondary);
 }
@@ -474,7 +462,7 @@ select.filter{
     padding:8px 12px;
     border:1px solid var(--border);
     border-radius:8px;
-    background:#fff;
+    background:var(--dm-surface, #fff);
     font:inherit;
     font-size:13px;
     font-weight:400;
@@ -482,7 +470,7 @@ select.filter{
 }
 
 .clear-btn:hover{
-    background:#f5f5f2;
+    background:var(--dm-surface-2, #f5f5f2);
 }
 
 /* ==========================================
@@ -518,7 +506,7 @@ tbody tr{
 }
 
 tbody tr:hover{
-    background:#f6f8f4;
+    background:var(--dm-surface-2, #f6f8f4);
 }
 
 tbody tr.selected{
@@ -607,7 +595,7 @@ tbody tr:last-child td{
     height:28px;
     border:1px solid var(--border);
     border-radius:6px;
-    background:#fff;
+    background:var(--dm-surface, #fff);
     display:flex;
     align-items:center;
     justify-content:center;
@@ -615,7 +603,7 @@ tbody tr:last-child td{
 }
 
 .icon-btn:hover{
-    background:#f0f2ee;
+    background:var(--dm-surface-2, #f0f2ee);
 }
 
 /* ==========================================
@@ -643,7 +631,7 @@ tbody tr:last-child td{
     height:405px;
     border:1px solid var(--border);
     border-radius:8px;
-    background:#dfeed9;
+    background:var(--dm-surface-3, #dfeed9);
 }
 
   #trailMap{
@@ -657,7 +645,7 @@ tbody tr:last-child td{
     left:10px;
     padding:10px 12px;
     border-radius:8px;
-    background:#fff;
+    background:var(--dm-surface, #fff);
     box-shadow:0 1px 4px rgba(0,0,0,.08);
     font-size:11px;
     line-height:1.9;
@@ -768,14 +756,14 @@ tbody tr:last-child td{
     padding:10px;
     border:1px solid var(--border);
     border-radius:8px;
-    background:#fff;
+    background:var(--dm-surface, #fff);
     color:var(--text-primary);
     font-size:13px;
     font-weight:600;
 }
 
 .btn-secondary:hover{
-    background:#f5f5f2;
+    background:var(--dm-surface-2, #f5f5f2);
 }
 
 /* ==========================================
@@ -825,7 +813,7 @@ tbody tr:last-child td{
 }
 
 .quick-btn.outline{
-    background:#fff;
+    background:var(--dm-surface, #fff);
     color:var(--text-primary);
     border:1px solid var(--border);
 }
@@ -977,7 +965,7 @@ tbody tr:last-child td{
   </div>
       <div class="stat-card">
         <div class="stat-top"><span class="stat-value">15</span>
-          <div class="stat-icon" style="background:#e6eefb;">
+          <div class="stat-icon" style="background:var(--blue-bg);">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2a63b5" stroke-width="2"><path d="M12 21s-7-6.5-7-11a7 7 0 0114 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
           </div>
         </div>
@@ -985,7 +973,7 @@ tbody tr:last-child td{
       </div>
       <div class="stat-card">
         <div class="stat-top"><span class="stat-value">8</span>
-          <div class="stat-icon" style="background:#f2e9fb;">
+          <div class="stat-icon" style="background:var(--dm-surface-3, #f2e9fb);">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a4bb5" stroke-width="2"><path d="M4 20l6-9 4 5 2-3 4 7H4z"/></svg>
           </div>
         </div>
@@ -1102,7 +1090,7 @@ tbody tr:last-child td{
 
 <!-- Add Trail Modal -->
 <div id="addTrailModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:12px;padding:26px;max-width:480px;width:90%;max-height:85vh;overflow-y:auto;">
+  <div style="background:var(--dm-surface, #fff);border-radius:12px;padding:26px;max-width:480px;width:90%;max-height:85vh;overflow-y:auto;">
     <h3 style="margin-bottom:16px;font-size:18px;">+ Add New Trail</h3>
 
     <div style="display:flex;flex-direction:column;gap:12px;">
@@ -1119,12 +1107,12 @@ tbody tr:last-child td{
       <div>
         <label style="font-size:12px;color:var(--text-secondary);">Trail Photo</label>
         <div id="photoDropzone" style="margin-top:4px;border:1.5px dashed var(--border);border-radius:10px;padding:14px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:border-color .15s, background .15s;">
-          <div id="newTrailPhotoPreview" style="width:60px;height:60px;border-radius:8px;background:#f1f3ef;background-size:cover;background-position:center;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-secondary);">🏞️</div>
+          <div id="newTrailPhotoPreview" style="width:60px;height:60px;border-radius:8px;background:var(--dm-surface-2, #f1f3ef);background-size:cover;background-position:center;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-secondary);">🏞️</div>
           <div style="flex:1;min-width:0;">
             <div id="photoDropzoneText" style="font-size:12.5px;font-weight:600;color:var(--text-primary);">Click to upload a photo</div>
             <div id="photoDropzoneSubtext" style="font-size:11px;color:var(--text-secondary);margin-top:2px;">PNG or JPG, up to 5MB</div>
           </div>
-          <button type="button" id="removeTrailPhoto" style="display:none;border:1px solid var(--border);background:#fff;border-radius:6px;padding:5px 9px;font-size:11px;color:var(--danger);flex-shrink:0;">Remove</button>
+          <button type="button" id="removeTrailPhoto" style="display:none;border:1px solid var(--border);background:var(--dm-surface, #fff);border-radius:6px;padding:5px 9px;font-size:11px;color:var(--danger);flex-shrink:0;">Remove</button>
         </div>
         <input type="file" id="newTrailPhoto" accept="image/*" style="display:none;">
       </div>
@@ -1204,14 +1192,14 @@ tbody tr:last-child td{
 </div>
 
 <!-- Shared row actions dropdown -->
-<div id="rowActionsMenu" style="display:none;position:absolute;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:900;min-width:150px;overflow:hidden;">
-  <button id="duplicateTrailBtn" style="width:100%;text-align:left;padding:10px 14px;border:none;background:#fff;font-size:13px;cursor:pointer;">📄 Duplicate Trail</button>
-  <button id="deleteTrailBtn" style="width:100%;text-align:left;padding:10px 14px;border:none;background:#fff;font-size:13px;cursor:pointer;color:var(--danger);">🗑 Delete Trail</button>
+<div id="rowActionsMenu" style="display:none;position:absolute;background:var(--dm-surface, #fff);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:900;min-width:150px;overflow:hidden;">
+  <button id="duplicateTrailBtn" style="width:100%;text-align:left;padding:10px 14px;border:none;background:var(--dm-surface, #fff);font-size:13px;cursor:pointer;">📄 Duplicate Trail</button>
+  <button id="deleteTrailBtn" style="width:100%;text-align:left;padding:10px 14px;border:none;background:var(--dm-surface, #fff);font-size:13px;cursor:pointer;color:var(--danger);">🗑 Delete Trail</button>
 </div>
 
 <!-- Delete Confirmation Modal -->
 <div id="deleteConfirmModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1100;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:12px;padding:28px;max-width:360px;width:90%;text-align:center;">
+  <div style="background:var(--dm-surface, #fff);border-radius:12px;padding:28px;max-width:360px;width:90%;text-align:center;">
     <div style="font-size:38px;color:var(--danger);margin-bottom:10px;">⚠️</div>
     <h3 style="margin-bottom:8px;font-size:18px;">Delete this trail?</h3>
     <p id="deleteConfirmText" style="color:var(--text-secondary);font-size:13.5px;margin-bottom:20px;">This action cannot be undone.</p>

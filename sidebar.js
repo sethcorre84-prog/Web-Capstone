@@ -13,7 +13,49 @@
      them when collapsed — no HTML edits needed.
    - Saves the collapsed/expanded state to localStorage so it persists
      as the admin navigates between pages.
+   - Applies the Dark Mode setting (Settings > General Settings) the same
+     way: before paint, so a dark page never flashes white first.
    ========================================================================== */
+
+/* Dark mode. Kept outside the sidebar code because it applies to the whole
+   page, and exposed as window.PeakPathTheme so Settings can switch it. The
+   choice is stored per browser, like the other Settings toggles. */
+(function () {
+    var THEME_KEY = 'peakpath-theme';
+
+    function read() {
+        try {
+            return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+        } catch (error) {
+            return 'light'; // storage blocked: stay on the default look
+        }
+    }
+
+    function apply(theme) {
+        if (theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+        }
+    }
+
+    apply(read());
+
+    // Switching in one tab switches every other open portal tab too.
+    window.addEventListener('storage', function (event) {
+        if (event.key === THEME_KEY) apply(read());
+    });
+
+    window.PeakPathTheme = {
+        get: read,
+        set: function (theme) {
+            var next = theme === 'dark' ? 'dark' : 'light';
+            localStorage.setItem(THEME_KEY, next);
+            apply(next);
+            return next;
+        }
+    };
+})();
 
 (function () {
     var STORAGE_KEY = 'peakpath-sidebar-collapsed';

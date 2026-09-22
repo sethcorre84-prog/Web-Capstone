@@ -181,7 +181,7 @@
     top:calc(100% + 10px);
     right:0;
     width:200px;
-    background:#fff;
+    background:var(--dm-surface, #fff);
     border:1px solid var(--border);
     border-radius:10px;
     box-shadow:0 10px 30px rgba(0,0,0,.15);
@@ -202,7 +202,7 @@
     text-decoration:none;
 }
 .admin-dropdown a:hover{
-    background:#f5f7f3;
+    background:var(--dm-surface-2, #f5f7f3);
 }
 .admin-dropdown a svg{
     width:16px;
@@ -230,9 +230,9 @@
 .display-submenu{
     display:none;
     flex-direction:column;
-    background:#f8f9f7;
+    background:var(--dm-surface-2, #f8f9f7);
 }
-body[data-theme="dark"] .display-submenu{
+:root[data-theme="dark"] .display-submenu{
     background:#141712;
 }
 .display-submenu.open{
@@ -268,9 +268,9 @@ body[data-theme="dark"] .display-submenu{
 .settings-submenu{
     display:none;
     flex-direction:column;
-    background:#f8f9f7;
+    background:var(--dm-surface-2, #f8f9f7);
 }
-body[data-theme="dark"] .settings-submenu{
+:root[data-theme="dark"] .settings-submenu{
     background:#141712;
 }
 .settings-submenu.open{
@@ -282,43 +282,28 @@ body[data-theme="dark"] .settings-submenu{
 }
 
 /* Dark theme overrides (adapted to this page's variable names) */
-body[data-theme="dark"]{
-    --bg:#12140f;
-    --card:#1b1f18;
-    --text-900:#eef1ec;
-    --text-600:#a7b0a3;
-    --text-400:#7c847a;
-    --border:#2c3229;
-    --green-bg:#1d3324;
-    --red-bg:#3a1f1c;
-    --amber-bg:#3a2f1c;
-    --pending-bg:#3a2f1c;
-    --verified-bg:#1d3324;
-    --rejected-bg:#3a1f1c;
-    --resolved-bg:#1c2a3d;
-}
-body[data-theme="dark"] .search-box,
-body[data-theme="dark"] select.filter-select,
-body[data-theme="dark"] .btn-outline,
-body[data-theme="dark"] .bell-wrap,
-body[data-theme="dark"] .card{
+:root[data-theme="dark"] .search-box,
+:root[data-theme="dark"] select.filter-select,
+:root[data-theme="dark"] .btn-outline,
+:root[data-theme="dark"] .bell-wrap,
+:root[data-theme="dark"] .card{
     background:var(--card);
     color:var(--text-900);
 }
-body[data-theme="dark"] tbody tr:hover{
+:root[data-theme="dark"] tbody tr:hover{
     background:#232922;
 }
-body[data-theme="dark"] tbody tr.selected{
+:root[data-theme="dark"] tbody tr.selected{
     background:#1d3324;
 }
-body[data-theme="dark"] .admin-dropdown{
+:root[data-theme="dark"] .admin-dropdown{
     background:var(--card);
     border-color:var(--border);
 }
-body[data-theme="dark"] .admin-dropdown a{
+:root[data-theme="dark"] .admin-dropdown a{
     color:var(--text-900);
 }
-body[data-theme="dark"] .admin-dropdown a:hover{
+:root[data-theme="dark"] .admin-dropdown a:hover{
     background:#232922;
 }
 
@@ -362,7 +347,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     flex-shrink:0;
   }
   .stat-icon svg{width:20px;height:16px;stroke-width:2;}
-  .stat-icon.total{background:#eef2ee;}
+  .stat-icon.total{background:var(--dm-surface-2, #eef2ee);}
   .stat-icon.pending{background:var(--amber-bg);}
   .stat-icon.verified{background:var(--green-bg);}
   .stat-icon.rejected{background:var(--red-bg);}
@@ -439,7 +424,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   border:1px solid var(--border);
   border-radius:8px;
   padding:8px 12px;
-  background:#fbfcfa;
+  background:var(--dm-surface-2, #fbfcfa);
   }
   .search-box input{
     width:100%;
@@ -458,7 +443,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   border:1px solid var(--border);
   border-radius:8px;
   padding:8px 10px;
-  background:#fbfcfa;
+  background:var(--dm-surface-2, #fbfcfa);
   font-size:13px;
   color:var(--text-600);
   width:100%;
@@ -475,7 +460,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     padding:8px 12px;
     border:1px solid var(--border);
     border-radius:8px;
-    background:#fff;
+    background:var(--dm-surface, #fff);
     font:inherit;
     font-size:13px;
     font-weight:400;
@@ -498,11 +483,11 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     }
   }
   .btn-outline:hover{
-    background:#f5f5f2;
+    background:var(--dm-surface-2, #f5f5f2);
   }
   .btn-clear{
     color:#c0453c;
-    background:#fff;
+    background:var(--dm-surface, #fff);
   }
 
   table{
@@ -510,7 +495,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     border-collapse:collapse;
   }
   thead tr{
-    background:#fafbfa;
+    background:var(--dm-surface-2, #fafbfa);
   }
   th{
     text-align:left;
@@ -530,8 +515,8 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     vertical-align:middle;
   }
   tbody tr{cursor:pointer;transition:background .12s ease;}
-  tbody tr:hover{background:#f7f9f7;}
-  tbody tr.selected{background:#eef6ee;}
+  tbody tr:hover{background:var(--dm-surface-2, #f7f9f7);}
+  tbody tr.selected{background:var(--dm-surface-2, #eef6ee);}
 
   .hazard-cell{display:flex;align-items:center;gap:8px;}
   .hazard-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0;}
@@ -552,7 +537,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   .badge.high{background:#fde9e8;color:#c8402f;}
   .badge.moderate{background:#fff5df;color:#b9791b;}
   .badge.low{background:#eaf5ff;color:#2d6ab3;}
-  .badge.unknown{background:#eef2ee;color:#5b6b60;}
+  .badge.unknown{background:var(--dm-surface-2, #eef2ee);color:var(--dm-text-2, #5b6b60);}
 
   /* One text size across the whole Hazard Reports List — headers, cells,
      badges, the time under each date, icons, footer and page buttons —
@@ -637,7 +622,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   .details-title .ic-circle{
     width:38px;height:38px;
     border-radius:10px;
-    background:#fbeae7;
+    background:var(--red-bg);
     display:flex;align-items:center;justify-content:center;
     font-size:17px;
   }
@@ -700,7 +685,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   .attach-thumb{
     width:54px;height:54px;
     border-radius:8px;
-    background:#dfe6df;
+    background:var(--dm-surface-3, #dfe6df);
     display:flex;align-items:center;justify-content:center;
     font-size:18px;
     overflow:hidden;
@@ -708,7 +693,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   .attach-more{
     width:54px;height:54px;
     border-radius:8px;
-    background:#eef2ee;
+    background:var(--dm-surface-2, #eef2ee);
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     font-size:12px;font-weight:700;color:var(--text-600);
   }
@@ -797,7 +782,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     width:36px;height:36px;
     border:1px solid var(--border);
     border-radius:10px;
-    background:#ffffff;
+    background:var(--dm-surface, #ffffff);
     color:var(--text-900);
     transition:all .15s ease;
     cursor:pointer;
@@ -864,7 +849,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
   }
   .confirm-modal{
     width:min(460px,100%);
-    background:#fff;
+    background:var(--dm-surface, #fff);
     border-radius:16px;
     box-shadow:0 20px 60px rgba(15,35,20,.22);
     overflow:hidden;
@@ -904,7 +889,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     padding:4px 22px 20px;
   }
   .modal-report-box{
-    background:#f7f9f7;
+    background:var(--dm-surface-2, #f7f9f7);
     border:1px solid var(--border);
     border-radius:10px;
     padding:12px 14px;
@@ -955,7 +940,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     gap:8px;
     padding:14px 22px 20px;
     border-top:1px solid var(--border);
-    background:#fafbfa;
+    background:var(--dm-surface-2, #fafbfa);
   }
   .modal-btn{
     border:0;
@@ -966,11 +951,11 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     cursor:pointer;
   }
   .modal-btn.cancel{
-    background:#fff;
+    background:var(--dm-surface, #fff);
     border:1px solid var(--border);
     color:var(--text-600);
   }
-  .modal-btn.cancel:hover{background:#f2f4f2;}
+  .modal-btn.cancel:hover{background:var(--dm-surface-2, #f2f4f2);}
   .modal-btn.confirm-verify{background:#2f8f4e;color:#fff;}
   .modal-btn.confirm-reject{background:#d1453b;color:#fff;}
   .modal-btn.confirm-resolve{background:#2a63b5;color:#fff;}
@@ -1004,7 +989,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
     font:inherit;
     font-size:12.5px;
     color:var(--text-900);
-    background:#fff;
+    background:var(--dm-surface, #fff);
   }
   .report-form textarea{min-height:84px;resize:vertical;}
   .report-form input:focus,
@@ -1407,7 +1392,7 @@ body[data-theme="dark"] .admin-dropdown a:hover{
       <div class="report-form">
         <div class="report-form-grid">
           <label>Hazard Type
-            <input type="text" id="editHazardType" placeholder="e.g. Rockfall" readonly style="background:#f2f4f2;color:var(--text-600);cursor:not-allowed;">
+            <input type="text" id="editHazardType" placeholder="e.g. Rockfall" readonly style="background:var(--dm-surface-2, #f2f4f2);color:var(--text-600);cursor:not-allowed;">
           </label>
           <label>Risk Level
             <select id="editRiskLevel">
@@ -1419,22 +1404,22 @@ body[data-theme="dark"] .admin-dropdown a:hover{
         </div>
         <div class="report-form-grid">
           <label>Location
-            <input type="text" id="editLocation" placeholder="e.g. Mount Makiling" readonly style="background:#f2f4f2;color:var(--text-600);cursor:not-allowed;">
+            <input type="text" id="editLocation" placeholder="e.g. Mount Makiling" readonly style="background:var(--dm-surface-2, #f2f4f2);color:var(--text-600);cursor:not-allowed;">
           </label>
           <label>Trail
-            <input type="text" id="editTrail" placeholder="e.g. Sipit Trail" readonly style="background:#f2f4f2;color:var(--text-600);cursor:not-allowed;">
+            <input type="text" id="editTrail" placeholder="e.g. Sipit Trail" readonly style="background:var(--dm-surface-2, #f2f4f2);color:var(--text-600);cursor:not-allowed;">
           </label>
         </div>
         <div class="report-form-grid">
           <label>Reported By
-            <input type="text" id="editReportedBy" placeholder="e.g. Anonymous" readonly style="background:#f2f4f2;color:var(--text-600);cursor:not-allowed;">
+            <input type="text" id="editReportedBy" placeholder="e.g. Anonymous" readonly style="background:var(--dm-surface-2, #f2f4f2);color:var(--text-600);cursor:not-allowed;">
           </label>
           <label>Contact
-            <input type="text" id="editContact" placeholder="Phone or email" readonly style="background:#f2f4f2;color:var(--text-600);cursor:not-allowed;">
+            <input type="text" id="editContact" placeholder="Phone or email" readonly style="background:var(--dm-surface-2, #f2f4f2);color:var(--text-600);cursor:not-allowed;">
           </label>
         </div>
         <label>Description
-          <textarea id="editDescription" placeholder="Full details of the hazard" readonly style="background:#f2f4f2;color:var(--text-600);cursor:not-allowed;"></textarea>
+          <textarea id="editDescription" placeholder="Full details of the hazard" readonly style="background:var(--dm-surface-2, #f2f4f2);color:var(--text-600);cursor:not-allowed;"></textarea>
         </label>
       </div>
       <div class="form-error" id="editReportError" role="alert"></div>
@@ -2018,7 +2003,7 @@ function renderAttachments(report) {
     : (report.photoUrl ? [report.photoUrl] : []);
 
   if (urls.length === 0) {
-    return '<div class="attach-thumb" style="background:#eef2ee;"></div>';
+    return '<div class="attach-thumb" style="background:var(--dm-surface-2, #eef2ee);"></div>';
   }
 
   const maxShown = 3;
