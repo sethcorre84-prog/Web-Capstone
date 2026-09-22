@@ -1,10 +1,11 @@
 import { db } from './firebase-config.js';
-import { collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, limit, onSnapshot, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const notificationLimit = 20;
 let notifications = [];
 let pendingReports = [];
 let activeAdvisories = [];
+let latestAnalysis = null;
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -32,6 +33,9 @@ const sortNotifications = (items) => items
   .slice(0, notificationLimit);
 
 const pendingReadKey = (id) => `peakpath:pending-hazard-read:${id}`;
+// Keyed by the record's save time, so each new analysis for the same day
+// comes back as unread instead of staying marked read from earlier.
+const analysisReadKey = (date, version) => `peakpath:prescriptive-read:${date}:${version || 0}`;
 // Versioned so re-accepting an expired advisory (which stamps a fresh
 // restoredAt) gets a brand-new key — any "read" flag from before it expired
 // no longer applies, and the notification comes back as unread/recent.
@@ -103,7 +107,34 @@ const refreshNotifications = () => {
     };
   });
 
-  notifications = sortNotifications([...pendingNotifications, ...advisoryNotifications]);
+  // analytics.html saves one prescriptive record per Manila day, rewriting it
+  // only when the recommendations change; each save is announced here.
+  const analysisNotifications = [];
+  if (latestAnalysis) {
+    const { date, counts = {}, riskLevel, updatedAt } = latestAnalysis;
+    const readKey = analysisReadKey(date, getDate(updatedAt)?.getTime());
+    const readAt = getReadAt(readKey);
+    const total = Number(counts.total) || 0;
+    const high = Number(counts.high) || 0;
+    const day = getDate(`${date}T00:00:00`);
+    const dayLabel = day ? day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : date;
+    analysisNotifications.push({
+      id: `prescriptive-${date}`,
+      type: 'prescriptive',
+      title: 'New prescriptive analysis done',
+      message: (total
+        ? `${total} recommended action${total === 1 ? '' : 's'}${high ? ` (${high} high priority)` : ''} for ${dayLabel}.`
+        : `No actions needed for ${dayLabel}.`)
+        + (riskLevel ? ` Risk: ${riskLevel}.` : ''),
+      createdAt: updatedAt,
+      read: !!readAt,
+      readAt,
+      readKey,
+      link: 'analytics.html#prescriptivePanel'
+    });
+  }
+
+  notifications = sortNotifications([...pendingNotifications, ...advisoryNotifications, ...analysisNotifications]);
   render();
 };
 
@@ -131,9 +162,8 @@ const render = () => {
     }
 
     list.innerHTML = notifications.map((item) => {
-      const href = item.type === 'advisory'
-    ? (item.link || 'A&A.html')
-    : `hazardreport.html?report=${encodeURIComponent(item.reportDocumentId)}`;
+      const href = item.link
+        || (item.type === 'advisory' ? 'A&A.html' : `hazardreport.html?report=${encodeURIComponent(item.reportDocumentId)}`);
       const fallbackText = item.type === 'advisory'
         ? (item.message || 'A new advisory is available.')
         : (item.hazardType ? `${item.hazardType} at ${item.location || 'reported location'} is awaiting verification.` : 'Hazard report update');
@@ -254,6 +284,14 @@ onSnapshot(collection(db, 'reports'), (snapshot) => {
 }, (error) => {
   console.error('Unable to load pending hazard reports:', error);
   refreshNotifications();
+});
+
+// Only the newest day's record matters: 'YYYY-MM-DD' ids sort by date.
+onSnapshot(query(collection(db, 'prescriptiveHistory'), orderBy('date', 'desc'), limit(1)), (snapshot) => {
+  latestAnalysis = snapshot.empty ? null : snapshot.docs[0].data();
+  refreshNotifications();
+}, (error) => {
+  console.error('Unable to load prescriptive analysis notifications:', error);
 });
 
 onSnapshot(collection(db, 'Advisory'), (snapshot) => {

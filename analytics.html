@@ -529,6 +529,78 @@ a { color: inherit; text-decoration: none; }
      the chart's floor so the bars stay readable instead of hair-thin. */
   .usage-grid { gap: 3px; min-height: 140px; }
 }
+
+/* New-analysis announcement (bottom-right). Tokens only, so it follows
+   Dark Mode like the rest of the page. */
+.analysis-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 12px 12px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: var(--shadow-hover);
+  animation: analysisToastIn .25s ease-out;
+}
+.analysis-toast[hidden] { display: none; }
+@keyframes analysisToastIn {
+  from { opacity: 0; transform: translateY(8px); }
+}
+.analysis-toast-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.analysis-toast-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.analysis-toast-copy strong {
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+.analysis-toast-view {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.analysis-toast-view:hover { background: var(--accent-dark); }
+.analysis-toast-close {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.analysis-toast-close:hover { color: var(--text-primary); }
 </style>
 </head>
 <body>
@@ -646,7 +718,8 @@ a { color: inherit; text-decoration: none; }
         </div>
       </div>
       <div class="flex-col">
-        <div class="panel">
+        <!-- The bell's "Prescriptive analysis ready" notification links here. -->
+        <div class="panel" id="prescriptivePanel">
           <div class="panel-title">Prescriptive Analytics</div>
           <div class="alert-list" id="recommendationsList">
             <div class="empty-state">Loading recommendations…</div>
@@ -678,9 +751,21 @@ a { color: inherit; text-decoration: none; }
   </main>
 </div>
 
+<!-- Shown when a new prescriptive analysis is saved. Every other admin page
+     gets the same news through the notification bell (notification.js). -->
+<div class="analysis-toast" id="analysisToast" role="status" aria-live="polite" hidden>
+  <div class="analysis-toast-icon" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+  <div class="analysis-toast-copy">
+    <strong>New prescriptive analysis done</strong>
+    <span id="analysisToastText"></span>
+  </div>
+  <button class="analysis-toast-view" id="analysisToastView" type="button">View</button>
+  <button class="analysis-toast-close" id="analysisToastClose" type="button" aria-label="Dismiss">×</button>
+</div>
+
 <script type="module">
   import { db } from './firebase-config.js';
-  import { collection, doc, onSnapshot, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { collection, doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   /* Mount Makiling — the same coordinates the geomap page forecasts against. */
   const MAKILING = { latitude: 14.136, longitude: 121.197 };
@@ -1376,15 +1461,38 @@ a { color: inherit; text-decoration: none; }
   const manilaDateKey = () =>
     new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
 
-  let lastSavedRecord = '';
+  // Firestore does not keep map keys in the order they were written, so
+  // records are compared with their keys sorted.
+  const stableJson = (value) => JSON.stringify(value, (key, val) => (
+    val && typeof val === 'object' && !Array.isArray(val)
+      ? Object.fromEntries(Object.keys(val).sort().map((k) => [k, val[k]]))
+      : val
+  ));
 
-  const saveDailyRecord = async () => {
+  let lastSavedRecord = '';
+  let storedRecordDate = ''; // the date whose stored record has been read
+
+  /* Saves the day's record, and announces it, only when the recommendations
+     really changed. Opening the page, or a second admin with it open, finds
+     the same list already stored and stays quiet. */
+  const saveDailyRecordNow = async () => {
     if (RECORD_SOURCES.some((key) => state[key] === null)) return;
 
     const date = manilaDateKey();
     const actions = buildRecommendations();
-    const signature = JSON.stringify({ date, actions });
+    const signature = stableJson({ date, actions });
     if (signature === lastSavedRecord) return;
+
+    if (storedRecordDate !== date) {
+      storedRecordDate = date;
+      try {
+        const stored = await getDoc(doc(db, HISTORY_COLLECTION, date));
+        if (stored.exists()) lastSavedRecord = stableJson({ date, actions: stored.data().actions || [] });
+      } catch (error) {
+        console.warn(`Could not read the stored ${date} prescriptive record:`, error.message);
+      }
+      if (signature === lastSavedRecord) return;
+    }
     lastSavedRecord = signature;
 
     const today = dailyRisk()[0];
@@ -1402,11 +1510,45 @@ a { color: inherit; text-decoration: none; }
         unavailableInputs: Object.keys(state.errors),
         updatedAt: serverTimestamp()
       });
+      // notification.js turns this saved record into a bell notification
+      // for every admin; this is the heads-up for whoever is on the page.
+      announceNewAnalysis(actions.length, countOf('high'));
     } catch (error) {
       lastSavedRecord = ''; // try again on the next data change
       console.error(`Failed to save the ${date} prescriptive record:`, error);
     }
   };
+
+  // renderAll fires once per data source as the page loads; queue the saves
+  // so two overlapping runs can never both decide the same list is new.
+  let saveQueue = Promise.resolve();
+  const saveDailyRecord = () => {
+    saveQueue = saveQueue.then(saveDailyRecordNow, saveDailyRecordNow);
+    return saveQueue;
+  };
+
+  /* ---------------- New-analysis announcement ---------------- */
+
+  const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`;
+
+  const announceNewAnalysis = (total, high) => {
+    const toast = document.getElementById('analysisToast');
+    if (!toast) return;
+    document.getElementById('analysisToastText').textContent = total
+      ? `${plural(total, 'recommended action')}${high ? `, ${high} high priority` : ''}.`
+      : 'No actions are needed right now.';
+    toast.hidden = false;
+    clearTimeout(announceNewAnalysis.timer);
+    announceNewAnalysis.timer = setTimeout(() => { toast.hidden = true; }, 12000);
+  };
+
+  document.getElementById('analysisToastClose')?.addEventListener('click', () => {
+    document.getElementById('analysisToast').hidden = true;
+  });
+  document.getElementById('analysisToastView')?.addEventListener('click', () => {
+    document.getElementById('analysisToast').hidden = true;
+    document.getElementById('prescriptivePanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 
   const renderAll = () => {
     renderCards();
