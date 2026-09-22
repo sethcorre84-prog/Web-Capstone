@@ -1963,6 +1963,15 @@
 
   const getSelectedUser = () => state.users.find(user => user.id === state.selectedUserId) || null;
 
+  // The same matching account-status.js uses: doc id, uid field, or email.
+  const isCurrentAdmin = (user) => {
+    const me = auth.currentUser;
+    if (!me || !user) return false;
+    return user.id === me.uid
+      || user.uid === me.uid
+      || (!!me.email && user.email.toLowerCase() === me.email.toLowerCase());
+  };
+
   // Render the selected user's Recent Activities list.
   const activityRowsHtml = (user, emptyMessage) => {
     if (!user) return `<div class="activity-empty">${escapeHtml(emptyMessage)}</div>`;
@@ -2042,6 +2051,10 @@
     deactivateUserBtn.innerHTML = isInactive
       ? '<i class="fa-solid fa-user-check"></i>Activate User'
       : '<i class="fa-solid fa-user-slash"></i>Deactivate User';
+    // Visibly off for your own account, rather than failing on click.
+    const self = !isInactive && isCurrentAdmin(user);
+    deactivateUserBtn.disabled = self;
+    deactivateUserBtn.title = self ? "You can't deactivate your own account" : '';
 
     setResetPasswordStatus('');
     renderActivities(user);
@@ -2246,14 +2259,23 @@
     const user = getSelectedUser();
     if (!user) return;
 
-    // The PeakPath app watches this status: Inactive (or Suspended) signs
-    // the user out and blocks them from signing in until set back to Active.
+    /* Inactive is enforced by account-status.js: login.js refuses to sign a
+       deactivated account in, and dashboard-guard.js signs it out of every
+       open admin page straight away. Hikers sign in through the PeakPath
+       app, which has to make the same check. */
     const deactivating = String(user.status || 'Active').toLowerCase() === 'active';
     const nextStatus = deactivating ? 'Inactive' : 'Active';
 
+    // Deactivating yourself would sign you out on the spot with no one left
+    // in this session to undo it.
+    if (deactivating && isCurrentAdmin(user)) {
+      setResetPasswordStatus("You can't deactivate your own account. Ask another administrator.", 'error');
+      return;
+    }
+
     const confirmed = window.confirm(deactivating
-      ? `Deactivate ${user.name}? They will be signed out of the PeakPath app and won't be able to sign in until you activate them again.`
-      : `Activate ${user.name}? They will be able to sign in to the PeakPath app again.`);
+      ? `Deactivate ${user.name}? They will be signed out and blocked from signing in until you activate them again.`
+      : `Activate ${user.name}? They will be able to sign in again.`);
     if (!confirmed) return;
 
     deactivateUserBtn.disabled = true;

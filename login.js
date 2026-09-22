@@ -8,6 +8,10 @@ import {
   doc,
   getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { isAccountBlocked } from "./account-status.js";
+
+const DEACTIVATED_MESSAGE =
+  "This account has been deactivated. Ask another administrator to reactivate it in User Management.";
 
 function showErrorModal(message, title = "Login Failed") {
   document.getElementById("errorModalTitle").textContent = title;
@@ -33,6 +37,19 @@ function login() {
       const adminDocSnap = await getDoc(adminDocRef);
 
       if (adminDocSnap.exists()) {
+        // An admin — but not one that User Management has deactivated.
+        // A failed status read lets them through; the admins check above
+        // is still the gate, and one flaky read should not lock everyone out.
+        const blocked = await isAccountBlocked(user).catch((error) => {
+          console.warn("Could not check account status:", error.message);
+          return false;
+        });
+        if (blocked) {
+          await signOut(auth);
+          showErrorModal(DEACTIVATED_MESSAGE, "Account Deactivated");
+          return;
+        }
+
         // User is a verified admin — proceed
         console.log("Admin verified:", user.email);
         window.location.href = "dashboard.html";
@@ -70,6 +87,15 @@ function handleLoginError(code) {
 
 // Close modal on button click
 document.addEventListener("DOMContentLoaded", () => {
+  // dashboard-guard.js sends a deactivated admin here; say why, once.
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("reason") === "deactivated") {
+    showErrorModal(DEACTIVATED_MESSAGE, "Signed Out");
+    params.delete("reason");
+    const query = params.toString();
+    history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : "") + window.location.hash);
+  }
+
   const closeBtn = document.getElementById("errorModalClose");
   const overlay = document.getElementById("errorModal");
   const loginForm = document.getElementById("loginForm");

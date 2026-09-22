@@ -1610,7 +1610,7 @@
     return `
       <div class="donut">
         <svg viewBox="0 0 120 120" aria-hidden="true">
-          <circle cx="60" cy="60" r="${radius}" fill="none" stroke="#edf0ec" stroke-width="20"/>
+          <circle cx="60" cy="60" r="${radius}" fill="none" style="stroke:var(--dm-surface-3, #edf0ec)" stroke-width="20"/>
           ${arcs}
         </svg>
         <div class="donut-center"><span class="label">Total</span><span class="total">${total.toLocaleString()}</span></div>
@@ -1719,7 +1719,7 @@
     const y = (value) => bottom - (value / yMax) * (bottom - top);
 
     const grid = [0, 1, 2, 3, 4].map((tick) => `
-      <line x1="${left}" y1="${y(tick * step)}" x2="${width - right}" y2="${y(tick * step)}" stroke="#edf0ec" stroke-width="1"/>
+      <line x1="${left}" y1="${y(tick * step)}" x2="${width - right}" y2="${y(tick * step)}" style="stroke:var(--dm-border, #edf0ec)" stroke-width="1"/>
       <text x="${left - 6}" y="${y(tick * step) + 3}" font-size="9" fill="#93a199" text-anchor="end">${tick * step}</text>`).join('');
 
     const labelEvery = Math.max(1, Math.ceil(buckets.length / Math.max(3, Math.floor((width - left) / 44))));
@@ -1732,7 +1732,7 @@
     const points = buckets.map((bucket, index) => `${x(index)},${y(bucket.count)}`);
     const area = `M${x(0)},${bottom} L${points.join(' L')} L${x(buckets.length - 1)},${bottom} Z`;
     const dots = buckets.length <= 31
-      ? buckets.map((bucket, index) => `<circle cx="${x(index)}" cy="${y(bucket.count)}" r="3" fill="#fff" stroke="#d1453b" stroke-width="2"><title>${escapeHtml(bucket.label)}: ${bucket.count} report${bucket.count === 1 ? '' : 's'}</title></circle>`).join('')
+      ? buckets.map((bucket, index) => `<circle cx="${x(index)}" cy="${y(bucket.count)}" r="3" style="fill:var(--dm-surface, #fff)" stroke="#d1453b" stroke-width="2"><title>${escapeHtml(bucket.label)}: ${bucket.count} report${bucket.count === 1 ? '' : 's'}</title></circle>`).join('')
       : '';
 
     svg.innerHTML = `

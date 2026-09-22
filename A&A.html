@@ -20,6 +20,7 @@
 	<script src="sidebar.js"></script>
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 	<link rel="stylesheet" href="pages.css">
+	<script type="module" src="dashboard-guard.js"></script>
 	<script type="module" src="notification.js"></script>
 	<script type="module" src="admin-identity.js"></script>
 	<title>PeakPath — Advisories & Announcements</title>
@@ -705,7 +706,7 @@ async function syncExpiredAdvisories(){
     const cards = [
         { label:'Active Advisories', num:active, bg:'var(--accent-light)', fg:'var(--accent)', icon:'<path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/>', meta: pct(active) },
         { label:'Scheduled', num:scheduled, bg:'var(--warning-light)', fg:'var(--warning)', icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', meta: pct(scheduled) },
-        { label:'Expired', num:expired, bg:'#f1f1ee', fg:'var(--text-muted)', icon:'<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>', meta: pct(expired) },
+        { label:'Expired', num:expired, bg:'var(--dm-surface-3, #f1f1ee)', fg:'var(--text-muted)', icon:'<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>', meta: pct(expired) },
         { label:'Archived', num:archived, bg:'var(--danger-light)', fg:'var(--danger)', icon:'<path d="M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M8 7V4h8v3"/><path d="M9 12h6"/>', meta: pct(archived) }
     ];
     const grid = document.getElementById('statsGrid');
