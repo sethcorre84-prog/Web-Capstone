@@ -1171,7 +1171,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--green-text)" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
             </div>
           </div>
-          <div class="stat-label">Verified<div class="meta-line" id="verifiedMeta">0% of total</div></div>
+          <div class="stat-label">Verifying<div class="meta-line" id="verifiedMeta">0% of total</div></div>
         </div>
 
         <div class="stat-card">
@@ -1213,7 +1213,7 @@
               <select class="filter-select" id="statusFilter">
                 <option value="">Status: All</option>
                 <option value="pending">Pending</option>
-                <option value="verified">Verified</option>
+                <option value="verified">Verifying</option>
               </select>
               <select class="filter-select" id="hazardFilter">
                 <option value="">Hazard Type: All</option>
@@ -1566,6 +1566,15 @@ function getStatusPillStyle(status) {
   return styles[statusLower] || styles['pending'];
 }
 
+// How a status reads on screen. The stored value stays 'verified' -- only the
+// label changes: a verified hazard is one being worked on until it is
+// resolved, so it reads "Verifying".
+function getStatusLabel(status) {
+  const statusLower = String(status || '').toLowerCase();
+  if (statusLower === 'verified') return 'Verifying';
+  return statusLower.charAt(0).toUpperCase() + statusLower.slice(1);
+}
+
 function getRiskLevel(report) {
   const raw = report?.riskLevel ?? '';
   const value = String(raw).trim();
@@ -1621,7 +1630,7 @@ function renderReportsTable(reports) {
         <td>${clampCell(report.location || 'N/A')}</td>
         <td>${clampCell(report.reportedBy || 'Anonymous')}</td>
         <td><span class="badge ${risk.className}">${risk.label}</span></td>
-        <td><span class="badge ${getStatusBadgeClass(report.status)}">${report.status.charAt(0).toUpperCase() + report.status.slice(1)}</span></td>
+        <td><span class="badge ${getStatusBadgeClass(report.status)}">${getStatusLabel(report.status)}</span></td>
         <td class="date-cell">${formatDate(report.timestamp)}</td>
         <td><button class="actions-btn" onclick="event.stopPropagation(); openDeleteModal('${report.id}')">⋮</button></td>
       </tr>
@@ -2027,8 +2036,9 @@ let editReportTargetId = null;
 
 function openEditReportModal(reportId) {
   const report = allReports.find(r => r.id === reportId);
-  // Resolving is final, so a resolved report can't be edited either.
-  if (!report || report.status === 'resolved') return;
+  // Rejecting and resolving are both final, so neither can be edited. The
+  // button is disabled for these, so this only catches a direct call.
+  if (!report || report.status === 'resolved' || report.status === 'rejected') return;
   editReportTargetId = reportId;
 
   document.getElementById('editHazardType').value = report.hazardType || '';
@@ -2137,6 +2147,32 @@ function renderReportDetails(report) {
   const isResolved = report.status === 'resolved';
   const resolvedOn = toJsDate(report.resolvedAt);
 
+  // The two one-way doors: rejecting is final, and once a hazard is being
+  // verified it is resolved when cleared rather than rejected.
+  const isRejected = report.status === 'rejected';
+  const isVerified = report.status === 'verified';
+
+  const verifyBlockedReason = isRejected
+    ? 'Rejecting is final — this report cannot be verified again.'
+    : isResolved
+      ? 'This hazard is already resolved.'
+      : isVerified
+        ? 'This hazard is already being verified.'
+        : 'Set a valid risk level before this report can be verified.';
+
+  const rejectBlockedReason = isRejected
+    ? 'This report is already rejected.'
+    : isVerified
+      ? 'A hazard being verified cannot be rejected. Resolve it once the hazard is cleared.'
+      : isResolved
+        ? 'Resolved reports cannot be rejected.'
+        : 'Set a valid risk level before this report can be rejected.';
+
+  // A report in a final state is read-only: nothing about it can be edited.
+  const editBlockedReason = isRejected
+    ? "Rejected reports can't be edited."
+    : "Resolved reports can't be edited.";
+
   // Only a verified (confirmed, still active) hazard can be resolved.
   const resolveBlockedReason = isResolved
     ? 'This hazard is already resolved.'
@@ -2159,7 +2195,7 @@ function renderReportDetails(report) {
           <div class="sub-id">${report.reportId || 'N/A'}</div>
         </div>
       </div>
-      <span class="status-pill" style="${statusStyle}">${report.status.charAt(0).toUpperCase() + report.status.slice(1)}</span>
+      <span class="status-pill" style="${statusStyle}">${getStatusLabel(report.status)}</span>
     </div>
 
     <div class="info-row">
@@ -2208,8 +2244,8 @@ function renderReportDetails(report) {
       </div>
     </div>
       <div>
-      ${isResolved
-        ? `<button class="btn btn-info" style="width:100%;opacity:.6;cursor:not-allowed" disabled title="Resolved reports can't be edited.">✎ Edit Information</button>`
+      ${isResolved || isRejected
+        ? `<button class="btn btn-info" style="width:100%;opacity:.6;cursor:not-allowed" disabled title="${editBlockedReason}">✎ Edit Information</button>`
         : `<button class="btn btn-info" style="width:100%" onclick="openEditReportModal('${report.id}')">✎ Edit Information</button>`}
     </div>
     <div class="admin-actions">
@@ -2218,18 +2254,21 @@ function renderReportDetails(report) {
         <div class="form-error" style="margin-bottom:2px;">Set a valid risk level before this report can be verified or rejected.</div>
       ` : ''}
       <div class="row">
-          ${report.status === 'verified' || isResolved || risk.className === 'unknown'
-            ? `<button class="btn btn-verify" disabled style="opacity:.6;cursor:not-allowed">✔ Verify Hazard</button>`
+          ${report.status === 'verified' || isRejected || isResolved || risk.className === 'unknown'
+            ? `<button class="btn btn-verify" disabled style="opacity:.6;cursor:not-allowed" title="${verifyBlockedReason}">✔ Verify Hazard</button>`
             : `<button class="btn btn-verify" onclick="updateReportStatus('${report.id}', 'verified')">✔ Verify Hazard</button>`
           }
-          ${report.status === 'rejected' || isResolved || risk.className === 'unknown' ?
-            `<button class="btn btn-reject" disabled style="opacity:.6;cursor:not-allowed">✖ Reject Report</button>` :
+          ${isRejected || isVerified || isResolved || risk.className === 'unknown' ?
+            `<button class="btn btn-reject" disabled style="opacity:.6;cursor:not-allowed" title="${rejectBlockedReason}">✖ Reject Report</button>` :
             `<button class="btn btn-reject" onclick="updateReportStatus('${report.id}', 'rejected')">✖ Reject Report</button>`
           }
       </div>
       <div class="row">${resolveButton}</div>
       ${isResolved ? `
         <div class="action-hint">Resolved${resolvedOn ? ` on ${resolvedOn.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}. Resolving is final — this report can't be reopened or edited. If the hazard comes back, it needs a new report.</div>
+      ` : ''}
+      ${isRejected ? `
+        <div class="action-hint">Rejecting is final — this report can't be verified or edited again. If the hazard turns out to be real, it needs a new report.</div>
       ` : ''}
     </div>
 
@@ -2268,6 +2307,22 @@ function openStatusModal(reportId, newStatus) {
   if (!report) {
     console.error('Report not found:', reportId);
     showStatusModalMessage('Unable to find this report. Please refresh the page and try again.');
+    return;
+  }
+
+  // Every status change funnels through here, so this is where the two final
+  // states are enforced: a rejected report can never be verified, and a
+  // resolved one never changes at all.
+  if (report.status === 'rejected' && newStatus === 'verified') {
+    showStatusModalMessage("Rejecting is final — this report can't be verified again. If the hazard turns out to be real, it needs a new report.");
+    return;
+  }
+  if (report.status === 'verified' && newStatus === 'rejected') {
+    showStatusModalMessage('This hazard is already being verified and can no longer be rejected. Resolve it once the hazard is cleared.');
+    return;
+  }
+  if (report.status === 'resolved') {
+    showStatusModalMessage('This report is already resolved, and resolving is final.');
     return;
   }
 
@@ -2451,6 +2506,7 @@ async function confirmStatusUpdate() {
         }
       });
     } else if (newStatus === 'verified' && report.status === 'rejected') {
+      // UNREACHABLE since rejecting became final (see updateReportStatus).
       // Restoring a rejected report picks up right after the last HR number
       // in the active (pending/verified) list, instead of shifting others.
       const lastHrNumber = allReports.reduce((max, r) => {
@@ -2529,16 +2585,23 @@ window.updateReportStatus = (reportId, newStatus) => {
   const report = allReports.find(r => r.id === reportId);
   // Resolving is final: a resolved report's status never changes again.
   if (report?.status === 'resolved') return;
-  // If verifying a rejected report, show styled edit-confirm modal first
-  if (newStatus === 'verified' && report && report.status === 'rejected') {
-    openEditConfirmModal(reportId);
-    return;
-  }
+  // Rejecting is final too. A rejected report used to be restorable by
+  // verifying it again (that is what openEditConfirmModal() below was for);
+  // it no longer is. If the hazard turns out to be real, it needs a new
+  // report. The Verify button is disabled for these, so this only catches a
+  // direct call.
+  if (report?.status === 'rejected' && newStatus === 'verified') return;
+  // And once verified, a hazard is being acted on: it is resolved when
+  // cleared, never rejected.
+  if (report?.status === 'verified' && newStatus === 'rejected') return;
 
   openStatusModal(reportId, newStatus);
 };
 
-// Edit-confirm modal flow (styled modal instead of browser confirm)
+// Edit-confirm modal flow (styled modal instead of browser confirm).
+// UNUSED since rejecting became final: its only caller was the rejected ->
+// verified restore in updateReportStatus(). Kept, with its markup and
+// listeners, in case that restore is ever wanted back.
 let editConfirmTarget = null;
 
 function openEditConfirmModal(reportId) {
