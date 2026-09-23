@@ -16,11 +16,11 @@
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <!-- ===== end resource hints ===== -->
-<script src="sidebar.js"></script>
+<script src="../jsPages/sidebar.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-<link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="../cssPages/pages.css">
 <style>
   @view-transition {
   navigation: auto;
@@ -31,9 +31,9 @@
     background: var(--dm-page, #eef1ec);
   }
 </style>
-<script type="module" src="dashboard-guard.js"></script>
-<script type="module" src="notification.js"></script>
-<script type="module" src="admin-identity.js"></script>
+<script type="module" src="../jsPages/dashboard-guard.js"></script>
+<script type="module" src="../jsPages/notification.js"></script>
+<script type="module" src="../jsPages/admin-identity.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PeakPath Admin — Settings</title>
 <style>
@@ -393,12 +393,89 @@
   cursor:pointer;
 }
 .archive-theme .ghost-btn:hover{background:var(--accent-light);}
+/* General-settings forms follow the same green dialog language as the
+   Notification Settings archive dialogs, while keeping form controls easy
+   to scan and edit. */
+.preference-theme{border-color:var(--dm-border, #cfe3d5);}
+.preference-theme .modal-header{
+  background:linear-gradient(135deg, var(--sidebar-bg-light) 0%, var(--accent-dark) 55%, var(--accent) 100%);
+  border-bottom:none;
+  padding:16px 20px;
+}
+.preference-theme .modal-header h3{color:#fff;}
+.preference-theme .close-btn{
+  background:rgba(255,255,255,.14);
+  border-color:rgba(255,255,255,.35);
+  color:#fff;
+}
+.preference-theme .close-btn:hover{
+  background:rgba(255,255,255,.26);
+  border-color:rgba(255,255,255,.5);
+  color:#fff;
+}
+.preference-theme .modal-body{background:var(--dm-surface-2, #f6faf7);}
+.preference-theme .field{
+  padding:12px;
+  border:1px solid var(--dm-border, #d3e8d9);
+  border-left:3px solid var(--accent);
+  border-radius:10px;
+  background:var(--dm-surface, #fff);
+}
+.preference-theme .field label{color:var(--accent-dark);}
+.preference-theme .field input,
+.preference-theme .field select{background:var(--dm-surface-2, #fbfdfb);}
+/* Chrome marks an autofilled password field blue. Keep its text, caret and
+   surface consistent with the other fields so it never looks blank or gone. */
+.preference-theme .field input:-webkit-autofill,
+.preference-theme .field input:-webkit-autofill:hover,
+.preference-theme .field input:-webkit-autofill:focus{
+  -webkit-text-fill-color:var(--text-900);
+  caret-color:var(--text-900);
+  -webkit-box-shadow:0 0 0 1000px var(--dm-surface-2, #fbfdfb) inset;
+  box-shadow:0 0 0 1000px var(--dm-surface-2, #fbfdfb) inset;
+}
+/* Related fields belong to one form surface instead of looking like separate
+   setting cards. */
+.preference-theme .unified-form-grid{
+  gap:16px;
+  padding:16px;
+  border:1px solid var(--dm-border, #d3e8d9);
+  border-left:3px solid var(--accent);
+  border-radius:10px;
+  background:var(--dm-surface, #fff);
+}
+.preference-theme .unified-form-grid .field{
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+}
+.preference-theme .modal-actions{
+  border-top:1px solid var(--dm-border, #d3e8d9);
+  padding-top:14px;
+}
+.preference-theme .ghost-btn{
+  background:var(--dm-surface, #fff);
+  border-color:var(--accent);
+  color:var(--accent-dark);
+  cursor:pointer;
+}
+.preference-theme .ghost-btn:hover{background:var(--accent-light);}
   .modal-body{padding:18px 20px 20px;}
   .form-grid{display:grid;gap:12px;}
   .field label{display:block;font-size:12px;font-weight:600;color:var(--text-600);margin-bottom:6px;}
   .field input, .field textarea, .field select{
     width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--dm-surface-2, #fbfcfa);color:var(--text-900);
   }
+  .password-input-wrap{position:relative;}
+  .password-input-wrap input{padding-right:44px;}
+  .password-toggle{
+    position:absolute;right:5px;top:50%;transform:translateY(-50%);
+    width:34px;height:34px;border:0;border-radius:7px;background:transparent;
+    color:var(--text-600);cursor:pointer;font-size:15px;
+  }
+  .password-toggle:hover,.password-toggle:focus-visible{background:var(--accent-light);color:var(--accent-dark);}
+  .password-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
   /* Shown, not editable (the Profile dialog's Role). */
   .field input[readonly]{background:var(--dm-surface-2, #f1f3ef);color:var(--text-600);cursor:default;}
   .field input:disabled{opacity:.6;}
@@ -490,7 +567,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-icon">
-        <img src="assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
+        <img src="../assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
         </div>
       <div>
         <div class="brand-name">PeakPath</div>
@@ -820,11 +897,11 @@
 <div id="settingsToast" class="toast" aria-live="polite"></div>
 
 <script type="module">
-  import { auth, db } from './firebase-config.js';
+  import { auth, db } from '../jsPages/firebase-config.js';
   import { collection, getDoc, getDocs, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, updateProfile, verifyBeforeUpdateEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-  import { DEFAULT_ADMIN_ROLE, renderAdminIdentity } from './admin-identity.js';
-  import { DATE_FORMATS, TIME_ZONES, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from './datetime-prefs.js';
+  import { DEFAULT_ADMIN_ROLE, renderAdminIdentity } from '../jsPages/admin-identity.js';
+  import { DATE_FORMATS, TIME_ZONES, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
 
   const STORAGE_KEY = 'peakpath-settings';
   const defaultSettings = {
@@ -1346,6 +1423,21 @@
     const submitBtn = document.getElementById('updatePasswordBtn');
     if (!form) return;
 
+    form.querySelectorAll('[data-password-toggle]').forEach((button) => {
+      const input = document.getElementById(button.dataset.passwordToggle);
+      if (!input) return;
+      button.addEventListener('click', () => {
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+        button.setAttribute('aria-pressed', String(isHidden));
+        button.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+        button.title = isHidden ? 'Hide password' : 'Show password';
+        const icon = button.querySelector('i');
+        icon?.classList.toggle('fa-eye', !isHidden);
+        icon?.classList.toggle('fa-eye-slash', isHidden);
+      });
+    });
+
     const fail = (message, input) => {
       errorEl.textContent = message;
       if (input) {
@@ -1354,7 +1446,9 @@
       }
     };
 
-    currentInput.focus();
+    // Do not focus this field as soon as the modal opens. Browsers can then
+    // trigger password-manager autofill before the dialog has finished
+    // rendering, which makes a first-open field look empty or disappear.
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -1564,7 +1658,7 @@
            toast cannot fire for a save that did not happen. */
         content: `
           <form id="profileForm" novalidate>
-            <div class="form-grid">
+            <div class="form-grid unified-form-grid">
               <div class="field">
                 <label for="profileName">Full Name</label>
                 <input id="profileName" type="text" autocomplete="name" maxlength="80" required>
@@ -1602,18 +1696,27 @@
         content: `
           <form id="changePasswordForm" novalidate>
             <input type="email" autocomplete="username" value="${escapeHTML(auth.currentUser?.email || '')}" hidden>
-            <div class="form-grid">
+            <div class="form-grid unified-form-grid">
               <div class="field">
                 <label for="currentPassword">Current Password</label>
-                <input id="currentPassword" type="password" autocomplete="current-password" placeholder="Enter current password" required>
+                <div class="password-input-wrap">
+                  <input id="currentPassword" type="password" autocomplete="current-password" placeholder="Enter current password" required>
+                  <button type="button" class="password-toggle" data-password-toggle="currentPassword" aria-label="Show password" aria-pressed="false" title="Show password"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+                </div>
               </div>
               <div class="field">
                 <label for="newPassword">New Password</label>
-                <input id="newPassword" type="password" autocomplete="new-password" placeholder="At least ${PASSWORD_MIN_LENGTH} characters" minlength="${PASSWORD_MIN_LENGTH}" required>
+                <div class="password-input-wrap">
+                  <input id="newPassword" type="password" autocomplete="new-password" placeholder="At least ${PASSWORD_MIN_LENGTH} characters" minlength="${PASSWORD_MIN_LENGTH}" required>
+                  <button type="button" class="password-toggle" data-password-toggle="newPassword" aria-label="Show password" aria-pressed="false" title="Show password"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+                </div>
               </div>
               <div class="field">
                 <label for="confirmPassword">Confirm Password</label>
-                <input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Re-enter new password" required>
+                <div class="password-input-wrap">
+                  <input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Re-enter new password" required>
+                  <button type="button" class="password-toggle" data-password-toggle="confirmPassword" aria-label="Show password" aria-pressed="false" title="Show password"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+                </div>
               </div>
             </div>
             <div class="form-error" id="changePasswordError" role="alert"></div>
@@ -1664,7 +1767,7 @@
         // can never disagree on what a choice means.
         content: `
           <form id="dateTimeForm" novalidate>
-            <div class="form-grid">
+            <div class="form-grid unified-form-grid">
               <div class="field">
                 <label for="timezoneSelect">Time Zone</label>
                 <select id="timezoneSelect">
@@ -1828,11 +1931,14 @@
     };
 
     const config = actionMap[action] || actionMap.profile;
-    // The three archive dialogs share the forest-green theme.
-    modal.querySelector('.modal-card').classList.toggle(
+    const modalCard = modal.querySelector('.modal-card');
+    // Notification Settings archives use the forest-green theme. The three
+    // editable General Settings dialogs use the same visual language.
+    modalCard.classList.toggle(
       'archive-theme',
       ['archivedHazardReports', 'archivedResolvedReports', 'expiredAdvisoryArchive'].includes(action)
     );
+    modalCard.classList.toggle('preference-theme', ['profile', 'password', 'timezone'].includes(action));
     modalTitle.textContent = config.title;
     modalBody.innerHTML = config.content;
     modal.classList.add('visible');

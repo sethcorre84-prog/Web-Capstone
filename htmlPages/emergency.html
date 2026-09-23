@@ -18,9 +18,9 @@
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link rel="dns-prefetch" href="https://a.tile.openstreetmap.org">
 <!-- ===== end resource hints ===== -->
-<script src="sidebar.js"></script>
+<script src="../jsPages/sidebar.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-<link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="../cssPages/pages.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
@@ -33,9 +33,9 @@
     background: var(--dm-page, #eef1ec);
   }
 </style>
-<script type="module" src="dashboard-guard.js"></script>
-<script type="module" src="notification.js"></script>
-<script type="module" src="admin-identity.js"></script>
+<script type="module" src="../jsPages/dashboard-guard.js"></script>
+<script type="module" src="../jsPages/notification.js"></script>
+<script type="module" src="../jsPages/admin-identity.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PeakPath — Emergency Monitoring</title>
 <style>
@@ -798,7 +798,7 @@ tbody tr.is-new td{
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-icon">
-        <img src="assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
+        <img src="../assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
         </div>
       <div>
         <div class="brand-name">PeakPath</div>
@@ -988,10 +988,10 @@ tbody tr.is-new td{
   </div>
 </div>
 <script type="module">
-  import { auth, db } from './firebase-config.js';
+  import { auth, db } from '../jsPages/firebase-config.js';
   import { collection, doc, onSnapshot, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-  import { formatPortalDate, formatPortalDateTime, formatPortalTime, portalTimeZone, toPortalDate } from './datetime-prefs.js';
-  import { createMakilingMap } from './makiling-area.js';
+  import { formatPortalDate, formatPortalDateTime, formatPortalTime, portalTimeZone, toPortalDate } from '../jsPages/datetime-prefs.js';
+  import { createMakilingMap } from '../jsPages/makiling-area.js';
 
   const $ = (id) => document.getElementById(id);
 
@@ -1731,7 +1731,7 @@ tbody tr.is-new td{
 <!-- A module so it can import the Settings > Date & Time zone; nothing else
      on the page calls updateEmergencyClock, so module scope costs nothing. -->
 <script type="module">
-    import { portalTimeZone } from './datetime-prefs.js';
+    import { portalTimeZone } from '../jsPages/datetime-prefs.js';
 
     function updateEmergencyClock() {
         const dateEl = document.getElementById('live-date');

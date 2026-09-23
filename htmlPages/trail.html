@@ -21,9 +21,9 @@
 <link rel="dns-prefetch" href="https://b.tile.openstreetmap.org">
 <link rel="dns-prefetch" href="https://c.tile.openstreetmap.org">
 <!-- ===== end resource hints ===== -->
-<script src="sidebar.js"></script>
+<script src="../jsPages/sidebar.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-<link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="../cssPages/pages.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
@@ -36,9 +36,9 @@
     background: var(--dm-page, #eef1ec);
   }
 </style>
-<script type="module" src="dashboard-guard.js"></script>
-<script type="module" src="notification.js"></script>
-<script type="module" src="admin-identity.js"></script>
+<script type="module" src="../jsPages/dashboard-guard.js"></script>
+<script type="module" src="../jsPages/notification.js"></script>
+<script type="module" src="../jsPages/admin-identity.js"></script>
 <title>PeakPath — Trail Management</title>
 <style>
   /* Palette, radii and typography come from pages.css (:root). */
@@ -889,7 +889,7 @@ tbody tr:last-child td{
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-icon">
-        <img src="assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
+        <img src="../assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
       </div>
       <div>
         <div class="brand-name">PeakPath</div>
@@ -1211,8 +1211,8 @@ tbody tr:last-child td{
 </div>
 
 <script type="module">
-import { db } from "./firebase-config.js";
-import { formatPortalDateTime } from "./datetime-prefs.js";
+import { db } from "../jsPages/firebase-config.js";
+import { formatPortalDateTime } from "../jsPages/datetime-prefs.js";
 
 // Follows Settings > Date & Time (datetime-prefs.js).
 function formatTimestamp(ts) {

@@ -16,9 +16,9 @@
   <link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <!-- ===== end resource hints ===== -->
-  <script src="sidebar.js"></script>
+  <script src="../jsPages/sidebar.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-  <link rel="stylesheet" href="pages.css">
+  <link rel="stylesheet" href="../cssPages/pages.css">
 <style>
   @view-transition {
   navigation: auto;
@@ -29,9 +29,9 @@
     background: #eef1ec;
   }
 </style>
-<script type="module" src="dashboard-guard.js"></script>
-<script type="module" src="notification.js"></script>
-<script type="module" src="admin-identity.js"></script>
+<script type="module" src="../jsPages/dashboard-guard.js"></script>
+<script type="module" src="../jsPages/notification.js"></script>
+<script type="module" src="../jsPages/admin-identity.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PeakPath — AI Analytics</title>
 <style>
@@ -667,7 +667,7 @@ a { color: inherit; text-decoration: none; }
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-icon">
-        <img src="assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
+        <img src="../assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
         </div>
       <div>
         <div class="brand-name">PeakPath</div>
@@ -746,7 +746,7 @@ a { color: inherit; text-decoration: none; }
          below it (predictive, prescriptive) is built on the same records. -->
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head">
-        <div class="panel-title">Descriptive Analytics — what has happened</div>
+        <div class="panel-title">Descriptive Analytics</div>
         <div class="segmented" role="group" aria-label="Reporting period">
           <button type="button" data-period="7" aria-pressed="false">7 days</button>
           <button type="button" data-period="30" aria-pressed="true">30 days</button>
@@ -791,7 +791,7 @@ a { color: inherit; text-decoration: none; }
     <div class="grid-2">
       <div class="flex-col">
         <div class="panel">
-          <div class="panel-title">Predictive Analytics — what is likely next</div>
+          <div class="panel-title">Predictive Analytics</div>
           <div class="chart-panel">
             <div class="chart-title">Risk Forecast (Next 7 Days)</div>
             <svg id="riskForecastChart" width="100%" height="150" viewBox="0 0 600 150" preserveAspectRatio="none" role="img" aria-label="Predicted risk score for the next seven days"></svg>
@@ -824,7 +824,7 @@ a { color: inherit; text-decoration: none; }
       </div>
       <div class="flex-col">
         <div class="panel">
-          <div class="panel-title">Prescriptive Analytics — what to do</div>
+          <div class="panel-title">Prescriptive Analytics</div>
           <div class="alert-list" id="recommendationsList">
             <div class="empty-state">Loading recommendations…</div>
           </div>
@@ -856,7 +856,7 @@ a { color: inherit; text-decoration: none; }
 </div>
 
 <script type="module">
-  import { db } from './firebase-config.js';
+  import { db } from '../jsPages/firebase-config.js';
   import { collection, doc, onSnapshot, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   /* Mount Makiling — the same coordinates the geomap page forecasts against. */

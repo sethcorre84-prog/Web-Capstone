@@ -16,9 +16,9 @@
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <!-- ===== end resource hints ===== -->
-<script src="sidebar.js"></script>
+<script src="../jsPages/sidebar.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-<link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="../cssPages/pages.css">
 <style>
   @view-transition {
   navigation: auto;
@@ -29,9 +29,9 @@
     background: var(--dm-page, #eef1ec);
   }
 </style>
-<script type="module" src="dashboard-guard.js"></script>
-<script type="module" src="notification.js"></script>
-<script type="module" src="admin-identity.js"></script>
+<script type="module" src="../jsPages/dashboard-guard.js"></script>
+<script type="module" src="../jsPages/notification.js"></script>
+<script type="module" src="../jsPages/admin-identity.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PeakPath Admin — User Reports</title>
 <style>
@@ -130,21 +130,24 @@
   .panel-sub{margin:0 0 16px;font-size:12px;color:var(--text-600);}
 
   /* Toolbar */
-  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
-  .search-box{position:relative;flex:1 1 200px;min-width:170px;}
-  .search-box input{width:100%;height:36px;padding:0 34px 0 12px;border:1px solid var(--border);border-radius:8px;background:var(--dm-surface, #fff);font:inherit;font-size:12.5px;color:var(--text-900);outline:none;}
-  .search-box input:focus,select.filter:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,143,78,.12);}
-  .search-box i{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12.5px;color:var(--text-400);pointer-events:none;}
-  select.filter{height:36px;min-width:130px;padding:0 30px 0 12px;border:1px solid var(--border);border-radius:8px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235b6b60' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 11px center;background-color:var(--dm-surface-2, #fff);font:inherit;font-size:12.5px;color:var(--text-900);outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;}
-  .filters-btn{position:relative;display:flex;align-items:center;gap:7px;height:36px;margin-left:auto;padding:0 14px;border:1px solid var(--border);border-radius:8px;background:var(--dm-surface, #fff);font-size:12.5px;font-weight:600;color:var(--text-900);}
-  .filters-btn:hover,.filters-btn.open{background:var(--dm-surface-2, #f3f6f2);}
+  /* Search + filter row — same look as User Management, Trail and Hazard
+     Reports: light search box with the magnifier first, plain dropdowns, and
+     a bordered Clear Filters button. */
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .search-box{flex:1 1 200px;min-width:160px;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--dm-surface-2, #fbfcfa);}
+  .search-box i{flex-shrink:0;font-size:12.5px;color:var(--text-400);}
+  .search-box input{width:100%;min-width:0;border:none;outline:none;background:transparent;font:inherit;font-size:13px;color:var(--text-900);}
+  .search-box:focus-within,select.filter:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,143,78,.12);}
+  select.filter{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--dm-surface-2, #fbfcfa);font:inherit;font-size:13px;color:var(--text-600);outline:none;cursor:pointer;}
+  .filters-btn{position:relative;display:flex;align-items:center;gap:6px;margin-left:auto;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--dm-surface, #fff);font:inherit;font-size:13px;font-weight:400;color:var(--text-600);cursor:pointer;}
+  .filters-btn:hover,.filters-btn.open{background:var(--dm-surface-2, #f5f5f2);}
   .filters-count{min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--accent-dark);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;}
   .filters-count[hidden]{display:none;}
   .more-filters{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:10px;padding:12px;border:1px dashed var(--border);border-radius:10px;background:var(--dm-surface-2, #fafbf9);}
   .more-filters[hidden]{display:none;}
-  .more-filters label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:600;color:var(--text-600);}
-  .link-btn{height:36px;padding:0 10px;border:0;background:transparent;font-size:12.5px;font-weight:600;color:var(--accent-dark);}
-  .link-btn:hover{text-decoration:underline;}
+  .more-filters label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;font-weight:600;color:var(--text-600);}
+  .clear-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--dm-surface, #fff);font:inherit;font-size:13px;font-weight:400;color:var(--text-600);cursor:pointer;}
+  .clear-btn:hover{background:var(--dm-surface-2, #f5f5f2);}
 
   /* Table */
   .table-wrap{overflow-x:auto;margin:0 -20px;padding:0 20px;container-type:inline-size;}
@@ -399,7 +402,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-icon">
-        <img src="assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
+        <img src="../assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
         </div>
       <div>
         <div class="brand-name">PeakPath</div>
@@ -498,8 +501,8 @@
 
           <div class="toolbar">
             <div class="search-box">
-              <input id="reportsSearchInput" type="search" placeholder="Search reports..." aria-label="Search reports">
               <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input id="reportsSearchInput" type="search" placeholder="Search reports..." aria-label="Search reports">
             </div>
             <select id="reportsStatusFilter" class="filter" aria-label="Filter by status">
               <option value="all">All Status</option>
@@ -536,11 +539,14 @@
             </label>
             <label>Sort By
               <select id="reportsSortFilter" class="filter">
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
+                <option value="newest">Report ID (newest first)</option>
+                <option value="oldest">Report ID (oldest first)</option>
               </select>
             </label>
-            <button class="link-btn" id="clearFiltersBtn" type="button">Clear all filters</button>
+            <button class="clear-btn" id="clearFiltersBtn" type="button">
+              <i class="fa-solid fa-filter" aria-hidden="true"></i>
+              Clear Filters
+            </button>
           </div>
 
           <div class="table-wrap">
@@ -840,8 +846,8 @@
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
 <script type="module">
-  import { auth, db } from './firebase-config.js';
-  import { formatPortalDate, formatPortalTime } from './datetime-prefs.js';
+  import { auth, db } from '../jsPages/firebase-config.js';
+  import { formatPortalDate, formatPortalTime } from '../jsPages/datetime-prefs.js';
   import {
     arrayUnion,
     collection,
@@ -1186,7 +1192,6 @@
     // Strings like "September 16, 2026" carry no time of day, so none is shown.
     const dateHasTime = Boolean(date) && !(typeof rawDate === 'string' && !/\d:\d/.test(rawDate));
     const storedId = getFirstAvailable(data.reportId, data.reportID, data.reportedId, data.referenceId, data.idNumber);
-    const year = (date || new Date()).getFullYear();
     // The mobile app saves the chosen category as `reason`; the other names
     // only cover older documents.
     const type = resolveType(getFirstAvailable(data.reason, data.reportType, data.type, data.category, data.report_category));
@@ -1195,11 +1200,9 @@
 
     return {
       id: snapshotDoc.id,
-      // A bare number such as "002" is shown as UR-<year>-002; otherwise the stored
-      // ID is used as-is, falling back to year + the start of the doc id.
-      reportId: /^\d+$/.test(storedId)
-        ? `UR-${year}-${storedId.padStart(3, '0')}`
-        : storedId || `UR-${year}-${snapshotDoc.id.slice(0, 4).toUpperCase()}`,
+      // reportId is filled in by assignReportNumbers() once every report is
+      // known, so the list numbers run in order instead of per record.
+      reportId: '',
       storedId,
       dateHasTime,
       type,
@@ -1219,14 +1222,77 @@
     };
   };
 
+  /* The sequence number the record itself carries. The app writes ids like
+     "UR-2026-0007"; older records hold a bare counter such as "3". A long
+     number is one of the timestamp fallbacks the app uses when its counter
+     fails, so it is not a sequence at all. */
+  const storedSequence = (storedId) => {
+    const value = normalizeText(storedId);
+    if (!value) return null;
+
+    const tagged = /(?:^|\D)(\d{4})-0*(\d{1,5})$/.exec(value);
+    if (tagged) return { year: Number(tagged[1]), sequence: Number(tagged[2]) };
+
+    if (/^\d{1,5}$/.test(value)) return { year: null, sequence: Number(value) };
+
+    return null; // timestamp id or free text — no usable sequence
+  };
+
+  /* Report numbers are assigned here rather than shown straight from the
+     record, because the stored ids skip numbers, restart, and sometimes fall
+     back to a timestamp — which is what reads as random. Order follows the
+     sequence in each record's own Report ID; records that carry none fall in
+     behind them by date. Each year counts from 001, so the list is
+     UR-2026-001, 002, 003 … The stored value stays in `storedId` and still
+     matches in search. */
+  const assignReportNumbers = (reports) => {
+    const nextByYear = new Map();
+    [...reports]
+      .map((report) => {
+        const stored = storedSequence(report.storedId);
+        return {
+          report,
+          year: stored?.year ?? (report.date || new Date()).getFullYear(),
+          sequence: stored ? stored.sequence : null,
+          time: report.date ? report.date.getTime() : Infinity
+        };
+      })
+      .sort((first, second) => {
+        if (first.year !== second.year) return first.year - second.year;
+        // Numbered records first, in their own order; the rest by date.
+        if (first.sequence !== null && second.sequence !== null) {
+          return first.sequence === second.sequence
+            ? first.report.id.localeCompare(second.report.id)
+            : first.sequence - second.sequence;
+        }
+        if (first.sequence !== null) return -1;
+        if (second.sequence !== null) return 1;
+        return first.time === second.time
+          ? first.report.id.localeCompare(second.report.id)
+          : first.time - second.time;
+      })
+      .forEach(({ report, year }) => {
+        const number = (nextByYear.get(year) || 0) + 1;
+        nextByYear.set(year, number);
+        report.reportId = `UR-${year}-${String(number).padStart(3, '0')}`;
+      });
+    return reports;
+  };
+
+  /* UR-2026-004 → 2026000004, so the list can be ordered by a plain compare. */
+  const reportOrder = (report) => {
+    const match = /^UR-(\d{4})-(\d+)$/.exec(report.reportId || '');
+    return match ? Number(match[1]) * 1000000 + Number(match[2]) : 0;
+  };
+
   // Joins reports with users. Runs whenever either collection changes so a
   // late-arriving users snapshot still links every report.
   const rebuildReports = () => {
-    state.reports = state.reportDocs.map((report) => ({
+    state.reports = assignReportNumbers(state.reportDocs.map((report) => ({
       ...report,
       reportedUser: toPerson(report.reportedRef),
       reportedBy: toPerson(report.reporterRef)
-    }));
+    })));
   };
 
   const reportDateLabel = (report) => {
@@ -1365,7 +1431,9 @@
           && (linkFilter.value === 'all' || (linkFilter.value === 'linked') === Boolean(report.reportedUser.user));
       })
       .sort((a, b) => {
-        const diff = (b.date?.getTime() || 0) - (a.date?.getTime() || 0);
+        // Ordering follows the Report ID, so the ID column always reads in
+        // sequence rather than jumping around with the reported dates.
+        const diff = reportOrder(b) - reportOrder(a);
         return sortFilter.value === 'oldest' ? -diff : diff;
       });
   };
