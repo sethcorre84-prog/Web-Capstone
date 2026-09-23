@@ -88,7 +88,7 @@
   .top-copy h1 { 
     margin: 0 0 4px; 
     font-size: 22px; 
-    color: var(--dm-text, #0f172a); 
+    color: var(--dm-text, #1c231c); 
     font-weight: 700; 
   }
   
@@ -113,6 +113,9 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    /* 128px, the portal-wide summary card height (see trail.html). */
+    min-height: 128px;
+    justify-content: space-between;
     box-shadow: 0 18px 36px rgba(15,23,42,0.06);
     transition: all 0.2s ease;
   }
@@ -153,15 +156,15 @@
     margin: 0;
     font-size: 12px;
     line-height: 1.4;
-    color: #64748b;
-    font-weight: 500;
+    color: #5b6b60;
+    font-weight: 400;
   }
 
   .hero-card p {
     margin: 0;
     font-size: 24px;
     font-weight: 700;
-    color: var(--dm-text, #0f172a);
+    color: var(--dm-text, #1c231c);
     line-height: 1.2;
   }
 
@@ -169,7 +172,7 @@
     display: block;
     margin-top: 4px;
     font-size: 11px;
-    color: #64748b;
+    color: #5b6b60;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -203,10 +206,12 @@
     box-shadow: 0 24px 48px rgba(15,23,42,0.08);
   }
   
+  /* Card, side-card and section headings all match trail.html's .panel-title:
+     brand green at 15px/700, so every panel on the page reads as one family. */
   .card h2 { 
     margin: 0 0 16px; 
-    font-size: 18px; 
-    color: var(--dm-text, #0f172a); 
+    font-size: 15px; 
+    color: var(--accent-dark); 
     font-weight: 700; 
     flex-shrink: 0;
   }
@@ -214,7 +219,7 @@
   .card select {
     border: 1px solid var(--dm-border, #cbd5e1);
     background: var(--dm-surface-2, #f8fafc);
-    color: var(--dm-text, #0f172a);
+    color: var(--dm-text, #1c231c);
     font-size: 14px;
     margin: 0;
     border-radius: 6px;
@@ -317,7 +322,7 @@
     padding-top: 14px;
     border-top: 1px solid var(--dm-border, #e2e8f0);
     font-size: 12.5px;
-    color: #64748b;
+    color: #5b6b60;
   }
 
   .pager { display: flex; align-items: center; gap: 6px; }
@@ -338,7 +343,7 @@
   .pager button:hover:not(:disabled):not(.active) { background: var(--dm-surface-2, #f1f5f9); }
   .pager button.active { background: #16a34a; border-color: #16a34a; color: #ffffff; }
   .pager button:disabled { opacity: 0.45; cursor: not-allowed; }
-  .pager .pager-gap { color: #94a3b8; padding: 0 2px; }
+  .pager .pager-gap { color: #93a199; padding: 0 2px; }
 
   .topbar-right {
     display: flex;
@@ -362,7 +367,7 @@
     height: 100%;
     border: 0;
     background: transparent;
-    color: var(--dm-text, #0f172a);
+    color: var(--dm-text, #1c231c);
     cursor: pointer;
     padding: 0;
     display: flex;
@@ -411,8 +416,8 @@
     font-size: 12px;
   }
 
-  .admin-mini-name { font-size: 13px; font-weight: 600; color: var(--dm-text, #0f172a); line-height: 1.3; }
-  .admin-mini-role { font-size: 11px; color: #64748b; line-height: 1.3; }
+  .admin-mini-name { font-size: 13px; font-weight: 600; color: var(--dm-text, #1c231c); line-height: 1.3; }
+  .admin-mini-role { font-size: 11px; color: #5b6b60; line-height: 1.3; }
 
   .location-chip {
     display: flex;
@@ -504,7 +509,7 @@
     font-size: 11px;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #94a3b8;
+    color: #93a199;
     font-weight: 700;
     background: var(--dm-surface-2, #f8fafc);
   }
@@ -536,7 +541,7 @@
   .user-name {
     font-size: 14px;
     font-weight: 600;
-    color: var(--dm-text, #0f172a);
+    color: var(--dm-text, #1c231c);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -544,7 +549,7 @@
   
   .user-email {
     font-size: 12px;
-    color: #94a3b8;
+    color: #93a199;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -567,7 +572,7 @@
   .badge.ranger { background: #ede9fe; color: #7c3aed; }
   .badge.admin { background: #fee2e2; color: #dc2626; }
   .badge.active { background: #dcfce7; color: #16a34a; }
-  .badge.inactive { background: var(--dm-surface-2, #f1f5f9); color: #64748b; }
+  .badge.inactive { background: var(--dm-surface-2, #f1f5f9); color: #5b6b60; }
   .badge.suspended { background: #fee2e2; color: #dc2626; }
   
   .team-cell { color: var(--dm-text-2, #475569); font-size: 13px; }
@@ -577,12 +582,12 @@
   .user-list-table tbody tr.is-selected { background: var(--dm-surface-2, #f0fdf4); }
 
   .stacked-date { font-size: 12px; line-height: 1.45; }
-  .stacked-date strong { display: block; color: var(--dm-text, #0f172a); font-weight: 600; }
-  .stacked-date span { display: block; color: #94a3b8; }
-  .stacked-date .stacked-empty { color: #94a3b8; }
+  .stacked-date strong { display: block; color: var(--dm-text, #1c231c); font-weight: 600; }
+  .stacked-date span { display: block; color: #93a199; }
+  .stacked-date .stacked-empty { color: #93a199; }
 
   .status-pill.active { background: #dcfce7; color: #16a34a; }
-  .status-pill.inactive { background: var(--dm-surface-2, #f1f5f9); color: #64748b; }
+  .status-pill.inactive { background: var(--dm-surface-2, #f1f5f9); color: #5b6b60; }
   .status-pill.suspended { background: #fee2e2; color: #dc2626; }
   
   .last-active {
@@ -591,7 +596,7 @@
     line-height: 1.4;
   }
   
-  .last-active strong { color: var(--dm-text, #0f172a); font-weight: 600; }
+  .last-active strong { color: var(--dm-text, #1c231c); font-weight: 600; }
   
   .table-actions {
     display: flex;
@@ -607,7 +612,7 @@
     border: 1px solid var(--dm-border, #e2e8f0);
     border-radius: 6px;
     background: var(--dm-surface, #fff);
-    color: #94a3b8;
+    color: #93a199;
     display: grid;
     place-items: center;
     cursor: pointer;
@@ -645,12 +650,12 @@
   .profile-name {
     font-size: 14px;
     font-weight: 700;
-    color: var(--dm-text, #0f172a);
+    color: var(--dm-text, #1c231c);
   }
   
   .profile-email {
     font-size: 13px;
-    color: #94a3b8;
+    color: #93a199;
     margin-top: 3px;
   }
   
@@ -668,9 +673,9 @@
   
   .side-card-heading {
     margin: 0 0 14px;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
-    color: var(--dm-text, #0f172a);
+    color: var(--accent-dark);
   }
 
   .profile-name-block { min-width: 0; }
@@ -699,17 +704,17 @@
     width: 15px;
     flex-shrink: 0;
     text-align: center;
-    color: #94a3b8;
+    color: var(--accent);
     font-size: 11.5px;
   }
 
-  .detail-label { color: #64748b; flex-shrink: 0; }
+  .detail-label { color: #5b6b60; flex-shrink: 0; }
 
   .detail-value {
     margin-left: auto;
     text-align: right;
     font-weight: 600;
-    color: var(--dm-text, #0f172a);
+    color: var(--dm-text, #1c231c);
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -726,7 +731,7 @@
   .field label {
     font-size: 12px;
     font-weight: 700;
-    color: #94a3b8;
+    color: #93a199;
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
@@ -737,7 +742,7 @@
     background: var(--dm-surface-2, #f8fafc);
     border-radius: 6px;
     padding: 10px 12px;
-    color: var(--dm-text, #0f172a);
+    color: var(--dm-text, #1c231c);
     font-size: 14px;
   }
   
@@ -757,14 +762,14 @@
     border: 1px solid var(--dm-border, #e2e8f0);
     border-radius: 7px;
     background: var(--dm-surface, #fff);
-    color: var(--dm-text, #0f172a);
+    color: var(--dm-text, #1c231c);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
   }
 
-  .action-btn i { font-size: 11px; color: #64748b; }
+  .action-btn i { font-size: 11px; color: #5b6b60; }
   .action-btn.danger i { color: inherit; }
   
   .action-btn:hover {
@@ -1080,9 +1085,9 @@
   
   .activity-section h3 {
     margin: 0 0 12px;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
-    color: var(--dm-text, #0f172a);
+    color: var(--accent-dark);
   }
 
   .activity-head {
@@ -1095,10 +1100,11 @@
 
   .activity-head h3 { margin: 0; }
 
+  /* Green, like every other interactive accent in the portal. */
   .activity-head a {
     font-size: 12px;
     font-weight: 600;
-    color: #2563eb;
+    color: var(--accent-dark);
     text-decoration: none;
   }
 
@@ -1131,7 +1137,7 @@
   .activity-empty {
     padding: 8px 0;
     font-size: 12px;
-    color: #94a3b8;
+    color: #93a199;
   }
 
   .row-menu-wrap { position: relative; display: inline-flex; }
@@ -1172,12 +1178,12 @@
   .activity-title {
     font-size: 12px;
     font-weight: 600;
-    color: var(--dm-text, #0f172a);
+    color: var(--dm-text, #1c231c);
   }
   
   .activity-time {
     font-size: 12px;
-    color: #94a3b8;
+    color: #93a199;
     margin-top: 3px;
   }
   
@@ -1243,8 +1249,8 @@
 
   .side-card h3 {
     margin: 0 0 16px; 
-    font-size: 16px; 
-    color: var(--dm-text, #0f172a); 
+    font-size: 15px; 
+    color: var(--accent-dark); 
     font-weight: 700; 
   }
   
@@ -2022,7 +2028,7 @@
     if (state.page > totalPages) state.page = totalPages;
 
     if (!filtered.length) {
-      usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#94a3b8;">No users found for the selected filters.</td></tr>';
+      usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#93a199;">No users found for the selected filters.</td></tr>';
       userCountSummary.textContent = 'No users to show';
       renderPager(1);
       return;
@@ -2532,7 +2538,7 @@
 
     if (!state.users.length) {
       state.selectedUserId = null;
-      usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#94a3b8;">No users found in database.</td></tr>';
+      usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#93a199;">No users found in database.</td></tr>';
       userCountSummary.textContent = 'No users to show';
       userPager.innerHTML = '';
       renderStats();
@@ -2559,7 +2565,7 @@
     }
   }, (error) => {
     console.error('Error loading users:', error);
-    usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#94a3b8;">Unable to load users from database.</td></tr>';
+    usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#93a199;">Unable to load users from database.</td></tr>';
     userCountSummary.textContent = 'Unable to load users';
   });
 

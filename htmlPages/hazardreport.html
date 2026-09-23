@@ -329,6 +329,11 @@
     display:flex;
     flex-direction:column;
     gap:10px;
+    /* Summary cards are 128px tall on every page in the portal, so the top
+       row lines up when you move between pages. Whatever slack a shorter
+       card has falls between the figure and its label. */
+    min-height:128px;
+    justify-content:space-between;
     box-shadow:0 18px 36px rgba(15,23,42,0.06);
     transition:transform 0.2s ease, box-shadow 0.2s ease;
   }
@@ -399,8 +404,9 @@
   }
   .list-card-header h2{
     margin:0 0 12px 0;
-    font-size:16px;
+    font-size:15px;
     font-weight:700;
+    color:var(--accent-dark);
   }
   .list-header-top{
   display:flex;
@@ -605,9 +611,21 @@
     flex-direction:column;
     gap:16px;
   }
+  /* Same heading as trail.html's "Trail Details" panel: brand green, 15/700. */
+  .details-card-title{
+    margin:0 0 -2px 0;
+    font-size:15px;
+    font-weight:700;
+    color:var(--accent-dark);
+  }
+  /* Empty state: the heading stays pinned top-left, the prompt centres in
+     whatever height the card is stretched to. */
   .details-card.empty{
-    align-items:center;
-    justify-content:center;
+    justify-content:flex-start;
+  }
+  .details-card.empty p:not(.details-card-title){
+    margin:auto;
+    text-align:center;
     color:var(--text-600);
   }
   .details-top{
@@ -627,7 +645,7 @@
     display:flex;align-items:center;justify-content:center;
     font-size:17px;
   }
-  .details-title h3{margin:0;font-size:15.5px;font-weight:700;}
+  .details-title h3{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em;}
   .details-title .sub-id{font-size:11.5px;color:var(--text-400);}
   .status-pill{
     font-size:11px;
@@ -646,16 +664,20 @@
   .info-row div strong{display:block;font-size:13px;font-weight:600;color:var(--text-900);}
   .info-row div span{font-size:12px;color:var(--text-600);}
 
+  /* Small uppercase caption, the same one trail.html uses above its
+     "Trail Specifications" rows, so the two detail panels read alike. */
   .section-label{
-    font-size:12px;
+    font-size:10.5px;
     font-weight:700;
-    color:var(--text-900);
-    margin:0 0 4px 0;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--text-muted);
+    margin:0 0 8px 0;
   }
   .desc-text{
     font-size:12.5px;
     color:var(--text-600);
-    line-height:1.55;
+    line-height:1.65;
     margin:0;
     /* Break long words/links instead of widening the card sideways. */
     overflow-wrap:anywhere;
@@ -769,7 +791,12 @@
        panels' lists line up. */
     min-height:36px;
   }
-  .panel-header h2{margin:0;}
+  .panel-header h2{
+    margin:0;
+    font-size:15px;
+    font-weight:700;
+    color:var(--accent-dark);
+  }
   .archive-action-wrap{
     position:relative;
     display:flex;
@@ -1250,6 +1277,7 @@
 
         <!-- RIGHT: Report details -->
       <div class="card details-card empty" id="detailsCard">
+      <p class="details-card-title">Hazard Details</p>
       <p>Select a report to view details</p>
       </div>
 
@@ -1257,7 +1285,7 @@
         <div class="closed-panels">
           <div class="card" id="rejectedPanel" style="padding:18px 20px">
             <div class="panel-header">
-              <h2 style="font-size:16px;font-weight:700">Rejected Reports</h2>
+              <h2>Rejected Reports</h2>
               <div class="archive-action-wrap">
                 <button class="archive-action" id="archiveSelectedBtn" type="button" aria-label="Archive selected report" disabled>
                   <svg viewBox="0 0 24 24"><path d="M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M8 7V4h8v3"/><path d="M9 12h6"/></svg>
@@ -1271,7 +1299,13 @@
 
           <div class="card" id="resolvedPanel" style="padding:18px 20px">
             <div class="panel-header">
-              <h2 style="font-size:16px;font-weight:700">Resolved Reports</h2>
+              <h2>Resolved Reports</h2>
+              <div class="archive-action-wrap">
+                <button class="archive-action" id="archiveResolvedBtn" type="button" aria-label="Archive selected resolved report" disabled>
+                  <svg viewBox="0 0 24 24"><path d="M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M8 7V4h8v3"/><path d="M9 12h6"/></svg>
+                  <span class="archive-tooltip">Archive</span>
+                </button>
+              </div>
             </div>
             <div id="resolvedList" style="display:flex;flex-direction:column;gap:2px"></div>
             <div class="pagination" id="resolvedPagination" style="margin-top:10px;justify-content:flex-end;width:100%"></div>
@@ -1460,6 +1494,8 @@ let selectedReport = null;
 let hazardTypes = new Set();
 let selectedArchiveIds = new Set();
 let pendingArchiveIds = [];
+// Which panel opened the archive confirmation modal: 'rejected' or 'resolved'.
+let archiveMode = 'rejected';
 let currentPage = 1;
 const itemsPerPage = 8;
 let currentFilteredReports = [];
@@ -1650,6 +1686,20 @@ function updateArchiveButtonState() {
   btn.disabled = !hasSelection;
 }
 
+// The Resolved panel highlights exactly one row at a time -- the report in
+// the details pane -- so that selection is what arms its Archive button.
+function getArchivableResolvedReport() {
+  return selectedReport && selectedReport.status === 'resolved' && !selectedReport.archived
+    ? selectedReport
+    : null;
+}
+
+function updateResolvedArchiveButtonState() {
+  const btn = document.getElementById('archiveResolvedBtn');
+  if (!btn) return;
+  btn.disabled = !getArchivableResolvedReport();
+}
+
 function renderRejectedList() {
   const wrap = document.getElementById('rejectedList');
   const rejected = allReports.filter(r => r.status === 'rejected');
@@ -1751,12 +1801,17 @@ function renderRejectedPagination(totalPages) {
 function renderResolvedList() {
   const wrap = document.getElementById('resolvedList');
   if (!wrap) return;
-  const resolved = allReports.filter(r => r.status === 'resolved');
+  // Resolving does not file a report away on its own. A resolved report
+  // stays in this panel until an admin selects it and presses Archive, and
+  // only then does it appear under Settings > Archived Resolved Reports.
+  const resolved = allReports.filter(r => r.status === 'resolved' && !r.archived);
+
   wrap.innerHTML = '';
 
   if (!resolved.length) {
     wrap.innerHTML = '<div style="padding:10px 0;color:var(--text-400);font-size:12.5px">No resolved reports.</div>';
     renderResolvedPagination(0);
+    updateResolvedArchiveButtonState();
     return;
   }
 
@@ -1773,7 +1828,8 @@ function renderResolvedList() {
     row.onclick = (e) => {
       e.stopPropagation();
       // The details panel shows one report at a time, so picking a resolved
-      // report drops any Rejected panel selection too.
+      // report drops any Rejected panel selection too. The same click is what
+      // arms this panel's Archive button, exactly as in the Rejected panel.
       selectedArchiveIds.clear();
       if (isSelected) {
         selectedReport = null;
@@ -1798,6 +1854,7 @@ function renderResolvedList() {
   });
 
   renderResolvedPagination(totalPages);
+  updateResolvedArchiveButtonState();
 }
 
 function renderResolvedPagination(totalPages) {
@@ -1812,6 +1869,7 @@ function renderResolvedPagination(totalPages) {
 // -----------------------------
 function openArchivePrompt() {
   if (!selectedArchiveIds.size) return;
+  archiveMode = 'rejected';
   pendingArchiveIds = [...selectedArchiveIds];
   const items = pendingArchiveIds.map(id => allReports.find(r => r.id === id)).filter(Boolean);
   if (!items.length) return;
@@ -1819,6 +1877,27 @@ function openArchivePrompt() {
   document.getElementById('archiveConfirmSubtitle').textContent = items.length === 1
     ? `"${items[0].hazardType || 'Hazard Report'}" at ${items[0].location || 'the reported location'} will be moved to the archive.`
     : `${items.length} rejected reports will be moved to the archive.`;
+  document.getElementById('archiveReportError').textContent = '';
+
+  const confirmBtn = document.getElementById('archiveModalConfirmBtn');
+  confirmBtn.disabled = false;
+  confirmBtn.textContent = 'Archive';
+
+  const modal = document.getElementById('archiveConfirmModal');
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+// The Resolved panel's Archive button. Same modal, different wording and a
+// different write: see confirmArchiveReports().
+function openResolvedArchivePrompt() {
+  const report = getArchivableResolvedReport();
+  if (!report) return;
+  archiveMode = 'resolved';
+  pendingArchiveIds = [report.id];
+
+  document.getElementById('archiveConfirmSubtitle').textContent =
+    `"${report.hazardType || 'Hazard Report'}" at ${report.location || 'the reported location'} will be moved to Settings > Archived Resolved Reports.`;
   document.getElementById('archiveReportError').textContent = '';
 
   const confirmBtn = document.getElementById('archiveModalConfirmBtn');
@@ -1848,6 +1927,24 @@ async function confirmArchiveReports() {
   errorEl.textContent = '';
 
   try {
+    if (archiveMode === 'resolved') {
+      // A resolved report keeps its status and its report id -- archiving it
+      // is just the admin filing it away, so the only thing the write adds is
+      // the flag that Settings > Archived Resolved Reports reads.
+      const resolvedBatch = writeBatch(db);
+      ids.forEach(id => {
+        resolvedBatch.update(doc(db, 'reports', id), {
+          archived: true,
+          archivedAt: serverTimestamp(),
+          archivedBy: auth.currentUser?.uid || null
+        });
+      });
+      await resolvedBatch.commit();
+      closeArchiveModal();
+      // onSnapshot() refreshes the panels and the stats.
+      return;
+    }
+
     const batch = writeBatch(db);
     const idSet = new Set(ids);
 
@@ -2028,7 +2125,9 @@ function renderReportDetails(report) {
   
   if (!report) {
     detailsCard.className = 'card details-card empty';
-    detailsCard.innerHTML = '<p>Select a report to view details</p>';
+    detailsCard.innerHTML =
+      '<p class="details-card-title">Hazard Details</p>' +
+      '<p>Select a report to view details</p>';
     return;
   }
 
@@ -2050,6 +2149,8 @@ function renderReportDetails(report) {
 
   detailsCard.className = 'card details-card';
   detailsCard.innerHTML = `
+    <p class="details-card-title">Hazard Details</p>
+
     <div class="details-top">
       <div class="details-title">
         <div class="ic-circle">${hazardIcon}</div>
@@ -2584,6 +2685,7 @@ document.getElementById('deleteConfirmModal').addEventListener('click', (event) 
 
 // Archive modal listeners
 document.getElementById('archiveSelectedBtn').addEventListener('click', openArchivePrompt);
+document.getElementById('archiveResolvedBtn').addEventListener('click', openResolvedArchivePrompt);
 document.getElementById('archiveModalCancelBtn').addEventListener('click', closeArchiveModal);
 document.getElementById('archiveModalConfirmBtn').addEventListener('click', confirmArchiveReports);
 document.getElementById('archiveConfirmModal').addEventListener('click', (event) => {
@@ -2611,9 +2713,12 @@ function updateStats() {
   const total = allReports.length;
   const pending = allReports.filter(r => r.status === 'pending').length;
   const verified = allReports.filter(r => r.status === 'verified').length;
-  const resolved = allReports.filter(r => r.status === 'resolved').length;
   const rejected = allReports.filter(r => r.status === 'rejected').length;
   const archived = allReports.filter(r => r.status === 'archived').length;
+  // Only reports an admin actually archived count here. A resolved report
+  // sits in the Resolved panel until it is archived from there, so resolving
+  // one no longer moves it into this figure.
+  const archivedResolved = allReports.filter(r => r.status === 'resolved' && r.archived).length;
 
   document.getElementById('totalReports').textContent = total;
   document.getElementById('pendingReports').textContent = pending;
@@ -2621,12 +2726,12 @@ function updateStats() {
   document.getElementById('rejectedReports').textContent = rejected;
   // Archived covers both archives in Settings: Archived Hazard Reports and
   // Archived Resolved Reports.
-  document.getElementById('archivedReports').textContent = archived + resolved;
+  document.getElementById('archivedReports').textContent = archived + archivedResolved;
 
   const pendingPercent = total ? Math.round((pending / total) * 100) : 0;
   const verifiedPercent = total ? Math.round((verified / total) * 100) : 0;
   const rejectedPercent = total ? Math.round((rejected / total) * 100) : 0;
-  const archivedPercent = total ? Math.round(((archived + resolved) / total) * 100) : 0;
+  const archivedPercent = total ? Math.round(((archived + archivedResolved) / total) * 100) : 0;
 
   document.getElementById('pendingMeta').textContent = pendingPercent + '% of total';
   document.getElementById('verifiedMeta').textContent = verifiedPercent + '% of total';
@@ -2635,7 +2740,7 @@ function updateStats() {
   // than in the middle of "56% of total". (Numbers only — safe as HTML.)
   document.getElementById('archivedMeta').innerHTML = [
     `${archived} report${archived === 1 ? '' : 's'}`,
-    `${resolved} resolved`,
+    `${archivedResolved} resolved`,
     `${archivedPercent}% of total`
   ].map((part) => `<span style="white-space:nowrap">${part}</span>`).join(' · ');
   // NOTE: reportCount is now set by renderReportsTable() with accurate,

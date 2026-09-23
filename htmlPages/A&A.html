@@ -144,7 +144,7 @@
 		.page-controls{display:flex;align-items:center;gap:6px}
 		/* Pagination buttons are styled in pages.css so every table matches. */
 		.stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
-		.stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 18px 36px rgba(15,23,42,0.06);transition:transform 0.2s ease, box-shadow 0.2s ease}
+		.stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-height:128px;justify-content:space-between;box-shadow:0 18px 36px rgba(15,23,42,0.06);transition:transform 0.2s ease, box-shadow 0.2s ease}
 		.stat-card:hover{transform:translateY(-2px);box-shadow:0 24px 48px rgba(15,23,42,0.08)}
 		.stat-top{display:flex;justify-content:space-between;align-items:center}
 		.stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}

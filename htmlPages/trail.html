@@ -349,6 +349,11 @@
     display:flex;
     flex-direction:column;
     gap:10px;
+    /* Summary cards are 128px tall on every page in the portal, so the top
+       row lines up when you move between pages. Whatever slack a shorter
+       card has falls between the figure and its label. */
+    min-height:128px;
+    justify-content:space-between;
     box-shadow:0 18px 36px rgba(15,23,42,0.06);
     transition:transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -664,68 +669,215 @@ tbody tr:last-child td{
    RIGHT PANEL
 ========================================== */
 
+/* --- Trail Details hero -------------------------------------------------
+   The photo is a cover image set from JS (renderDetail writes background-
+   image inline), so the gradient below is only the fallback that shows
+   while the image loads or when a trail has no photo. The ::after scrim
+   darkens the bottom so the status pill stays readable on bright shots. */
 .detail-photo{
     position:relative;
-    display:flex;
-    align-items:flex-end;
-    height:150px;
-    padding:10px;
+    overflow:hidden;
+    height:168px;
     margin-bottom:14px;
-    border-radius:8px;
-    background:linear-gradient(160deg,#8fd0a5,#2f6b45);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    background-color:var(--accent-dark);
+    background-image:linear-gradient(160deg,#8fd0a5,#2f6b45);
+    box-shadow:var(--shadow-card);
+}
+
+.detail-photo::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg,
+        rgba(12,28,18,0) 40%,
+        rgba(12,28,18,.10) 65%,
+        rgba(12,28,18,.45) 100%);
+    pointer-events:none;
 }
 
 .detail-status-badge{
     position:absolute;
     top:10px;
     right:10px;
+    z-index:1;
+    border:1px solid rgba(255,255,255,.55);
+    box-shadow:0 2px 8px rgba(12,28,18,.28);
+    backdrop-filter:saturate(1.2);
 }
 
 .detail-name{
-    font-size:17px;
+    font-size:18px;
     font-weight:700;
-    margin-bottom:6px;
+    line-height:1.3;
+    letter-spacing:-.01em;
+    margin-bottom:9px;
+    color:var(--text-primary);
 }
 
+/* --- Meta chips ---------------------------------------------------------
+   Difficulty keeps its .badge colours; the rest become neutral pills so the
+   one coloured pill is the one that carries meaning. */
 .detail-meta{
     display:flex;
     flex-wrap:wrap;
     align-items:center;
-    gap:8px;
-    margin-bottom:10px;
+    gap:6px;
+    margin-bottom:12px;
     font-size:12px;
     color:var(--text-secondary);
 }
 
-.detail-desc{
-    margin-bottom:14px;
-    font-size:12.5px;
-    line-height:1.6;
+.detail-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:4px 10px;
+    border:1px solid var(--border);
+    border-radius:20px;
+    background:var(--dm-surface-2, #f5f8f3);
+    font-size:11.5px;
+    font-weight:600;
     color:var(--text-secondary);
+}
+
+.detail-chip i{
+    font-size:10.5px;
+    color:var(--accent);
+}
+
+/* Edit mode swaps the chip/row values for inputs sized at 130px inline;
+   cap them here, and shrink the chip's own padding, so an editing chip does
+   not stretch past the panel. */
+.detail-meta input,
+.detail-meta select{
+    max-width:116px;
+}
+
+.detail-chip:has(input),
+.detail-chip:has(select){
+    padding:2px 6px;
+}
+
+.detail-desc{
+    margin-bottom:16px;
+    padding:11px 13px;
+    border-left:3px solid var(--accent);
+    border-radius:0 10px 10px 0;
+    background:var(--dm-surface-2, #f5f8f3);
+    font-size:12.5px;
+    line-height:1.65;
+    color:var(--text-secondary);
+}
+
+.detail-desc:empty{
+    display:none;
+}
+
+/* --- Edit mode typography ----------------------------------------------
+   A bare <input>/<textarea> falls back to the browser's own font -- Chrome
+   renders a <textarea> in monospace -- so the description used to change
+   typeface the moment you pressed Edit Trail Information. These rules keep
+   every field on the panel's font, and the description textarea keeps the
+   exact size, leading and colour of the text it replaces, so the block reads
+   the same whether you are viewing it or editing it. */
+.detail-name input,
+.detail-meta input,
+.detail-meta select,
+.detail-rows input,
+.detail-rows select{
+    font-family:inherit;
+}
+
+.detail-desc-edit{
+    display:block;
+    width:100%;
+    min-height:74px;
+    padding:0;
+    border:none;
+    outline:none;
+    background:transparent;
+    resize:vertical;
+    font-family:inherit;
+    font-size:12.5px;
+    line-height:1.65;
+    color:var(--text-secondary);
+}
+
+/* While it holds the textarea the block closes its border, so it still reads
+   as a field rather than as body text. */
+.detail-desc:has(.detail-desc-edit){
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+}
+
+.detail-desc:focus-within{
+    box-shadow:0 0 0 3px var(--accent-light);
+}
+
+.detail-section-label{
+    display:block;
+    margin-bottom:8px;
+    font-size:10.5px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--text-muted);
 }
 
 .detail-rows{
     display:flex;
     flex-direction:column;
-    gap:10px;
+    gap:6px;
     margin-bottom:16px;
 }
 
 .detail-row{
     display:flex;
     justify-content:space-between;
-    padding-bottom:8px;
-    border-bottom:1px solid var(--border);
+    align-items:center;
+    gap:10px;
+    padding:9px 12px;
+    border:1px solid transparent;
+    border-radius:10px;
+    background:var(--dm-surface-2, #f5f8f3);
     font-size:12.5px;
+    transition:background .15s, border-color .15s;
+}
+
+.detail-row:hover{
+    border-color:var(--accent);
+    background:var(--accent-light);
 }
 
 .detail-row span:first-child{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
     color:var(--text-secondary);
+}
+
+.detail-row span:first-child i{
+    width:13px;
+    font-size:11.5px;
+    text-align:center;
+    color:var(--accent);
 }
 
 .detail-row span:last-child{
     font-weight:600;
     text-align:right;
+    color:var(--text-primary);
+}
+
+/* The edit button lives under the rows; give it the brand tint on hover so
+   it reads as the panel's primary affordance without competing with the
+   green Update Status button below it. */
+#editTrailBtn:hover:not(:disabled){
+    border-color:var(--accent);
+    background:var(--accent-light);
+    color:var(--accent-dark);
 }
 
 /* ==========================================
@@ -773,8 +925,27 @@ tbody tr:last-child td{
 .status-mgmt-row{
     display:flex;
     justify-content:space-between;
-    margin-bottom:12px;
+    align-items:center;
+    gap:10px;
+    margin-bottom:6px;
+    padding:9px 12px;
+    border-radius:10px;
+    background:var(--dm-surface-2, #f5f8f3);
     font-size:12.5px;
+}
+
+.status-mgmt-row span:first-child{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    color:var(--text-secondary);
+}
+
+.status-mgmt-row span:first-child i{
+    width:13px;
+    font-size:11.5px;
+    text-align:center;
+    color:var(--accent);
 }
 
 .status-update-select{
@@ -783,8 +954,15 @@ tbody tr:last-child td{
     padding:9px 10px;
     border:1px solid var(--border);
     border-radius:8px;
+    background:var(--dm-surface, #fff);
     font-size:13px;
     color:var(--text-secondary);
+}
+
+.status-update-select:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-light);
 }
 
 /* ==========================================
@@ -819,7 +997,13 @@ tbody tr:last-child td{
 }
 
 .quick-btn:hover{
-    opacity:.9;
+    background:var(--accent-dark);
+}
+
+.quick-btn.outline:hover{
+    border-color:var(--accent);
+    background:var(--accent-light);
+    color:var(--accent-dark);
 }
 
 /* ==========================================
@@ -1036,21 +1220,24 @@ tbody tr:last-child td{
       <div>
         <div class="panel">
           <div class="panel-title">Trail Details</div>
-          <div id="detailPhoto" class="detail-photo"></div>
+          <div id="detailPhoto" class="detail-photo">
+            <span class="badge open detail-status-badge" id="detailPhotoStatus">Open</span>
+          </div>
           <div class="detail-name" id="detailName">Mariang Makiling Trail</div>
           <div class="detail-meta">
-            <span>📍 Laguna, Philippines</span>
+            <span class="detail-chip"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>Laguna, Philippines</span>
             <span class="badge moderate" id="detailDiff">Moderate</span>
-            <span id="detailDist">7.2 km</span>
-            <span id="detailDur">4–6 hrs</span>
+            <span class="detail-chip"><i class="fa-solid fa-route" aria-hidden="true"></i><span id="detailDist">7.2 km</span></span>
+            <span class="detail-chip"><i class="fa-regular fa-clock" aria-hidden="true"></i><span id="detailDur">4–6 hrs</span></span>
           </div>
           <div class="detail-desc" id="detailDesc">The most popular trail of Mount Makiling. Passes through dense forest, mossy rocks, and offers scenic views of Laguna de Bay.</div>
+          <span class="detail-section-label">Trail Specifications</span>
           <div class="detail-rows">
-            <div class="detail-row"><span>Elevation Gain</span><span id="detailElev">1,200 m</span></div>
-            <div class="detail-row"><span>Highest Point</span><span id="detailPeak">1,096 m (Peak 2)</span></div>
-            <div class="detail-row"><span>Trail Type</span><span id="detailType">—</span></div>
-            <div class="detail-row"><span>Entry Type</span><span id="detailEntryType">—</span></div>
-            <div class="detail-row"><span>Last Updated</span><span id="detailUpdated">—</span></div>
+            <div class="detail-row"><span><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>Elevation Gain</span><span id="detailElev">1,200 m</span></div>
+            <div class="detail-row"><span><i class="fa-solid fa-mountain" aria-hidden="true"></i>Highest Point</span><span id="detailPeak">1,096 m (Peak 2)</span></div>
+            <div class="detail-row"><span><i class="fa-solid fa-signs-post" aria-hidden="true"></i>Trail Type</span><span id="detailType">—</span></div>
+            <div class="detail-row"><span><i class="fa-solid fa-door-open" aria-hidden="true"></i>Entry Type</span><span id="detailEntryType">—</span></div>
+            <div class="detail-row"><span><i class="fa-regular fa-calendar-check" aria-hidden="true"></i>Last Updated</span><span id="detailUpdated">—</span></div>
           </div>
           <button class="btn-secondary" id="editTrailBtn">✎ Edit Trail Information</button>
         </div>
@@ -1058,12 +1245,12 @@ tbody tr:last-child td{
         <div class="panel">
           <div class="panel-title">Trail Status Management</div>
           <div class="status-mgmt-row">
-            <span>Current Status</span>
+            <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Current Status</span>
             <span class="badge open" id="detailStatus">Open</span>
           </div>
           <div class="status-mgmt-row" style="margin-bottom:14px;">
-            <span>Last Updated</span>
-            <span style="color:var(--text-secondary)" id="statusLastUpdated">—</span>
+            <span><i class="fa-regular fa-calendar-check" aria-hidden="true"></i>Last Updated</span>
+            <span style="font-weight:600" id="statusLastUpdated">—</span>
           </div>
           <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">Update Status</div>
           <select class="status-update-select" id="statusUpdateSelect">
@@ -1101,7 +1288,7 @@ tbody tr:last-child td{
 
             <div>
         <label style="font-size:12px;color:var(--text-secondary);">Description</label>
-        <textarea id="newTrailDesc" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;"></textarea>
+        <textarea id="newTrailDesc" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;font-family:inherit;font-size:13px;line-height:1.5;"></textarea>
       </div>
 
       <div>
@@ -1211,7 +1398,7 @@ tbody tr:last-child td{
 </div>
 
 <script type="module">
-import { db } from "../jsPages/firebase-config.js";
+import { db, storage } from "../jsPages/firebase-config.js";
 import { formatPortalDateTime } from "../jsPages/datetime-prefs.js";
 
 // Follows Settings > Date & Time (datetime-prefs.js).
@@ -1228,6 +1415,7 @@ import {
   deleteDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getDownloadURL, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const makilingCenter = [14.136, 121.197];
 const trailMap = L.map('trailMap').setView(makilingCenter, 13);
@@ -1264,15 +1452,15 @@ const PAGE_SIZE = 10;
 let currentPage = 1;
 
 const trailImages = {
-  "Makiling Botanic Gardens Trail": "assets/images/botanicGarden.jpg",
-  "Makiling Traverse (MakTrav)": "assets/images/makilingTraverse.jpg",
-  "Sipit Trail": "assets/images/sipitTrail.jpg",
-  "Mariang Makiling Trail": "assets/images/mariangMakiling.jpg"
+  "Makiling Botanic Gardens Trail": "../assets/images/botanicGarden.jpg",
+  "Makiling Traverse (MakTrav)": "../assets/images/makilingTraverse.jpg",
+  "Sipit Trail": "../assets/images/sipitTrail.jpg",
+  "Mariang Makiling Trail": "../assets/images/mariangMakiling.jpg"
 };
-const defaultTrailImage = "assets/images/bg.jpg";
+const defaultTrailImage = "../assets/images/bg.png";
 
 function getTrailImage(t) {
-  return trailImages[t.Trail] || defaultTrailImage;
+  return t.imageUrl || t.imageURL || t.ImageUrl || t.photoUrl || t.photoURL || t.PhotoUrl || trailImages[t.Trail] || defaultTrailImage;
 }
 
 function diffClass(diff) {
@@ -1459,6 +1647,11 @@ function renderDetail() {
   document.getElementById('detailStatus').textContent = status;
   document.getElementById('detailStatus').className = 'badge ' + status.toLowerCase();
 
+  // The same pill, mirrored onto the hero photo.
+  const photoStatus = document.getElementById('detailPhotoStatus');
+  photoStatus.textContent = status;
+  photoStatus.className = 'badge ' + status.toLowerCase() + ' detail-status-badge';
+
   document.getElementById('detailPhoto').style.backgroundImage = `url('${getTrailImage(t)}')`;
   document.getElementById('detailPhoto').style.backgroundSize = 'cover';
   document.getElementById('detailPhoto').style.backgroundPosition = 'center';
@@ -1489,7 +1682,7 @@ function openEditMode() {
     `<input type="text" id="editName" value="${(t.Trail || '').replace(/"/g, '&quot;')}" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:15px;font-weight:700;">`;
 
   document.getElementById('detailDesc').innerHTML =
-    `<textarea id="editDesc" style="width:100%;min-height:70px;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;">${t.Description || ''}</textarea>`;
+    `<textarea id="editDesc" class="detail-desc-edit">${t.Description || ''}</textarea>`;
 
   document.getElementById('detailDist').innerHTML =
     `<input type="text" id="editDist" value="${(t["Approximate Distance"] || '').replace(/"/g, '&quot;')}" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;">`;
@@ -1615,7 +1808,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// ---- Trail photo picker (design + preview only, no upload yet) ----
+// ---- Trail photo picker ----
 const photoInput = document.getElementById('newTrailPhoto');
 const photoDropzone = document.getElementById('photoDropzone');
 const photoPreview = document.getElementById('newTrailPhotoPreview');
@@ -1640,6 +1833,19 @@ photoDropzone.addEventListener('mouseleave', () => {
 photoInput.addEventListener('change', () => {
   const file = photoInput.files[0];
   if (!file) return resetPhotoPicker();
+
+  if (!file.type.startsWith('image/')) {
+    alert('Please choose an image file.');
+    photoInput.value = '';
+    resetPhotoPicker();
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    alert('Trail photos must be 5 MB or smaller.');
+    photoInput.value = '';
+    resetPhotoPicker();
+    return;
+  }
 
   photoPreview.style.backgroundImage = `url('${URL.createObjectURL(file)}')`;
   photoPreview.textContent = '';
@@ -1687,6 +1893,13 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
 
   try {
     const docRef = await addDoc(collection(db, "trails"), newTrail);
+    const photoFile = photoInput.files[0];
+    if (photoFile) {
+      const safeName = photoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const imageRef = ref(storage, `trails/${docRef.id}/${Date.now()}-${safeName}`);
+      await uploadBytes(imageRef, photoFile, { contentType: photoFile.type });
+      await updateDoc(docRef, { imageUrl: await getDownloadURL(imageRef) });
+    }
     selectedId = docRef.id;
     addTrailModal.style.display = 'none';
 

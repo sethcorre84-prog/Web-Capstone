@@ -108,6 +108,10 @@
             flex-direction: column;
             gap: 4px;
             min-width: 0;
+            /* 128px, the portal-wide summary card height (see trail.html).
+               This card has the tallest content of the set -- title row,
+               figure and caption -- so it sets that number. */
+            min-height: 128px;
             padding: 16px 18px;
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -118,7 +122,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .hero-card-title i {
             width: 32px;
