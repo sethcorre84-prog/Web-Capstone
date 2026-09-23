@@ -26,7 +26,7 @@
   html, body {
     visibility: visible;
     opacity: 1;
-    background: var(--dm-page, #eef1ec);
+    background: #eef1ec;
   }
 </style>
 <script type="module" src="dashboard-guard.js"></script>
@@ -165,7 +165,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .bell-btn:hover{
-    background:var(--dm-surface-2, #eef5ef);
+    background:#eef5ef;
 }
 
 .cards-row {
@@ -262,7 +262,7 @@ a { color: inherit; text-decoration: none; }
 .chart-panel {
   padding: 14px;
   border-radius: var(--radius);
-  background: var(--dm-surface-2, #f9fbf7);
+  background: #f9fbf7;
   border: 1px solid var(--border);
 }
 .chart-title {
@@ -329,7 +329,7 @@ a { color: inherit; text-decoration: none; }
   align-items: flex-start;
   gap: 10px;
   padding: 10px 0;
-  border-top: 1px solid var(--dm-border, #f0f3f0);
+  border-top: 1px solid #f0f3f0;
   font-size: 12.5px;
 }
 .list-item > div:first-child {
@@ -404,7 +404,7 @@ a { color: inherit; text-decoration: none; }
     conic-gradient(#e4e7e1 0 100%);
   display: grid;
   place-items: center;
-  color: var(--dm-text, #1c231c);
+  color: #1c231c;
   font-size: 22px;
   font-weight: 700;
 }
@@ -426,7 +426,7 @@ a { color: inherit; text-decoration: none; }
   flex-shrink: 0;
 }
 .info-block {
-  background: var(--dm-surface-2, #f9fbf7);
+  background: #f9fbf7;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   padding: 14px;
@@ -454,7 +454,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--accent);
   font-weight: 700;
   font-size: 11.5px;
-  background: var(--dm-surface, #fff);
+  background: #fff;
 }
 /* ---- Live data states ---- */
 .empty-state {
@@ -508,6 +508,137 @@ a { color: inherit; text-decoration: none; }
   text-align: center;
   white-space: nowrap;
 }
+/* ---- Descriptive analytics ---- */
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.panel-head .panel-title { margin-bottom: 0; }
+/* Period filter: one row above the charts it controls. */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+  background: #fff;
+}
+.segmented button {
+  border: none;
+  background: #fff;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.segmented button + button { border-left: 1px solid var(--border); }
+.segmented button[aria-pressed="true"] {
+  background: var(--accent-light);
+  color: var(--accent-dark);
+}
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.kpi {
+  background: #f9fbf7;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  min-width: 0;
+}
+.kpi .kpi-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.kpi .kpi-value {
+  font-size: 21px;
+  font-weight: 700;
+  color: #1c231c;
+  line-height: 1.15;
+}
+.kpi .kpi-delta {
+  font-size: 11px;
+  margin-top: 3px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.kpi .kpi-delta.up { color: var(--accent); }
+.kpi .kpi-delta.down { color: var(--danger); }
+/* Daily volume: thin bars on a shared baseline, 4px rounded tops. */
+/* The chart fills its panel so the two descriptive charts line up. */
+.chart-panel.fill {
+  display: flex;
+  flex-direction: column;
+}
+.chart-panel.fill .day-bars { flex: 1; }
+.day-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  min-height: 104px;
+  margin-top: 4px;
+}
+.day-bars .day-bar {
+  flex: 1;
+  min-width: 0;
+  background: var(--accent);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+}
+.day-bars .day-bar.empty { background: #e4e7e1; }
+.axis-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+/* Ranked categories: label, thin bar, value — no color-only encoding. */
+.bar-row { margin: 9px 0; font-size: 12px; }
+.bar-row .bar-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.bar-row .bar-head span:first-child {
+  color: var(--text-secondary);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.bar-row .bar-head span:last-child {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.bar-track {
+  height: 8px;
+  border-radius: 4px;
+  background: #eef2ee;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+  min-width: 3px;
+}
+.bar-fill.status-pending { background: var(--yellow); }
+.bar-fill.status-verified { background: var(--accent); }
+.bar-fill.status-resolved { background: var(--blue); }
+.bar-fill.status-rejected { background: var(--danger); }
+.bar-fill.status-archived { background: #93a199; }
+@media (max-width: 1080px) {
+  .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 1240px) {
   .grid-2 { grid-template-columns: 1fr; }
 }
@@ -529,78 +660,6 @@ a { color: inherit; text-decoration: none; }
      the chart's floor so the bars stay readable instead of hair-thin. */
   .usage-grid { gap: 3px; min-height: 140px; }
 }
-
-/* New-analysis announcement (bottom-right). Tokens only, so it follows
-   Dark Mode like the rest of the page. */
-.analysis-toast {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 1300;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  max-width: min(420px, calc(100vw - 32px));
-  padding: 12px 12px 12px 14px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--accent);
-  border-radius: 12px;
-  box-shadow: var(--shadow-hover);
-  animation: analysisToastIn .25s ease-out;
-}
-.analysis-toast[hidden] { display: none; }
-@keyframes analysisToastIn {
-  from { opacity: 0; transform: translateY(8px); }
-}
-.analysis-toast-icon {
-  width: 34px;
-  height: 34px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 9px;
-  background: var(--accent-light);
-  color: var(--accent);
-}
-.analysis-toast-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  font-size: 12.5px;
-  color: var(--text-secondary);
-}
-.analysis-toast-copy strong {
-  font-size: 13.5px;
-  color: var(--text-primary);
-}
-.analysis-toast-view {
-  flex-shrink: 0;
-  padding: 7px 12px;
-  border: none;
-  border-radius: 8px;
-  background: var(--accent);
-  color: #fff;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.analysis-toast-view:hover { background: var(--accent-dark); }
-.analysis-toast-close {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-}
-.analysis-toast-close:hover { color: var(--text-primary); }
 </style>
 </head>
 <body>
@@ -640,8 +699,8 @@ a { color: inherit; text-decoration: none; }
   <main class="main">
     <div class="topbar">
       <div class="topbar-left">
-        <h1>AI Analytics – Predictive &amp; Prescriptive</h1>
-        <p>Intelligent insights and recommendations for safety and trail management in Mount Makiling.</p>
+        <h1>Analytics &amp; Reports – Descriptive, Predictive &amp; Prescriptive</h1>
+        <p>What has happened, what is likely next, and what to do about it — computed live from PeakPath's records and the Mount Makiling forecast.</p>
       </div>
       <div class="topbar-right">
         <div class="bell-wrap">
@@ -683,10 +742,56 @@ a { color: inherit; text-decoration: none; }
         <div class="card-content"><div class="label">Model Confidence</div><div class="hint" id="confidenceHint">Based on available data inputs</div></div>
       </div>
     </div>
+    <!-- What has already happened, over a window the admin picks. Everything
+         below it (predictive, prescriptive) is built on the same records. -->
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head">
+        <div class="panel-title">Descriptive Analytics — what has happened</div>
+        <div class="segmented" role="group" aria-label="Reporting period">
+          <button type="button" data-period="7" aria-pressed="false">7 days</button>
+          <button type="button" data-period="30" aria-pressed="true">30 days</button>
+          <button type="button" data-period="90" aria-pressed="false">90 days</button>
+        </div>
+      </div>
+      <div class="kpi-row" id="descriptiveKpis"></div>
+      <div class="panel-grid">
+        <div class="chart-panel fill">
+          <div class="chart-title" id="volumeChartTitle">Hazard Reports Submitted</div>
+          <div class="day-bars" id="volumeChart" role="img" aria-label="Hazard reports submitted per day"></div>
+          <div class="axis-row" id="volumeAxis"></div>
+          <div class="empty-state" id="volumeNote">Loading hazard reports…</div>
+        </div>
+        <div class="chart-panel">
+          <div class="chart-title">Hazard Types Reported</div>
+          <div id="typeBreakdown"><div class="empty-state">Loading hazard reports…</div></div>
+        </div>
+      </div>
+      <div class="panel-grid" style="margin-top:12px;">
+        <div class="chart-panel">
+          <div class="chart-title">Report Status Breakdown</div>
+          <div id="statusBreakdown"><div class="empty-state">Loading hazard reports…</div></div>
+        </div>
+        <div class="chart-panel">
+          <div class="chart-title">Most Affected Trails</div>
+          <div id="trailBreakdown"><div class="empty-state">Loading hazard reports…</div></div>
+        </div>
+      </div>
+      <div class="panel-grid" style="margin-top:12px;">
+        <div class="small-card">
+          <h3>Activity in this period</h3>
+          <div class="row"><span>Advisories published</span><span id="descAdvisories" class="val-muted">—</span></div>
+          <div class="row"><span>Emergency alerts logged</span><span id="descEmergencies" class="val-muted">—</span></div>
+          <div class="row"><span>New hiker accounts</span><span id="descNewUsers" class="val-muted">—</span></div>
+          <div class="row"><span>Rainfall recorded (last 3 days)</span><span id="descRecentRain" class="val-muted">—</span></div>
+          <div class="row"><span>Trails currently closed</span><span id="descClosedTrails" class="val-muted">—</span></div>
+        </div>
+        <div class="info-block"><h4>What the data shows</h4><p id="descriptiveSummary">Loading hazard reports…</p></div>
+      </div>
+    </div>
     <div class="grid-2">
       <div class="flex-col">
         <div class="panel">
-          <div class="panel-title">Predictive Analytics</div>
+          <div class="panel-title">Predictive Analytics — what is likely next</div>
           <div class="chart-panel">
             <div class="chart-title">Risk Forecast (Next 7 Days)</div>
             <svg id="riskForecastChart" width="100%" height="150" viewBox="0 0 600 150" preserveAspectRatio="none" role="img" aria-label="Predicted risk score for the next seven days"></svg>
@@ -718,9 +823,8 @@ a { color: inherit; text-decoration: none; }
         </div>
       </div>
       <div class="flex-col">
-        <!-- The bell's "Prescriptive analysis ready" notification links here. -->
-        <div class="panel" id="prescriptivePanel">
-          <div class="panel-title">Prescriptive Analytics</div>
+        <div class="panel">
+          <div class="panel-title">Prescriptive Analytics — what to do</div>
           <div class="alert-list" id="recommendationsList">
             <div class="empty-state">Loading recommendations…</div>
           </div>
@@ -751,21 +855,9 @@ a { color: inherit; text-decoration: none; }
   </main>
 </div>
 
-<!-- Shown when a new prescriptive analysis is saved. Every other admin page
-     gets the same news through the notification bell (notification.js). -->
-<div class="analysis-toast" id="analysisToast" role="status" aria-live="polite" hidden>
-  <div class="analysis-toast-icon" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-  <div class="analysis-toast-copy">
-    <strong>New prescriptive analysis done</strong>
-    <span id="analysisToastText"></span>
-  </div>
-  <button class="analysis-toast-view" id="analysisToastView" type="button">View</button>
-  <button class="analysis-toast-close" id="analysisToastClose" type="button" aria-label="Dismiss">×</button>
-</div>
-
 <script type="module">
   import { db } from './firebase-config.js';
-  import { collection, doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { collection, doc, onSnapshot, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   /* Mount Makiling — the same coordinates the geomap page forecasts against. */
   const MAKILING = { latitude: 14.136, longitude: 121.197 };
@@ -776,14 +868,40 @@ a { color: inherit; text-decoration: none; }
   const RISK_MODEL = {
     rainfallPointsPerMm: 0.9,
     rainfallMaxPoints: 45,
-    hazardPointsEach: 6,
+    /* An active hazard is worth points by its risk level, not a flat rate, and
+       an unverified (pending) report counts for less than a verified one. */
+    hazardSeverityPoints: { high: 10, moderate: 6, low: 3, unknown: 5 },
+    pendingHazardFactor: 0.6,
     hazardMaxPoints: 30,
     emergencyPointsEach: 10,
     emergencyMaxPoints: 20,
     closedTrailMaxPoints: 15,
+    /* Ground already soaked by the previous three days makes the same rainfall
+       more dangerous, so antecedent rain carries its own (smaller) weight. */
+    saturationPointsPerMm: 0.2,
+    saturationMaxPoints: 12,
+    /* More hikers on the mountain means more people exposed to the same hazard. */
+    busyDayPoints: 5,
     highThreshold: 60,
     moderateThreshold: 30
   };
+
+  /* An active report older than this says less about conditions today, so its
+     weight decays rather than counting forever. */
+  const HAZARD_RECENCY_DECAY = [
+    { days: 14, factor: 1 },
+    { days: 30, factor: 0.8 },
+    { days: 90, factor: 0.55 },
+    { days: Infinity, factor: 0.35 }
+  ];
+
+  /* How far back the statistics (base rates, response times, recurrence) look. */
+  const HISTORY_DAYS = 90;
+  /* Periods offered by the descriptive filter; the middle one is the default. */
+  const PERIOD_OPTIONS = [7, 30, 90];
+  let periodDays = 30;
+
+  const DAY_MS = 24 * 60 * 60 * 1000;
 
   const RAIN_DRIVEN_HAZARD = /landslide|flood|mud|slip|erosion|fallen|washout/i;
   const DISMISSED_STATUS = ['rejected', 'archived', 'resolved', 'closed', 'dismissed'];
@@ -798,6 +916,9 @@ a { color: inherit; text-decoration: none; }
     advisories: null,
     emergencies: null,
     forecast: null,
+    /* Rainfall already recorded for the previous three days (Open-Meteo
+       past_days), used for soil saturation and the descriptive panel. */
+    pastRain: null,
     errors: {}
   };
 
@@ -873,20 +994,112 @@ a { color: inherit; text-decoration: none; }
 
   /* A hazard belongs to a trail when it names the trail directly or mentions
      it in the free-text location field. */
+  const reportMatchesTrail = (report, needle) => {
+    const trail = normalizeText(report.trail || report.Trail).toLowerCase();
+    const location = normalizeText(report.location || report.Location || report.area).toLowerCase();
+    return trail === needle || (trail && needle.includes(trail)) || location.includes(needle);
+  };
+
   const hazardsOnTrail = (name) => {
     const needle = name.toLowerCase();
     if (!needle || needle === 'unnamed trail') return [];
-    return activeHazards().filter((hazard) => {
-      const trail = normalizeText(hazard.trail || hazard.Trail).toLowerCase();
-      const location = normalizeText(hazard.location || hazard.Location || hazard.area).toLowerCase();
-      return trail === needle || (trail && needle.includes(trail)) || location.includes(needle);
-    });
+    return activeHazards().filter((hazard) => reportMatchesTrail(hazard, needle));
   };
 
+  /* Everything ever reported on a trail in the history window — what the trail
+     does over time, rather than what is open on it right now. */
+  const trailHistory = (name) => {
+    const needle = name.toLowerCase();
+    if (!needle || needle === 'unnamed trail') return [];
+    return reportsWithin(HISTORY_DAYS).filter((report) => reportMatchesTrail(report, needle));
+  };
+
+  /* ---------------- Report statistics ---------------- */
+
+  /* Reports carry a Firestore createdAt and a human-readable timestamp string;
+     either will do, whichever the record has. */
+  const reportDate = (report) => toDate(report?.createdAt) || toDate(report?.timestamp);
+  const reportStatusOf = (report) => normalizeText(report?.status ?? report?.Status ?? 'pending').toLowerCase();
+  const isRejectedReport = (report) => reportStatusOf(report) === 'rejected';
+
+  const riskLevelKey = (report) => {
+    const value = normalizeText(report?.riskLevel ?? report?.risk ?? report?.severity).toLowerCase();
+    if (/high|critical|severe|urgent/.test(value)) return 'high';
+    if (/moderate|medium|elevated/.test(value)) return 'moderate';
+    if (/low|minor/.test(value)) return 'low';
+    return 'unknown';
+  };
+
+  const daysSince = (date) => (date ? (Date.now() - date.getTime()) / DAY_MS : null);
+
+  const withinDays = (date, days) => {
+    const age = daysSince(date);
+    return age !== null && age >= 0 && age <= days;
+  };
+
+  /* Reports that actually happened: rejected ones were judged false, so they
+     are left out of every base rate and count. */
+  const genuineReports = () => (state.hazards || []).filter((report) => !isRejectedReport(report));
+
+  const reportsWithin = (days, offsetDays = 0) => genuineReports().filter((report) => {
+    const age = daysSince(reportDate(report));
+    return age !== null && age >= offsetDays && age < offsetDays + days;
+  });
+
+  /* Base rates need the real observation span: with only 10 days of records,
+     dividing by 90 would understate how often a hazard appears. */
+  const observedSpanDays = (days = HISTORY_DAYS) => {
+    const dates = genuineReports().map(reportDate).filter(Boolean);
+    if (!dates.length) return 0;
+    const oldest = Math.max(...dates.map((date) => daysSince(date)));
+    return Math.max(7, Math.min(days, Math.ceil(oldest) + 1));
+  };
+
+  /* Chance of at least one event in `days`, given a per-day rate (Poisson). */
+  const chanceWithin = (ratePerDay, days) => 1 - Math.exp(-ratePerDay * days);
+
+  const median = (values) => {
+    if (!values.length) return null;
+    const sorted = [...values].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+  };
+
+  const formatDuration = (hours) => {
+    if (hours === null || !Number.isFinite(hours)) return '—';
+    if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} min`;
+    if (hours < 48) return `${hours.toFixed(hours < 10 ? 1 : 0)} h`;
+    return `${(hours / 24).toFixed(1)} d`;
+  };
+
+  /* Sum of rainfall over the three days before `date`, from recorded past days
+     and the forecast combined. */
+  const rainSeries = () => [...(state.pastRain || []), ...(state.forecast || [])];
+
+  const antecedentRain = (date) => rainSeries()
+    .filter((day) => {
+      const gap = (date.getTime() - day.date.getTime()) / DAY_MS;
+      return gap > 0 && gap <= 3;
+    })
+    .reduce((sum, day) => sum + (day.rainfall || 0), 0);
+
   /* Points that apply to every day of the week, independent of the forecast. */
+  const hazardRecencyFactor = (report) => {
+    const age = daysSince(reportDate(report));
+    if (age === null) return 0.55; // undated report: treat as mid-aged
+    return HAZARD_RECENCY_DECAY.find((step) => age <= step.days).factor;
+  };
+
+  /* One active report's contribution: severity × verified × recency. */
+  const hazardWeight = (report) => {
+    const severity = RISK_MODEL.hazardSeverityPoints[riskLevelKey(report)];
+    const verification = reportStatusOf(report) === 'pending' ? RISK_MODEL.pendingHazardFactor : 1;
+    return severity * verification * hazardRecencyFactor(report);
+  };
+
   const baselinePoints = () => {
     const hazardPoints = Math.min(
-      activeHazards().length * RISK_MODEL.hazardPointsEach,
+      activeHazards().reduce((sum, hazard) => sum + hazardWeight(hazard), 0),
       RISK_MODEL.hazardMaxPoints
     );
     const emergencyPoints = Math.min(
@@ -918,17 +1131,42 @@ a { color: inherit; text-decoration: none; }
         return { date, rainfall: null, probability: null };
       });
 
+    const usage = usageByWeekday();
+    /* A weekday counts as busy when it draws a quarter more traffic than an
+       average day — more people on the trail when a hazard bites. */
+    const busyThreshold = usage.sampled
+      ? (usage.counts.reduce((sum, count) => sum + count, 0) / 7) * 1.25
+      : Infinity;
+
     return days.slice(0, 7).map((day) => {
       const rainfallPoints = day.rainfall === null
         ? 0
         : Math.min(day.rainfall * RISK_MODEL.rainfallPointsPerMm, RISK_MODEL.rainfallMaxPoints);
-      const score = Math.min(100, Math.round(baseline.total + rainfallPoints));
-      return { ...day, rainfallPoints, score, bucket: bucketFromScore(score) };
+      const soaked = antecedentRain(day.date);
+      const saturationPoints = Math.min(soaked * RISK_MODEL.saturationPointsPerMm, RISK_MODEL.saturationMaxPoints);
+      const dayCount = usage.counts[day.date.getDay()];
+      const busy = dayCount > 0 && dayCount >= busyThreshold;
+      const exposurePoints = busy ? RISK_MODEL.busyDayPoints : 0;
+      const score = Math.min(
+        100,
+        Math.round(baseline.total + rainfallPoints + saturationPoints + exposurePoints)
+      );
+      return {
+        ...day,
+        rainfallPoints,
+        saturationPoints,
+        antecedent: soaked,
+        exposurePoints,
+        busy,
+        score,
+        bucket: bucketFromScore(score)
+      };
     });
   };
 
-  /* Hiker activity histogram by weekday, from whatever timestamps the user
-     records actually carry. */
+  /* Hiker activity by weekday. Accounts rarely carry a last-active timestamp,
+     so when none do, hazard report submissions stand in as the activity signal
+     and the panel says which source it used. */
   const usageByWeekday = () => {
     const counts = [0, 0, 0, 0, 0, 0, 0];
     let sampled = 0;
@@ -940,7 +1178,20 @@ a { color: inherit; text-decoration: none; }
       sampled += 1;
     });
 
-    return { counts, sampled };
+    if (sampled) return { counts, sampled, source: 'hiker accounts with recorded activity' };
+
+    const reportCounts = [0, 0, 0, 0, 0, 0, 0];
+    let reportSampled = 0;
+    reportsWithin(HISTORY_DAYS).forEach((report) => {
+      const date = reportDate(report);
+      if (!date) return;
+      reportCounts[date.getDay()] += 1;
+      reportSampled += 1;
+    });
+
+    return reportSampled
+      ? { counts: reportCounts, sampled: reportSampled, source: 'hazard reports submitted on the trail' }
+      : { counts, sampled: 0, source: null };
   };
 
   const availableInputs = () => [
@@ -952,7 +1203,352 @@ a { color: inherit; text-decoration: none; }
     { key: 'forecast', ready: Array.isArray(state.forecast) && state.forecast.length > 0 }
   ];
 
+  /* ---------------- Descriptive ---------------- */
+
+  const advisoryDate = (advisory) =>
+    toDate(advisory?.createdAt) || toDate(advisory?.effectiveDate) || toDate(advisory?.publishedAt);
+  const emergencyDate = (item) =>
+    toDate(item?.createdAt) || toDate(item?.timestamp) || toDate(item?.reportedAt) || toDate(item?.date);
+  const accountDate = (user) =>
+    toDate(user?.createdAt) || toDate(user?.memberSince) || toDate(user?.registeredAt) || toDate(user?.joinedAt);
+
+  /* True when `date` falls in the window that ended `offsetDays` ago. */
+  const inWindow = (date, days, offsetDays = 0) => {
+    const age = daysSince(date);
+    return age !== null && age >= offsetDays && age < offsetDays + days;
+  };
+
+  const countBy = (items, keyOf) => {
+    const counts = new Map();
+    items.forEach((item) => {
+      const key = keyOf(item);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return [...counts.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+  };
+
+  const startOfDay = (date) => {
+    const copy = new Date(date);
+    copy.setHours(0, 0, 0, 0);
+    return copy;
+  };
+
+  const reportTrailLabel = (report) => {
+    const trail = normalizeText(report?.trail || report?.Trail);
+    if (trail) return trail;
+    const location = normalizeText(report?.location);
+    /* A bare GPS fix names no trail, so it would only add noise to the ranking. */
+    if (!location || /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(location)) return 'Not specified';
+    return location;
+  };
+
+  /* Everything the descriptive panel shows, for the selected period and the
+     one before it (so each number can be compared). */
+  const describe = () => {
+    const reports = state.hazards || [];
+    const submitted = reports.filter((report) => inWindow(reportDate(report), periodDays));
+    const previous = reports.filter((report) => inWindow(reportDate(report), periodDays, periodDays));
+
+    const isReviewed = (report) => reportStatusOf(report) !== 'pending';
+    const isAccepted = (report) => ['verified', 'resolved', 'archived'].includes(reportStatusOf(report));
+
+    /* Review time = submitted → the admin's decision. Verifying, rejecting and
+       resolving all stamp updatedAt, so it stands in for the decision time. */
+    const reviewHours = (list) => list
+      .filter(isReviewed)
+      .map((report) => {
+        const from = reportDate(report);
+        const to = toDate(report.updatedAt);
+        if (!from || !to) return null;
+        const hours = (to.getTime() - from.getTime()) / (60 * 60 * 1000);
+        return hours >= 0 ? hours : null;
+      })
+      .filter((hours) => hours !== null);
+
+    const resolvedIn = (offset) => reports.filter((report) => inWindow(toDate(report.resolvedAt), periodDays, offset));
+    const resolved = resolvedIn(0);
+
+    const resolutionHours = resolved
+      .map((report) => {
+        const from = reportDate(report);
+        const to = toDate(report.resolvedAt);
+        if (!from || !to) return null;
+        const hours = (to.getTime() - from.getTime()) / (60 * 60 * 1000);
+        return hours >= 0 ? hours : null;
+      })
+      .filter((hours) => hours !== null);
+
+    const acceptedShare = (list) => (list.length ? (list.filter(isAccepted).length / list.length) * 100 : null);
+
+    /* Daily bars up to 45 days; weekly beyond that, so 90 days stays readable. */
+    const bucketDays = periodDays <= 45 ? 1 : 7;
+    const bucketCount = Math.ceil(periodDays / bucketDays);
+    const todayStart = startOfDay(new Date());
+    const series = Array.from({ length: bucketCount }, (unused, index) => {
+      const end = new Date(todayStart.getTime() - (bucketCount - 1 - index) * bucketDays * DAY_MS);
+      const start = new Date(end.getTime() - (bucketDays - 1) * DAY_MS);
+      const endExclusive = new Date(end.getTime() + DAY_MS);
+      const count = submitted.filter((report) => {
+        const date = reportDate(report);
+        return date && date >= start && date < endExclusive;
+      }).length;
+      return { start, end, count };
+    });
+
+    return {
+      periodDays,
+      bucketDays,
+      series,
+      submitted,
+      previous,
+      resolved,
+      resolvedPrevious: resolvedIn(periodDays),
+      medianReviewHours: median(reviewHours(submitted)),
+      medianReviewHoursPrevious: median(reviewHours(previous)),
+      medianResolutionHours: median(resolutionHours),
+      acceptedShare: acceptedShare(submitted),
+      acceptedSharePrevious: acceptedShare(previous),
+      pendingNow: submitted.filter((report) => reportStatusOf(report) === 'pending').length,
+      byType: countBy(submitted, (report) => normalizeText(report.hazardType || report.type) || 'Unspecified'),
+      byStatus: countBy(submitted, reportStatusOf),
+      byTrail: countBy(submitted.filter((report) => reportTrailLabel(report) !== 'Not specified'), reportTrailLabel),
+      byRisk: countBy(submitted, (report) => riskLevelKey(report)),
+      advisories: (state.advisories || []).filter((item) => inWindow(advisoryDate(item), periodDays)).length,
+      emergencies: (state.emergencies || []).filter((item) => inWindow(emergencyDate(item), periodDays)).length,
+      newAccounts: (state.users || []).filter((user) => inWindow(accountDate(user), periodDays)).length
+    };
+  };
+
+  /* Chance of at least one report of each hazard type in the next 7 days:
+     its observed rate per day (Poisson), raised for rain-driven types by the
+     forecast. Shared by the prediction panel and the recommendations. */
+  const hazardLikelihoods = () => {
+    const history = reportsWithin(HISTORY_DAYS);
+    const span = observedSpanDays();
+    const forecast = state.forecast || [];
+    const totalRain = forecast.reduce((sum, day) => sum + day.rainfall, 0);
+    /* Rain-driven types reach double their base rate at 120 mm of rain. */
+    const rainFactor = Math.min(totalRain / 120, 1);
+
+    if (!history.length || !span) return { rows: [], history, span, totalRain, rainFactor };
+
+    const counts = new Map();
+    history.forEach((hazard) => {
+      const type = normalizeText(hazard.hazardType || hazard.type) || 'Unspecified';
+      counts.set(type, (counts.get(type) || 0) + 1);
+    });
+
+    const rows = [...counts.entries()]
+      .map(([type, count]) => {
+        const rainDriven = RAIN_DRIVEN_HAZARD.test(type);
+        const ratePerDay = (count / span) * (rainDriven ? 1 + rainFactor : 1);
+        return {
+          type,
+          count,
+          rainDriven,
+          likelihood: Math.min(95, Math.round(chanceWithin(ratePerDay, 7) * 100))
+        };
+      })
+      .sort((a, b) => b.likelihood - a.likelihood);
+
+    return { rows, history, span, totalRain, rainFactor };
+  };
+
   /* ---------------- Renderers ---------------- */
+
+  /* Label, thin bar, value — the value is always written out, so the bar
+     length is never the only way to read the number. */
+  const barRows = (rows, { max, total, statusColors = false } = {}) => rows.map((row) => {
+    const widest = max || Math.max(...rows.map((item) => item.count), 1);
+    const width = Math.max(3, Math.round((row.count / widest) * 100));
+    const share = total ? ` · ${Math.round((row.count / total) * 100)}%` : '';
+    const colorClass = statusColors ? ` status-${row.label.toLowerCase()}` : '';
+    return `
+      <div class="bar-row">
+        <div class="bar-head">
+          <span>${escapeHtml(row.display || row.label)}</span>
+          <span>${row.count}${share}</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill${colorClass}" style="width:${width}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const deltaText = (current, previous, { unit = '', betterWhen = null, decimals = 0 } = {}) => {
+    if (previous === null || previous === undefined || current === null) {
+      return { text: `No comparable data for the previous ${periodDays} days`, tone: '' };
+    }
+    const change = current - previous;
+    if (Math.abs(change) < (decimals ? 0.05 : 0.5)) {
+      return { text: `Unchanged vs previous ${periodDays} days`, tone: '' };
+    }
+    const arrow = change > 0 ? '▲' : '▼';
+    const tone = betterWhen === null
+      ? ''
+      : (betterWhen === 'up') === (change > 0) ? 'up' : 'down';
+    return {
+      text: `${arrow} ${Math.abs(change).toFixed(decimals)}${unit} vs previous ${periodDays} days`,
+      tone
+    };
+  };
+
+  const renderDescriptive = () => {
+    const kpis = document.getElementById('descriptiveKpis');
+    const chart = document.getElementById('volumeChart');
+    const axis = document.getElementById('volumeAxis');
+    const note = document.getElementById('volumeNote');
+
+    if (state.hazards === null) {
+      kpis.innerHTML = '';
+      chart.innerHTML = '';
+      axis.innerHTML = '';
+      note.textContent = 'Loading hazard reports…';
+      return;
+    }
+
+    const data = describe();
+
+    const cards = [
+      {
+        label: `Reports submitted (${periodDays} days)`,
+        value: String(data.submitted.length),
+        delta: deltaText(data.submitted.length, data.previous.length)
+      },
+      {
+        label: 'Verified or resolved',
+        value: data.acceptedShare === null ? '—' : `${Math.round(data.acceptedShare)}%`,
+        delta: data.acceptedShare === null
+          ? { text: 'No reports submitted in this period', tone: '' }
+          : deltaText(data.acceptedShare, data.acceptedSharePrevious, { unit: ' pts', betterWhen: 'up' })
+      },
+      {
+        label: 'Hazards resolved',
+        value: String(data.resolved.length),
+        delta: deltaText(data.resolved.length, data.resolvedPrevious.length, { betterWhen: 'up' })
+      },
+      {
+        label: 'Median review time',
+        value: formatDuration(data.medianReviewHours),
+        delta: data.medianReviewHours === null
+          ? { text: 'No reviewed reports in this period', tone: '' }
+          : deltaText(data.medianReviewHours, data.medianReviewHoursPrevious, { unit: ' h', betterWhen: 'down', decimals: 1 })
+      }
+    ];
+
+    kpis.innerHTML = cards.map((card) => `
+      <div class="kpi">
+        <div class="kpi-label">${escapeHtml(card.label)}</div>
+        <div class="kpi-value">${escapeHtml(card.value)}</div>
+        <div class="kpi-delta ${card.delta.tone}">${escapeHtml(card.delta.text)}</div>
+      </div>
+    `).join('');
+
+    // Volume over time
+    const maxCount = Math.max(...data.series.map((bucket) => bucket.count), 1);
+    setText('volumeChartTitle', data.bucketDays === 1
+      ? 'Hazard Reports Submitted (per day)'
+      : 'Hazard Reports Submitted (per week)');
+    chart.innerHTML = data.series.map((bucket) => {
+      const height = bucket.count ? Math.max(6, Math.round((bucket.count / maxCount) * 100)) : 2;
+      const period = data.bucketDays === 1
+        ? formatDate(bucket.end)
+        : `${formatDate(bucket.start)}–${formatDate(bucket.end)}`;
+      return `<div class="day-bar${bucket.count ? '' : ' empty'}" style="height:${height}%" title="${escapeHtml(period)}: ${bucket.count} report${bucket.count === 1 ? '' : 's'}"></div>`;
+    }).join('');
+    /* Start, scale and end — the bars carry no y-axis, so the peak names it. */
+    const peakCount = Math.max(...data.series.map((bucket) => bucket.count), 0);
+    axis.innerHTML = data.series.length
+      ? `<span>${escapeHtml(formatDate(data.series[0].start))}</span>` +
+        `<span>${peakCount ? `peak ${peakCount} per ${data.bucketDays === 1 ? 'day' : 'week'}` : 'no reports'}</span>` +
+        `<span>${escapeHtml(formatDate(data.series[data.series.length - 1].end))}</span>`
+      : '';
+
+    const busiest = [...data.series].sort((a, b) => b.count - a.count)[0];
+    note.textContent = data.submitted.length
+      ? `${data.submitted.length} report${data.submitted.length === 1 ? '' : 's'} in the last ${periodDays} days` +
+        (busiest && busiest.count
+          ? ` · busiest ${data.bucketDays === 1 ? 'day' : 'week'}: ${formatDate(busiest.end)} (${busiest.count})`
+          : '')
+      : `No hazard reports were submitted in the last ${periodDays} days.`;
+
+    // Hazard types
+    const typeList = document.getElementById('typeBreakdown');
+    const topTypes = data.byType.slice(0, 6);
+    const otherCount = data.byType.slice(6).reduce((sum, row) => sum + row.count, 0);
+    if (otherCount) topTypes.push({ label: 'Other types', count: otherCount });
+    typeList.innerHTML = topTypes.length
+      ? barRows(topTypes, { total: data.submitted.length })
+      : '<div class="empty-state">No hazard reports in this period.</div>';
+
+    // Status split
+    const statusOrder = ['pending', 'verified', 'resolved', 'rejected', 'archived'];
+    const statusList = document.getElementById('statusBreakdown');
+    const statusRows = data.byStatus
+      .slice()
+      .sort((a, b) => statusOrder.indexOf(a.label) - statusOrder.indexOf(b.label))
+      .map((row) => ({ ...row, display: row.label.charAt(0).toUpperCase() + row.label.slice(1) }));
+    statusList.innerHTML = statusRows.length
+      ? barRows(statusRows, { total: data.submitted.length, statusColors: true })
+      : '<div class="empty-state">No hazard reports in this period.</div>';
+
+    // Trails
+    const trailList = document.getElementById('trailBreakdown');
+    trailList.innerHTML = data.byTrail.length
+      ? barRows(data.byTrail.slice(0, 5), { total: data.submitted.length })
+      : '<div class="empty-state">No reports in this period name a trail.</div>';
+
+    // Activity rows
+    const setRow = (id, value, muted) => {
+      const element = document.getElementById(id);
+      if (!element) return;
+      element.textContent = value;
+      element.classList.toggle('val-muted', Boolean(muted));
+    };
+    setRow('descAdvisories', state.advisories === null ? '—' : String(data.advisories), state.advisories === null);
+    setRow('descEmergencies', state.errors.emergencies ? 'Unavailable' : state.emergencies === null ? '—' : String(data.emergencies), state.errors.emergencies || state.emergencies === null);
+    setRow('descNewUsers', state.users === null ? '—' : String(data.newAccounts), state.users === null);
+    const recentRain = (state.pastRain || []).reduce((sum, day) => sum + day.rainfall, 0);
+    setRow('descRecentRain', state.pastRain === null ? '—' : `${recentRain.toFixed(0)} mm`, state.pastRain === null);
+    setRow('descClosedTrails', state.trails === null ? '—' : `${closedTrails().length} of ${(state.trails || []).length}`, state.trails === null);
+
+    // Plain-language summary
+    const summary = [];
+    if (data.submitted.length) {
+      const change = data.submitted.length - data.previous.length;
+      summary.push(
+        `${data.submitted.length} hazard report${data.submitted.length === 1 ? '' : 's'} came in over the last ${periodDays} days` +
+        (data.previous.length
+          ? `, ${change === 0 ? 'the same as' : `${Math.abs(change)} ${change > 0 ? 'more than' : 'fewer than'}`} the ${periodDays} days before.`
+          : '.')
+      );
+      if (data.byType.length) {
+        summary.push(`${data.byType[0].label} was the most reported hazard (${data.byType[0].count} of ${data.submitted.length}).`);
+      }
+      if (data.byTrail.length) {
+        summary.push(`${data.byTrail[0].label} drew the most reports (${data.byTrail[0].count}).`);
+      }
+      if (data.medianReviewHours !== null) {
+        summary.push(`Admins reviewed reports in ${formatDuration(data.medianReviewHours)} on average (median).`);
+      }
+      if (data.pendingNow) {
+        summary.push(`${data.pendingNow} of them ${data.pendingNow === 1 ? 'is' : 'are'} still pending review.`);
+      }
+      if (data.medianResolutionHours !== null) {
+        summary.push(`Resolved hazards took ${formatDuration(data.medianResolutionHours)} from report to resolution.`);
+      }
+    } else {
+      summary.push(`No hazard reports were submitted in the last ${periodDays} days.`);
+      const allReports = (state.hazards || []).length;
+      summary.push(allReports
+        ? `${allReports} report${allReports === 1 ? '' : 's'} ${allReports === 1 ? 'exists' : 'exist'} in total — widen the period to see them.`
+        : 'No hazard reports have been recorded yet.');
+    }
+    setText('descriptiveSummary', summary.join(' '));
+  };
 
   const renderCards = () => {
     const days = dailyRisk();
@@ -1011,14 +1607,24 @@ a { color: inherit; text-decoration: none; }
       const ratio = weekdayAverage ? weekend / 2 / weekdayAverage : (weekend ? 2 : 0);
       const congestionBucket = ratio >= 1.5 ? 'high' : ratio >= 1 ? 'moderate' : 'low';
       setValueCard('congestionValue', bucketLabel(congestionBucket), false);
-      setText('congestionHint', `${weekend} of ${usage.sampled} recorded hikers were active on a weekend`);
+      setText('congestionHint', `${weekend} of ${usage.sampled} weekend records · from ${usage.source}`);
     }
 
-    // Confidence is data coverage, not a model score — say so plainly.
+    /* Confidence = how much the model has to work with: which collections are
+       available, how far the history goes back, and how many reports it holds. */
     const inputs = availableInputs();
     const ready = inputs.filter((input) => input.ready).length;
-    setValueCard('confidenceValue', `${Math.round((ready / inputs.length) * 100)}%`, ready === 0);
-    setText('confidenceHint', `${ready} of ${inputs.length} data inputs available`);
+    const span = observedSpanDays();
+    const historyCount = reportsWithin(HISTORY_DAYS).length;
+    const coverage = ready / inputs.length;
+    const depth = Math.min(1, span / 30);
+    const volume = Math.min(1, historyCount / 20);
+    const confidence = Math.round(100 * (0.5 * coverage + 0.3 * depth + 0.2 * volume));
+    setValueCard('confidenceValue', `${confidence}%`, ready === 0);
+    setText(
+      'confidenceHint',
+      `${ready}/${inputs.length} data inputs · ${historyCount} report${historyCount === 1 ? '' : 's'} over ${span} day${span === 1 ? '' : 's'} of history`
+    );
   };
 
   const renderRiskForecast = () => {
@@ -1040,11 +1646,26 @@ a { color: inherit; text-decoration: none; }
       <line x1="0" y1="${yFor(score)}" x2="${width}" y2="${yFor(score)}" stroke="${color}" stroke-width="1" stroke-dasharray="6 6" opacity="0.55"/>
     `;
 
+    /* A marker per day, each carrying what drove that day's score on hover. */
+    const markers = points.map((point) => {
+      const day = point.day;
+      const drivers = [`${day.score}/100 (${bucketLabel(day.bucket)})`];
+      if (day.rainfall !== null && day.rainfall !== undefined) drivers.push(`${day.rainfall.toFixed(0)} mm rain`);
+      if (day.saturationPoints > 0) drivers.push(`${day.antecedent.toFixed(0)} mm in the 3 days before`);
+      if (day.busy) drivers.push('busier-than-average day');
+      return `
+        <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="5" fill="var(--accent)" stroke="#fff" stroke-width="2">
+          <title>${escapeHtml(`${formatDay(day.date)}, ${formatDate(day.date)} — ${drivers.join(' · ')}`)}</title>
+        </circle>
+      `;
+    }).join('');
+
     chart.innerHTML = `
       ${guide(RISK_MODEL.highThreshold, '#c8402f')}
       ${guide(RISK_MODEL.moderateThreshold, '#c9821f')}
       <path d="${areaPath}" fill="rgba(47,143,78,0.1)"/>
       <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      ${markers}
     `;
 
     axis.innerHTML = days.map((day) => `<span>${escapeHtml(formatDay(day.date))} · ${day.score}</span>`).join('');
@@ -1127,7 +1748,7 @@ a { color: inherit; text-decoration: none; }
 
     if (!usage.sampled) {
       chart.innerHTML = '';
-      note.textContent = 'No hiker activity recorded yet. Usage predictions appear once user accounts carry a last-active timestamp.';
+      note.textContent = 'No hiker activity recorded yet. Usage predictions appear once accounts carry a last-active timestamp or hazard reports start coming in.';
       return;
     }
 
@@ -1153,8 +1774,8 @@ a { color: inherit; text-decoration: none; }
     }).join('');
 
     note.textContent = peak.count > 0
-      ? `Busiest day expected ${formatDay(peak.date)} (${formatDate(peak.date)}), based on ${usage.sampled} hiker${usage.sampled === 1 ? '' : 's'} with recorded activity.`
-      : `No recorded activity falls on the next 7 days (sample of ${usage.sampled} hikers).`;
+      ? `Busiest day expected ${formatDay(peak.date)} (${formatDate(peak.date)}), from ${usage.sampled} record${usage.sampled === 1 ? '' : 's'} in ${usage.source}.`
+      : `No activity falls on the next 7 days (sample of ${usage.sampled} record${usage.sampled === 1 ? '' : 's'} from ${usage.source}).`;
   };
 
   const renderHazardLikelihood = () => {
@@ -1165,38 +1786,23 @@ a { color: inherit; text-decoration: none; }
       return;
     }
 
-    const hazards = activeHazards();
-    if (!hazards.length) {
-      list.innerHTML = '<div class="empty-state">No hazard reports recorded yet. Likelihoods are calculated from the hazard types in the reports collection.</div>';
+    const { rows: allRows, history, span, totalRain, rainFactor } = hazardLikelihoods();
+
+    if (!history.length) {
+      list.innerHTML = `<div class="empty-state">No hazard reports in the last ${HISTORY_DAYS} days. Likelihoods are calculated from how often each hazard type is reported.</div>`;
       return;
     }
 
-    const forecast = state.forecast || [];
-    const totalRain = forecast.reduce((sum, day) => sum + day.rainfall, 0);
-    /* Rain-driven hazard types get boosted by up to 100% at 150 mm of forecast rain. */
-    const rainFactor = Math.min(totalRain / 150, 1);
-
-    const counts = new Map();
-    hazards.forEach((hazard) => {
-      const type = normalizeText(hazard.hazardType || hazard.type) || 'Unspecified';
-      counts.set(type, (counts.get(type) || 0) + 1);
-    });
-
-    const rows = [...counts.entries()]
-      .map(([type, count]) => {
-        const share = (count / hazards.length) * 100;
-        const weighted = RAIN_DRIVEN_HAZARD.test(type) ? share * (1 + rainFactor) : share;
-        return { type, count, likelihood: Math.min(95, Math.round(weighted)) };
-      })
-      .sort((a, b) => b.likelihood - a.likelihood)
-      .slice(0, 6);
+    const rows = allRows.slice(0, 6);
 
     list.innerHTML = rows.map((row) => `
       <div class="row">
-        <span>${escapeHtml(row.type)} <span style="color:var(--text-muted)">(${row.count} report${row.count === 1 ? '' : 's'})</span></span>
+        <span>${escapeHtml(row.type)} <span style="color:var(--text-muted)">(${row.count} in ${span} day${span === 1 ? '' : 's'}${row.rainDriven && rainFactor > 0 ? ', rain-driven' : ''})</span></span>
         <span>${row.likelihood}%</span>
       </div>
-    `).join('');
+    `).join('') + `
+      <div class="empty-state">Chance of at least one report in the next 7 days, from ${history.length} report${history.length === 1 ? '' : 's'} over ${span} observed day${span === 1 ? '' : 's'}${rainFactor > 0 ? `, raised for rain-driven types by ${totalRain.toFixed(0)} mm of forecast rain` : ''}.</div>
+    `;
   };
 
   const renderTrailRisk = () => {
@@ -1215,24 +1821,61 @@ a { color: inherit; text-decoration: none; }
     const forecast = state.forecast || [];
     const peakRain = forecast.length ? Math.max(...forecast.map((day) => day.rainfall)) : 0;
     const weatherPoints = Math.min(peakRain * RISK_MODEL.rainfallPointsPerMm, RISK_MODEL.rainfallMaxPoints);
+    const span = observedSpanDays();
 
     const rows = state.trails.map((trail) => {
       const name = trailName(trail);
       const closed = trailStatus(trail).toLowerCase() !== 'open';
-      const hazardCount = hazardsOnTrail(name).length;
+      const active = hazardsOnTrail(name);
+      const history = trailHistory(name);
+
+      /* What is open on the trail now, by severity and recency. */
+      const hazardPoints = Math.min(active.reduce((sum, hazard) => sum + hazardWeight(hazard), 0) * 1.4, 40);
+      /* How reliably this trail produces reports at all. */
+      const recurrence = history.length ? chanceWithin(history.length / span, 7) : 0;
+      const recurrencePoints = recurrence * 25;
+      /* Trails whose history is mostly rain-driven feel the forecast hardest. */
+      const rainShare = history.length
+        ? history.filter((report) => RAIN_DRIVEN_HAZARD.test(normalizeText(report.hazardType || report.type))).length / history.length
+        : 0.5;
+      const weatherShare = weatherPoints * (0.6 + 0.4 * rainShare);
+
       const score = Math.min(
         100,
-        Math.round(Math.min(hazardCount * 20, 60) + weatherPoints + (closed ? 25 : 0))
+        Math.round(hazardPoints + recurrencePoints + weatherShare + (closed ? 20 : 0))
       );
-      return { name, score, bucket: bucketFromScore(score), hazardCount, closed };
+      return {
+        name,
+        score,
+        bucket: bucketFromScore(score),
+        hazardCount: active.length,
+        historyCount: history.length,
+        recurrence: Math.round(recurrence * 100),
+        closed
+      };
     }).sort((a, b) => b.score - a.score);
 
-    list.innerHTML = rows.map((row) => `
-      <div class="row">
-        <span>${escapeHtml(row.name)}${row.hazardCount ? ` <span style="color:var(--text-muted)">(${row.hazardCount} hazard${row.hazardCount === 1 ? '' : 's'})</span>` : ''}${row.closed ? ' <span style="color:var(--text-muted)">(closed)</span>' : ''}</span>
+    /* The card is narrow, so the row keeps the short form and the tooltip
+       carries the full reading. */
+    list.innerHTML = rows.map((row) => {
+      const notes = [];
+      if (row.hazardCount) notes.push(`${row.hazardCount} active`);
+      if (row.recurrence >= 10) notes.push(`${row.recurrence}% next 7d`);
+      if (row.closed) notes.push('closed');
+      const tooltip = [
+        `Risk ${row.score}/100 (${bucketLabel(row.bucket)})`,
+        `${row.hazardCount} active hazard${row.hazardCount === 1 ? '' : 's'}`,
+        `${row.historyCount} report${row.historyCount === 1 ? '' : 's'} in ${span} days`,
+        `${row.recurrence}% chance of a new report in the next 7 days`,
+        row.closed ? 'trail closed' : 'trail open'
+      ].join(' · ');
+      return `
+      <div class="row" title="${escapeHtml(tooltip)}">
+        <span>${escapeHtml(row.name)}${notes.length ? ` <span style="color:var(--text-muted)">(${escapeHtml(notes.join(' · '))})</span>` : ''}</span>
         <span class="tag ${bucketTag(row.bucket)}">${bucketLabel(row.bucket)}</span>
       </div>
-    `).join('');
+    `;
+    }).join('');
   };
 
   /* Rules-based prescriptions: each condition below is read from live data, so
@@ -1296,10 +1939,50 @@ a { color: inherit; text-decoration: none; }
     }
 
     if (pending.length) {
+      /* How long the oldest hiker has been waiting decides how urgent this is. */
+      const ages = pending.map((report) => daysSince(reportDate(report))).filter((age) => age !== null);
+      const oldest = ages.length ? Math.max(...ages) : 0;
+      const waited = oldest >= 1 ? `${Math.floor(oldest)} day${Math.floor(oldest) === 1 ? '' : 's'}` : `${Math.round(oldest * 24)} hours`;
+      actions.push({
+        priority: oldest >= 3 ? 'high' : oldest >= 1 ? 'med' : 'low',
+        title: `Review ${pending.length} pending hazard report${pending.length === 1 ? '' : 's'}.`,
+        meta: `The oldest has waited ${waited}. Pending reports stay off the map and out of hiker notifications until an admin acts.`
+      });
+    }
+
+    /* Verified but never resolved: either the hazard is still out there, or it
+       was cleared and nobody closed the record. */
+    const staleVerified = hazards.filter(
+      (report) => reportStatusOf(report) === 'verified' && (daysSince(reportDate(report)) ?? 0) > 14
+    );
+    if (staleVerified.length) {
       actions.push({
         priority: 'med',
-        title: `Review ${pending.length} pending hazard report${pending.length === 1 ? '' : 's'}.`,
-        meta: 'Pending reports are excluded from verified hazard counts until an admin acts on them.'
+        title: `Re-inspect ${staleVerified.length} verified hazard${staleVerified.length === 1 ? '' : 's'} open longer than 14 days.`,
+        meta: 'Each one still counts towards the risk score until it is resolved on the Hazard Reports page.'
+      });
+    }
+
+    /* The trail that keeps producing reports needs maintenance, not another
+       inspection. */
+    const recurring = (state.trails || [])
+      .map((trail) => ({ name: trailName(trail), count: trailHistory(trailName(trail)).length }))
+      .filter((row) => row.count >= 3)
+      .sort((a, b) => b.count - a.count)[0];
+    if (recurring) {
+      actions.push({
+        priority: 'med',
+        title: `Schedule preventive maintenance on ${recurring.name}.`,
+        meta: `${recurring.count} reports over ${observedSpanDays()} days — the highest recurrence on the network.`
+      });
+    }
+
+    const topLikelihood = hazardLikelihoods().rows[0];
+    if (topLikelihood && topLikelihood.likelihood >= 60) {
+      actions.push({
+        priority: 'med',
+        title: `Prepare crews and materials for ${topLikelihood.type.toLowerCase()}.`,
+        meta: `${topLikelihood.likelihood}% chance of at least one new report in the next 7 days, from ${topLikelihood.count} past report${topLikelihood.count === 1 ? '' : 's'}.`
       });
     }
 
@@ -1346,7 +2029,46 @@ a { color: inherit; text-decoration: none; }
       });
     }
 
-    return actions;
+    /* An advisory that lapses while the mountain is still risky leaves hikers
+       with nothing. */
+    const expiringSoon = advisories.filter((advisory) => {
+      const expires = toDate(advisory.expiresAt);
+      if (!expires) return false;
+      const hoursLeft = (expires.getTime() - Date.now()) / (60 * 60 * 1000);
+      return hoursLeft > 0 && hoursLeft <= 48;
+    });
+    if (expiringSoon.length && todayScore >= RISK_MODEL.moderateThreshold) {
+      actions.push({
+        priority: 'med',
+        title: `Extend or replace ${expiringSoon.length} advisory${expiringSoon.length === 1 ? '' : 'ies'} expiring within 48 hours.`,
+        meta: `Risk is still ${bucketLabel(bucketFromScore(todayScore))} (${todayScore}/100) when ${expiringSoon.length === 1 ? 'it lapses' : 'they lapse'}.`
+      });
+    }
+
+    /* Data quality — these block the rest of the portal from working. */
+    const missingRisk = pending.filter((report) => riskLevelKey(report) === 'unknown');
+    if (missingRisk.length) {
+      actions.push({
+        priority: 'low',
+        title: `Set a risk level on ${missingRisk.length} pending report${missingRisk.length === 1 ? '' : 's'}.`,
+        meta: 'A report cannot be verified or rejected until it carries Low, Moderate or High.'
+      });
+    }
+
+    const unmappable = hazards.filter(
+      (report) => !/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(normalizeText(report.location))
+    );
+    if (unmappable.length >= 3) {
+      actions.push({
+        priority: 'low',
+        title: `${unmappable.length} active hazards carry no map coordinates.`,
+        meta: 'They cannot be plotted on Geomap Monitoring, so responders only get the written location.'
+      });
+    }
+
+    /* Highest priority first, so the top of the list is what to do now. */
+    const order = { high: 0, med: 1, low: 2 };
+    return actions.sort((first, second) => order[first.priority] - order[second.priority]);
   };
 
   const renderRecommendations = () => {
@@ -1444,10 +2166,13 @@ a { color: inherit; text-decoration: none; }
     ].join(', ');
 
     inputsText.textContent =
-      `Computed live from ${counts}, plus the ${forecast.length}-day Open-Meteo rainfall forecast for Mount Makiling. ` +
-      `The daily risk score adds rainfall (up to ${RISK_MODEL.rainfallMaxPoints} pts), active hazards (up to ${RISK_MODEL.hazardMaxPoints} pts), ` +
-      `active emergencies (up to ${RISK_MODEL.emergencyMaxPoints} pts) and trail closures (up to ${RISK_MODEL.closedTrailMaxPoints} pts); ` +
-      `${RISK_MODEL.moderateThreshold}+ is Moderate and ${RISK_MODEL.highThreshold}+ is High. Empty sections mean that collection has no data yet.`;
+      `Computed live from ${counts}, plus the ${forecast.length}-day Open-Meteo rainfall forecast for Mount Makiling and the 3 days of rain before it. ` +
+      `The daily risk score adds rainfall (up to ${RISK_MODEL.rainfallMaxPoints} pts), already-soaked ground from the previous 3 days (up to ${RISK_MODEL.saturationMaxPoints} pts), ` +
+      `active hazards weighted by risk level, review status and age (up to ${RISK_MODEL.hazardMaxPoints} pts), active emergencies (up to ${RISK_MODEL.emergencyMaxPoints} pts), ` +
+      `trail closures (up to ${RISK_MODEL.closedTrailMaxPoints} pts) and busier-than-average days (${RISK_MODEL.busyDayPoints} pts); ` +
+      `${RISK_MODEL.moderateThreshold}+ is Moderate and ${RISK_MODEL.highThreshold}+ is High. ` +
+      `Hazard and trail likelihoods are the chance of at least one new report in 7 days, from how often each has actually been reported over ${observedSpanDays()} observed day${observedSpanDays() === 1 ? '' : 's'}. ` +
+      'Each recommendation below states the number that triggered it. Empty sections mean that collection has no data yet.';
   };
 
   /* ---------------- Daily record ---------------- */
@@ -1461,38 +2186,15 @@ a { color: inherit; text-decoration: none; }
   const manilaDateKey = () =>
     new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
 
-  // Firestore does not keep map keys in the order they were written, so
-  // records are compared with their keys sorted.
-  const stableJson = (value) => JSON.stringify(value, (key, val) => (
-    val && typeof val === 'object' && !Array.isArray(val)
-      ? Object.fromEntries(Object.keys(val).sort().map((k) => [k, val[k]]))
-      : val
-  ));
-
   let lastSavedRecord = '';
-  let storedRecordDate = ''; // the date whose stored record has been read
 
-  /* Saves the day's record, and announces it, only when the recommendations
-     really changed. Opening the page, or a second admin with it open, finds
-     the same list already stored and stays quiet. */
-  const saveDailyRecordNow = async () => {
+  const saveDailyRecord = async () => {
     if (RECORD_SOURCES.some((key) => state[key] === null)) return;
 
     const date = manilaDateKey();
     const actions = buildRecommendations();
-    const signature = stableJson({ date, actions });
+    const signature = JSON.stringify({ date, actions });
     if (signature === lastSavedRecord) return;
-
-    if (storedRecordDate !== date) {
-      storedRecordDate = date;
-      try {
-        const stored = await getDoc(doc(db, HISTORY_COLLECTION, date));
-        if (stored.exists()) lastSavedRecord = stableJson({ date, actions: stored.data().actions || [] });
-      } catch (error) {
-        console.warn(`Could not read the stored ${date} prescriptive record:`, error.message);
-      }
-      if (signature === lastSavedRecord) return;
-    }
     lastSavedRecord = signature;
 
     const today = dailyRisk()[0];
@@ -1510,47 +2212,14 @@ a { color: inherit; text-decoration: none; }
         unavailableInputs: Object.keys(state.errors),
         updatedAt: serverTimestamp()
       });
-      // notification.js turns this saved record into a bell notification
-      // for every admin; this is the heads-up for whoever is on the page.
-      announceNewAnalysis(actions.length, countOf('high'));
     } catch (error) {
       lastSavedRecord = ''; // try again on the next data change
       console.error(`Failed to save the ${date} prescriptive record:`, error);
     }
   };
 
-  // renderAll fires once per data source as the page loads; queue the saves
-  // so two overlapping runs can never both decide the same list is new.
-  let saveQueue = Promise.resolve();
-  const saveDailyRecord = () => {
-    saveQueue = saveQueue.then(saveDailyRecordNow, saveDailyRecordNow);
-    return saveQueue;
-  };
-
-  /* ---------------- New-analysis announcement ---------------- */
-
-  const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`;
-
-  const announceNewAnalysis = (total, high) => {
-    const toast = document.getElementById('analysisToast');
-    if (!toast) return;
-    document.getElementById('analysisToastText').textContent = total
-      ? `${plural(total, 'recommended action')}${high ? `, ${high} high priority` : ''}.`
-      : 'No actions are needed right now.';
-    toast.hidden = false;
-    clearTimeout(announceNewAnalysis.timer);
-    announceNewAnalysis.timer = setTimeout(() => { toast.hidden = true; }, 12000);
-  };
-
-  document.getElementById('analysisToastClose')?.addEventListener('click', () => {
-    document.getElementById('analysisToast').hidden = true;
-  });
-  document.getElementById('analysisToastView')?.addEventListener('click', () => {
-    document.getElementById('analysisToast').hidden = true;
-    document.getElementById('prescriptivePanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-
   const renderAll = () => {
+    renderDescriptive();
     renderCards();
     renderRiskForecast();
     renderWeatherImpact();
@@ -1584,8 +2253,10 @@ a { color: inherit; text-decoration: none; }
   watchCollection('emergency', 'emergencies');
 
   const loadForecast = async () => {
+    /* past_days=3 brings the rain that already fell, which decides how soaked
+       the ground is going into the forecast. */
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${MAKILING.latitude}&longitude=${MAKILING.longitude}` +
-      '&daily=precipitation_sum,precipitation_probability_max,weather_code&forecast_days=7&timezone=Asia%2FManila';
+      '&daily=precipitation_sum,precipitation_probability_max,weather_code&past_days=3&forecast_days=7&timezone=Asia%2FManila';
 
     try {
       const response = await fetch(url, { cache: 'no-store' });
@@ -1595,21 +2266,41 @@ a { color: inherit; text-decoration: none; }
       const daily = data?.daily;
       if (!daily?.time?.length) throw new Error('Forecast response contained no daily data');
 
-      state.forecast = daily.time.map((time, index) => ({
+      const days = daily.time.map((time, index) => ({
         date: new Date(`${time}T00:00:00`),
         rainfall: Number(daily.precipitation_sum?.[index] ?? 0) || 0,
         probability: Number(daily.precipitation_probability_max?.[index] ?? 0) || 0,
         code: Number(daily.weather_code?.[index] ?? 0) || 0
       }));
+
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      state.pastRain = days.filter((day) => day.date < todayStart);
+      state.forecast = days.filter((day) => day.date >= todayStart).slice(0, 7);
       delete state.errors.forecast;
     } catch (error) {
       console.error('Failed to load the weather forecast:', error);
       state.forecast = [];
+      state.pastRain = [];
       state.errors.forecast = true;
     }
 
     renderAll();
   };
+
+  /* The period filter redraws the descriptive panel only — the predictive and
+     prescriptive models always run on their own fixed windows. */
+  document.querySelectorAll('.segmented [data-period]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const chosen = Number(button.dataset.period);
+      if (!PERIOD_OPTIONS.includes(chosen) || chosen === periodDays) return;
+      periodDays = chosen;
+      document.querySelectorAll('.segmented [data-period]').forEach((other) => {
+        other.setAttribute('aria-pressed', String(Number(other.dataset.period) === periodDays));
+      });
+      renderDescriptive();
+    });
+  });
 
   renderAll();
   loadForecast();
