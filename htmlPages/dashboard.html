@@ -372,7 +372,7 @@
             <section class="hero-grid">
                 <article class="hero-card">
                     <div class="hero-card-title"><i class="fa-solid fa-person-hiking"></i><h3>Active Hikers Today</h3></div>
-                    <p id="activeHikersValue">—</p><span>Hiker activity data unavailable</span>
+                    <p id="activeHikersValue">—</p><span id="activeHikersMeta">Loading hiker data...</span>
                 </article>
                 <article class="hero-card">
                     <div class="hero-card-title"><i class="fa-solid fa-route"></i><h3>Open Trails</h3></div>
@@ -503,6 +503,32 @@
                 ? [latitude, longitude]
                 : null;
         };
+
+        /* Active Hikers Today counts the users collection the same way the
+           Geomap and User Management pages do: role and status are written
+           either lower-case or capitalised depending on where the account was
+           created, and a record missing either field is treated as an active
+           hiker (the default a new sign-up gets). */
+        const userField = (data, key) => String(data[key] ?? data[key[0].toUpperCase() + key.slice(1)] ?? '').trim();
+
+        onSnapshot(collection(db, 'users'), (snapshot) => {
+            const hikers = snapshot.docs.filter(document => {
+                const role = userField(document.data(), 'role').toLowerCase();
+                return (role || 'hiker') === 'hiker';
+            });
+            const activeHikers = hikers.filter(document => {
+                const status = userField(document.data(), 'status').toLowerCase();
+                return (status || 'active') === 'active';
+            });
+            document.getElementById('activeHikersValue').textContent = activeHikers.length;
+            document.getElementById('activeHikersMeta').textContent = hikers.length
+                ? `${Math.round((activeHikers.length / hikers.length) * 100)}% of ${hikers.length} registered hikers`
+                : 'No hikers found';
+        }, (error) => {
+            console.error('Error loading dashboard hikers:', error);
+            document.getElementById('activeHikersValue').textContent = '—';
+            document.getElementById('activeHikersMeta').textContent = 'Unable to load hiker data';
+        });
 
         onSnapshot(collection(db, 'trails'), (snapshot) => {
             const trails = snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
