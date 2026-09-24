@@ -60,6 +60,17 @@
         0 1px 2px rgba(20, 40, 25, 0.04);
     --shadow-hover: 0 6px 18px rgba(20, 40, 25, 0.10);
 
+    /* Icons — a soft amber, warm and low-glare for a screen the admin reads
+       all day. Deliberately desaturated: bright icons are the first thing
+       that tires the eye on a dense table page. See the icon rules below for
+       which icons take these and which keep their own colour.
+         --icon         decorative icons: cards, chips, buttons, list rows
+         --icon-muted   secondary icons: search fields, empty states, menus
+         --icon-strong  hover and focus, a shade deeper than --icon */
+    --icon: #b8863c;
+    --icon-muted: #a89878;
+    --icon-strong: #8a6329;
+
     /* Status */
     --danger: #c8402f;
     --danger-light: #fbeae7;
@@ -155,6 +166,12 @@
     --text-muted: #7f8b7c;
     --text-400: #7f8b7c;
 
+    /* Icons: lifted, because the light-mode amber goes muddy on a dark
+       surface. Hover is brighter here, the opposite of light mode. */
+    --icon: #e0b063;
+    --icon-muted: #9a9280;
+    --icon-strong: #f0c47f;
+
     /* Elevation: shadows read as depth on dark only when they are darker. */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
     --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -238,6 +255,54 @@ body {
     color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
         Helvetica, Arial, sans-serif;
+}
+
+/* ==========================================================================
+   Icons — one warm tone on every page.
+
+   Font Awesome glyphs are plain <i> elements, so until now each page coloured
+   them however it liked: brand green (--accent), a hardcoded #16a34a, or a
+   cold grey (#c9d2cb, #5b6b60). The default below warms every icon at once,
+   which makes --icon the single knob for tuning them later.
+
+   All three rules are wrapped in :where(), which costs nothing in
+   specificity, so any page rule that colours an icon keeps winning without
+   needing !important. That also means the order here is what settles
+   overlaps: the last matching rule wins.
+
+     1. default        every icon takes the warm tone
+     2. hover/focus    icons in a control deepen rather than jump to green
+     3. own colour     icons that carry meaning are handed back to their
+                       container, so they stay red/amber/green/white
+
+   Rule 3 is last on purpose: a white icon on a filled primary button must
+   stay white even while that button is hovered.
+   ========================================================================== */
+:where(i[class*="fa-"], .fa) {
+    color: var(--icon);
+}
+
+:where(button:hover, button:focus-visible, a:hover, a:focus-visible)
+    :where(i[class*="fa-"], .fa) {
+    color: var(--icon-strong);
+}
+
+:where(
+    /* Status pills, badges and trend chips */
+    .badge, .pill-chip, .status-pill, .risk-pill, .chip, .hero-chip,
+    .stat-meta,
+    /* Tinted icon tiles, map pins and avatars: the tile sets the colour */
+    .stat-icon, .hero-icon, .info-icon, .activity-icon, .alert-row-icon,
+    .trail-row-icon, .card-icon, .detail-icon, .media-drop-icon, .modal-icon,
+    .brand-icon, .hiker-pin, .rid-flag, .avatar, .p-avatar,
+    /* Filled buttons: the label is white, so the icon has to match */
+    .btn-primary, .button-primary, .btn-warn, .btn-resolve, .btn-danger,
+    /* Destructive menu items and actions */
+    .danger,
+    /* The evidence viewer is light-on-dark */
+    .viewer-file, .viewer-nav
+) :where(i[class*="fa-"], .fa) {
+    color: inherit;
 }
 
 /* Shared content-area rhythm. */

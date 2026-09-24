@@ -35,33 +35,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PeakPath Admin — User Reports</title>
 <style>
-  :root{
-    --sidebar-bg:#132313;
-    --sidebar-bg-light:#1c341c;
-    --accent:#2f8f4e;
-    --accent-dark:#1f6b39;
-    --accent-light:#e7f5eb;
-    --bg:#f4f6f4;
-    --card:#ffffff;
-    --border:#e7ebe7;
-    --text-900:#1f2a22;
-    --text-600:#5b6b60;
-    --text-400:#93a199;
-    --red-bg:#fbe9e7;
-    --red-text:#d1453b;
-    --orange-bg:#fdf1e0;
-    --orange-text:#c9821f;
-    --purple-bg:#f1eafb;
-    --purple-text:#7b4fd1;
-    --blue-bg:#e6eefb;
-    --blue-text:#2a63b5;
-    --green-bg:#e7f5ea;
-    --green-text:#2f8f4e;
-    --radius-md:10px;
-    --radius-lg:14px;
-    --shadow-card: 0 1px 3px rgba(20,40,25,0.06), 0 1px 2px rgba(20,40,25,0.04);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  }
+  /* Palette, radii and typography come from pages.css (:root). */
 
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--text-900);font-size:14px;-webkit-font-smoothing:antialiased;}
@@ -107,7 +81,7 @@
   .stat-card{display:flex;align-items:center;gap:16px;min-width:0;min-height:128px;padding:18px 20px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);box-shadow:0 18px 36px rgba(15,23,42,0.06);transition:transform 0.2s ease, box-shadow 0.2s ease;}
   .stat-card:hover{transform:translateY(-2px);box-shadow:0 24px 48px rgba(15,23,42,0.08);}
   .stat-icon{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;font-size:21px;}
-  .stat-icon.red{background:#fde8e5;color:#d1453b;}
+  .stat-icon.red{background:#fde8e5;color:#c8402f;}
   .stat-icon.amber{background:#fdf0dc;color:#e39a2c;}
   .stat-icon.blue{background:#e3edfb;color:#2a63b5;}
   .stat-icon.green{background:var(--dm-surface-3, #e3f3e7);color:#2f8f4e;}
@@ -118,7 +92,7 @@
   .stat-meta i{font-size:10px;}
   .stat-meta.up i{color:var(--green-text);}
   .stat-meta.down i{color:var(--red-text);}
-  .stat-meta.flat i{color:var(--text-400);}
+  .stat-meta.flat i{color:var(--icon-muted);}
 
   /* ---------------- Content layout ---------------- */
   .content-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start;min-width:0;}
@@ -140,7 +114,7 @@
      a bordered Clear Filters button. */
   .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
   .search-box{flex:1 1 200px;min-width:160px;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--dm-surface-2, #fbfcfa);}
-  .search-box i{flex-shrink:0;font-size:12.5px;color:var(--text-400);}
+  .search-box i{flex-shrink:0;font-size:12.5px;color:var(--icon-muted);}
   .search-box input{width:100%;min-width:0;border:none;outline:none;background:transparent;font:inherit;font-size:13px;color:var(--text-900);}
   .search-box:focus-within,select.filter:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,143,78,.12);}
   select.filter{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--dm-surface-2, #fbfcfa);font:inherit;font-size:13px;color:var(--text-600);outline:none;cursor:pointer;}
@@ -185,7 +159,7 @@
   .table-wrap.scrolls .reports-table td:last-child:not(.table-empty){box-shadow:-10px 0 10px -10px rgba(20,40,25,.28);}
   .reports-table tbody tr:last-child td{border-bottom:none;}
   .table-empty{padding:34px 12px !important;text-align:center;color:var(--text-400) !important;cursor:default;}
-  .table-empty i{display:block;margin-bottom:8px;font-size:22px;color:#c9d2cb;}
+  .table-empty i{display:block;margin-bottom:8px;font-size:22px;color:var(--icon-muted);}
 
   .rid{display:flex;align-items:center;gap:7px;white-space:nowrap;}
   .rid-flag{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;flex-shrink:0;font-size:10.5px;}
@@ -220,7 +194,7 @@
   .row-menu button,.row-menu a{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:0;border-radius:7px;background:transparent;font-size:12.5px;font-weight:500;color:var(--text-900);text-align:left;}
   .row-menu button:hover,.row-menu a:hover{background:var(--dm-surface-2, #f1f4f0);}
   .row-menu button:disabled{opacity:.45;cursor:not-allowed;background:transparent;}
-  .row-menu i{width:14px;text-align:center;color:var(--text-600);}
+  .row-menu i{width:14px;text-align:center;color:var(--icon-muted);}
   .row-menu .danger,.row-menu .danger i{color:var(--red-text);}
   .row-menu hr{margin:5px 2px;border:0;border-top:1px solid var(--border);}
 
@@ -257,8 +231,8 @@
   .chart-empty button{display:block;margin:6px auto 0;border:0;background:transparent;font-size:12px;font-weight:600;color:var(--accent-dark);}
 
   .line-legend{display:flex;align-items:center;gap:7px;margin:-4px 0 4px;font-size:11px;color:var(--text-600);}
-  .line-key{position:relative;width:18px;height:2px;background:#d1453b;}
-  .line-key::after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:#d1453b;transform:translate(-50%,-50%);}
+  .line-key{position:relative;width:18px;height:2px;background:#c8402f;}
+  .line-key::after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:#c8402f;transform:translate(-50%,-50%);}
   #timeChart{display:block;width:100%;height:170px;overflow:visible;}
 
   /* ---------------- Report details ---------------- */
@@ -301,7 +275,7 @@
   .action-btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:38px;padding:0 12px;border:1px solid transparent;border-radius:8px;font-size:12.5px;font-weight:600;color:#fff;transition:filter .15s ease;}
   .action-btn:hover:not(:disabled){filter:brightness(.94);}
   .action-btn.view{background:var(--accent-dark);}
-  .action-btn.contact{background:#1f73e8;}
+  .action-btn.contact{background:#2a63b5;}
   .action-btn.warn{background:#f2b01e;color:var(--dm-text, #2a2105);}
   .action-btn.suspend{background:#e0342a;}
   .action-btn.resolve{background:var(--dm-surface, #fff);border-color:var(--dm-border, #cfd6cf);color:var(--text-900);}
@@ -317,7 +291,7 @@
   .modal-sub{margin:0 0 16px;font-size:12.5px;color:var(--text-600);line-height:1.5;}
   .modal .field{margin-bottom:13px;}
   .modal .field label{display:block;margin-bottom:5px;font-size:12.5px;font-weight:600;color:var(--text-600);}
-  .modal .field input,.modal .field select,.modal .field textarea{width:100%;padding:9px 11px;border:1px solid var(--dm-border, #e2e8f0);border-radius:8px;background:var(--dm-surface-2, #fbfcfa);color:var(--text-900);font:inherit;font-size:13px;}
+  .modal .field input,.modal .field select,.modal .field textarea{width:100%;padding:9px 11px;border:1px solid var(--dm-border, #e4e7e1);border-radius:8px;background:var(--dm-surface-2, #fbfcfa);color:var(--text-900);font:inherit;font-size:13px;}
   .modal .field textarea{min-height:94px;resize:vertical;line-height:1.5;}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
   .modal-actions button,.modal-actions a{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border:0;border-radius:8px;font-size:13px;font-weight:700;}
@@ -349,7 +323,7 @@
   .history-list{display:flex;flex-direction:column;gap:8px;max-height:230px;overflow-y:auto;}
   .history-item{display:flex;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--dm-surface-2, #fbfcfa);}
   .history-dot{width:8px;height:8px;margin-top:5px;border-radius:50%;flex-shrink:0;background:var(--accent);}
-  .history-dot.contact,.history-dot.review{background:#2f6fed;}
+  .history-dot.contact,.history-dot.review{background:#2a63b5;}
   .history-dot.warn{background:#e8a63c;}
   .history-dot.suspend{background:var(--red-text);}
   .history-body{min-width:0;}
@@ -963,10 +937,10 @@
      Report type and status vocabularies
      ===================================================================== */
   const REPORT_TYPES = [
-    { key: 'harassment', label: 'Harassment', pattern: /harass|bully|threat|abus/, chart: '#e0473a', bg: '#fde8e5', text: '#d1453b' },
+    { key: 'harassment', label: 'Harassment', pattern: /harass|bully|threat|abus/, chart: '#e0473a', bg: '#fde8e5', text: '#c8402f' },
     { key: 'inappropriate', label: 'Inappropriate Behavior', pattern: /inappropriate|noise|loud|drunk|indecen/, chart: '#f08a24', bg: '#fdf0dc', text: '#d9791a' },
-    { key: 'rule', label: 'Rule Violation', pattern: /rule|violat|litter|trash|leave no trace|permit|restricted/, chart: '#7b4fd1', bg: '#f1eafb', text: '#6b4cc9' },
-    { key: 'unsafe', label: 'Unsafe Behavior', pattern: /unsafe|danger|reckless|risk|safety/, chart: '#2f8f4e', bg: '#fde8e5', text: '#d1453b' },
+    { key: 'rule', label: 'Rule Violation', pattern: /rule|violat|litter|trash|leave no trace|permit|restricted/, chart: '#6b4cc9', bg: '#f1eafb', text: '#6b4cc9' },
+    { key: 'unsafe', label: 'Unsafe Behavior', pattern: /unsafe|danger|reckless|risk|safety/, chart: '#2f8f4e', bg: '#fde8e5', text: '#c8402f' },
     { key: 'disrespectful', label: 'Disrespectful Conduct', pattern: /disrespect|rude|insult|conduct/, chart: '#e8b720', bg: '#fdf0dc', text: '#d9791a' }
   ];
   const OTHER_TYPE = { key: 'other', label: 'Other', chart: '#93a199', bg: '#eef1ec', text: '#5b6b60' };
@@ -1805,19 +1779,19 @@
     const points = buckets.map((bucket, index) => `${x(index)},${y(bucket.count)}`);
     const area = `M${x(0)},${bottom} L${points.join(' L')} L${x(buckets.length - 1)},${bottom} Z`;
     const dots = buckets.length <= 31
-      ? buckets.map((bucket, index) => `<circle cx="${x(index)}" cy="${y(bucket.count)}" r="3" style="fill:var(--dm-surface, #fff)" stroke="#d1453b" stroke-width="2"><title>${escapeHtml(bucket.label)}: ${bucket.count} report${bucket.count === 1 ? '' : 's'}</title></circle>`).join('')
+      ? buckets.map((bucket, index) => `<circle cx="${x(index)}" cy="${y(bucket.count)}" r="3" style="fill:var(--dm-surface, #fff)" stroke="#c8402f" stroke-width="2"><title>${escapeHtml(bucket.label)}: ${bucket.count} report${bucket.count === 1 ? '' : 's'}</title></circle>`).join('')
       : '';
 
     svg.innerHTML = `
       <defs>
         <linearGradient id="timeArea" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#d1453b" stop-opacity=".18"/>
-          <stop offset="100%" stop-color="#d1453b" stop-opacity="0"/>
+          <stop offset="0%" stop-color="#c8402f" stop-opacity=".18"/>
+          <stop offset="100%" stop-color="#c8402f" stop-opacity="0"/>
         </linearGradient>
       </defs>
       ${grid}
       <path d="${area}" fill="url(#timeArea)"/>
-      <polyline points="${points.join(' ')}" fill="none" stroke="#d1453b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <polyline points="${points.join(' ')}" fill="none" stroke="#c8402f" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       ${dots}
       ${labels}
       ${reports.length ? '' : `<text x="${left + plotWidth / 2}" y="${top + 48}" font-size="11" fill="#93a199" text-anchor="middle">No reports in this period</text>`}

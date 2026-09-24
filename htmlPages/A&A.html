@@ -62,8 +62,8 @@
 		.panel-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--accent-dark)}
 		.panel-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 		.archive-action-wrap{position:relative;display:flex;align-items:center}
-		.archive-action{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--border);border-radius:10px;background:var(--dm-surface, #ffffff);color:var(--text-primary);transition:all .15s ease;cursor:pointer}
-		.archive-action:hover{background:var(--accent-light);border-color:rgba(47,143,78,.25);color:var(--accent-dark)}
+		.archive-action{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--border);border-radius:10px;background:var(--dm-surface, #ffffff);color:var(--icon);transition:all .15s ease;cursor:pointer}
+		.archive-action:hover{background:var(--accent-light);border-color:rgba(47,143,78,.25);color:var(--icon-strong)}
 		.archive-action:disabled{cursor:not-allowed;opacity:.45}
 		.archive-action svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 		.archive-tooltip{position:absolute;top:calc(100% + 8px);right:0;white-space:nowrap;padding:6px 8px;border-radius:8px;background:#1d2b1d;color:#fff;font-size:11px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:all .15s ease;box-shadow:0 8px 18px rgba(0,0,0,.12)}
@@ -134,12 +134,15 @@
 		.btn-edit[disabled],.btn-end[disabled]{cursor:not-allowed}
 		.empty-state{padding:24px;text-align:center;color:var(--text-muted);font-size:13px}
 		.row-actions{display:flex;align-items:center;gap:2px}
-		.icon-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:none;background:transparent;border-radius:7px;color:var(--text-secondary)}
-		.icon-btn:hover{background:var(--accent-light);color:var(--accent-dark)}
+		/* This page draws its icons as inline SVG rather than Font Awesome, so
+		   the warm icon tokens are applied here by hand; the shared rule in
+		   pages.css only reaches <i> glyphs. */
+		.icon-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:none;background:transparent;border-radius:7px;color:var(--icon-muted)}
+		.icon-btn:hover{background:var(--accent-light);color:var(--icon-strong)}
 		.icon-btn.danger:hover{background:var(--danger-light);color:var(--danger)}
 		.icon-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 		.icon-btn[disabled]{opacity:.35;cursor:not-allowed}
-		.icon-btn[disabled]:hover{background:transparent;color:var(--text-secondary)}
+		.icon-btn[disabled]:hover{background:transparent;color:var(--icon-muted)}
 		.pagination{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
 		.page-controls{display:flex;align-items:center;gap:6px}
 		/* Pagination buttons are styled in pages.css so every table matches. */

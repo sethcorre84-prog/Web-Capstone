@@ -1,8 +1,25 @@
+/* The login page is the only page that does not load pages.css, so the two
+   things the portal shares have to be repeated here: the font stack and the
+   warm icon tokens. Keep both in step with cssPages/pages.css.
+
+   Inter used to be named here but was never loaded, so this page silently fell
+   back to Arial while every admin page rendered in Segoe UI. */
+:root{
+    --icon: #b8863c;
+    --icon-muted: #a89878;
+    /* The left panel sits on a dark photograph, so its icons take the lifted
+       dark-mode amber and a warm tint rather than the light-mode value. */
+    --icon-on-dark: #e0b063;
+    --icon-tint: rgba(184, 134, 60, 0.14);
+    --icon-tint-on-dark: rgba(224, 176, 99, 0.16);
+}
+
 *{
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: Inter, Arial, Helvetica, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif;
 }
 
 body{
@@ -120,8 +137,8 @@ body{
     justify-content: center;
     align-items: center;
     border-radius: 50%;
-    background: rgba(48, 170, 88, 0.16);
-    color: #7fde92;
+    background: var(--icon-tint-on-dark);
+    color: var(--icon-on-dark);
     font-size: 18px;
 }
 
@@ -210,11 +227,11 @@ body{
     height: 88px;
     margin: 0 auto 18px;
     border-radius: 24px;
-    background: rgba(28, 123, 62, 0.12);
+    background: var(--icon-tint);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #1e7f41;
+    color: var(--icon);
     font-size: 34px;
 }
 
@@ -247,7 +264,7 @@ body{
 }
 
 .card-divider .divider-icon{
-    color: #1e7f41;
+    color: var(--icon);
     font-size: 20px;
 }
 
@@ -275,7 +292,7 @@ label{
 }
 
 .input-box i{
-    color: #7f8c99;
+    color: var(--icon-muted);
     min-width: 20px;
     text-align: center;
 }
@@ -302,7 +319,7 @@ label{
     width: auto;
     padding: 0;
     background: transparent;
-    color: #7f8c99;
+    color: var(--icon-muted);
     font-size: 15px;
     display: flex;
     align-items: center;
@@ -383,7 +400,7 @@ button:hover{
 }
 
 .footer i{
-    color: #1e7f41;
+    color: var(--icon);
     margin-right: 8px;
 }
 

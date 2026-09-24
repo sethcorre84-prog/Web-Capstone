@@ -247,7 +247,10 @@ document.querySelectorAll('.bell-wrap').forEach((bell) => {
   bell.classList.add('notification-center');
   bell.innerHTML = `
     <button class="bell-btn" type="button" aria-label="Open notifications" aria-expanded="false">
-      <span class="bell-icon" aria-hidden="true">&#128276;</span>
+      <!-- A Font Awesome glyph, not the 🔔 emoji it used to be: an emoji is
+           painted by the font in its own fixed colours, so it ignored the
+           portal's icon colour and stayed the one cold icon on every page. -->
+      <i class="fa-solid fa-bell bell-icon" aria-hidden="true"></i>
     </button>
     <span class="bell-badge" aria-live="polite" hidden>0</span>
     <div class="notification-panel" role="region" aria-label="Notifications">

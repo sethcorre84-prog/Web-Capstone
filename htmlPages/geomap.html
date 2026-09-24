@@ -406,14 +406,14 @@
     /* Same look as the hazard circle markers — keep in sync with HAZARD_RISK_COLORS. */
     .hazard-dot{width:12px;height:12px;margin:0 2px;flex-shrink:0;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.28);}
     .hazard-dot.high{background:#c8402f;}
-    .hazard-dot.moderate{background:#f4c20d;}
+    .hazard-dot.moderate{background:#e8a63c;}
     .hazard-dot.low{background:#2a63b5;}
     /* Live hiker pins (an L.divIcon) and their legend swatches. */
     .hiker-marker{background:none;border:none;}
     .hiker-pin{position:relative;display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);color:#fff;font-size:12px;}
-    .hiker-pin.online{background:#16a34a;}
+    .hiker-pin.online{background:#2f8f4e;}
     .hiker-pin.offline{background:#8a948c;}
-    .hiker-pin.online::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid #16a34a;animation:hikerPulse 2s ease-out infinite;}
+    .hiker-pin.online::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid #2f8f4e;animation:hikerPulse 2s ease-out infinite;}
     @keyframes hikerPulse{from{transform:scale(.8);opacity:.8;}to{transform:scale(1.5);opacity:0;}}
     @media (prefers-reduced-motion: reduce){.hiker-pin.online::after{animation:none;opacity:0;}}
     .legend-row .hiker-pin{width:16px;height:16px;border-width:1px;flex-shrink:0;}
@@ -600,7 +600,7 @@
         <div class="card">
           <div class="card-top">
             <span class="value" id="weatherTemperature">—</span>
-            <div class="card-icon" aria-hidden="true" style="background:var(--dm-surface-3, #edf5ff);color:#3d6ec8;">
+            <div class="card-icon" aria-hidden="true" style="background:var(--dm-surface-3, #edf5ff);color:#2a63b5;">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
             </div>
           </div>
@@ -782,7 +782,7 @@
     };
 
     // Hazard marker fill per risk level — keep in sync with .hazard-dot in the legend.
-    const HAZARD_RISK_COLORS = { high: '#c8402f', moderate: '#f4c20d', low: '#2a63b5', unknown: '#8a948c' };
+    const HAZARD_RISK_COLORS = { high: '#c8402f', moderate: '#e8a63c', low: '#2a63b5', unknown: '#8a948c' };
     // Higher risk is drawn later so it sits on top where markers overlap.
     const HAZARD_DRAW_ORDER = { unknown: 0, low: 1, moderate: 2, high: 3 };
 
@@ -1149,7 +1149,7 @@
       const teammates = Array.isArray(data.sharedWith) ? data.sharedWith.length : 0;
       return `
         <strong>${escapeHtml(data.name || 'Hiker')}</strong><br>
-        <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${online ? '#16a34a' : '#8a948c'}"></span>${online ? 'Online' : 'Offline · last seen'} ${escapeHtml(formatAgo(updatedAt))}</span><br>
+        <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${online ? '#2f8f4e' : '#8a948c'}"></span>${online ? 'Online' : 'Offline · last seen'} ${escapeHtml(formatAgo(updatedAt))}</span><br>
         ${teammates ? `Sharing with ${teammates} teammate${teammates === 1 ? '' : 's'}` : 'Solo hiker'}<br>
         <small>${details.length ? `${escapeHtml(details.join(' · '))} · ` : ''}${coordinates.map((value) => value.toFixed(5)).join(', ')}</small>
       `;
