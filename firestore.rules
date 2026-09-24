@@ -32,6 +32,20 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Live hiker positions written by the PeakPath app, one document per hiker
+    // (locations/{uid}). Admins read them for the dashboard's Active Hikers
+    // Today tile and the Geomap hiker layer; a hiker may only write their own.
+    //
+    // Read is owner-or-admin only. If the app also lets hikers see teammates
+    // they have shared with (the `sharedWith` field the Geomap popup reads),
+    // that needs its own condition — it is left out rather than guessed at,
+    // because widening a read rule on location data is not reversible once
+    // clients depend on it.
+    match /locations/{userId} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      allow write: if signedIn() && request.auth.uid == userId;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

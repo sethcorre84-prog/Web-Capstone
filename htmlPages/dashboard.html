@@ -470,6 +470,7 @@
         import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { formatPortalDate, portalTimeZone } from "../jsPages/datetime-prefs.js";
         import { createMakilingMap } from "../jsPages/makiling-area.js";
+        import { watchActiveHikers } from "../jsPages/active-hikers.js";
 
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, character => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
@@ -504,30 +505,21 @@
                 : null;
         };
 
-        /* Active Hikers Today counts the users collection the same way the
-           Geomap and User Management pages do: role and status are written
-           either lower-case or capitalised depending on where the account was
-           created, and a record missing either field is treated as an active
-           hiker (the default a new sign-up gets). */
-        const userField = (data, key) => String(data[key] ?? data[key[0].toUpperCase() + key.slice(1)] ?? '').trim();
-
-        onSnapshot(collection(db, 'users'), (snapshot) => {
-            const hikers = snapshot.docs.filter(document => {
-                const role = userField(document.data(), 'role').toLowerCase();
-                return (role || 'hiker') === 'hiker';
-            });
-            const activeHikers = hikers.filter(document => {
-                const status = userField(document.data(), 'status').toLowerCase();
-                return (status || 'active') === 'active';
-            });
-            document.getElementById('activeHikersValue').textContent = activeHikers.length;
-            document.getElementById('activeHikersMeta').textContent = hikers.length
-                ? `${Math.round((activeHikers.length / hikers.length) * 100)}% of ${hikers.length} registered hikers`
-                : 'No hikers found';
-        }, (error) => {
-            console.error('Error loading dashboard hikers:', error);
-            document.getElementById('activeHikersValue').textContent = '—';
-            document.getElementById('activeHikersMeta').textContent = 'Unable to load hiker data';
+        /* Active Hikers Today — counted in active-hikers.js, which the Geomap
+           summary tile uses too, so the two pages can never disagree. */
+        watchActiveHikers({
+            db,
+            bounds: makilingBounds,
+            onUpdate: ({ hikedToday, onMountainNow }) => {
+                document.getElementById('activeHikersValue').textContent = hikedToday;
+                document.getElementById('activeHikersMeta').textContent = hikedToday
+                    ? `${onMountainNow} on the mountain now`
+                    : 'No hikers have signed in today';
+            },
+            onError: (message) => {
+                document.getElementById('activeHikersValue').textContent = '—';
+                document.getElementById('activeHikersMeta').textContent = message;
+            }
         });
 
         onSnapshot(collection(db, 'trails'), (snapshot) => {

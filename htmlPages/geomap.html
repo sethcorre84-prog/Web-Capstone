@@ -570,7 +570,7 @@
           </div>
           <div class="card-content">
             <div class="label">Active Hikers Today</div>
-            <div class="percentage" id="activeHikersPercentage">—% of hikers</div>
+            <div class="percentage" id="activeHikersMeta">Loading hiker activity…</div>
           </div>
         </div>
         <div class="card">
@@ -696,6 +696,7 @@
     import { collection, onSnapshot, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { formatPortalDate, formatPortalTime, portalTimeZone } from "../jsPages/datetime-prefs.js";
     import { createMakilingMap } from "../jsPages/makiling-area.js";
+    import { watchActiveHikers } from "../jsPages/active-hikers.js";
 
     const setSummaryValue = (id, value) => {
       document.getElementById(id).textContent = value;
@@ -1343,23 +1344,23 @@
       resizeTimer = setTimeout(syncMapHeightToAlerts, 150);
     });
 
-    onSnapshot(collection(db, 'users'), (snapshot) => {
-      const hikers = snapshot.docs.filter(document => {
-        const data = document.data();
-        const role = String(data.role || data.Role || 'Hiker').toLowerCase();
-        return role === 'hiker';
-      });
-      const activeHikers = hikers.filter(document => {
-        const data = document.data();
-        const status = String(data.status || data.Status || 'Active').toLowerCase();
-        return status === 'active';
-      });
-      setSummaryValue('activeHikersValue', activeHikers.length);
-      setSummaryValue('activeHikersPercentage', `${hikers.length ? Math.round((activeHikers.length / hikers.length) * 100) : 0}% of hikers`);
-    }, (error) => {
-      console.error('Error loading active hikers:', error);
-      setSummaryValue('activeHikersValue', '—');
-      setSummaryValue('activeHikersPercentage', '—% of hikers');
+    /* Active Hikers Today — counted in active-hikers.js, the same call the
+       Dashboard tile makes, so the two pages can never disagree. It used to
+       count hiker *accounts* that were not suspended, which said nothing about
+       today and never matched the hiker pins on this page's own map. */
+    watchActiveHikers({
+      db,
+      bounds: makilingBounds,
+      onUpdate: ({ hikedToday, onMountainNow }) => {
+        setSummaryValue('activeHikersValue', hikedToday);
+        setSummaryValue('activeHikersMeta', hikedToday
+          ? `${onMountainNow} on the mountain now`
+          : 'No hikers have signed in today');
+      },
+      onError: (message) => {
+        setSummaryValue('activeHikersValue', '—');
+        setSummaryValue('activeHikersMeta', message);
+      }
     });
 
     onSnapshot(collection(db, 'trails'), (snapshot) => {
