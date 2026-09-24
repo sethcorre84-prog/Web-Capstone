@@ -73,6 +73,7 @@
 
     /* Status */
     --danger: #c8402f;
+    --danger-dark: #a5352a;
     --danger-light: #fbeae7;
     --warning: #c9821f;
     --warning-light: #fbf1e2;
@@ -179,6 +180,7 @@
 
     /* Status: text lifted, tints deepened, so pills stay legible. */
     --danger: #e0604f;
+    --danger-dark: #c8402f;
     --danger-light: #3a1f1c;
     --warning: #e0a03a;
     --warning-light: #3a2e17;

@@ -129,9 +129,27 @@
 		.chan-item{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-secondary)}
 		.chan-dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
 		.actions-row{display:flex;gap:10px;margin-top:16px}
-		.btn-edit{flex:1;background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-weight:700;font-size:13px}
-		.btn-end{flex:1;background:var(--danger);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-weight:700;font-size:13px}
-		.btn-edit[disabled],.btn-end[disabled]{cursor:not-allowed}
+		/* Built to match the Verify Hazard / Reject Report pair on the Hazard
+		   Reports page — the .btn, .btn-verify and .btn-reject rules there: a
+		   solid fill, white label, 9px corners, 12.5px/600 text and a centred
+		   icon. --accent and --danger carry the same values that page writes as
+		   raw hex, with the bonus that they also follow dark mode. */
+		.btn-edit,.btn-end{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:none;border-radius:9px;font-size:12.5px;font-weight:600;color:#fff;cursor:pointer;transition:background .15s ease}
+		.btn-edit{background:var(--accent)}
+		.btn-end{background:var(--danger)}
+		/* Hover and focus go beyond what Hazard Reports does, but they leave the
+		   resting look — the part being matched — untouched. */
+		.btn-edit:hover:not([disabled]){background:var(--accent-dark)}
+		.btn-end:hover:not([disabled]){background:var(--danger-dark)}
+		.btn-edit:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+		.btn-end:focus-visible{outline:2px solid var(--danger);outline-offset:2px}
+		/* The icon takes the white label colour, not the portal's warm icon tone
+		   (see the icon rules in pages.css). */
+		.btn-edit i,.btn-end i{color:inherit;font-size:12px}
+		/* Disabled is styled here rather than patched with inline styles from
+		   renderDetail(), so the two states cannot drift apart. .6 is the same
+		   fade the Hazard Reports buttons use. */
+		.btn-edit[disabled],.btn-end[disabled]{opacity:.6;cursor:not-allowed}
 		.empty-state{padding:24px;text-align:center;color:var(--text-muted);font-size:13px}
 		.row-actions{display:flex;align-items:center;gap:2px}
 		/* This page draws its icons as inline SVG rather than Font Awesome, so
@@ -348,8 +366,8 @@
 							</div>
 
 							<div class="actions-row">
-								<button class="btn-edit" id="editBtn">✎ Edit Advisory</button>
-								<button class="btn-end" id="endBtn">⦻ End Advisory</button>
+								<button class="btn-edit" id="editBtn" type="button"><i class="fa-solid fa-pen" aria-hidden="true"></i>Edit Advisory</button>
+								<button class="btn-end" id="endBtn" type="button"><i class="fa-solid fa-xmark" aria-hidden="true"></i>End Advisory</button>
 							</div>
 						</div>
 					</div>		
@@ -1024,17 +1042,15 @@ async function syncExpiredAdvisories(){
 
 			const isVisible = it.visible !== false;
 
+			// The faded, not-allowed look for both buttons comes from their
+			// [disabled] rules in the stylesheet; only the reason goes here.
 			const editBtnEl = document.getElementById('editBtn');
 			editBtnEl.disabled = !isVisible;
-			editBtnEl.style.opacity = isVisible ? '1' : '.45';
-			editBtnEl.style.cursor = isVisible ? 'pointer' : 'not-allowed';
 			editBtnEl.title = isVisible ? '' : 'This advisory is hidden — make it visible to edit';
 
 			const alreadyExpired = effStatus === 'Expired';
 			const endBtnEl = document.getElementById('endBtn');
 			endBtnEl.disabled = !isVisible || alreadyExpired;
-			endBtnEl.style.opacity = (isVisible && !alreadyExpired) ? '1' : '.45';
-			endBtnEl.style.cursor = (isVisible && !alreadyExpired) ? 'pointer' : 'not-allowed';
 			endBtnEl.title = alreadyExpired
 				? 'This advisory has already expired'
 				: (isVisible ? '' : 'This advisory is hidden — make it visible to end it');	
