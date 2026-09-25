@@ -317,7 +317,7 @@
   /* Stat cards */
     .stats{
     display:grid;
-    grid-template-columns:repeat(5,minmax(0,1fr));
+    grid-template-columns:repeat(6,minmax(0,1fr));
     gap:14px;
   }
   .stat-card{
@@ -356,6 +356,7 @@
   .stat-icon.pending{background:var(--amber-bg);}
   .stat-icon.verified{background:var(--green-bg);}
   .stat-icon.rejected{background:var(--red-bg);}
+  .stat-icon.resolved{background:var(--resolved-bg);}
   .stat-value{
     font-size:24px;
     font-weight:700;
@@ -776,7 +777,20 @@
     display:grid;
     grid-template-columns:repeat(2,minmax(0,1fr));
     gap:18px;
-    align-items:start;
+    /* Both panels stand to the taller of the two, so their bottom edges line
+       up however many reports each is holding. `start` let each size to its
+       own content, which left one card short whenever the lists differed. */
+    align-items:stretch;
+  }
+  .closed-panels > .card{
+    display:flex;
+    flex-direction:column;
+  }
+  /* The list takes the slack, which parks both paginations on the bottom
+     edge rather than leaving one floating mid-card. */
+  #rejectedList,
+  #resolvedList{
+    flex:1;
   }
 
   /* Rejected/Resolved panel header + archive action */
@@ -842,8 +856,19 @@
   }
   .archive-action:hover .archive-tooltip,
   .archive-action:focus-visible .archive-tooltip{opacity:1;transform:translateY(0);}
+  /* One definition for both panels' rows, so an item in Rejected Reports is
+     the same height as an item in Resolved Reports. The three text lines are
+     what normally set that height; min-height is the floor for a row whose
+     fields are missing. */
   .rejected-row,
   .resolved-row{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    min-height:68px;
+    padding:10px 0;
+    border-bottom:1px solid var(--border);
+    cursor:pointer;
     transition:transform .15s ease,box-shadow .15s ease,background .15s ease,padding .15s ease;
   }
   .rejected-row.archive-selected,
@@ -944,6 +969,63 @@
     font-weight:600;
     color:var(--text-900);
     margin-bottom:6px;
+  }
+
+  /* Resolve questionnaire */
+  .resolution-intro{
+    margin:0 0 14px;
+    font-size:12px;
+    line-height:1.5;
+    color:var(--text-600);
+  }
+  .resolution-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+  }
+  .resolution-field{min-width:0;}
+  .resolution-input{
+    width:100%;
+    margin-bottom:12px;
+    padding:9px 10px;
+    border:1px solid var(--border);
+    border-radius:9px;
+    background:var(--dm-surface, #ffffff);
+    font-family:inherit;
+    font-size:12.5px;
+    color:var(--text-900);
+    outline:none;
+  }
+  .resolution-input:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-light);
+  }
+  /* The narrative the answers add up to, shown before it is sent so the
+     admin is never guessing what the hiker will see. */
+  .resolution-preview{
+    margin-top:6px;
+    padding:12px 14px;
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:0 10px 10px 0;
+    background:var(--dm-surface-2, #f7f9f7);
+  }
+  .resolution-preview-head{
+    font-size:10.5px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--text-muted);
+    margin-bottom:6px;
+  }
+  .resolution-preview-text{
+    margin:0;
+    font-size:12.5px;
+    line-height:1.65;
+    color:var(--text-600);
+  }
+  @media (max-width:540px){
+    .resolution-grid{grid-template-columns:minmax(0,1fr);}
   }
   .modal-textarea{
     width:100%;
@@ -1065,6 +1147,11 @@
   @media (max-width: 1150px){
     .panels{grid-template-columns:minmax(0,1fr);}
   }
+  /* Six across needs the room; below this they read as two rows of three
+     rather than six squeezed columns. */
+  @media (max-width: 1320px){
+    .stats{grid-template-columns:repeat(3,minmax(0,1fr));}
+  }
   @media (max-width: 980px){
     .stats{grid-template-columns:repeat(3,minmax(0,1fr));}
   }
@@ -1171,6 +1258,16 @@
             </div>
           </div>
           <div class="stat-label">Verifying<div class="meta-line" id="verifiedMeta">0% of total</div></div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-top">
+            <span class="stat-value" id="resolvedReports">0</span>
+            <div class="stat-icon resolved">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--resolved-text)" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+            </div>
+          </div>
+          <div class="stat-label">Resolved<div class="meta-line" id="resolvedMeta">0% of total</div></div>
         </div>
 
         <div class="stat-card">
@@ -1340,6 +1437,61 @@
         id="statusReason"
         placeholder="Add a note for this action..."
       ></textarea>
+
+      <!-- Resolving asks these instead of a free-text note. The answers are
+           written into one narrative paragraph, which is what the hiker
+           reads in the app; see composeResolutionNarrative(). -->
+      <div id="resolutionForm" hidden>
+        <p class="resolution-intro">Answer these and the app will tell hikers what happened, in plain sentences.</p>
+
+        <div class="resolution-grid">
+          <div class="resolution-field">
+            <label class="modal-label" for="resolutionHazard">What was the hazard?</label>
+            <input type="text" id="resolutionHazard" class="resolution-input" placeholder="e.g. fallen tree">
+          </div>
+          <div class="resolution-field">
+            <label class="modal-label" for="resolutionWhere">Where was it?</label>
+            <input type="text" id="resolutionWhere" class="resolution-input" placeholder="e.g. Peak 2 Trail">
+          </div>
+        </div>
+
+        <label class="modal-label" for="resolutionAction">How was it resolved?</label>
+        <select id="resolutionAction" class="resolution-input">
+          <option value="cleared">Cleared from the trail</option>
+          <option value="repaired">Repaired or rebuilt</option>
+          <option value="marked">Made safe and marked with warning signs</option>
+          <option value="rerouted">The trail was rerouted around it</option>
+          <option value="subsided">It subsided or passed on its own</option>
+          <option value="not-found">Checked on site and no longer there</option>
+          <option value="other">Something else (describe below)</option>
+        </select>
+
+        <div class="resolution-grid">
+          <div class="resolution-field">
+            <label class="modal-label" for="resolutionWho">Who resolved it?</label>
+            <input type="text" id="resolutionWho" class="resolution-input" placeholder="e.g. the trail rangers">
+          </div>
+          <div class="resolution-field">
+            <label class="modal-label" for="resolutionDate">When was it cleared?</label>
+            <input type="date" id="resolutionDate" class="resolution-input">
+          </div>
+        </div>
+
+        <label class="modal-label" for="resolutionSafety">Is the trail safe to use now?</label>
+        <select id="resolutionSafety" class="resolution-input">
+          <option value="safe">Yes — the trail is safe to use again</option>
+          <option value="caution">Passable, but hikers should take care</option>
+          <option value="closed">No — that section is still closed</option>
+        </select>
+
+        <label class="modal-label" for="resolutionExtra">Anything else hikers should know? (optional)</label>
+        <textarea class="modal-textarea" id="resolutionExtra" placeholder="e.g. The ground stays slippery after rain."></textarea>
+
+        <div class="resolution-preview">
+          <div class="resolution-preview-head">What the hiker will read</div>
+          <p class="resolution-preview-text" id="resolutionPreview"></p>
+        </div>
+      </div>
     </div>
 
     <div class="modal-actions">
@@ -1736,7 +1888,6 @@ function renderRejectedList() {
   pageItems.forEach((report, index) => {
     const row = document.createElement('div');
     row.className = 'rejected-row' + (selectedArchiveIds.has(report.id) ? ' archive-selected' : '');
-    row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
     row.onclick = (e) => {
       e.stopPropagation();
       const alreadySelected = selectedArchiveIds.has(report.id);
@@ -1754,11 +1905,20 @@ function renderRejectedList() {
       }
       renderRejectedList();
     };
+    /* Three lines, the same as a resolved row, so the two panels' items are
+       the same height whatever the font size -- rather than a min-height
+       that only holds until the text reflows. The date line is always
+       rendered, with a fallback, for the same reason. Nothing updates a
+       rejected report after it is rejected, so updatedAt is when that was. */
+    const rejectedOn = toJsDate(report.updatedAt);
     row.innerHTML = `
       <span class="hazard-icon" style="flex-shrink:0">${getHazardIcon(report.hazardType)}</span>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:12.5px">${report.hazardType || 'Unknown'}</div>
-        <div style="font-size:11px;color:var(--text-400);margin-top:1px">${report.location || 'N/A'} · ${report.reportId || `HR-${start + index + 1}`}</div>
+        <div style="font-weight:600;font-size:12.5px">${escapeHtml(report.hazardType || 'Unknown')}</div>
+        <div style="font-size:11px;color:var(--text-400);margin-top:1px">${escapeHtml(report.location || 'N/A')} · ${escapeHtml(report.reportId || `HR-${start + index + 1}`)}</div>
+        <div style="font-size:11px;color:var(--text-400);margin-top:1px">${rejectedOn
+          ? `Rejected ${rejectedOn.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+          : 'Date not recorded'}</div>
       </div>
       <span class="badge rejected" style="flex-shrink:0">Rejected</span>
     `;
@@ -1832,7 +1992,6 @@ function renderResolvedList() {
     const resolvedOn = toJsDate(report.resolvedAt);
     const row = document.createElement('div');
     row.className = 'resolved-row' + (isSelected ? ' is-selected' : '');
-    row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer';
     row.onclick = (e) => {
       e.stopPropagation();
       // The details panel shows one report at a time, so picking a resolved
@@ -1854,7 +2013,9 @@ function renderResolvedList() {
       <div style="flex:1;min-width:0">
         <div style="font-weight:600;font-size:12.5px">${escapeHtml(report.hazardType || 'Unknown')}</div>
         <div style="font-size:11px;color:var(--text-400);margin-top:1px">${escapeHtml(report.location || 'N/A')} · ${escapeHtml(report.reportId || '')}</div>
-        ${resolvedOn ? `<div style="font-size:11px;color:var(--text-400);margin-top:1px">Resolved ${resolvedOn.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>` : ''}
+        <div style="font-size:11px;color:var(--text-400);margin-top:1px">${resolvedOn
+          ? `Resolved ${resolvedOn.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+          : 'Date not recorded'}</div>
       </div>
       <span class="badge resolved" style="flex-shrink:0">Resolved</span>
     `;
@@ -2296,6 +2457,100 @@ function renderReportDetails(report) {
 }
 
 // -----------------------------
+// Resolution narrative
+//
+// Resolving used to take a free-text note, which meant every hiker read
+// something in a different shape, written in a hurry. The admin now answers
+// a few fixed questions and those answers are composed into one paragraph of
+// plain sentences -- that paragraph is what is stored in `resolutionNote`,
+// which is the field the app and Settings > Archived Resolved Reports
+// already read, so nothing downstream has to change. The raw answers go
+// alongside it in `resolutionDetails`, so a note can be rebuilt or reworded
+// later without asking the admin again.
+// -----------------------------
+/* Each action builds its own clause, because where the place and the person
+   belong in the sentence differs: "the fallen tree AT Peak 2 was cleared BY
+   the rangers", but "the rangers checked Peak 2 and found ...". Putting the
+   location with the hazard, before the verb, is what keeps them readable. */
+const RESOLUTION_ACTIONS = {
+  // "cleared from the trail" says where when the admin did not; once there
+  // is a location in the subject, repeating it reads as padding.
+  cleared:     ({ subject, where, by }) => `${subject} was cleared${where ? '' : ' from the trail'}${by}`,
+  repaired:    ({ subject, by }) => `${subject} was repaired${by}`,
+  marked:      ({ subject, by }) => `${subject} was made safe and marked with warning signs${by}`,
+  rerouted:    ({ subject, by }) => `the trail was rerouted around ${subject}${by}`,
+  subsided:    ({ subject, who }) => `${subject} subsided on its own${who ? `, confirmed by ${who}` : ''}`,
+  'not-found': ({ hazard, who, place }) => `${who || 'the team'} checked ${place} and found ${hazard} was no longer there`,
+  other:       ({ subject, by }) => `${subject} was dealt with${by}`
+};
+
+const RESOLUTION_SAFETY = {
+  safe: 'The trail is safe to use again.',
+  caution: 'The trail is passable again, but hikers should take care through that section.',
+  closed: 'That section of the trail is still closed for now.'
+};
+
+// Firestore rejects undefined, so a blank answer is stored as null.
+const normalizeAnswer = (value) => {
+  const text = String(value || '').trim();
+  return text || null;
+};
+
+// Sentence case without touching an already-capitalised proper noun.
+const startSentence = (text) => {
+  const value = String(text || '').trim();
+  if (!value) return '';
+  return value.charAt(0).toUpperCase() + value.slice(1);
+};
+
+/* "the fallen tree", but not "the a washed-out bridge" -- an answer that
+   already opens with an article keeps it. */
+const withArticle = (text) => {
+  const value = String(text || '').trim().toLowerCase();
+  if (!value) return 'the reported hazard';
+  return /^(a|an|the)\s/.test(value) ? value : `the ${value}`;
+};
+
+const resolutionDateText = (value) => {
+  const date = value instanceof Date ? value : toJsDate(value);
+  if (!date || Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+};
+
+/* The answers -> the paragraph a hiker reads. Every part is optional: a
+   half-filled form still produces a sentence that reads properly rather than
+   one with holes in it. */
+function composeResolutionNarrative(answers) {
+  const hazard = withArticle(answers.hazard);
+  const where = String(answers.where || '').trim();
+  const who = String(answers.who || '').trim();
+  const when = resolutionDateText(answers.date);
+  const extra = String(answers.extra || '').trim();
+
+  const parts = {
+    hazard,
+    where,
+    who,
+    by: who ? ` by ${who}` : '',
+    place: where || 'the site',
+    subject: where ? `${hazard} at ${where}` : hazard
+  };
+
+  const build = RESOLUTION_ACTIONS[answers.action] || RESOLUTION_ACTIONS.other;
+  let sentence = build(parts);
+  if (when) sentence += ` on ${when}`;
+
+  const sentences = [`${startSentence(sentence)}.`];
+
+  const safety = RESOLUTION_SAFETY[answers.safety];
+  if (safety) sentences.push(safety);
+
+  if (extra) sentences.push(/[.!?]$/.test(extra) ? startSentence(extra) : `${startSentence(extra)}.`);
+
+  return sentences.join(' ');
+}
+
+// -----------------------------
 // Report status confirmation modal
 // -----------------------------
 let pendingStatusAction = null;
@@ -2345,6 +2600,8 @@ function openStatusModal(reportId, newStatus) {
     report.location || 'Unknown Location';
 
   reason.value = '';
+  // Resolving asks the questionnaire; verifying and rejecting keep the note.
+  setResolutionFormVisible(newStatus === 'resolved');
 
   if (newStatus === 'verified') {
     icon.className = 'modal-icon verify';
@@ -2362,8 +2619,7 @@ function openStatusModal(reportId, newStatus) {
     subtitle.textContent = 'Mark this hazard as resolved? It leaves the active list and the map, and moves to Resolved Reports with a new RES number. This cannot be undone.';
     confirmBtn.className = 'modal-btn confirm-resolve';
     confirmBtn.textContent = 'Resolve Report';
-    reasonLabel.textContent = 'Resolution note (optional)';
-    reason.placeholder = 'e.g. Fallen tree cleared by rangers; trail is safe again.';
+    prepareResolutionForm(report);
   } else {
     icon.className = 'modal-icon reject';
     icon.textContent = '✕';
@@ -2380,6 +2636,72 @@ function openStatusModal(reportId, newStatus) {
 
   setTimeout(() => reason.focus(), 50);
 }
+
+const resolutionForm = document.getElementById('resolutionForm');
+const resolutionFields = {
+  hazard: document.getElementById('resolutionHazard'),
+  where: document.getElementById('resolutionWhere'),
+  action: document.getElementById('resolutionAction'),
+  who: document.getElementById('resolutionWho'),
+  date: document.getElementById('resolutionDate'),
+  safety: document.getElementById('resolutionSafety'),
+  extra: document.getElementById('resolutionExtra')
+};
+
+// "YYYY-MM-DD" -> a Date at local midnight. new Date("2026-09-25") on its own
+// is read as UTC, which lands on the day before in Philippine time.
+const dateFromInput = (value) => {
+  const text = String(value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+  const [year, month, day] = text.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const dateToInput = (date) => {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+const readResolutionAnswers = () => ({
+  hazard: resolutionFields.hazard.value,
+  where: resolutionFields.where.value,
+  action: resolutionFields.action.value,
+  who: resolutionFields.who.value,
+  date: dateFromInput(resolutionFields.date.value),
+  safety: resolutionFields.safety.value,
+  extra: resolutionFields.extra.value
+});
+
+const refreshResolutionPreview = () => {
+  document.getElementById('resolutionPreview').textContent =
+    composeResolutionNarrative(readResolutionAnswers());
+};
+
+const setResolutionFormVisible = (visible) => {
+  resolutionForm.hidden = !visible;
+  // The free-text note and the questionnaire are alternatives, never both.
+  document.getElementById('statusReasonLabel').style.display = visible ? 'none' : '';
+  document.getElementById('statusReason').style.display = visible ? 'none' : '';
+};
+
+/* Pre-fills what the report already tells us, so the admin is confirming
+   rather than retyping. */
+const prepareResolutionForm = (report) => {
+  resolutionFields.hazard.value = report.hazardType || '';
+  resolutionFields.where.value = report.trail || report.location || '';
+  resolutionFields.action.value = 'cleared';
+  resolutionFields.who.value = '';
+  resolutionFields.date.value = dateToInput(new Date());
+  resolutionFields.safety.value = 'safe';
+  resolutionFields.extra.value = '';
+  refreshResolutionPreview();
+};
+
+Object.values(resolutionFields).forEach((field) => {
+  field.addEventListener('input', refreshResolutionPreview);
+  field.addEventListener('change', refreshResolutionPreview);
+});
 
 function closeStatusModal() {
   const modal = document.getElementById('statusModal');
@@ -2406,6 +2728,7 @@ function showStatusModalMessage(message) {
   box.style.display = 'none';
   reasonLabel.style.display = 'none';
   reason.style.display = 'none';
+  document.getElementById('resolutionForm').hidden = true;
 
   confirmBtn.className = 'modal-btn cancel';
   confirmBtn.textContent = 'Close';
@@ -2448,9 +2771,23 @@ async function confirmStatusUpdate() {
     };
 
     if (newStatus === 'resolved') {
-      // Kept apart from statusNote so the verification note survives, and
-      // always written so re-resolving never shows an older note.
-      updateData.resolutionNote = reason || null;
+      /* The questionnaire's answers, turned into the paragraph the hiker
+         reads. It goes in resolutionNote -- the field the app and Settings >
+         Archived Resolved Reports already show -- and the answers are kept
+         beside it so the wording can be rebuilt later without asking again.
+         Kept apart from statusNote so the verification note survives, and
+         always written so re-resolving never shows an older note. */
+      const answers = readResolutionAnswers();
+      updateData.resolutionNote = composeResolutionNarrative(answers) || null;
+      updateData.resolutionDetails = {
+        hazard: normalizeAnswer(answers.hazard),
+        where: normalizeAnswer(answers.where),
+        action: answers.action || 'other',
+        who: normalizeAnswer(answers.who),
+        clearedOn: answers.date || null,
+        safety: answers.safety || 'safe',
+        extra: normalizeAnswer(answers.extra)
+      };
       updateData.resolvedAt = serverTimestamp();
       updateData.resolvedBy = auth.currentUser?.uid || null;
     } else if (reason) {
@@ -2771,33 +3108,81 @@ window.selectReport = (reportId) => {
 };
 
 // Update statistics
+/* Whole percentages that add up.
+
+   Rounding each share on its own gives 33% + 33% + 33% = 99%, or three 17%
+   shares that total 101 -- a percentage the admin can see is wrong. This is
+   the largest-remainder method: floor every share, then hand the leftover
+   points to the shares with the biggest fractions. The displayed figures add
+   up to exactly 100.
+
+   Only non-empty buckets can receive a leftover point, so a card reading
+   "0 reports" is never labelled 1% of total. */
+function apportionPercent(values, total) {
+  if (!total) return values.map(() => 0);
+
+  const exact = values.map((value) => (value / total) * 100);
+  const result = exact.map(Math.floor);
+  let remaining = 100 - result.reduce((sum, value) => sum + value, 0);
+
+  exact
+    .map((value, index) => ({ index, fraction: value - Math.floor(value), value: values[index] }))
+    .filter((entry) => entry.value > 0)
+    .sort((a, b) => b.fraction - a.fraction)
+    .forEach((entry) => {
+      if (remaining <= 0) return;
+      result[entry.index] += 1;
+      remaining -= 1;
+    });
+
+  return result;
+}
+
 function updateStats() {
   const total = allReports.length;
-  const pending = allReports.filter(r => r.status === 'pending').length;
-  const verified = allReports.filter(r => r.status === 'verified').length;
-  const rejected = allReports.filter(r => r.status === 'rejected').length;
-  const archived = allReports.filter(r => r.status === 'archived').length;
+
+  /* Compared case-insensitively. The portal writes lowercase, but a report
+     filed by the app with "Pending" would otherwise fall into no bucket at
+     all, and every percentage on the row would be quietly short. */
+  const statusOf = (report) => String(report.status || 'pending').trim().toLowerCase();
+  const countWhere = (predicate) => allReports.filter(predicate).length;
+
+  const pending = countWhere(r => statusOf(r) === 'pending');
+  const verified = countWhere(r => statusOf(r) === 'verified');
+  const rejected = countWhere(r => statusOf(r) === 'rejected');
+  const archived = countWhere(r => statusOf(r) === 'archived');
   // Only reports an admin actually archived count here. A resolved report
   // sits in the Resolved panel until it is archived from there, so resolving
   // one no longer moves it into this figure.
-  const archivedResolved = allReports.filter(r => r.status === 'resolved' && r.archived).length;
+  const archivedResolved = countWhere(r => statusOf(r) === 'resolved' && r.archived === true);
+  // ...and this card counts the ones still sitting in that panel, so the two
+  // cards never count the same report twice.
+  const resolved = countWhere(r => statusOf(r) === 'resolved' && r.archived !== true);
+
+  // Archived covers both archives in Settings: Archived Hazard Reports and
+  // Archived Resolved Reports.
+  const archivedTotal = archived + archivedResolved;
+
+  /* Anything with a status none of the cards represent. It is apportioned
+     with the rest, so the five cards add up to 100 only when they really do
+     account for every report -- rather than being rounded up to look like
+     they do. */
+  const other = Math.max(0, total - (pending + verified + rejected + resolved + archivedTotal));
+
+  const [pendingPercent, verifiedPercent, resolvedPercent, rejectedPercent, archivedPercent] =
+    apportionPercent([pending, verified, resolved, rejected, archivedTotal, other], total);
 
   document.getElementById('totalReports').textContent = total;
   document.getElementById('pendingReports').textContent = pending;
   document.getElementById('verifiedReports').textContent = verified;
   document.getElementById('rejectedReports').textContent = rejected;
-  // Archived covers both archives in Settings: Archived Hazard Reports and
-  // Archived Resolved Reports.
-  document.getElementById('archivedReports').textContent = archived + archivedResolved;
-
-  const pendingPercent = total ? Math.round((pending / total) * 100) : 0;
-  const verifiedPercent = total ? Math.round((verified / total) * 100) : 0;
-  const rejectedPercent = total ? Math.round((rejected / total) * 100) : 0;
-  const archivedPercent = total ? Math.round(((archived + archivedResolved) / total) * 100) : 0;
+  document.getElementById('resolvedReports').textContent = resolved;
+  document.getElementById('archivedReports').textContent = archivedTotal;
 
   document.getElementById('pendingMeta').textContent = pendingPercent + '% of total';
   document.getElementById('verifiedMeta').textContent = verifiedPercent + '% of total';
   document.getElementById('rejectedMeta').textContent = rejectedPercent + '% of total';
+  document.getElementById('resolvedMeta').textContent = resolvedPercent + '% of total';
   // Each piece stays whole, so a narrow card wraps between pieces rather
   // than in the middle of "56% of total". (Numbers only — safe as HTML.)
   document.getElementById('archivedMeta').innerHTML = [

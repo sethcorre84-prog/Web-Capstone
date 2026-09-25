@@ -1,52 +1,268 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ===================================================================
+    // Helpers
+    // ===================================================================
     function signedIn() {
       return request.auth != null;
     }
 
     function isAdmin() {
-      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    match /admins/{adminId} {
-      allow read: if signedIn();
-      allow create, update, delete: if signedIn() && request.auth.uid == adminId;
+    /* Timed suspensions -------------------------------------------------
+       User Management > Suspend User writes status "Suspended" and a
+       suspendedUntil timestamp onto the hiker's users record. The app
+       checks the same two fields and refuses to open the account, but that
+       is a client doing as it is told: an old build, or a request made
+       straight to the API, would ignore it. This is the part that cannot
+       be talked around.
+
+       request.time is the SERVER clock, so a device with its date wound
+       forward gains nothing. No suspendedUntil means the suspension runs
+       until an admin lifts it.
+
+       Cost: one extra document read on each request this guards.
+
+       Deliberately NOT applied to locations, emergency or sos_alerts. A
+       suspended hiker in trouble must still be able to raise an SOS and
+       stay visible on the map. Suspension is an account penalty, not a
+       safety one.
+       ------------------------------------------------------------------- */
+    function suspensionActive(record) {
+      return record.status is string
+        && record.status.lower() == 'suspended'
+        && (
+          !('suspendedUntil' in record)
+          || record.suspendedUntil == null
+          || record.suspendedUntil > request.time
+        );
     }
 
+    function isSuspended() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && suspensionActive(
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data
+           );
+    }
+
+    function notSuspended() {
+      return !isSuspended();
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // ===================================================================
+    // Accounts
+    // ===================================================================
     match /users/{userId} {
-      allow read: if signedIn() && (isAdmin() || request.auth.uid == userId);
-      allow create: if isAdmin();
+      allow read: if signedIn();
+      allow create: if signedIn() && (request.auth.uid == userId || isAdmin());
+
+      /* CHANGED. A hiker may still edit their own profile, but no longer
+         their own status, role or suspension. Writing status "Active" from
+         the app would otherwise undo a suspension in a single request,
+         which made the whole feature decorative. Admins are unrestricted. */
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && request.auth.uid == userId
+          && !changedKeys().hasAny([
+               'status', 'role',
+               'suspendedUntil', 'suspendedAt', 'suspendedBy',
+               'suspensionDays', 'suspensionReason'
+             ])
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /usernames/{username} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if signedIn()
+                    && request.resource.data.uid == request.auth.uid;
+      allow update: if signedIn()
+                    && request.auth.uid == resource.data.uid
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.email == resource.data.email;
+      allow delete: if false;
+    }
+
+    match /admins/{userId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // ===================================================================
+    // Safety. Never gated by a suspension.
+    // ===================================================================
+    match /locations/{userId} {
+      // Readable by the owner, their teammates, admins (web Geomap), and
+      // anyone when the owner opted in with isPublic.
+      allow read: if signedIn() &&
+                     (request.auth.uid == userId ||
+                      request.auth.uid in resource.data.sharedWith ||
+                      isAdmin() ||
+                      resource.data.isPublic == true);
+      allow create, update: if signedIn()
+                            && request.auth.uid == userId
+                            && request.resource.data.sharedWith is list
+                            && request.resource.data.sharedWith.size() <= 100;
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /emergency/{alertId} {
+      allow read: if signedIn();
+      allow create: if signedIn();
       allow update, delete: if isAdmin();
     }
 
-    // Reports hikers file about other users. Any signed-in user may submit
-    // one; only admins can read, act on, or delete them.
-    match /reportedUser/{reportId} {
+    // The app's SosService still writes here (lib/features/sos/sos_service.dart).
+    // Same shape as emergency; remove this block once the app writes to
+    // emergency instead, or SOS logging fails silently.
+    match /sos_alerts/{alertId} {
+      allow read: if signedIn();
       allow create: if signedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // ===================================================================
+    // Hazard reports
+    // ===================================================================
+    match /reports/{reportId} {
+      allow read: if signedIn();
+
+      // CHANGED: a suspended hiker cannot file new reports.
+      allow create: if signedIn() && notSuspended();
+
+      allow update: if isAdmin() && (
+        /* Before it is resolved: the ordinary verify / reject / edit /
+           archive-a-rejected-report writes, plus the HR-, R- and RES-
+           renumbering of the reports left behind.
+
+           CHANGED: resolutionDetails added. It holds the structured answers
+           behind the resolution narrative, and without it here the entire
+           resolve write was rejected, because hasOnly() fails on a single
+           unlisted key. */
+        (
+          resource.data.get('status', 'pending') != 'resolved'
+          && changedKeys().hasOnly([
+               'status', 'statusNote', 'updatedAt', 'reportId',
+               'archivedAt', 'archivedBy', 'unarchivedAt',
+               'resolvedAt', 'resolvedBy', 'resolutionNote', 'resolutionDetails',
+               'hazardType', 'riskLevel', 'location', 'trail',
+               'reportedBy', 'contact', 'description'
+             ])
+          && (
+            !('status' in changedKeys())
+            || request.resource.data.status in ['pending', 'verified', 'rejected', 'archived', 'resolved']
+          )
+        )
+        ||
+        /* CHANGED. Resolving stays final: a resolved report cannot be
+           reopened, reworded or re-resolved. One exception, an admin filing
+           it into Settings > Archived Resolved Reports, which sets these
+           three fields and nothing else and leaves status as resolved.
+           Resolving no longer archives on its own, so without this branch
+           the Archive button on the Resolved panel could never write. */
+        (
+          resource.data.get('status', 'pending') == 'resolved'
+          && changedKeys().hasOnly(['archived', 'archivedAt', 'archivedBy'])
+        )
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    match /reportedUser/{reportId} {
+      // CHANGED: a suspended hiker cannot report other users.
+      allow create: if signedIn() && notSuspended();
       allow read, update, delete: if isAdmin();
     }
 
-    // One document per Manila date, written by analytics.html.
+    // ===================================================================
+    // Trails, teams, reviews
+    // ===================================================================
+    match /trails/{trailId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /teams/{teamsId} {
+      allow read: if signedIn();
+      // CHANGED: a suspended hiker cannot create or join teams. Admins are
+      // exempt, since User Management edits membership with arrayUnion and
+      // arrayRemove on these documents.
+      allow create: if signedIn() && notSuspended();
+      allow update: if isAdmin() || (signedIn() && notSuspended());
+      allow delete: if signedIn() && request.auth.uid == resource.data.leaderID;
+    }
+
+    /* Trail reviews: a 1-5 star rating and optional comment, one per hiker
+       per trail. The document id is "uid_trailID", so authorship is tied to
+       the id itself rather than a field in the payload, which is what stops
+       someone writing a review as another user. */
+    match /reviews/{reviewId} {
+      allow read: if signedIn();
+      // CHANGED: a suspended hiker cannot post or edit reviews.
+      allow create, update: if signedIn()
+                            && notSuspended()
+                            && reviewId == request.auth.uid + '_' +
+                               request.resource.data.trailID
+                            && request.resource.data.userID == request.auth.uid
+                            && request.resource.data.stars is int
+                            && request.resource.data.stars >= 1
+                            && request.resource.data.stars <= 5
+                            && request.resource.data.comment.size() <= 300;
+      // The author can remove their own review; an admin can remove any.
+      allow delete: if signedIn()
+                    && (resource.data.userID == request.auth.uid || isAdmin());
+    }
+
+    match /Popularity/{PopularityId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // ===================================================================
+    // Content and housekeeping
+    // ===================================================================
+    match /Advisory/{advisoryId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow write: if signedIn() && request.auth.uid == resource.data.createdBy;
+    }
+
+    match /counters/{counterId} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+                    && request.resource.data.keys().hasOnly(['value'])
+                    && request.resource.data.value == 1;
+      allow update: if signedIn()
+                    && request.resource.data.keys().hasOnly(['value'])
+                    && request.resource.data.value == resource.data.value + 1;
+      allow delete: if false;
+    }
+
     match /prescriptiveHistory/{day} {
       allow read, write: if isAdmin();
     }
 
-    // Live hiker positions written by the PeakPath app, one document per hiker
-    // (locations/{uid}). Admins read them for the dashboard's Active Hikers
-    // Today tile and the Geomap hiker layer; a hiker may only write their own.
-    //
-    // Read is owner-or-admin only. If the app also lets hikers see teammates
-    // they have shared with (the `sharedWith` field the Geomap popup reads),
-    // that needs its own condition — it is left out rather than guessed at,
-    // because widening a read rule on location data is not reversible once
-    // clients depend on it.
-    match /locations/{userId} {
-      allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
-      allow write: if signedIn() && request.auth.uid == userId;
-    }
-
-    match /{document=**} {
+    match /passwordResetOtps/{username} {
       allow read, write: if false;
     }
   }

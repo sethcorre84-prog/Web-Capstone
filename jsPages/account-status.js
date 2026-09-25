@@ -22,6 +22,59 @@ export const isBlockedStatus = (status) =>
 
 const statusOf = (data) => data?.status ?? data?.Status;
 
+/* ---------------------------------------------------------------------------
+   Timed suspensions
+
+   User Management > Suspend sets, on the `users` record:
+
+     status          "Suspended"
+     suspendedUntil  Timestamp   when it lifts (absent/null = no end date)
+     suspendedAt     Timestamp   when it started
+     suspendedBy     string      the admin's uid
+     suspensionDays  number      what the admin typed
+     suspensionReason string     optional, shown to the hiker
+
+   A suspension ends by itself: nothing has to run on the hour. Every check
+   compares suspendedUntil with the clock, so the moment it passes the account
+   reads as active again, whether or not anyone has opened the admin portal.
+   The portal writes `status` back to Active the next time it sees the record,
+   which is tidying up, not what makes the account work again.
+   --------------------------------------------------------------------------- */
+
+// Firestore Timestamp | Date | ISO string | epoch ms -> Date | null
+export const toDateValue = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value?.toDate === 'function') return value.toDate();
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === 'object' && typeof value.seconds === 'number') return new Date(value.seconds * 1000);
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+/* What a record's suspension amounts to right now.
+     active  -> still serving it, so the account is blocked
+     expired -> the end date has passed; the stored status is just stale
+   A "Suspended" record with no end date is treated as active (indefinite),
+   which is what picking Suspended in Edit User without a date means. */
+export function suspensionState(data, now = new Date()) {
+  const suspended = String(statusOf(data) ?? '').trim().toLowerCase() === 'suspended';
+  if (!suspended) return { suspended: false, active: false, expired: false, until: null };
+
+  const until = toDateValue(data?.suspendedUntil ?? data?.suspendedTill ?? data?.suspensionEndsAt);
+  if (!until) return { suspended: true, active: true, expired: false, until: null };
+
+  const expired = until.getTime() <= now.getTime();
+  return { suspended: true, active: !expired, expired, until };
+}
+
+/* The one rule both clients follow. Every blocked status locks the account,
+   except a suspension whose end date has already passed. */
+export function isRecordBlocked(data, now = new Date()) {
+  const state = suspensionState(data, now);
+  if (state.suspended) return state.active;
+  return isBlockedStatus(statusOf(data));
+}
+
 /* Finds the `users` record behind a sign-in account. App sign-ups are keyed
    by the Firebase uid; records added from the portal get a random id, so
    those are matched by their `uid` field or, failing that, their email.
@@ -48,7 +101,7 @@ export async function isAccountBlocked(authUser) {
   const ref = await findUserRecord(authUser);
   if (!ref) return false; // no users record, so nothing has marked it inactive
   const snap = await getDoc(ref);
-  return snap.exists() && isBlockedStatus(statusOf(snap.data()));
+  return snap.exists() && isRecordBlocked(snap.data());
 }
 
 /* Live watch for a signed-in session: calls onBlocked once, as soon as the
@@ -58,7 +111,7 @@ export async function watchAccountStatus(authUser, onBlocked) {
   if (!ref) return () => {};
   let fired = false;
   return onSnapshot(ref, (snap) => {
-    if (fired || !snap.exists() || !isBlockedStatus(statusOf(snap.data()))) return;
+    if (fired || !snap.exists() || !isRecordBlocked(snap.data())) return;
     fired = true;
     onBlocked();
   }, (error) => {

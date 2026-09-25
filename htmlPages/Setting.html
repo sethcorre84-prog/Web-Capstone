@@ -321,13 +321,15 @@
   width:38px;height:38px;
   border:1px solid var(--dm-border, #e4e7e1);
   background:var(--dm-surface, #ffffff);
-  color:var(--dm-text-2, #5b6b60);
+  /* Black, like User Management's Export button. On the green archive band
+     the .archive-theme rule below overrides this with white. */
+  color:var(--dm-text, #1c231c);
   font-size:13px;
   cursor:pointer;
 }
 .close-btn.export-mode:hover{
   background:var(--dm-surface-2, #fbfcfa);
-  color:var(--dm-text-2, #5b6b60);
+  color:var(--dm-text, #1c231c);
   border-color:var(--dm-border, #e4e7e1);
 }
 .close-btn .btn-tooltip{
@@ -362,18 +364,29 @@
   padding:16px 20px;
 }
 .archive-theme .modal-header h3{color:#fff;}
-/* The header button (Export or X) sits on the green band. */
-.archive-theme .close-btn,
-.archive-theme .close-btn.export-mode{
+/* The header button sits on the green band. The X stays white on the band;
+   the Export button becomes a white chip so its icon can be black without
+   losing contrast against the green behind it. */
+.archive-theme .close-btn{
   background:rgba(255,255,255,.14);
   border-color:rgba(255,255,255,.35);
   color:#fff;
 }
-.archive-theme .close-btn:hover,
-.archive-theme .close-btn.export-mode:hover{
+.archive-theme .close-btn:hover{
   background:rgba(255,255,255,.26);
   border-color:rgba(255,255,255,.5);
   color:#fff;
+}
+.archive-theme .close-btn.export-mode{
+  background:#ffffff;
+  border-color:rgba(255,255,255,.75);
+  color:#1c231c;
+}
+.archive-theme .close-btn.export-mode:hover{
+  background:#ffffff;
+  border-color:#ffffff;
+  color:#1c231c;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
 }
 .archive-theme .close-btn .btn-tooltip{background:var(--sidebar-bg);}
 .archive-theme .modal-body{background:var(--dm-surface-2, #f6faf7);}

@@ -1237,6 +1237,7 @@ tbody tr:last-child td{
             <div class="detail-row"><span><i class="fa-solid fa-mountain" aria-hidden="true"></i>Highest Point</span><span id="detailPeak">1,096 m (Peak 2)</span></div>
             <div class="detail-row"><span><i class="fa-solid fa-signs-post" aria-hidden="true"></i>Trail Type</span><span id="detailType">—</span></div>
             <div class="detail-row"><span><i class="fa-solid fa-door-open" aria-hidden="true"></i>Entry Type</span><span id="detailEntryType">—</span></div>
+            <div class="detail-row"><span><i class="fa-regular fa-calendar-plus" aria-hidden="true"></i>Publish Date</span><span id="detailPublishDate">—</span></div>
             <div class="detail-row"><span><i class="fa-regular fa-calendar-check" aria-hidden="true"></i>Last Updated</span><span id="detailUpdated">—</span></div>
           </div>
           <button class="btn-secondary" id="editTrailBtn">✎ Edit Trail Information</button>
@@ -1368,6 +1369,10 @@ tbody tr:last-child td{
             <option>Unregistered Map</option>
           </select>
         </div>
+        <div style="flex:1;">
+          <label style="font-size:12px;color:var(--text-secondary);">Publish Date</label>
+          <input type="date" id="newTrailPublishDate" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;font-family:inherit;font-size:13px;">
+        </div>
       </div>
     </div>
 
@@ -1399,12 +1404,40 @@ tbody tr:last-child td{
 
 <script type="module">
 import { db, storage } from "../jsPages/firebase-config.js";
-import { formatPortalDateTime } from "../jsPages/datetime-prefs.js";
+import { formatPortalDate, formatPortalDateTime } from "../jsPages/datetime-prefs.js";
 
 // Follows Settings > Date & Time (datetime-prefs.js).
 function formatTimestamp(ts) {
   if (!ts) return "No updates yet";
   return formatPortalDateTime(ts) || "No updates yet";
+}
+
+/* The publish date is a day, not a moment, so it is shown without a time and
+   follows the same Settings > Date & Time format as everything else. */
+function formatPublishDate(ts) {
+  if (!ts) return "Not set";
+  return formatPortalDate(ts) || "Not set";
+}
+
+// Firestore Timestamp | Date | ISO string -> "YYYY-MM-DD" for <input type="date">.
+function toDateInputValue(ts) {
+  if (!ts) return '';
+  const date = typeof ts?.toDate === 'function' ? ts.toDate() : new Date(ts);
+  if (Number.isNaN(date.getTime())) return '';
+  // Built from the local parts, not toISOString(), which would shift the day
+  // backwards for anyone east of UTC -- the Philippines included.
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/* "YYYY-MM-DD" -> a Date at local midnight. new Date("2026-09-25") alone is
+   parsed as UTC, which lands on the 24th here. */
+function fromDateInputValue(value) {
+  const text = String(value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+  const [year, month, day] = text.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 import {
   collection,
@@ -1630,6 +1663,7 @@ function renderDetail() {
   const t = getSelected();
   if (!t) return;
   document.getElementById('detailUpdated').textContent = formatTimestamp(t.UpdatedAt);
+  document.getElementById('detailPublishDate').textContent = formatPublishDate(t.PublishDate);
   document.getElementById('statusLastUpdated').textContent = formatTimestamp(t.StatusUpdatedAt);
 
   const status = t.Status || "Open";
@@ -1711,6 +1745,9 @@ function openEditMode() {
       <option ${currentEntryType === "Unregistered Map" ? "selected" : ""}>Unregistered Map</option>
     </select>`;
 
+  document.getElementById('detailPublishDate').innerHTML =
+    `<input type="date" id="editPublishDate" value="${toDateInputValue(t.PublishDate)}" style="width:150px;padding:4px;border:1px solid var(--border);border-radius:6px;font-family:inherit;text-align:right;">`;
+
   const currentDiff = t.Difficulty || "Undefined";
   const diffEl = document.getElementById('detailDiff');
   diffEl.className = '';
@@ -1741,6 +1778,8 @@ async function saveEdit() {
     Type: document.getElementById('editType').value,
     EntryType: document.getElementById('editEntryType').value,
     Difficulty: document.getElementById('editDiff').value,
+    // Clearing the field removes the date rather than storing a blank.
+    PublishDate: fromDateInputValue(document.getElementById('editPublishDate').value),
     UpdatedAt: serverTimestamp()
   };
 
@@ -1791,6 +1830,10 @@ document.getElementById('clearBtn').addEventListener('click', resetAllTrailFilte
 const addTrailModal = document.getElementById('addTrailModal');
 
 document.getElementById('addTrailBtn').addEventListener('click', () => {
+  // Most trails are published the day they are added, so today is the
+  // starting point; the admin can move it forward or back.
+  const publishField = document.getElementById('newTrailPublishDate');
+  if (!publishField.value) publishField.value = toDateInputValue(new Date());
   addTrailModal.style.display = 'flex';
 });
 
@@ -1875,6 +1918,8 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     return;
   }
 
+    const publishDate = fromDateInputValue(document.getElementById('newTrailPublishDate').value);
+
     const newTrail = {
     Trail: name,
     Description: document.getElementById('newTrailDesc').value,
@@ -1887,6 +1932,9 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     Municipality: document.getElementById('newTrailMunicipality').value,
     Status: document.getElementById('newTrailStatus').value,
     Ratings: document.getElementById('newTrailRatings').value,
+    // The day the trail goes live, as the admin set it. Left out entirely
+    // when the field is blank, rather than stored as an empty value.
+    ...(publishDate ? { PublishDate: publishDate } : {}),
     UpdatedAt: serverTimestamp(),
     StatusUpdatedAt: serverTimestamp()
   };
@@ -1911,6 +1959,7 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     document.getElementById('newTrailElev').value = '';
     document.getElementById('newTrailMunicipality').value = '';
     document.getElementById('newTrailRatings').value = '';
+    document.getElementById('newTrailPublishDate').value = '';
     photoInput.value = '';
     resetPhotoPicker();
   } catch (err) {

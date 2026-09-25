@@ -256,10 +256,32 @@
 
   .btn-primary:hover { background: #1f6b39; border-color: #1f6b39; }
 
+  /* The Suspend dialog's confirm button: the same shape, in the danger red
+     the Deactivate action already uses. */
+  .btn-primary.danger { background: #c8402f; border-color: #c8402f; }
+  .btn-primary.danger:hover { background: #a93324; border-color: #a93324; }
+
+  .modal-lede {
+    margin: -4px 0 16px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--dm-text-2, #5b6b60);
+  }
+  .field-hint {
+    margin: 6px 0 0;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--dm-text-2, #93a199);
+  }
+  /* Reads as an end date, not a passing hint, once a length is typed. */
+  .field-hint.is-set { color: var(--dm-text, #1c231c); font-weight: 600; }
+
+  /* Worn by one button on this page: Export, beside Add User. Its icon is
+     black, not the grey the other secondary text uses. */
   .btn-ghost {
     background: var(--dm-surface, #ffffff);
     border: 1px solid var(--dm-border, #e4e7e1);
-    color: var(--dm-text-2, #5b6b60);
+    color: var(--dm-text, #1c231c);
   }
 
   .btn-ghost:hover { background: var(--dm-surface-2, #fbfcfa); }
@@ -554,6 +576,73 @@
   .badge.suspended { background: #fbe9e7; color: #c8402f; }
   
   .team-cell { color: var(--dm-text-2, #5b6b60); font-size: 13px; }
+
+  /* A hiker can be in several teams, so the cell holds a chip per team
+     rather than one string. A team they lead is marked with a star. */
+  .team-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .team-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 2px 9px;
+    border-radius: 20px;
+    background: var(--accent-light);
+    color: var(--accent-dark);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .team-chip.is-leader::before { content: '°5'; margin-right: 5px; font-size: 9px; }
+  /* Still on the old free-text field, not in a team document. */
+  .team-chip.is-legacy {
+    background: var(--dm-surface-2, #f1f4f0);
+    color: var(--dm-text-2, #5b6b60);
+    font-weight: 500;
+  }
+  /* The detail row's value is a single ellipsised line; chips need to wrap. */
+  .detail-value.team-value {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+    white-space: normal;
+    overflow: visible;
+  }
+
+  .team-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 168px;
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid var(--dm-border, #e4e7e1);
+    border-radius: 8px;
+    background: var(--dm-surface, #ffffff);
+  }
+  .team-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .team-option:hover { background: var(--dm-surface-2, #f7f9f7); }
+  .team-option.is-locked { cursor: not-allowed; opacity: .65; }
+  .team-option input { accent-color: var(--accent); flex-shrink: 0; }
+  .team-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .team-option-note {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--dm-text-2, #93a199);
+  }
+  .team-picker-empty { margin: 0; padding: 8px; font-size: 12.5px; color: var(--dm-text-2, #5b6b60); }
+  .team-picker-hint { margin: 6px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--dm-text-2, #93a199); }
 
   .user-cell-text { min-width: 0; }
 
@@ -1187,7 +1276,16 @@
     box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
   }
 
-  .contact-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  /* Disabled fades the button's background rather than setting opacity on
+     the button itself: opacity applies to the whole subtree, so it took the
+     white phone icon and label down with it and they read as grey. */
+  .contact-btn:disabled {
+    background: linear-gradient(180deg, rgba(217, 88, 74, .5), rgba(200, 64, 47, .5));
+    cursor: not-allowed;
+  }
+
+  /* The phone stays white in both states. */
+  .contact-btn i { color: #fff; }
   
   .side-card {
     background: var(--dm-surface, #ffffff);
@@ -1457,12 +1555,14 @@
           <div class="detail-row"><i class="fa-solid fa-route"></i><span class="detail-label">Total Distance</span><span class="detail-value" id="detailDistance">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-triangle-exclamation"></i><span class="detail-label">Emergency Alerts</span><span class="detail-value" id="detailAlertCount">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-location-dot"></i><span class="detail-label">Assigned Area</span><span class="detail-value" id="detailArea">—</span></div>
+          <div class="detail-row" id="detailSuspensionRow" hidden><i class="fa-solid fa-ban"></i><span class="detail-label">Suspended until</span><span class="detail-value" id="detailSuspendedUntil">—</span></div>
         </div>
 
         <div class="detail-actions">
           <button id="viewProfileBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-eye"></i>View Profile</button>
           <button id="editUserBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-pen"></i>Edit User</button>
           <button id="resetPasswordBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-rotate"></i>Reset Password</button>
+          <button id="suspendUserBtn" class="action-btn danger" type="button" disabled><i class="fa-solid fa-ban"></i>Suspend User</button>
           <button id="deactivateUserBtn" class="action-btn danger" type="button" disabled><i class="fa-solid fa-user-slash"></i>Deactivate User</button>
         </div>
         <p id="resetPasswordStatus" class="action-status" role="status" aria-live="polite"></p>
@@ -1504,8 +1604,9 @@
     </div>
     <div class="field-row">
       <div class="field">
-        <label for="editUserTeam">Team</label>
-        <input id="editUserTeam" name="team" type="text">
+        <label>Teams</label>
+        <div class="team-picker" id="editUserTeams"></div>
+        <p class="team-picker-hint" id="editUserTeamsHint"></p>
       </div>
       <div class="field">
         <label for="editUserPhone">Phone</label>
@@ -1523,6 +1624,27 @@
     <div class="modal-actions">
       <button id="cancelEditUserBtn" class="modal-cancel" type="button">Cancel</button>
       <button id="saveEditUserBtn" class="modal-save" type="submit">Save Changes</button>
+    </div>
+  </form>
+</div>
+
+<div id="suspendUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="suspendUserTitle">
+  <form id="suspendUserForm" class="modal">
+    <h2 id="suspendUserTitle">Suspend User</h2>
+    <p class="modal-lede" id="suspendUserLede">This hiker will not be able to open their account in the PeakPath app until the suspension ends.</p>
+    <div class="field">
+      <label for="suspendUserDays">Suspend for (days)</label>
+      <input id="suspendUserDays" name="days" type="number" min="1" max="3650" step="1" value="7" required>
+      <p class="field-hint" id="suspendUserUntilHint"></p>
+    </div>
+    <div class="field">
+      <label for="suspendUserReason">Reason (optional)</label>
+      <input id="suspendUserReason" name="reason" type="text" maxlength="200" placeholder="Shown to the hiker in the app">
+    </div>
+    <p class="action-status" id="suspendUserStatusMessage" role="status" aria-live="polite"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="cancelSuspendUserBtn">Cancel</button>
+      <button type="submit" class="btn-primary danger" id="confirmSuspendUserBtn">Suspend</button>
     </div>
   </form>
 </div>
@@ -1560,8 +1682,9 @@
     </div>
     <div class="field-row">
       <div class="field">
-        <label for="addUserTeam">Team / Group</label>
-        <input id="addUserTeam" name="team" type="text">
+        <label>Teams</label>
+        <div class="team-picker" id="addUserTeams"></div>
+        <p class="team-picker-hint" id="addUserTeamsHint"></p>
       </div>
       <div class="field">
         <label for="addUserPhone">Phone</label>
@@ -1638,9 +1761,14 @@
 
 <script type="module">
   import { auth, db } from '../jsPages/firebase-config.js';
+  // The same rule login.js and dashboard-guard.js enforce, and the one the
+  // mobile app has to mirror. Suspensions end on their own date.
+  import { suspensionState } from '../jsPages/account-status.js';
   import { sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
     addDoc,
+    arrayRemove,
+    arrayUnion,
     collection,
     doc,
     deleteDoc,
@@ -1649,7 +1777,7 @@
     updateDoc
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-  const PAGE_SIZE = 8;
+  const PAGE_SIZE = 9;
 
   const usersTableBody = document.getElementById('usersTableBody');
   const searchInput = document.getElementById('userSearchInput');
@@ -1666,6 +1794,17 @@
   const resetPasswordBtn = document.getElementById('resetPasswordBtn');
   const deactivateUserBtn = document.getElementById('deactivateUserBtn');
   const contactUserBtn = document.getElementById('contactUserBtn');
+  const suspendUserBtn = document.getElementById('suspendUserBtn');
+  const suspendUserModal = document.getElementById('suspendUserModal');
+  const suspendUserForm = document.getElementById('suspendUserForm');
+  const suspendUserDays = document.getElementById('suspendUserDays');
+  const suspendUserReason = document.getElementById('suspendUserReason');
+  const suspendUserUntilHint = document.getElementById('suspendUserUntilHint');
+  const suspendUserLede = document.getElementById('suspendUserLede');
+  const suspendUserTitle = document.getElementById('suspendUserTitle');
+  const suspendUserStatusMessage = document.getElementById('suspendUserStatusMessage');
+  const cancelSuspendUserBtn = document.getElementById('cancelSuspendUserBtn');
+  const confirmSuspendUserBtn = document.getElementById('confirmSuspendUserBtn');
   const resetPasswordStatus = document.getElementById('resetPasswordStatus');
   const recentActivityList = document.getElementById('recentActivityList');
 
@@ -1689,6 +1828,7 @@
 
   const state = {
     users: [],
+    teams: [],
     hazardReports: [],
     emergencies: [],
     userReports: [],
@@ -1745,6 +1885,14 @@
     return safeName.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join('') || 'U';
   };
 
+  /* A suspension that has run out is Active everywhere on this page -- the
+     table, the filter, the stats -- because that is what every access check
+     already decides. The stored `status` is tidied up separately, below. */
+  const effectiveStatusOf = (user) => {
+    const state = suspensionState(user?.raw || {});
+    return state.expired ? 'Active' : (user.status || 'Active');
+  };
+
   const toBadgeClass = (role) => {
     const normalized = normalizeText(role).toLowerCase();
     if (normalized.includes('admin') || normalized.includes('manager')) return 'admin';
@@ -1780,6 +1928,10 @@
     return {
       id: snapshotDoc.id,
       uid: normalizeText(data.uid || data.userId || snapshotDoc.id),
+      // suspensionState() reads the raw fields, so keep them as stored.
+      raw: data,
+      suspendedUntil: data.suspendedUntil ?? null,
+      suspensionReason: normalizeText(data.suspensionReason || ''),
       name: fullName || 'Unnamed user',
       email,
       role: role || 'Hiker',
@@ -1800,6 +1952,80 @@
   // identify people inconsistently (uid, email or plain name), so every
   // known identifier for the user is matched against every plausible field.
   // ---------------------------------------------------------------------
+  // ---------------------------------------------------------------------
+  // Teams
+  //
+  // A team document looks like this (teams/{autoId}):
+  //   teamName   "Team PhilHealth"
+  //   leaderID   "<uid>"            the member who created it
+  //   members    ["<uid>", ...]     the leader is in here too
+  //   maxMembers 5
+  //   trailID    "<trail doc id>"
+  //   createdAt  timestamp
+  //
+  // Membership lives on the TEAM, not on the user, so one hiker can be in
+  // several teams -- and in this data several already are. Everything the
+  // page shows about teams is derived from this collection; the free-text
+  // `team` field still on some user documents is only a fallback.
+  // ---------------------------------------------------------------------
+  const normalizeTeam = (snapshotDoc) => {
+    const data = snapshotDoc.data() || {};
+    const max = Number(data.maxMembers);
+    return {
+      id: snapshotDoc.id,
+      name: normalizeText(data.teamName || data.name || data.title) || 'Unnamed team',
+      leaderId: normalizeText(data.leaderID || data.leaderId || data.leader),
+      members: Array.isArray(data.members) ? data.members.map(normalizeText).filter(Boolean) : [],
+      maxMembers: Number.isFinite(max) && max > 0 ? max : null,
+      trailId: normalizeText(data.trailID || data.trailId),
+      createdAt: data.createdAt || null
+    };
+  };
+
+  // members[] holds Firebase Auth uids, which is what a user document's id
+  // (or its uid field) is, so match on those two and ignore name/email.
+  const accountIds = (user) => new Set(
+    [user?.id, user?.uid].map(value => normalizeText(value).toLowerCase()).filter(Boolean)
+  );
+
+  const teamsForUser = (user) => {
+    const ids = accountIds(user);
+    if (!ids.size) return [];
+    return state.teams.filter(team =>
+      team.members.some(member => ids.has(member.toLowerCase()))
+      || (team.leaderId && ids.has(team.leaderId.toLowerCase()))
+    );
+  };
+
+  const leadsTeam = (user, team) => {
+    if (!team.leaderId) return false;
+    return accountIds(user).has(team.leaderId.toLowerCase());
+  };
+
+  // Team names for display, search and export. Anyone not in a team document
+  // falls back to the old free-text field so nothing disappears.
+  const userTeamNames = (user) => {
+    const names = teamsForUser(user).map(team => team.name);
+    if (names.length) return names;
+    return user?.team && user.team !== '—' ? [user.team] : [];
+  };
+
+  const teamChipsHtml = (user) => {
+    const teams = teamsForUser(user);
+    if (teams.length) {
+      return `<div class="team-chips">${teams.map(team =>
+        `<span class="team-chip${leadsTeam(user, team) ? ' is-leader' : ''}" title="${escapeHtml(
+          `${team.name}${leadsTeam(user, team) ? ' (leader)' : ''} · ${team.members.length}${team.maxMembers ? `/${team.maxMembers}` : ''} members`
+        )}">${escapeHtml(team.name)}</span>`
+      ).join('')}</div>`;
+    }
+    const fallback = userTeamNames(user);
+    if (!fallback.length) return '—';
+    return `<div class="team-chips">${fallback.map(name =>
+      `<span class="team-chip is-legacy" title="Not in a team document yet">${escapeHtml(name)}</span>`
+    ).join('')}</div>`;
+  };
+
   const identityKeys = (user) => {
     const keys = new Set();
     [user.id, user.uid, user.email, user.name].forEach((value) => {
@@ -1906,10 +2132,13 @@
   const renderStats = () => {
     const users = state.users;
     const total = users.length;
-    const activeUsers = users.filter(user => user.status.toLowerCase() === 'active').length;
+    const activeUsers = users.filter(user => effectiveStatusOf(user).toLowerCase() === 'active').length;
     const admins = users.filter(user => toBadgeClass(user.role) === 'admin').length;
-    const teams = new Set(users.map(user => user.team).filter(team => team && team !== '—'));
-    const usersInTeams = users.filter(user => user.team && user.team !== '—').length;
+    // The real count of teams, so one with no members still counts. Falls
+    // back to the distinct free-text values if the collection is unreadable.
+    const teamCount = state.teams.length
+      || new Set(users.map(user => user.team).filter(team => team && team !== '—')).size;
+    const usersInTeams = users.filter(user => userTeamNames(user).length).length;
 
     const now = new Date();
     const newThisMonth = users.filter((user) => {
@@ -1926,7 +2155,7 @@
 
     document.getElementById('totalUsersValue').textContent = total.toLocaleString();
     document.getElementById('activeUsersValue').textContent = activeUsers.toLocaleString();
-    document.getElementById('teamCountValue').textContent = teams.size.toLocaleString();
+    document.getElementById('teamCountValue').textContent = teamCount.toLocaleString();
     document.getElementById('emergencyAlertsValue').textContent = state.emergencies.length.toLocaleString();
     document.getElementById('adminCountValue').textContent = admins.toLocaleString();
 
@@ -1947,10 +2176,15 @@
     const selectedTeam = teamFilter.value;
 
     return state.users.filter((user) => {
-      const matchesSearch = !search || `${user.name} ${user.email} ${user.team}`.toLowerCase().includes(search);
+      const teamNames = userTeamNames(user);
+      const matchesSearch = !search
+        || `${user.name} ${user.email} ${teamNames.join(' ')}`.toLowerCase().includes(search);
       const matchesRole = selectedRole === 'All Roles' || user.role.toLowerCase() === selectedRole.toLowerCase();
-      const matchesStatus = selectedStatus === 'All Status' || user.status.toLowerCase() === selectedStatus.toLowerCase();
-      const matchesTeam = selectedTeam === 'All Teams' || user.team.toLowerCase() === selectedTeam.toLowerCase();
+      const matchesStatus = selectedStatus === 'All Status'
+        || effectiveStatusOf(user).toLowerCase() === selectedStatus.toLowerCase();
+      // "is a member of", not "equals" -- a hiker can be in several teams.
+      const matchesTeam = selectedTeam === 'All Teams'
+        || teamNames.some(name => name.toLowerCase() === selectedTeam.toLowerCase());
       return matchesSearch && matchesRole && matchesStatus && matchesTeam;
     });
   };
@@ -2031,8 +2265,8 @@
           </div>
         </td>
         <td><span class="badge ${toBadgeClass(user.role)}">${escapeHtml(user.role)}</span></td>
-        <td class="team-cell">${escapeHtml(user.team)}</td>
-        <td><span class="badge ${getUserStatusClass(user.status)}">${escapeHtml(user.status)}</span></td>
+        <td class="team-cell">${teamChipsHtml(user)}</td>
+        <td><span class="badge ${getUserStatusClass(effectiveStatusOf(user))}">${escapeHtml(effectiveStatusOf(user))}</span></td>
         <td class="stacked-date">${formatStackedDateTime(user.lastActive)}</td>
         <td class="stacked-date">${formatStackedDateTime(user.memberSince)}</td>
         <td>
@@ -2113,7 +2347,7 @@
   // ---------------------------------------------------------------------
   // Selected user panel
   // ---------------------------------------------------------------------
-  const detailActionButtons = [viewProfileBtn, editUserBtn, resetPasswordBtn, deactivateUserBtn, contactUserBtn];
+  const detailActionButtons = [viewProfileBtn, editUserBtn, resetPasswordBtn, suspendUserBtn, deactivateUserBtn, contactUserBtn];
 
   const getSelectedUser = () => state.users.find(user => user.id === state.selectedUserId) || null;
 
@@ -2168,6 +2402,11 @@
       ['detailPhone', 'detailTeam', 'detailMemberSince', 'detailLastActive', 'detailTotalHikes', 'detailDistance', 'detailAlertCount', 'detailArea']
         .forEach(id => { document.getElementById(id).textContent = '—'; });
       detailActionButtons.forEach(button => { if (button) button.disabled = true; });
+      document.getElementById('detailSuspensionRow').hidden = true;
+      if (suspendUserBtn) {
+        suspendUserBtn.disabled = true;
+        suspendUserBtn.innerHTML = '<i class="fa-solid fa-ban"></i>Suspend User';
+      }
       if (deactivateUserBtn) deactivateUserBtn.innerHTML = '<i class="fa-solid fa-user-slash"></i>Deactivate User';
       setResetPasswordStatus('');
       renderActivities(null);
@@ -2182,14 +2421,32 @@
     roleBadge.textContent = user.role;
     roleBadge.className = `badge ${toBadgeClass(user.role)}`;
 
+    // An expired suspension reads as Active here, the same way every access
+    // check treats it, so the panel never claims someone is locked out when
+    // they are not.
+    const suspension = userSuspension(user);
+    const effectiveStatus = suspension.expired ? 'Active' : user.status;
+
     const statusBadge = document.getElementById('detailStatusBadge');
-    statusBadge.textContent = user.status;
-    statusBadge.className = `status-pill ${getUserStatusClass(user.status)}`;
+    statusBadge.textContent = suspension.active && suspension.until
+      ? `Suspended · ${daysLeft(suspension.until)}d left`
+      : effectiveStatus;
+    statusBadge.className = `status-pill ${getUserStatusClass(effectiveStatus)}`;
+
+    const suspensionRow = document.getElementById('detailSuspensionRow');
+    suspensionRow.hidden = !suspension.active;
+    if (suspension.active) {
+      document.getElementById('detailSuspendedUntil').textContent = suspension.until
+        ? formatDisplayDateTime(suspension.until)
+        : 'No end date';
+    }
 
     const alerts = getUserAlerts(user);
 
     document.getElementById('detailPhone').textContent = user.phone || '—';
-    document.getElementById('detailTeam').textContent = user.team || '—';
+    const detailTeam = document.getElementById('detailTeam');
+    detailTeam.classList.add('team-value');
+    detailTeam.innerHTML = teamChipsHtml(user);
     document.getElementById('detailMemberSince').textContent = formatDisplayDate(user.memberSince);
     document.getElementById('detailLastActive').textContent = formatDisplayDateTime(user.lastActive);
     document.getElementById('detailTotalHikes').textContent = user.totalHikes || '—';
@@ -2201,7 +2458,12 @@
     resetPasswordBtn.disabled = !hasValidEmail(user.email);
     contactUserBtn.disabled = !(user.phone && user.phone !== '—') && !hasValidEmail(user.email);
 
-    const isInactive = String(user.status || 'Active').toLowerCase() !== 'active';
+    suspendUserBtn.innerHTML = suspension.active
+      ? '<i class="fa-solid fa-user-check"></i>Lift Suspension'
+      : '<i class="fa-solid fa-ban"></i>Suspend User';
+    suspendUserBtn.disabled = !suspension.active && isCurrentAdmin(user);
+
+    const isInactive = String(effectiveStatus || 'Active').toLowerCase() !== 'active';
     deactivateUserBtn.innerHTML = isInactive
       ? '<i class="fa-solid fa-user-check"></i>Activate User'
       : '<i class="fa-solid fa-user-slash"></i>Deactivate User';
@@ -2227,8 +2489,12 @@
 
     document.getElementById('editUserName').value = user.name === 'Unnamed user' ? '' : user.name;
     document.getElementById('editUserEmail').value = hasValidEmail(user.email) ? user.email : '';
-    document.getElementById('editUserStatus').value = user.status;
-    document.getElementById('editUserTeam').value = user.team === '—' ? '' : user.team;
+    document.getElementById('editUserStatus').value = effectiveStatusOf(user);
+    renderTeamPicker(
+      document.getElementById('editUserTeams'),
+      document.getElementById('editUserTeamsHint'),
+      user
+    );
     document.getElementById('editUserPhone').value = user.phone === '—' ? '' : user.phone;
     document.getElementById('editUserEmergencyContact').value = user.emergencyContact === '—' ? '' : user.emergencyContact;
     document.getElementById('editUserArea').value = user.area === '—' ? '' : user.area;
@@ -2261,10 +2527,10 @@
     document.getElementById('viewProfileTitle').textContent = user.name;
     document.getElementById('profileModalEmail').textContent = user.email;
     document.getElementById('profileModalRole').textContent = user.role;
-    document.getElementById('profileModalStatus').textContent = user.status;
+    document.getElementById('profileModalStatus').textContent = effectiveStatusOf(user);
     // The dot beside the status word picks up the status colour.
-    document.getElementById('profileModalStatusChip').className = `hero-chip status-${getUserStatusClass(user.status)}`;
-    document.getElementById('profileModalTeam').textContent = user.team;
+    document.getElementById('profileModalStatusChip').className = `hero-chip status-${getUserStatusClass(effectiveStatusOf(user))}`;
+    document.getElementById('profileModalTeam').textContent = userTeamNames(user).join(', ') || '—';
     document.getElementById('profileModalPhone').textContent = user.phone;
     document.getElementById('profileModalEmergencyContact').textContent = user.emergencyContact;
     document.getElementById('profileModalArea').textContent = user.area;
@@ -2294,6 +2560,13 @@
 
   addUserBtn.addEventListener('click', () => {
     addUserForm.reset();
+    // No account yet, so every team starts unticked; a full team is still
+    // shown as full and cannot be picked.
+    renderTeamPicker(
+      document.getElementById('addUserTeams'),
+      document.getElementById('addUserTeamsHint'),
+      null
+    );
     addUserStatusMessage.textContent = '';
     addUserStatusMessage.className = 'action-status';
     addUserModal.classList.add('open');
@@ -2326,6 +2599,67 @@
     }
   });
 
+  // ---------------------------------------------------------------------
+  // Assigning teams
+  //
+  // Membership is an array on the team document, so assigning a hiker means
+  // writing to teams/{id}.members -- never to the user. Two rules the data
+  // already implies: a team cannot go past maxMembers, and its leader stays
+  // in it (leaderID would otherwise point at a non-member).
+  // ---------------------------------------------------------------------
+  const renderTeamPicker = (container, hintEl, user) => {
+    if (!state.teams.length) {
+      container.innerHTML = '<p class="team-picker-empty">No teams in the teams collection yet.</p>';
+      hintEl.textContent = '';
+      return;
+    }
+
+    const ids = accountIds(user);
+    container.innerHTML = state.teams.map((team) => {
+      const isMember = team.members.some(member => ids.has(member.toLowerCase()));
+      const isLeader = !!team.leaderId && ids.has(team.leaderId.toLowerCase());
+      const isFull = team.maxMembers !== null && team.members.length >= team.maxMembers && !isMember;
+      const count = `${team.members.length}${team.maxMembers ? `/${team.maxMembers}` : ''}`;
+      const note = isLeader ? `leader · ${count}` : isFull ? `full · ${count}` : count;
+      return `
+        <label class="team-option${isLeader || isFull ? ' is-locked' : ''}">
+          <input type="checkbox" value="${escapeHtml(team.id)}"${isMember || isLeader ? ' checked' : ''}${isLeader || isFull ? ' disabled' : ''}>
+          <span class="team-option-name">${escapeHtml(team.name)}</span>
+          <span class="team-option-note">${escapeHtml(note)}</span>
+        </label>`;
+    }).join('');
+
+    hintEl.textContent = 'A hiker can be in several teams. A team they lead stays ticked, and a full team cannot be joined.';
+  };
+
+  const pickedTeamIds = (container) =>
+    [...container.querySelectorAll('input[type="checkbox"]:checked')].map(box => box.value);
+
+  const applyTeamMembership = async (memberId, wantedTeamIds) => {
+    const id = normalizeText(memberId);
+    if (!id) return;
+    const lower = id.toLowerCase();
+    const wanted = new Set(wantedTeamIds);
+    const writes = [];
+
+    state.teams.forEach((team) => {
+      const stored = team.members.find(member => member.toLowerCase() === lower);
+      const isMember = !!stored;
+      const shouldBeMember = wanted.has(team.id);
+      if (isMember === shouldBeMember) return;
+
+      if (isMember) {
+        if (team.leaderId && team.leaderId.toLowerCase() === lower) return; // leader stays
+        writes.push(updateDoc(doc(db, 'teams', team.id), { members: arrayRemove(stored) }));
+      } else {
+        if (team.maxMembers !== null && team.members.length >= team.maxMembers) return; // full
+        writes.push(updateDoc(doc(db, 'teams', team.id), { members: arrayUnion(id) }));
+      }
+    });
+
+    await Promise.all(writes);
+  };
+
   editUserForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const user = getSelectedUser();
@@ -2335,18 +2669,44 @@
     const email = normalizeText(formData.get('email'));
     if (!hasValidEmail(email)) return;
 
+    const wantedTeamIds = pickedTeamIds(document.getElementById('editUserTeams'));
+    // Mirrored onto the user document so anything still reading the old
+    // `team` field (the mobile app, an export) keeps agreeing with teams/.
+    const teamMirror = state.teams
+      .filter(team => wantedTeamIds.includes(team.id))
+      .map(team => team.name)
+      .join(', ');
+
+    /* Status is also settable here, which has to agree with the Suspend
+       action. Only a real change touches the suspension fields, so saving an
+       unrelated edit never shortens or wipes a suspension already running.
+         -> Suspended  no end date, i.e. until an admin lifts it. Use the
+                       Suspend action for a timed one. Clearing any old date
+                       stops a date already in the past reading as expired.
+         -> anything   the suspension is over, so its fields go with it. */
+    const previousStatus = effectiveStatusOf(user);
+    const nextStatus = normalizeText(formData.get('status'));
+    const statusChanged = nextStatus.toLowerCase() !== previousStatus.toLowerCase();
+    const suspensionPatch = !statusChanged
+      ? {}
+      : nextStatus.toLowerCase() === 'suspended'
+        ? { suspendedUntil: null, suspendedAt: serverTimestamp(), suspendedBy: auth.currentUser?.uid || null, suspensionDays: null }
+        : { suspendedUntil: null, suspendedAt: null, suspendedBy: null, suspensionDays: null, suspensionReason: null };
+
     saveEditUserBtn.disabled = true;
     saveEditUserBtn.textContent = 'Saving...';
     try {
       await updateDoc(doc(db, 'users', user.id), {
+        ...suspensionPatch,
         fullName: normalizeText(formData.get('fullName')),
         email,
-        status: normalizeText(formData.get('status')),
-        team: normalizeText(formData.get('team')) || '—',
+        status: nextStatus,
+        team: teamMirror || '—',
         phone: normalizeText(formData.get('phone')) || '—',
         emergencyContact: normalizeText(formData.get('emergencyContact')) || '—',
         assignedArea: normalizeText(formData.get('assignedArea')) || '—'
       });
+      await applyTeamMembership(user.uid || user.id, wantedTeamIds);
       closeEditUserModal();
       setResetPasswordStatus('User details updated.', 'success');
     } catch (error) {
@@ -2369,16 +2729,25 @@
     addUserStatusMessage.textContent = '';
     addUserStatusMessage.className = 'action-status';
 
+    const wantedTeamIds = pickedTeamIds(document.getElementById('addUserTeams'));
+    const teamMirror = state.teams
+      .filter(team => wantedTeamIds.includes(team.id))
+      .map(team => team.name)
+      .join(', ');
+
     try {
-      await addDoc(collection(db, 'users'), {
+      const created = await addDoc(collection(db, 'users'), {
         fullName: normalizeText(formData.get('fullName')),
         email,
         role: normalizeText(formData.get('role')) || 'Hiker',
         status: normalizeText(formData.get('status')) || 'Active',
-        team: normalizeText(formData.get('team')) || '—',
+        team: teamMirror || '—',
         phone: normalizeText(formData.get('phone')) || '—',
         createdAt: serverTimestamp()
       });
+      // A user added here has no Auth account yet, so the document id is the
+      // only id there is -- the same one normalizeUser() reports as `uid`.
+      await applyTeamMembership(created.id, wantedTeamIds);
       closeAddUserModal();
       setResetPasswordStatus('New user added.', 'success');
     } catch (error) {
@@ -2412,6 +2781,137 @@
     }
   });
 
+  // ---------------------------------------------------------------------
+  // Suspending a hiker for a number of days
+  //
+  // The suspension is a date on the users record, not a job that has to run:
+  // suspendedUntil is compared with the clock every time an account is
+  // checked, here and in the app, so it lifts itself the moment it passes.
+  // See jsPages/account-status.js and docs/mobile-suspension-check.md.
+  // ---------------------------------------------------------------------
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  const userSuspension = (user) => suspensionState(user?.raw || {});
+
+  const daysLeft = (until) =>
+    Math.max(1, Math.ceil((until.getTime() - Date.now()) / DAY_MS));
+
+  const setSuspendStatus = (message, type = '') => {
+    suspendUserStatusMessage.textContent = message;
+    suspendUserStatusMessage.className = `action-status${type ? ` ${type}` : ''}`;
+  };
+
+  // Turns the number typed into the date it lands on, so the admin sees the
+  // end date before committing rather than counting days in their head.
+  const refreshSuspendHint = () => {
+    const days = Number(suspendUserDays.value);
+    if (!Number.isFinite(days) || days < 1) {
+      suspendUserUntilHint.textContent = 'Enter at least 1 day.';
+      suspendUserUntilHint.className = 'field-hint';
+      return;
+    }
+    const until = new Date(Date.now() + days * DAY_MS);
+    suspendUserUntilHint.textContent = `Ends ${formatDisplayDateTime(until)}, and the account works again by itself.`;
+    suspendUserUntilHint.className = 'field-hint is-set';
+  };
+
+  const openSuspendModal = () => {
+    const user = getSelectedUser();
+    if (!user) return;
+    suspendUserTitle.textContent = `Suspend ${user.name}`;
+    suspendUserLede.textContent = `${user.name} will not be able to open their account in the PeakPath app until the suspension ends.`;
+    suspendUserDays.value = '7';
+    suspendUserReason.value = user.suspensionReason || '';
+    setSuspendStatus('');
+    refreshSuspendHint();
+    suspendUserModal.classList.add('open');
+    suspendUserDays.focus();
+    suspendUserDays.select();
+  };
+
+  const closeSuspendModal = () => {
+    suspendUserModal.classList.remove('open');
+    setSuspendStatus('');
+  };
+
+  const liftSuspension = async (user) => {
+    suspendUserBtn.disabled = true;
+    try {
+      await updateDoc(doc(db, 'users', user.id), {
+        status: 'Active',
+        suspendedUntil: null,
+        suspendedAt: null,
+        suspendedBy: null,
+        suspensionDays: null,
+        suspensionReason: null
+      });
+      setResetPasswordStatus(`${user.name}'s suspension has been lifted. They can use the app again.`, 'success');
+    } catch (error) {
+      console.error('Failed to lift the suspension:', error);
+      setResetPasswordStatus('Unable to lift this suspension right now.', 'error');
+    } finally {
+      suspendUserBtn.disabled = false;
+    }
+  };
+
+  suspendUserBtn.addEventListener('click', () => {
+    const user = getSelectedUser();
+    if (!user) return;
+    // Suspending yourself would sign you out with no one left to undo it.
+    if (isCurrentAdmin(user)) {
+      setResetPasswordStatus("You can't suspend your own account. Ask another administrator.", 'error');
+      return;
+    }
+    if (userSuspension(user).active) {
+      liftSuspension(user);
+      return;
+    }
+    openSuspendModal();
+  });
+
+  suspendUserDays.addEventListener('input', refreshSuspendHint);
+  cancelSuspendUserBtn.addEventListener('click', closeSuspendModal);
+  suspendUserModal.addEventListener('click', (event) => {
+    if (event.target === suspendUserModal) closeSuspendModal();
+  });
+
+  suspendUserForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const user = getSelectedUser();
+    if (!user) return;
+
+    const days = Number(suspendUserDays.value);
+    if (!Number.isFinite(days) || days < 1) {
+      setSuspendStatus('Enter how many days the suspension should last.', 'error');
+      return;
+    }
+
+    const until = new Date(Date.now() + Math.floor(days) * DAY_MS);
+    confirmSuspendUserBtn.disabled = true;
+    confirmSuspendUserBtn.textContent = 'Suspending...';
+    try {
+      await updateDoc(doc(db, 'users', user.id), {
+        status: 'Suspended',
+        suspendedUntil: until,
+        suspendedAt: serverTimestamp(),
+        suspendedBy: auth.currentUser?.uid || null,
+        suspensionDays: Math.floor(days),
+        suspensionReason: normalizeText(suspendUserReason.value) || null
+      });
+      closeSuspendModal();
+      setResetPasswordStatus(
+        `${user.name} is suspended for ${Math.floor(days)} day${Math.floor(days) === 1 ? '' : 's'}, until ${formatDisplayDateTime(until)}.`,
+        'success'
+      );
+    } catch (error) {
+      console.error('Failed to suspend the user:', error);
+      setSuspendStatus('Unable to suspend this user right now.', 'error');
+    } finally {
+      confirmSuspendUserBtn.disabled = false;
+      confirmSuspendUserBtn.textContent = 'Suspend';
+    }
+  });
+
   deactivateUserBtn.addEventListener('click', async () => {
     const user = getSelectedUser();
     if (!user) return;
@@ -2420,7 +2920,7 @@
        deactivated account in, and dashboard-guard.js signs it out of every
        open admin page straight away. Hikers sign in through the PeakPath
        app, which has to make the same check. */
-    const deactivating = String(user.status || 'Active').toLowerCase() === 'active';
+    const deactivating = effectiveStatusOf(user).toLowerCase() === 'active';
     const nextStatus = deactivating ? 'Inactive' : 'Active';
 
     // Deactivating yourself would sign you out on the spot with no one left
@@ -2464,8 +2964,8 @@
         user.name,
         user.email,
         user.role,
-        user.team,
-        user.status,
+        userTeamNames(user).join('; '),
+        effectiveStatusOf(user),
         user.phone,
         formatDisplayDateTime(user.lastActive),
         formatDisplayDate(user.memberSince)
@@ -2495,7 +2995,11 @@
     };
 
     const roles = [...new Set(state.users.map(user => user.role).filter(Boolean))].sort();
-    const teams = [...new Set(state.users.map(user => user.team).filter(team => team && team !== '—'))].sort();
+    // Every team in the collection, so an empty team is still selectable,
+    // plus any legacy free-text team still sitting on a user document.
+    const teamNameSet = new Set(state.teams.map(team => team.name));
+    state.users.forEach((user) => { userTeamNames(user).forEach(name => teamNameSet.add(name)); });
+    const teams = [...teamNameSet].filter(Boolean).sort();
 
     rebuild(roleFilter, 'All Roles', roles);
     rebuild(teamFilter, 'All Teams', teams);
@@ -2508,6 +3012,31 @@
     renderStats();
     renderUserTable();
     renderSelectedUser();
+  };
+
+  /* A suspension is already over the moment its date passes -- every access
+     check compares it with the clock. This just puts the stored record back
+     in step so the raw data does not keep claiming "Suspended" forever. It
+     is housekeeping: if it fails, or no admin ever opens this page, the
+     hiker still gets back in. Each id is attempted once per session so a
+     denied write cannot loop. */
+  const tidiedSuspensions = new Set();
+  const tidyExpiredSuspensions = (users) => {
+    users.forEach((user) => {
+      if (tidiedSuspensions.has(user.id)) return;
+      if (!suspensionState(user.raw || {}).expired) return;
+      tidiedSuspensions.add(user.id);
+      updateDoc(doc(db, 'users', user.id), {
+        status: 'Active',
+        suspendedUntil: null,
+        suspendedAt: null,
+        suspendedBy: null,
+        suspensionDays: null,
+        suspensionReason: null
+      }).catch((error) => {
+        console.warn(`Could not clear the expired suspension on ${user.id}:`, error.message);
+      });
+    });
   };
 
   onSnapshot(collection(db, 'users'), (snapshot) => {
@@ -2537,6 +3066,7 @@
     }
 
     refreshAll();
+    tidyExpiredSuspensions(state.users);
 
     if (linkedIndex !== -1) {
       userDetailCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -2558,6 +3088,16 @@
       console.error(`Error loading ${name}:`, error);
     });
   };
+
+  // Teams drive the Team/Group column, the filter and the Teams stat, so a
+  // change here re-renders everything rather than just the detail card.
+  onSnapshot(collection(db, 'teams'), (snapshot) => {
+    state.teams = snapshot.docs.map(normalizeTeam)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    refreshAll();
+  }, (error) => {
+    console.error('Error loading teams:', error);
+  });
 
   watchCollection('reports', 'hazardReports');
   watchCollection('emergency', 'emergencies');
