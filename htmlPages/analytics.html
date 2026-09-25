@@ -174,17 +174,36 @@ a { color: inherit; text-decoration: none; }
   gap: 12px;
   margin-bottom: 16px;
 }
+/* No panel behind the four tiles -- just the heading and the cards on the
+   page itself, so the row floats the way the summary cards do on Dashboard,
+   Trail Management and the rest. */
+.overview-block { margin-bottom: 4px; }
+
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  /* 128px, the height every summary card in the portal stands at, so this
+     row lines up with the ones on the other pages. */
+  min-height: 128px;
   padding: 13px 15px;
+  /* The figure and its icon on the top line, the label and its note on the
+     floor of the card -- the same shape the summary cards have on every
+     other page in the portal. */
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
   min-width: 0;
   box-shadow: 0 18px 36px rgba(15,23,42,0.06);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card > .card-content { min-width: 0; }
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 .card:hover {
   transform: translateY(-2px);
@@ -196,8 +215,8 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
 }
 .card-icon {
-  width: 28px;
-  height: 28px;
+  width: 38px;
+  height: 38px;
   border-radius: 8px;
   display: grid;
   place-items: center;
@@ -218,15 +237,19 @@ a { color: inherit; text-decoration: none; }
   background: rgba(107, 76, 201, 0.12); 
   color: var(--purple); 
 }
-.card-content .value {
-  font-size: 18px;
+/* Lives in .card-top now, not .card-content, so it is selected on its own. */
+.card .value {
+  font-size: 24px;
   font-weight: 700;
   line-height: 1.2;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
+.card .value.muted { color: var(--text-muted); }
 .card-content .label {
-  font-size: 11.5px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-secondary);
-  margin-top: 2px;
 }
 .card-content .hint {
   font-size: 10.5px;
@@ -234,12 +257,186 @@ a { color: inherit; text-decoration: none; }
   margin-top: 2px;
   line-height: 1.45;
 }
+/* ===================================================================
+   Predictive / Prescriptive sections
+
+   Each column is a tinted region with its own heading and white cards
+   inside, so the page reads as two named halves rather than a stack of
+   identical panels. Descriptive Analytics keeps its own full-width panel
+   above these.
+   =================================================================== */
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+.section-head h2 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+}
+.section-head-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--accent-light);
+  color: var(--accent-dark);
+}
+.section-head-icon svg { width: 13px; height: 13px; }
+/* Sits at the right of the heading row, labelling the section. */
+.ai-chip {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ai-chip svg { width: 11px; height: 11px; }
+
+/* A column, so the card grid can take the section's full height. .grid-2
+   stretches the two sections to match each other, and this is what carries
+   that height down to the cards -- without it the shorter section's cards
+   stopped at their content and left a gap above its bottom edge. */
+.analytics-section {
+  background: var(--dm-surface-2, #f6faf4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* Two cards across; a card marked wide takes the whole row.
+
+   The first row is sized to its content and the second takes whatever is
+   left, so the bottom cards reach the section's bottom edge while the top
+   row keeps its natural height -- stretching every row instead would pull
+   the Risk Forecast chart out of shape. */
+.section-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Prescriptive only: the wide card's row takes the spare height and the two
+   cards under it keep their natural size. Paired with the scrolling list
+   below, this is what stops a long list of recommendations from driving the
+   section taller than Predictive beside it -- the list scrolls instead, and
+   the two sections stay the same height. */
+
+.sub-card--wide { min-height: 0; }
+.sub-card--wide .alert-list {
+  flex: 1;
+  min-height: 0;
+  /* The cap is what actually makes it scroll. .grid-2 stretches both
+     sections to the taller of the two, so whichever one is tallest sets the
+     row height and is never constrained by it -- a long list of
+     recommendations simply grew the row and kept growing. A height of its
+     own breaks that: the list stops here and scrolls, and the section stops
+     growing with it.
+
+     Sized from the viewport as well as a fixed figure, so a short laptop
+     screen does not hand the whole display to one list. */
+  max-height: min(360px, 42vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Slim, so the card does not gain a heavy gutter down its side. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  /* Keeps the rows off the scrollbar when one appears. */
+  padding-right: 2px;
+}
+.sub-card--wide .alert-list::-webkit-scrollbar { width: 8px; }
+.sub-card--wide .alert-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}
+.sub-card--wide .alert-list::-webkit-scrollbar-track { background: transparent; }
+.sub-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  min-width: 0;
+  /* A column, so a card's button can be pushed to its bottom edge -- which
+     is what lines the buttons up across a row. */
+  display: flex;
+  flex-direction: column;
+}
+.sub-card--wide { grid-column: 1 / -1; }
+.sub-card > h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+/* The working behind the figures, kept out of the list itself. */
+.card-info {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  cursor: help;
+}
+.card-sub {
+  margin: -6px 0 10px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+/* auto absorbs the card's spare height, so a card's button sits on its
+   bottom edge and the buttons line up across a row whatever each card
+   holds. The content above keeps its own bottom margin, so they never
+   touch even when there is no spare height.
+
+   align-self overrides the centring the summary card puts on its children,
+   which was shrinking its button to the width of its label while every
+   other card's button ran the full width. */
+.sub-card .btn-outline {
+  margin-top: auto;
+  align-self: stretch;
+}
+/* The AI badge beside the page title, and the date range beside the bell. */
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  vertical-align: middle;
+}
+
 .grid-2 {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
   gap: 14px;
   margin-bottom: 16px;
-  align-items: start;
+  /* Both sections stand to the taller of the two, so Predictive and
+     Prescriptive finish on the same line. */
+  align-items: stretch;
 }
 .panel {
   background: var(--card-bg);
@@ -304,7 +501,8 @@ a { color: inherit; text-decoration: none; }
   font-size: 13px;
   margin: 0 0 8px;
 }
-.small-card .row {
+.small-card .row,
+.sub-card .row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -313,12 +511,14 @@ a { color: inherit; text-decoration: none; }
   font-size: 12px;
 }
 /* The label side wraps; the value side never shrinks out of alignment. */
-.small-card .row span:first-child {
+.small-card .row span:first-child,
+.sub-card .row span:first-child {
   color: var(--text-secondary);
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.small-card .row span:last-child {
+.small-card .row span:last-child,
+.sub-card .row span:last-child {
   font-weight: 700;
   flex-shrink: 0;
   text-align: right;
@@ -332,10 +532,26 @@ a { color: inherit; text-decoration: none; }
   border-top: 1px solid #f0f3f0;
   font-size: 12.5px;
 }
-.list-item > div:first-child {
+/* The text column, which is now the second child. */
+.list-item > div {
+  flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.action-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 11.5px;
+  line-height: 1;
+}
+.action-icon.high { background: var(--red-bg); color: var(--red-text); }
+.action-icon.med { background: var(--amber-bg); color: var(--amber-text); }
+.action-icon.low { background: var(--green-bg); color: var(--green-text); }
 .list-item:first-child {
   border-top: none;
 }
@@ -433,9 +649,26 @@ a { color: inherit; text-decoration: none; }
   min-width: 0;
 }
 .info-block h4 {
-  margin: 0 0 7px;
+  margin: 0;
   font-size: 12.5px;
 }
+.info-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.info-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--accent-light);
+  color: var(--accent-dark);
+}
+.info-icon svg { width: 13px; height: 13px; }
 .info-block p {
   margin: 0;
   color: var(--text-secondary);
@@ -463,7 +696,6 @@ a { color: inherit; text-decoration: none; }
   font-size: 11.5px;
   line-height: 1.55;
 }
-.card-content .value.muted { color: var(--text-muted); }
 .usage-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -491,7 +723,8 @@ a { color: inherit; text-decoration: none; }
   margin-top: 2px;
   line-height: 1.45;
 }
-.small-card .row span.val-muted {
+.small-card .row span.val-muted,
+.sub-card .row span.val-muted {
   color: var(--text-muted);
   font-weight: 600;
 }
@@ -548,12 +781,19 @@ a { color: inherit; text-decoration: none; }
   margin-bottom: 12px;
 }
 .kpi {
-  background: #f9fbf7;
+  background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px 14px;
   min-width: 0;
 }
+.kpi-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.kpi-top .kpi-label { margin: 0; min-width: 0; }
 .kpi .kpi-label {
   font-size: 11px;
   color: var(--text-secondary);
@@ -636,11 +876,110 @@ a { color: inherit; text-decoration: none; }
 .bar-fill.status-resolved { background: var(--blue); }
 .bar-fill.status-rejected { background: var(--danger); }
 .bar-fill.status-archived { background: #93a199; }
+
+/* ===================================================================
+   Hazard colour families
+
+   One tone per kind of hazard, carried by both the icon chip and the bar
+   beside it, so a hazard type is recognisable by colour before its label
+   is read -- and is the same colour wherever it appears on the page.
+   =================================================================== */
+.bar-fill.tone-green  { background: var(--accent); }
+.bar-fill.tone-amber  { background: var(--amber-icon, #e8a63c); }
+.bar-fill.tone-blue   { background: var(--blue); }
+.bar-fill.tone-red    { background: var(--danger); }
+.bar-fill.tone-purple { background: var(--purple, #6b4cc9); }
+.bar-fill.tone-slate  { background: #7f8b7c; }
+
+.bar-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.type-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  font-size: 10.5px;
+}
+.type-icon.green  { background: var(--green-bg);  color: var(--green-text); }
+.type-icon.amber  { background: var(--amber-bg);  color: var(--amber-text); }
+.type-icon.blue   { background: var(--blue-bg);   color: var(--blue-text); }
+.type-icon.red    { background: var(--red-bg);    color: var(--red-text); }
+.type-icon.purple { background: var(--purple-bg); color: var(--purple-text); }
+.type-icon.slate  { background: var(--dm-surface-3, #e7ece6); color: #5b6b60; }
+
+/* Hazard Likelihood: one line per hazard -- icon, name, bar, figure.
+   A grid rather than a flex row so every bar starts at the same x whatever
+   the names are, which is what lets the column be read as a chart. */
+.lk-row {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) minmax(52px, 104px) 38px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+}
+.lk-icon {
+  font-size: 13px;
+  text-align: center;
+  line-height: 1;
+}
+/* Coloured by hazard type, the same family it has everywhere else. */
+.lk-icon.green  { color: var(--green-text); }
+.lk-icon.amber  { color: var(--amber-icon, #e8a63c); }
+.lk-icon.blue   { color: var(--blue-text); }
+.lk-icon.red    { color: var(--red-text); }
+.lk-icon.purple { color: var(--purple-text, #6b4cc9); }
+.lk-icon.slate  { color: #5b6b60; }
+
+.lk-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lk-track {
+  height: 7px;
+  border-radius: 4px;
+  background: #eef2ee;
+  overflow: hidden;
+}
+.lk-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+/* Coloured by the size of the number, so the list ranks itself. */
+.lk-fill.red    { background: var(--danger); }
+.lk-fill.orange { background: #e2803a; }
+.lk-fill.amber  { background: var(--amber-icon, #e8a63c); }
+.lk-fill.blue   { background: var(--blue); }
+
+.lk-value {
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: right;
+}
+
 @media (max-width: 1080px) {
   .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 1240px) {
   .grid-2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  /* One card per row, so there are more rows than the two the wide layout
+     defines; let them all size to their content instead. */
+  .section-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
 }
 @media (max-width: 1080px) {
   .cards-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -699,8 +1038,8 @@ a { color: inherit; text-decoration: none; }
   <main class="main">
     <div class="topbar">
       <div class="topbar-left">
-        <h1>Analytics &amp; Reports – Descriptive, Predictive &amp; Prescriptive</h1>
-        <p>What has happened, what is likely next, and what to do about it — computed live from PeakPath's records and the Mount Makiling forecast.</p>
+        <h1>AI Analytics – Predictive &amp; Prescriptive<span class="ai-badge">AI</span></h1>
+        <p>Intelligent insights and recommendations for safety and trail management in Mount Makiling.</p>
       </div>
       <div class="topbar-right">
         <div class="bell-wrap">
@@ -712,36 +1051,54 @@ a { color: inherit; text-decoration: none; }
         </div>
       </div>
     </div>
-    <div class="cards-row">
-      <div class="card">
-        <div class="card-top">
-          <span class="card-content"><div class="value muted" id="overallRiskValue">—</div></span>
-          <div class="card-icon" id="overallRiskIcon"><span>✓</span></div>
-        </div>
-        <div class="card-content"><div class="label">Overall Safety Risk</div><div class="hint" id="overallRiskHint">Loading live data…</div></div>
+    <section class="overview-block">
+      <div class="section-head">
+        <span class="section-head-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3l2.1 4.6 4.9.6-3.6 3.4.9 4.9L12 14.9 7.7 16.5l.9-4.9L5 8.2l4.9-.6z"/></svg></span>
+        <h2>AI Overview (Mount Makiling)</h2>
       </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-content"><div class="value muted" id="weatherRiskValue">—</div></span>
-          <div class="card-icon warn"><span>☔</span></div>
+      <div class="cards-row">
+        <div class="card">
+          <div class="card-top">
+            <div class="value muted" id="overallRiskValue">—</div>
+            <div class="card-icon" id="overallRiskIcon"><span>✓</span></div>
+          </div>
+          <div class="card-content">
+            <div class="label">Overall Safety Risk</div>
+            <div class="hint" id="overallRiskHint">Loading live data…</div>
+          </div>
         </div>
-        <div class="card-content"><div class="label">Weather Risk</div><div class="hint" id="weatherRiskHint">Loading forecast…</div></div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-content"><div class="value muted" id="congestionValue">—</div></span>
-          <div class="card-icon danger"><span>👥</span></div>
+        <div class="card">
+          <div class="card-top">
+            <div class="value muted" id="weatherRiskValue">—</div>
+            <div class="card-icon warn"><span>☔</span></div>
+          </div>
+          <div class="card-content">
+            <div class="label">Weather Risk</div>
+            <div class="hint" id="weatherRiskHint">Loading forecast…</div>
+          </div>
         </div>
-        <div class="card-content"><div class="label">Trail Congestion (Weekend)</div><div class="hint" id="congestionHint">Loading hiker activity…</div></div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-content"><div class="value muted" id="confidenceValue">—</div></span>
-          <div class="card-icon purple"><span>AI</span></div>
+        <div class="card">
+          <div class="card-top">
+            <div class="value muted" id="congestionValue">—</div>
+            <div class="card-icon danger"><span>👥</span></div>
+          </div>
+          <div class="card-content">
+            <div class="label">Trail Congestion (Weekend)</div>
+            <div class="hint" id="congestionHint">Loading hiker activity…</div>
+          </div>
         </div>
-        <div class="card-content"><div class="label">Model Confidence</div><div class="hint" id="confidenceHint">Based on available data inputs</div></div>
+        <div class="card">
+          <div class="card-top">
+            <div class="value muted" id="confidenceValue">—</div>
+            <div class="card-icon purple"><span>AI</span></div>
+          </div>
+          <div class="card-content">
+            <div class="label">Model Confidence</div>
+            <div class="hint" id="confidenceHint">Based on available data inputs</div>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
     <!-- What has already happened, over a window the admin picks. Everything
          below it (predictive, prescriptive) is built on the same records. -->
     <div class="panel" style="margin-bottom:16px;">
@@ -789,68 +1146,96 @@ a { color: inherit; text-decoration: none; }
       </div>
     </div>
     <div class="grid-2">
-      <div class="flex-col">
-        <div class="panel">
-          <div class="panel-title">Predictive Analytics</div>
-          <div class="chart-panel">
-            <div class="chart-title">Risk Forecast (Next 7 Days)</div>
-            <svg id="riskForecastChart" width="100%" height="150" viewBox="0 0 600 150" preserveAspectRatio="none" role="img" aria-label="Predicted risk score for the next seven days"></svg>
+      <!-- What is likely next. Four cards, two across. -->
+      <section class="analytics-section">
+        <div class="section-head">
+          <span class="section-head-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 17l6-6 4 4 7-7"/><path d="M17 8h4v4"/></svg></span>
+          <h2>Predictive Analytics</h2>
+        </div>
+        <div class="section-body">
+          <div class="sub-card">
+            <h3>Risk Forecast (Next 7 Days)</h3>
+            <svg id="riskForecastChart" width="100%" height="230" viewBox="0 0 600 230" preserveAspectRatio="none" role="img" aria-label="Predicted risk score for the next seven days"></svg>
             <div class="risk-axis" id="riskForecastAxis"></div>
             <div style="margin-top:10px;color:var(--text-secondary);font-size:11.5px;line-height:1.5;" id="riskForecastNote">Loading forecast…</div>
           </div>
-          <div class="panel-grid">
-            <div class="small-card">
-              <h3>Weather Impact Prediction</h3>
-              <div class="row"><span>Rain Probability (peak day)</span><span id="weatherProbability" class="val-muted">—</span></div>
-              <div class="row"><span>Expected Rainfall (7 days)</span><span id="weatherRainfall" class="val-muted">—</span></div>
-              <div class="row"><span>Impact on Trails</span><span id="weatherImpact" class="val-muted">—</span></div>
-              <div class="row"><span>Affected Trails</span><span id="weatherAffectedTrails" class="val-muted">—</span></div>
-              <a class="btn-outline" href="geomap.html">View Detailed Forecast</a>
-            </div>
-            <div class="small-card">
-              <h3>Trail Usage Prediction</h3>
-              <div class="usage-grid" id="trailUsageChart"></div>
-              <div style="margin-top:10px;color:var(--text-secondary);font-size:11.5px;line-height:1.5;" id="trailUsageNote">Loading hiker activity…</div>
-            </div>
+
+          <div class="sub-card">
+            <h3>Weather Impact Prediction</h3>
+            <div class="row"><span>Rain Probability (peak day)</span><span id="weatherProbability" class="val-muted">—</span></div>
+            <div class="row"><span>Expected Rainfall (7 days)</span><span id="weatherRainfall" class="val-muted">—</span></div>
+            <div class="row"><span>Impact on Trails</span><span id="weatherImpact" class="val-muted">—</span></div>
+            <div class="row"><span>Affected Trails</span><span id="weatherAffectedTrails" class="val-muted">—</span></div>
+            <a class="btn-outline" href="geomap.html">View Detailed Forecast</a>
           </div>
-        </div>
-        <div class="panel">
-          <div class="panel-title">Hazard Likelihood Prediction (Next 7 Days)</div>
-          <div class="small-card">
+
+          <div class="sub-card">
+            <h3>Trail Usage Prediction</h3>
+            <div class="usage-grid" id="trailUsageChart"></div>
+            <div style="margin-top:10px;color:var(--text-secondary);font-size:11.5px;line-height:1.5;" id="trailUsageNote">Loading hiker activity…</div>
+          </div>
+
+          <div class="sub-card">
+            <h3 class="card-title-row">
+              Hazard Likelihood Prediction
+              <i class="fa-solid fa-circle-info card-info" id="hazardLikelihoodInfo" title="Loading…" aria-hidden="true"></i>
+            </h3>
+            <div class="card-sub">(Next 7 Days)</div>
             <div id="hazardLikelihoodList"><div class="empty-state">Loading hazard history…</div></div>
             <a class="btn-outline" href="geomap.html">View Hazard Heatmap</a>
           </div>
         </div>
-      </div>
-      <div class="flex-col">
-        <div class="panel">
-          <div class="panel-title">Prescriptive Analytics</div>
-          <div class="alert-list" id="recommendationsList">
-            <div class="empty-state">Loading recommendations…</div>
-          </div>
+      </section>
+
+      <!-- What to do about it. The action list runs full width, with the two
+           supporting cards beneath it. -->
+      <section class="analytics-section">
+        <div class="section-head">
+          <span class="section-head-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>
+          <h2>Prescriptive Analytics</h2>
+          <span class="ai-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3l2.1 4.6 4.9.6-3.6 3.4.9 4.9L12 14.9 7.7 16.5l.9-4.9L5 8.2l4.9-.6z"/></svg>AI Recommendations</span>
         </div>
-        <div class="panel">
-          <div class="panel-grid">
-            <div class="small-card">
-              <h3>Trail-Specific Risk Forecast</h3>
-              <div id="trailRiskList"><div class="empty-state">Loading trails…</div></div>
-              <a class="btn-outline" href="geomap.html">View on Map</a>
-            </div>
-            <div class="small-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
-              <div class="summary-circle" id="actionsSummaryCircle">0</div>
-              <div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">Total Actions</div>
-              <div class="card-pill"><span style="background:#c8402f"></span><span id="highPriorityCount">0 High Priority</span></div>
-              <div class="card-pill"><span style="background:#c9821f"></span><span id="medPriorityCount">0 Medium Priority</span></div>
-              <div class="card-pill"><span style="background:var(--accent)"></span><span id="lowPriorityCount">0 Low Priority</span></div>
-              <a class="btn-outline" href="A&amp;A.html" style="margin-top:12px;">View Action Plan</a>
+        <div class="section-body">
+          <div class="sub-card sub-card--wide">
+            <h3>Recommended Actions (AI Generated)</h3>
+            <div class="alert-list" id="recommendationsList">
+              <div class="empty-state">Loading recommendations…</div>
             </div>
           </div>
+
+          <div class="sub-card">
+            <h3>Trail-Specific Risk Forecast</h3>
+            <div id="trailRiskList"><div class="empty-state">Loading trails…</div></div>
+            <a class="btn-outline" href="geomap.html">View on Map</a>
+          </div>
+
+          <div class="sub-card" style="align-items:center;text-align:center;">
+            <h3 style="align-self:flex-start;">AI Prescriptive Summary</h3>
+            <div class="summary-circle" id="actionsSummaryCircle">0</div>
+            <div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">Total Actions</div>
+            <div class="card-pill"><span style="background:#c8402f"></span><span id="highPriorityCount">0 High Priority</span></div>
+            <div class="card-pill"><span style="background:#c9821f"></span><span id="medPriorityCount">0 Medium Priority</span></div>
+            <div class="card-pill"><span style="background:var(--accent)"></span><span id="lowPriorityCount">0 Low Priority</span></div>
+            <a class="btn-outline" href="A&amp;A.html">View Action Plan</a>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
     <div class="bottom-panel">
-      <div class="info-block"><h4>Key Predictive Insights</h4><p id="keyInsightsText">Loading insights…</p></div>
-      <div class="info-block"><h4>Why these recommendations?</h4><p id="modelInputsText">Loading model inputs…</p></div>
+      <div class="info-block">
+        <div class="info-head">
+          <span class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 17l6-6 4 4 7-7"/><path d="M17 8h4v4"/></svg></span>
+          <h4>Key Predictive Insights</h4>
+        </div>
+        <p id="keyInsightsText">Loading insights…</p>
+      </div>
+      <div class="info-block">
+        <div class="info-head">
+          <span class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3l2.1 4.6 4.9.6-3.6 3.4.9 4.9L12 14.9 7.7 16.5l.9-4.9L5 8.2l4.9-.6z"/></svg></span>
+          <h4>Why these recommendations?</h4>
+        </div>
+        <p id="modelInputsText">Loading model inputs…</p>
+      </div>
     </div>
   </main>
 </div>
@@ -1360,15 +1745,76 @@ a { color: inherit; text-decoration: none; }
 
   /* Label, thin bar, value — the value is always written out, so the bar
      length is never the only way to read the number. */
-  const barRows = (rows, { max, total, statusColors = false } = {}) => rows.map((row) => {
+  /* ---------------------------------------------------------------------
+     Icons
+
+     Hazard types are free text typed by hikers, so they are matched on
+     substrings rather than looked up -- "Fallen tree", "fallen trees" and
+     "Tree blocking path" all have to land on the same icon. First match
+     wins, so the more specific patterns come first. The tone is the colour
+     family the icon and its chip are tinted with.
+     --------------------------------------------------------------------- */
+  const HAZARD_ICONS = [
+    [/landslide|rockslide|erosion|collapse/, 'fa-hill-rockslide', 'amber'],
+    [/mud|slipper|slick/, 'fa-shoe-prints', 'amber'],
+    [/rock ?fall|rock|boulder|stone/, 'fa-mountain', 'slate'],
+    [/fallen ?tree|tree|branch|log/, 'fa-tree', 'green'],
+    [/flood|water|river|creek|stream/, 'fa-water', 'blue'],
+    [/sign(age)?|marker|trail ?mark/, 'fa-sign-hanging', 'amber'],
+    [/wildlife|animal|snake|bee|wasp|insect|monkey/, 'fa-paw', 'purple'],
+    [/weather|storm|rain|typhoon|wind|lightning/, 'fa-cloud-showers-heavy', 'blue'],
+    [/fire|burn|smoke/, 'fa-fire', 'red'],
+    [/closure|closed|blocked|obstruct/, 'fa-road-barrier', 'red'],
+    [/bridge|stairs|railing|structure/, 'fa-bridge', 'slate'],
+    [/damage|broken|worn|condition/, 'fa-screwdriver-wrench', 'slate']
+  ];
+
+  const hazardIcon = (type) => {
+    const key = normalizeText(type).toLowerCase();
+    const match = HAZARD_ICONS.find(([pattern]) => pattern.test(key));
+    return match
+      ? { icon: match[1], tone: match[2] }
+      : { icon: 'fa-triangle-exclamation', tone: 'slate' };
+  };
+
+  const hazardChip = (type) => {
+    const { icon, tone } = hazardIcon(type);
+    return `<span class="type-icon ${tone}" aria-hidden="true"><i class="fa-solid ${icon}"></i></span>`;
+  };
+
+  /* What each recommendation is asking the admin to do. buildRecommendations
+     tags every action with one of these, so the icon says what kind of work
+     it is while the circle's colour says how urgent it is. */
+  const ACTION_ICONS = {
+    advisory: 'fa-bullhorn',
+    notice: 'fa-clipboard-list',
+    emergency: 'fa-truck-medical',
+    inspect: 'fa-shield-halved',
+    survey: 'fa-magnifying-glass',
+    review: 'fa-clipboard-check',
+    recheck: 'fa-rotate',
+    maintenance: 'fa-screwdriver-wrench',
+    crews: 'fa-helmet-safety',
+    closure: 'fa-road-barrier',
+    visitors: 'fa-people-group',
+    weather: 'fa-cloud-showers-heavy',
+    expiry: 'fa-hourglass-half',
+    risk: 'fa-sliders',
+    map: 'fa-map-location-dot'
+  };
+
+  const barRows = (rows, { max, total, statusColors = false, icons = false } = {}) => rows.map((row) => {
     const widest = max || Math.max(...rows.map((item) => item.count), 1);
     const width = Math.max(3, Math.round((row.count / widest) * 100));
     const share = total ? ` · ${Math.round((row.count / total) * 100)}%` : '';
-    const colorClass = statusColors ? ` status-${row.label.toLowerCase()}` : '';
+    const tone = icons ? hazardIcon(row.label).tone : '';
+    const colorClass = statusColors
+      ? ` status-${row.label.toLowerCase()}`
+      : tone ? ` tone-${tone}` : '';
     return `
       <div class="bar-row">
         <div class="bar-head">
-          <span>${escapeHtml(row.display || row.label)}</span>
+          <span class="bar-label">${icons ? hazardChip(row.label) : ''}${escapeHtml(row.display || row.label)}</span>
           <span>${row.count}${share}</span>
         </div>
         <div class="bar-track">
@@ -1439,13 +1885,28 @@ a { color: inherit; text-decoration: none; }
       }
     ];
 
-    kpis.innerHTML = cards.map((card) => `
+    /* One icon and colour family per tile, in the order the cards are built
+       above: submitted, verified/resolved, resolved, review time. */
+    const kpiMarks = [
+      { icon: 'fa-file-circle-plus', tone: 'blue' },
+      { icon: 'fa-circle-check', tone: 'green' },
+      { icon: 'fa-clipboard-check', tone: 'green' },
+      { icon: 'fa-stopwatch', tone: 'amber' }
+    ];
+
+    kpis.innerHTML = cards.map((card, index) => {
+      const mark = kpiMarks[index] || { icon: 'fa-chart-simple', tone: 'slate' };
+      return `
       <div class="kpi">
-        <div class="kpi-label">${escapeHtml(card.label)}</div>
+        <div class="kpi-top">
+          <span class="type-icon ${mark.tone}" aria-hidden="true"><i class="fa-solid ${mark.icon}"></i></span>
+          <div class="kpi-label">${escapeHtml(card.label)}</div>
+        </div>
         <div class="kpi-value">${escapeHtml(card.value)}</div>
         <div class="kpi-delta ${card.delta.tone}">${escapeHtml(card.delta.text)}</div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     // Volume over time
     const maxCount = Math.max(...data.series.map((bucket) => bucket.count), 1);
@@ -1481,7 +1942,7 @@ a { color: inherit; text-decoration: none; }
     const otherCount = data.byType.slice(6).reduce((sum, row) => sum + row.count, 0);
     if (otherCount) topTypes.push({ label: 'Other types', count: otherCount });
     typeList.innerHTML = topTypes.length
-      ? barRows(topTypes, { total: data.submitted.length })
+      ? barRows(topTypes, { total: data.submitted.length, icons: true })
       : '<div class="empty-state">No hazard reports in this period.</div>';
 
     // Status split
@@ -1632,9 +2093,15 @@ a { color: inherit; text-decoration: none; }
     const axis = document.getElementById('riskForecastAxis');
     const days = dailyRisk();
 
+    /* The scale stays 0-100 so the moderate and high guide lines keep their
+       meaning. A week's scores usually sit inside a narrow band, so it is
+       the height of the box that decides whether that band reads as a shape
+       or as a flat line -- hence the taller plot area rather than an axis
+       fitted to the data, which would make a few points' difference look
+       like a cliff. */
     const width = 600;
     const top = 16;
-    const bottom = 140;
+    const bottom = 214;
     const step = width / (days.length - 1);
     const yFor = (score) => bottom - (score / 100) * (bottom - top);
 
@@ -1795,14 +2262,41 @@ a { color: inherit; text-decoration: none; }
 
     const rows = allRows.slice(0, 6);
 
+    /* One line per hazard: icon, name, a bar as wide as the likelihood, and
+       the figure. The icon is coloured by hazard type, so a type is
+       recognisable wherever it appears; the bar is coloured by the size of
+       the number, so the row can be read at a glance without comparing
+       percentages.
+
+       How each likelihood was arrived at ("4 in 32 days") is on the row as
+       a tooltip rather than a third line of text, which is what let the
+       list come down to one line per hazard. */
+    const likelihoodBand = (value) =>
+      value >= 60 ? 'red' : value >= 40 ? 'orange' : value >= 30 ? 'amber' : 'blue';
+
+    const basis = (row) =>
+      `${row.count} report${row.count === 1 ? '' : 's'} in ${span} observed day${span === 1 ? '' : 's'}` +
+      (row.rainDriven && rainFactor > 0 ? `, raised for rain with ${totalRain.toFixed(0)} mm forecast` : '');
+
+    /* The footer paragraph that explained the calculation moved onto the
+       info mark in the heading, which is what let the card hold six rows
+       without scrolling. */
+    const info = document.getElementById('hazardLikelihoodInfo');
+    if (info) {
+      info.title =
+        `Chance of at least one report in the next 7 days, from ${history.length} report` +
+        `${history.length === 1 ? '' : 's'} over ${span} observed day${span === 1 ? '' : 's'}` +
+        `${rainFactor > 0 ? `, raised for rain-driven types by ${totalRain.toFixed(0)} mm of forecast rain` : ''}.`;
+    }
+
     list.innerHTML = rows.map((row) => `
-      <div class="row">
-        <span>${escapeHtml(row.type)} <span style="color:var(--text-muted)">(${row.count} in ${span} day${span === 1 ? '' : 's'}${row.rainDriven && rainFactor > 0 ? ', rain-driven' : ''})</span></span>
-        <span>${row.likelihood}%</span>
+      <div class="lk-row" title="${escapeHtml(`${row.type} — ${basis(row)}`)}">
+        <span class="lk-icon ${hazardIcon(row.type).tone}" aria-hidden="true"><i class="fa-solid ${hazardIcon(row.type).icon}"></i></span>
+        <span class="lk-name">${escapeHtml(row.type)}</span>
+        <span class="lk-track"><span class="lk-fill ${likelihoodBand(row.likelihood)}" style="width:${Math.max(6, row.likelihood)}%"></span></span>
+        <span class="lk-value">${row.likelihood}%</span>
       </div>
-    `).join('') + `
-      <div class="empty-state">Chance of at least one report in the next 7 days, from ${history.length} report${history.length === 1 ? '' : 's'} over ${span} observed day${span === 1 ? '' : 's'}${rainFactor > 0 ? `, raised for rain-driven types by ${totalRain.toFixed(0)} mm of forecast rain` : ''}.</div>
-    `;
+    `).join('');
   };
 
   const renderTrailRisk = () => {
@@ -1900,13 +2394,15 @@ a { color: inherit; text-decoration: none; }
           : `${formatDate(heavyDays[0].date)}–${formatDate(heavyDays[heavyDays.length - 1].date)}`;
         actions.push({
           priority: 'high',
-          title: `Issue a heavy-rainfall advisory for ${range}.`,
+          kind: 'advisory',
+        title: `Issue a heavy-rainfall advisory for ${range}.`,
           meta: `Forecast peaks at ${Math.max(...heavyDays.map((day) => day.rainfall)).toFixed(0)} mm — slippery trails and landslide risk.`
         });
       } else if (wetDays.length) {
         actions.push({
           priority: 'med',
-          title: `Prepare a trail-condition notice for ${formatDate(wetDays[0].date)}.`,
+          kind: 'notice',
+        title: `Prepare a trail-condition notice for ${formatDate(wetDays[0].date)}.`,
           meta: `${wetDays.length} day(s) with 15 mm or more of forecast rain.`
         });
       }
@@ -1915,6 +2411,7 @@ a { color: inherit; text-decoration: none; }
     if (emergencies.length) {
       actions.push({
         priority: 'high',
+        kind: 'emergency',
         title: `Coordinate response for ${emergencies.length} active emergency alert${emergencies.length === 1 ? '' : 's'}.`,
         meta: 'Open alerts in Emergency Monitoring have not been marked resolved.'
       });
@@ -1927,12 +2424,14 @@ a { color: inherit; text-decoration: none; }
     if (busiestTrail && busiestTrail.count >= 2) {
       actions.push({
         priority: 'high',
+        kind: 'inspect',
         title: `Inspect and secure ${busiestTrail.name}.`,
         meta: `${busiestTrail.count} active hazard reports are linked to this trail.`
       });
     } else if (busiestTrail && busiestTrail.count === 1) {
       actions.push({
         priority: 'med',
+        kind: 'survey',
         title: `Schedule an inspection of ${busiestTrail.name}.`,
         meta: '1 active hazard report is linked to this trail.'
       });
@@ -1945,6 +2444,7 @@ a { color: inherit; text-decoration: none; }
       const waited = oldest >= 1 ? `${Math.floor(oldest)} day${Math.floor(oldest) === 1 ? '' : 's'}` : `${Math.round(oldest * 24)} hours`;
       actions.push({
         priority: oldest >= 3 ? 'high' : oldest >= 1 ? 'med' : 'low',
+        kind: 'review',
         title: `Review ${pending.length} pending hazard report${pending.length === 1 ? '' : 's'}.`,
         meta: `The oldest has waited ${waited}. Pending reports stay off the map and out of hiker notifications until an admin acts.`
       });
@@ -1958,6 +2458,7 @@ a { color: inherit; text-decoration: none; }
     if (staleVerified.length) {
       actions.push({
         priority: 'med',
+        kind: 'recheck',
         title: `Re-inspect ${staleVerified.length} verified hazard${staleVerified.length === 1 ? '' : 's'} open longer than 14 days.`,
         meta: 'Each one still counts towards the risk score until it is resolved on the Hazard Reports page.'
       });
@@ -1972,6 +2473,7 @@ a { color: inherit; text-decoration: none; }
     if (recurring) {
       actions.push({
         priority: 'med',
+        kind: 'maintenance',
         title: `Schedule preventive maintenance on ${recurring.name}.`,
         meta: `${recurring.count} reports over ${observedSpanDays()} days — the highest recurrence on the network.`
       });
@@ -1981,6 +2483,7 @@ a { color: inherit; text-decoration: none; }
     if (topLikelihood && topLikelihood.likelihood >= 60) {
       actions.push({
         priority: 'med',
+        kind: 'crews',
         title: `Prepare crews and materials for ${topLikelihood.type.toLowerCase()}.`,
         meta: `${topLikelihood.likelihood}% chance of at least one new report in the next 7 days, from ${topLikelihood.count} past report${topLikelihood.count === 1 ? '' : 's'}.`
       });
@@ -1989,6 +2492,7 @@ a { color: inherit; text-decoration: none; }
     if (closed.length) {
       actions.push({
         priority: 'low',
+        kind: 'closure',
         title: `Publish a closure notice for ${closed.length} closed trail${closed.length === 1 ? '' : 's'}.`,
         meta: closed.map(trailName).join(', ')
       });
@@ -1998,6 +2502,7 @@ a { color: inherit; text-decoration: none; }
     if (todayScore >= RISK_MODEL.moderateThreshold && !advisories.length) {
       actions.push({
         priority: 'med',
+        kind: 'advisory',
         title: 'Publish an advisory — no advisory is currently active.',
         meta: `Current risk score is ${todayScore}/100 with 0 active advisories.`
       });
@@ -2015,7 +2520,8 @@ a { color: inherit; text-decoration: none; }
       if (peak.count > 0 && peak.count >= average * 1.5) {
         actions.push({
           priority: 'med',
-          title: `Plan visitor control for ${formatDay(peak.date)} (${formatDate(peak.date)}).`,
+          kind: 'visitors',
+        title: `Plan visitor control for ${formatDay(peak.date)} (${formatDate(peak.date)}).`,
           meta: `${peak.count} hikers were recorded active on this weekday, against an average of ${average.toFixed(1)}.`
         });
       }
@@ -2024,6 +2530,7 @@ a { color: inherit; text-decoration: none; }
     if (hazards.length && forecast.length && Math.max(...forecast.map((day) => day.rainfall)) >= 15) {
       actions.push({
         priority: 'low',
+        kind: 'weather',
         title: 'Re-check open hazards after the next rainfall.',
         meta: `${hazards.length} hazard report(s) remain active going into wet weather.`
       });
@@ -2040,6 +2547,7 @@ a { color: inherit; text-decoration: none; }
     if (expiringSoon.length && todayScore >= RISK_MODEL.moderateThreshold) {
       actions.push({
         priority: 'med',
+        kind: 'expiry',
         title: `Extend or replace ${expiringSoon.length} advisory${expiringSoon.length === 1 ? '' : 'ies'} expiring within 48 hours.`,
         meta: `Risk is still ${bucketLabel(bucketFromScore(todayScore))} (${todayScore}/100) when ${expiringSoon.length === 1 ? 'it lapses' : 'they lapse'}.`
       });
@@ -2050,6 +2558,7 @@ a { color: inherit; text-decoration: none; }
     if (missingRisk.length) {
       actions.push({
         priority: 'low',
+        kind: 'risk',
         title: `Set a risk level on ${missingRisk.length} pending report${missingRisk.length === 1 ? '' : 's'}.`,
         meta: 'A report cannot be verified or rejected until it carries Low, Moderate or High.'
       });
@@ -2061,6 +2570,7 @@ a { color: inherit; text-decoration: none; }
     if (unmappable.length >= 3) {
       actions.push({
         priority: 'low',
+        kind: 'map',
         title: `${unmappable.length} active hazards carry no map coordinates.`,
         meta: 'They cannot be plotted on Geomap Monitoring, so responders only get the written location.'
       });
@@ -2088,9 +2598,12 @@ a { color: inherit; text-decoration: none; }
       low: actions.filter((action) => action.priority === 'low').length
     };
 
+    /* Two readings in one mark: the icon says what kind of work the action
+       is, the circle's colour says how urgent it is. */
     list.innerHTML = actions.length
       ? actions.map((action) => `
         <div class="list-item">
+          <span class="action-icon ${action.priority}" aria-hidden="true"><i class="fa-solid ${ACTION_ICONS[action.kind] || 'fa-circle-dot'}"></i></span>
           <div>
             <strong>${escapeHtml(action.title)}</strong>
             <div class="meta">${escapeHtml(action.meta)}</div>

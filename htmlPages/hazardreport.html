@@ -894,13 +894,26 @@
     justify-content:center;
     z-index:9999;
     padding:20px;
+    /* Last resort. The dialog caps its own height below, so this only comes
+       into play if a browser's chrome leaves less room than 100vh reports --
+       better a scrollbar than a confirm button nobody can reach. */
+    overflow-y:auto;
+    overscroll-behavior:contain;
   }
   .modal-overlay.show{
     display:flex;
     animation:modalFadeIn .18s ease;
   }
+  /* A column of three: a header and an action bar that stay put, and a body
+     that scrolls between them. Capping the height here rather than letting
+     the dialog grow is what keeps Cancel and Confirm on screen on a short
+     laptop display -- the resolve questionnaire is tall enough to run past
+     the bottom of a 768px-high screen otherwise. */
   .confirm-modal{
     width:min(460px,100%);
+    max-height:calc(100dvh - 40px);
+    display:flex;
+    flex-direction:column;
     background:var(--dm-surface, #fff);
     border-radius:16px;
     box-shadow:0 20px 60px rgba(15,35,20,.22);
@@ -908,11 +921,17 @@
     transform:translateY(8px);
     animation:modalSlideIn .2s ease forwards;
   }
+  /* The resolve questionnaire lays its fields out two across; it needs more
+     room than a plain confirmation to avoid cramping them. */
+  .confirm-modal:has(#resolutionForm:not([hidden])){
+    width:min(560px,100%);
+  }
   .modal-header{
     display:flex;
     align-items:center;
     gap:12px;
     padding:20px 22px 12px;
+    flex-shrink:0;
   }
   .modal-icon{
     width:42px;
@@ -939,6 +958,35 @@
   }
   .modal-body{
     padding:4px 22px 20px;
+    /* Takes whatever height is left and scrolls inside it. min-height:0 is
+       what allows a flex child to shrink below its content -- without it the
+       body refuses to shrink and pushes the action bar off screen. */
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    /* Slim, so a scrolling dialog does not gain a heavy grey gutter. */
+    scrollbar-width:thin;
+    scrollbar-color:var(--border) transparent;
+  }
+  .modal-body::-webkit-scrollbar{width:8px;}
+  .modal-body::-webkit-scrollbar-thumb{
+    background:var(--border);
+    border-radius:8px;
+  }
+  .modal-body::-webkit-scrollbar-track{background:transparent;}
+
+  /* Short screens: give the dialog the width back and trim the padding, so
+     more of the form is visible before anything has to scroll. */
+  @media (max-height: 720px){
+    .modal-header{padding:14px 18px 8px;}
+    .modal-body{padding:4px 18px 14px;}
+    .modal-actions{padding:10px 18px 14px;}
+    .resolution-intro{margin-bottom:10px;}
+  }
+  @media (max-width: 560px){
+    .modal-overlay{padding:10px;}
+    .confirm-modal{max-height:calc(100dvh - 20px);}
   }
   .modal-report-box{
     background:var(--dm-surface-2, #f7f9f7);
@@ -1050,6 +1098,7 @@
     padding:14px 22px 20px;
     border-top:1px solid var(--border);
     background:var(--dm-surface-2, #fafbfa);
+    flex-shrink:0;
   }
   .modal-btn{
     border:0;
