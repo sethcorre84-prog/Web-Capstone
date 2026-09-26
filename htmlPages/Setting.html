@@ -946,7 +946,7 @@
   import { auth, db } from '../jsPages/firebase-config.js';
   import { escapeHtml as escapeHTML } from '../jsPages/utils.js';
   import { collection, getDoc, getDocs, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-  import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, updateProfile, verifyBeforeUpdateEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+  import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile, verifyBeforeUpdateEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import { DEFAULT_ADMIN_ROLE, renderAdminIdentity } from '../jsPages/admin-identity.js';
   import { DATE_FORMATS, TIME_ZONES, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
 
@@ -1877,14 +1877,26 @@
           saved.name = name;
           renderAdminIdentity({ name });
         }
+        // Switch the sign-in email now. A project with email enumeration
+        // protection on refuses that, so fall back to a verification link.
+        let emailPending = false;
         if (changingEmail) {
-          await verifyBeforeUpdateEmail(user, email);
+          try {
+            await updateEmail(user, email);
+            saved.email = email;
+          } catch (error) {
+            if (error?.code !== 'auth/operation-not-allowed') throw error;
+            await verifyBeforeUpdateEmail(user, email);
+            emailPending = true;
+          }
         }
 
         closeModal();
         statusText.textContent = 'Profile updated';
-        if (changingEmail) {
+        if (emailPending) {
           showToast(`Verification link sent to ${email}. Your sign-in email changes once you open it.`, 6000);
+        } else if (changingEmail) {
+          showToast(`Sign-in email changed to ${email}. Use it the next time you sign in.`, 6000);
         } else {
           showToast('Profile updated successfully');
         }

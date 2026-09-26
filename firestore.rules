@@ -98,7 +98,12 @@ service cloud.firestore {
 
     match /admins/{userId} {
       allow read: if signedIn();
-      allow write: if false;
+      // Settings > Profile Information saves the admin's own name. Nothing
+      // else, so no one can grant themselves a role or add another admin.
+      allow update: if signedIn()
+                    && request.auth.uid == userId
+                    && changedKeys().hasOnly(['name', 'updatedAt']);
+      allow create, delete: if false;
     }
 
     // ===================================================================
