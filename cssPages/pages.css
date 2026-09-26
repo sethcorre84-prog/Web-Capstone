@@ -6,6 +6,17 @@
    analytics.html, emergency.html, Setting.html).
    ========================================================================== */
 
+/* Cross-fade between admin pages, and the sidebar + content row every page
+   is built on. These used to be repeated in each page's <style>. */
+@view-transition {
+    navigation: auto;
+}
+
+.app {
+    display: flex;
+    min-height: 100vh;
+}
+
 /* ==========================================================================
    Design tokens — the single source of truth for the admin portal palette.
 
@@ -60,16 +71,15 @@
         0 1px 2px rgba(20, 40, 25, 0.04);
     --shadow-hover: 0 6px 18px rgba(20, 40, 25, 0.10);
 
-    /* Icons — a soft amber, warm and low-glare for a screen the admin reads
-       all day. Deliberately desaturated: bright icons are the first thing
-       that tires the eye on a dense table page. See the icon rules below for
+    /* Icons — green shades aligned with the brand palette.
+       See the icon rules below for
        which icons take these and which keep their own colour.
          --icon         decorative icons: cards, chips, buttons, list rows
          --icon-muted   secondary icons: search fields, empty states, menus
          --icon-strong  hover and focus, a shade deeper than --icon */
-    --icon: #b8863c;
-    --icon-muted: #a89878;
-    --icon-strong: #8a6329;
+    --icon: #2f8f4e;
+    --icon-muted: #578563;
+    --icon-strong: #1f6b39;
 
     /* Status */
     --danger: #c8402f;
@@ -167,11 +177,11 @@
     --text-muted: #7f8b7c;
     --text-400: #7f8b7c;
 
-    /* Icons: lifted, because the light-mode amber goes muddy on a dark
+    /* Icons: lifted, because the light-mode green goes muddy on a dark
        surface. Hover is brighter here, the opposite of light mode. */
-    --icon: #e0b063;
-    --icon-muted: #9a9280;
-    --icon-strong: #f0c47f;
+    --icon: #6fcf8e;
+    --icon-muted: #83ad8d;
+    --icon-strong: #94e0ad;
 
     /* Elevation: shadows read as depth on dark only when they are darker. */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
@@ -260,11 +270,11 @@ body {
 }
 
 /* ==========================================================================
-   Icons — one warm tone on every page.
+   Icons — one green palette on every page.
 
    Font Awesome glyphs are plain <i> elements, so until now each page coloured
    them however it liked: brand green (--accent), a hardcoded #16a34a, or a
-   cold grey (#c9d2cb, #5b6b60). The default below warms every icon at once,
+   cold grey (#c9d2cb, #5b6b60). The default below applies green to every icon,
    which makes --icon the single knob for tuning them later.
 
    All three rules are wrapped in :where(), which costs nothing in
@@ -272,8 +282,8 @@ body {
    needing !important. That also means the order here is what settles
    overlaps: the last matching rule wins.
 
-     1. default        every icon takes the warm tone
-     2. hover/focus    icons in a control deepen rather than jump to green
+     1. default        every icon takes the green tone
+     2. hover/focus    icons in a control use the stronger green shade
      3. own colour     icons that carry meaning are handed back to their
                        container, so they stay red/amber/green/white
 
@@ -697,6 +707,11 @@ body {
 .notification-center .bell-btn:focus-visible {
     outline: 2px solid var(--accent, #2f8f4e);
     outline-offset: 2px;
+}
+/* The notification bell is yellow on every page, hover included, so it
+   overrides the green icon palette above. */
+.notification-center .bell-icon {
+    color: #f2b01e;
 }
 .notification-center .bell-badge[hidden] {
     display: none;

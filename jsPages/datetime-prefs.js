@@ -14,7 +14,12 @@ const STORAGE_KEY = 'peakpath-datetime';
 export const TIME_ZONES = [
   { value: 'Asia/Manila', label: '(UTC+08:00) Philippine Time' },
   { value: 'UTC', label: '(UTC+00:00) Coordinated Universal Time' },
-  { value: 'America/New_York', label: 'US Eastern Time (UTC−05:00 / −04:00)' }
+  { value: 'America/New_York', label: 'US Eastern Time (UTC−05:00 / −04:00)' },
+  { value: 'Asia/Tokyo', label: '(UTC+09:00) Japan Standard Time' },
+  { value: 'Asia/Singapore', label: '(UTC+08:00) Singapore Time' },
+  { value: 'Asia/Dubai', label: '(UTC+04:00) UAE – Gulf Standard Time' },
+  { value: 'Australia/Sydney', label: 'Australian Eastern Time (UTC+10:00 / +11:00)' },
+  { value: 'Europe/London', label: 'UK Time (UTC+00:00 / +01:00)' }
 ];
 
 // Labels are an example date, so the choice is obvious at a glance.

@@ -138,7 +138,7 @@
                         <input type="checkbox">
                         Remember me
                     </label>
-                    <a href="#">Forgot Password?</a>
+                    <a href="#" id="forgotPasswordLink">Forgot Password?</a>
                 </div>
 
                 <button type="submit">
@@ -163,14 +163,55 @@
 
 <!-- Error Modal -->
 <div id="errorModal" class="modal-overlay">
-  <div class="modal-box">
-    <i class="fa-solid fa-circle-exclamation modal-icon"></i>
-    <h3 id="errorModalTitle">Login Failed</h3>
-    <p id="errorModalMessage">Something went wrong.</p>
-    <button id="errorModalClose" class="modal-btn">OK</button>
+  <div class="alert-box" data-variant="danger" role="alertdialog" aria-modal="true"
+       aria-labelledby="errorModalTitle" aria-describedby="errorModalMessage">
+    <div class="alert-head">
+      <div class="alert-badge">
+        <i id="errorModalIcon" class="fa-solid fa-lock"></i>
+      </div>
+      <div class="alert-heading">
+        <span id="errorModalEyebrow" class="alert-eyebrow">Sign-in error</span>
+        <h3 id="errorModalTitle">Login Failed</h3>
+      </div>
+      <button type="button" id="errorModalDismiss" class="alert-close" aria-label="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <p id="errorModalMessage" class="alert-message">Something went wrong.</p>
+    <div id="errorModalHint" class="alert-hint" hidden>
+      <i class="fa-regular fa-lightbulb"></i>
+      <span id="errorModalHintText"></span>
+    </div>
+    <div class="alert-actions">
+      <button type="button" id="errorModalReset" class="alert-btn alert-btn-ghost" hidden>
+        <i class="fa-solid fa-key"></i>
+        Reset password
+      </button>
+      <button type="button" id="errorModalClose" class="alert-btn alert-btn-primary">Try again</button>
+    </div>
   </div>
 </div>
 
-<script type="module" src="../jsPages/login.js?v=2026-09-22-1"></script>
+<!-- Forgot Password Modal -->
+<div id="forgotModal" class="modal-overlay">
+  <div class="modal-box forgot-box">
+    <i class="fa-solid fa-key modal-icon forgot-icon"></i>
+    <h3>Reset Password</h3>
+    <p>Enter your admin email and we'll send you a link to reset your password.</p>
+    <form id="forgotForm" novalidate>
+      <div class="input-box">
+        <i class="fa-regular fa-envelope"></i>
+        <input type="email" id="forgotEmail" placeholder="admin@peakpath.com" autocomplete="email">
+      </div>
+      <p id="forgotStatus" class="forgot-status" role="status"></p>
+      <div class="forgot-actions">
+        <button type="button" id="forgotCancel" class="modal-btn modal-btn-secondary">Cancel</button>
+        <button type="submit" id="forgotSubmit" class="modal-btn">Send Link</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="../jsPages/login.js?v=2026-09-26-2"></script>
 </body>
 </html>

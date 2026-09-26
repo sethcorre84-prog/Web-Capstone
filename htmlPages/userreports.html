@@ -20,9 +20,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="../cssPages/pages.css">
 <style>
-  @view-transition {
-  navigation: auto;
-}
   html, body {
     visibility: visible;
     opacity: 1;
@@ -42,7 +39,6 @@
   a{text-decoration:none;color:inherit;}
   button{font-family:inherit;cursor:pointer;}
 
-  .app{display:flex;min-height:100vh;}
 
   /* ---------------- Main ---------------- */
   .main{flex:1;min-width:0;padding:26px 32px;}
@@ -52,13 +48,6 @@
   .topbar p{font-size:13.5px;color:var(--text-600);}
   .topbar-right{display:flex;align-items:center;gap:16px;}
 
-  .location-pill{
-    display:flex;align-items:center;gap:8px;
-    padding:8px 14px;border:1px solid var(--border);border-radius:9px;
-    background:var(--card);font-size:12.5px;font-weight:600;color:var(--text-900);
-  }
-  .location-pill .chev{color:var(--text-400);font-size:11px;margin-left:4px;}
-
   .bell-wrap{position:relative;width:38px;height:38px;border:1px solid var(--border);border-radius:9px;background:var(--card);display:flex;align-items:center;justify-content:center;}
   .bell-icon{font-size:20px;line-height:1;}
   .bell-badge{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:var(--red-text);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
@@ -67,7 +56,6 @@
   .admin-mini .avatar{width:34px;height:34px;background:var(--accent-dark);font-size:12px;}
   .admin-mini .name{font-size:13.5px;font-weight:600;}
   .admin-mini .role{font-size:11px;color:var(--text-600);}
-  .chev{color:var(--text-400);font-size:11px;margin-left:2px;}
 
   /* Tabs */
   .tabs{display:flex;gap:24px;border-bottom:1px solid var(--border);margin-bottom:18px;}
@@ -196,6 +184,13 @@
   .row-menu button:disabled{opacity:.45;cursor:not-allowed;background:transparent;}
   .row-menu i{width:14px;text-align:center;color:var(--icon-muted);}
   .row-menu .danger,.row-menu .danger i{color:var(--red-text);}
+  /* Icon colours match the Actions buttons in the details panel. */
+  .row-menu [data-menu="view"] i{color:var(--accent-dark);}
+  .row-menu [data-menu="contact"] i{color:#2a63b5;}
+  .row-menu [data-menu="warn"] i{color:#f2b01e;}
+  .row-menu [data-menu="suspend"] i{color:#e0342a;}
+  .row-menu [data-menu="resolve"] i{color:var(--text-900);}
+  .icon-btn[data-row-action="view"] i{color:var(--accent-dark);}
   .row-menu hr{margin:5px 2px;border:0;border-top:1px solid var(--border);}
 
   .table-footer{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:14px 0 0;margin-top:2px;border-top:1px solid var(--border);}
@@ -280,6 +275,7 @@
   .action-btn.suspend{background:#e0342a;}
   .action-btn.resolve{background:var(--dm-surface, #fff);border-color:var(--dm-border, #cfd6cf);color:var(--text-900);}
   .action-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .action-btn:not(.resolve) i{color:#fff;}
   .action-hint{margin:8px 0 0;font-size:11px;line-height:1.5;color:var(--text-400);}
   .action-hint:empty{display:none;}
 
@@ -826,7 +822,8 @@
 
 <script type="module">
   import { auth, db } from '../jsPages/firebase-config.js';
-  import { formatPortalDate, formatPortalTime } from '../jsPages/datetime-prefs.js';
+  import { escapeHtml, normalizeText } from '../jsPages/utils.js';
+  import { formatPortalDate, formatPortalTime, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
   import {
     arrayUnion,
     collection,
@@ -860,8 +857,6 @@
   /* =====================================================================
      Formatting helpers
      ===================================================================== */
-  const normalizeText = (value) => String(value ?? '').trim();
-
   const getFirstAvailable = (...values) => {
     for (const value of values) {
       if (typeof value !== 'string' && typeof value !== 'number') continue;
@@ -871,24 +866,7 @@
     return '';
   };
 
-  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  })[char]);
-
   const hasValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeText(value));
-
-  const toDate = (value) => {
-    if (value === null || value === undefined || value === '') return null;
-    if (typeof value.toDate === 'function') return value.toDate();
-    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-    if (typeof value === 'object' && typeof value.seconds === 'number') return new Date(value.seconds * 1000);
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  };
 
   // Dates follow Settings > Date & Time (datetime-prefs.js). Chart axis
   // labels further down keep their own short "Sep 21" style on purpose.
@@ -936,21 +914,41 @@
   /* =====================================================================
      Report type and status vocabularies
      ===================================================================== */
+  // Every type has its own hue so the overview donut, legend and table
+  // badges can be told apart at a glance. None reuses a status colour.
   const REPORT_TYPES = [
     { key: 'harassment', label: 'Harassment', pattern: /harass|bully|threat|abus/, chart: '#e0473a', bg: '#fde8e5', text: '#c8402f' },
-    { key: 'inappropriate', label: 'Inappropriate Behavior', pattern: /inappropriate|noise|loud|drunk|indecen/, chart: '#f08a24', bg: '#fdf0dc', text: '#d9791a' },
+    { key: 'inappropriate', label: 'Inappropriate Behavior', pattern: /inappropriate|noise|loud|drunk|indecen/, chart: '#f08a24', bg: '#fdf0dc', text: '#c26a12' },
     { key: 'rule', label: 'Rule Violation', pattern: /rule|violat|litter|trash|leave no trace|permit|restricted/, chart: '#6b4cc9', bg: '#f1eafb', text: '#6b4cc9' },
-    { key: 'unsafe', label: 'Unsafe Behavior', pattern: /unsafe|danger|reckless|risk|safety/, chart: '#2f8f4e', bg: '#fde8e5', text: '#c8402f' },
-    { key: 'disrespectful', label: 'Disrespectful Conduct', pattern: /disrespect|rude|insult|conduct/, chart: '#e8b720', bg: '#fdf0dc', text: '#d9791a' }
+    { key: 'unsafe', label: 'Unsafe Behavior', pattern: /unsafe|danger|reckless|risk|safety/, chart: '#1a9e8f', bg: '#e0f5f2', text: '#13786c' },
+    { key: 'disrespectful', label: 'Disrespectful Conduct', pattern: /disrespect|rude|insult|conduct/, chart: '#e8b720', bg: '#fdf6d8', text: '#8f7108' }
   ];
   const OTHER_TYPE = { key: 'other', label: 'Other', chart: '#93a199', bg: '#eef1ec', text: '#5b6b60' };
 
   // Reason keys the mobile app saves that none of the types above match,
   // shown with the same wording the hiker picked instead of the raw key.
-  const APP_REASON_LABELS = {
-    hate_speech: 'Hate Speech',
-    spam_scam: 'Spam or Scams',
-    false_reports: 'False Hazard Reports'
+  const APP_REASONS = {
+    hate_speech: { label: 'Hate Speech', chart: '#c2408f', bg: '#fbe6f2', text: '#a3337a' },
+    spam_scam: { label: 'Spam or Scams', chart: '#3b7dd8', bg: '#e6effb', text: '#2a63b5' },
+    false_reports: { label: 'False Hazard Reports', chart: '#8d6e4f', bg: '#f3ece4', text: '#6e543b' }
+  };
+
+  // Any other category a hiker types in gets the next unused colour, and
+  // keeps it for the rest of the session.
+  const EXTRA_TONES = [
+    { chart: '#5c6bc0', bg: '#eaecf8', text: '#44519e' },
+    { chart: '#7cb342', bg: '#eff6e6', text: '#557d2a' },
+    { chart: '#00a3bf', bg: '#e0f5f9', text: '#00788d' },
+    { chart: '#d4568f', bg: '#fbe8f0', text: '#a8406f' },
+    { chart: '#a0782c', bg: '#f6efe0', text: '#7a5a1d' },
+    { chart: '#4a5d8f', bg: '#e8ebf3', text: '#3a4a73' }
+  ];
+  const extraToneByKey = new Map();
+  const extraTone = (key) => {
+    if (!extraToneByKey.has(key)) {
+      extraToneByKey.set(key, EXTRA_TONES[extraToneByKey.size % EXTRA_TONES.length]);
+    }
+    return extraToneByKey.get(key);
   };
 
   const resolveType = (raw) => {
@@ -959,8 +957,11 @@
     const known = lower && REPORT_TYPES.find((type) => type.pattern.test(lower));
     if (known) return known;
     if (!lower || lower === 'other') return { ...OTHER_TYPE };
-    // Keep unrecognised categories visible under their own label.
-    return { ...OTHER_TYPE, key: `other:${lower}`, label: APP_REASON_LABELS[lower] || text };
+    // Keep unrecognised categories visible under their own label and colour.
+    const key = `other:${lower}`;
+    const appReason = APP_REASONS[lower];
+    if (appReason) return { ...OTHER_TYPE, key, ...appReason };
+    return { ...OTHER_TYPE, key, label: text, ...extraTone(key) };
   };
 
   const STATUSES = {

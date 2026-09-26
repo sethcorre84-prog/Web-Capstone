@@ -24,9 +24,6 @@
 <script type="module" src="../jsPages/dashboard-guard.js"></script>
 <script type="module" src="../jsPages/notification.js"></script>
 <style>
-  @view-transition {
-    navigation: auto;
-  }
   
   html, body {
     visibility: visible;
@@ -50,10 +47,6 @@
     text-decoration: none;
   }
   
-  .app {
-    display: flex;
-    min-height: 100vh;
-  }
   
   .main-panel {
     display: flex;
@@ -386,7 +379,6 @@
     line-height: 1;
   }
 
-
   .bell-badge {
     position: absolute;
     top: -5px;
@@ -415,24 +407,6 @@
     background: #1f6b39;
     font-size: 12px;
   }
-
-  .admin-mini-name { font-size: 13px; font-weight: 600; color: var(--dm-text, #1c231c); line-height: 1.3; }
-  .admin-mini-role { font-size: 11px; color: #5b6b60; line-height: 1.3; }
-
-  .location-chip {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 12px;
-    border: 1px solid var(--dm-border, #e4e7e1);
-    border-radius: 9px;
-    background: var(--dm-surface, #ffffff);
-    font-size: 12.5px;
-    color: var(--dm-text-2, #5b6b60);
-    white-space: nowrap;
-  }
-
-  .location-chip i { color: var(--icon); font-size: 12px; }
 
   .search-box {
     flex: 1;
@@ -656,15 +630,7 @@
   .status-pill.active { background: #e7f5eb; color: #2f8f4e; }
   .status-pill.inactive { background: var(--dm-surface-2, #eef1ec); color: #5b6b60; }
   .status-pill.suspended { background: #fbe9e7; color: #c8402f; }
-  
-  .last-active {
-    font-size: 13px;
-    color: var(--dm-text-2, #5b6b60);
-    line-height: 1.4;
-  }
-  
-  .last-active strong { color: var(--dm-text, #1c231c); font-weight: 600; }
-  
+
   .table-actions {
     display: flex;
     align-items: center;
@@ -787,7 +753,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-
 
   .field {
     display: flex;
@@ -1761,6 +1726,8 @@
 
 <script type="module">
   import { auth, db } from '../jsPages/firebase-config.js';
+  import { escapeHtml, normalizeText } from '../jsPages/utils.js';
+  import { toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
   // The same rule login.js and dashboard-guard.js enforce, and the one the
   // mobile app has to mirror. Suspensions end on their own date.
   import { suspensionState } from '../jsPages/account-status.js';
@@ -1836,28 +1803,11 @@
     page: 1
   };
 
-  const normalizeText = (value) => String(value ?? '').trim();
-
   const hasValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-  const escapeHtml = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 
   const setResetPasswordStatus = (message, type = '') => {
     resetPasswordStatus.textContent = message;
     resetPasswordStatus.className = `action-status${type ? ` ${type}` : ''}`;
-  };
-
-  const toDate = (value) => {
-    if (!value) return null;
-    if (typeof value.toDate === 'function') return value.toDate();
-    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
   };
 
   const formatDisplayDate = (value) => {

@@ -1,4 +1,5 @@
 import { db } from './firebase-config.js';
+import { escapeHtml } from './utils.js';
 import { collection, limit, onSnapshot, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const notificationLimit = 20;
@@ -6,13 +7,6 @@ let notifications = [];
 let pendingReports = [];
 let activeAdvisories = [];
 let latestAnalysis = null;
-
-const escapeHtml = (value) => String(value ?? '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#039;');
 
 const getDate = (value) => {
   if (!value) return null;

@@ -1,17 +1,17 @@
 /* The login page is the only page that does not load pages.css, so the two
    things the portal shares have to be repeated here: the font stack and the
-   warm icon tokens. Keep both in step with cssPages/pages.css.
+   green icon tokens. Keep both in step with cssPages/pages.css.
 
    Inter used to be named here but was never loaded, so this page silently fell
    back to Arial while every admin page rendered in Segoe UI. */
 :root{
-    --icon: #b8863c;
-    --icon-muted: #a89878;
+    --icon: #2f8f4e;
+    --icon-muted: #578563;
     /* The left panel sits on a dark photograph, so its icons take the lifted
-       dark-mode amber and a warm tint rather than the light-mode value. */
-    --icon-on-dark: #e0b063;
-    --icon-tint: rgba(184, 134, 60, 0.14);
-    --icon-tint-on-dark: rgba(224, 176, 99, 0.16);
+       dark-mode green and a green tint rather than the light-mode value. */
+    --icon-on-dark: #6fcf8e;
+    --icon-tint: rgba(47, 143, 78, 0.14);
+    --icon-tint-on-dark: rgba(111, 207, 142, 0.16);
 }
 
 *{
@@ -504,4 +504,279 @@ button:hover{
 
 .modal-btn:hover {
   background: #17692b;
+}
+
+/* Forgot Password Modal */
+.forgot-box {
+  max-width: 400px;
+}
+
+.forgot-icon {
+  color: #1e7f41;
+}
+
+.forgot-box .input-box {
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.forgot-box .forgot-status {
+  min-height: 18px;
+  margin: 0 0 16px;
+  font-size: 13px;
+  text-align: left;
+}
+
+.forgot-status.error {
+  color: #d9534f;
+}
+
+.forgot-status.success {
+  color: #1e7f41;
+}
+
+.forgot-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.forgot-actions .modal-btn {
+  flex: 1;
+  padding: 12px 0;
+}
+
+.modal-btn-secondary {
+  background: #eef2f5;
+  color: #445361;
+}
+
+.modal-btn-secondary:hover {
+  background: #dfe5ea;
+}
+
+.modal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== Sign-in alert =====
+   Replaces the old centered "red icon + OK" popup. The variant attribute
+   picks the accent: danger for credential/access problems, warning for
+   things the admin can fix by waiting or retyping. */
+.alert-box {
+  --alert-accent: #c0392b;
+  --alert-tint: rgba(192, 57, 43, 0.1);
+  --alert-soft: #fdf3f2;
+
+  position: relative;
+  width: 92%;
+  max-width: 420px;
+  padding: 26px 26px 22px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e6ecf0;
+  box-shadow:
+    0 24px 60px rgba(16, 32, 24, 0.22),
+    0 2px 6px rgba(16, 32, 24, 0.08);
+  overflow: hidden;
+  animation: alertIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.alert-box[data-variant="warning"] {
+  --alert-accent: #b7791f;
+  --alert-tint: rgba(214, 158, 46, 0.14);
+  --alert-soft: #fdf8ee;
+}
+
+/* Thin accent bar across the top edge. */
+.alert-box::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--alert-accent), transparent 85%);
+}
+
+@keyframes alertIn {
+  from { transform: translateY(12px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.modal-overlay:has(.alert-box) {
+  background: rgba(12, 24, 18, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.alert-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.alert-badge {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--alert-tint);
+  color: var(--alert-accent);
+  font-size: 19px;
+}
+
+.alert-heading {
+  flex: 1;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.alert-eyebrow {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--alert-accent);
+}
+
+.alert-heading h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: #17232d;
+  line-height: 1.25;
+}
+
+.alert-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: -4px -6px 0 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #8d9aa6;
+  font-size: 16px;
+}
+
+.alert-close:hover {
+  background: #f1f4f6;
+  color: #3d4b57;
+}
+
+.alert-message {
+  margin: 0 0 16px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: #4a5966;
+}
+
+.alert-hint {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: var(--alert-soft);
+  font-size: 13px;
+  line-height: 1.5;
+  color: #5b6873;
+}
+
+.alert-hint[hidden] {
+  display: none;
+}
+
+.alert-hint i {
+  margin-top: 2px;
+  color: var(--alert-accent);
+}
+
+.alert-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.alert-btn {
+  width: auto;
+  padding: 11px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 8px;
+}
+
+.alert-btn[hidden] {
+  display: none;
+}
+
+.alert-btn-primary {
+  min-width: 120px;
+}
+
+.alert-btn-ghost {
+  background: #ffffff;
+  color: #1e7f41;
+  border: 1px solid #cfe3d6;
+}
+
+.alert-btn-ghost:hover {
+  background: #f1f8f3;
+}
+
+.alert-btn:focus-visible,
+.alert-close:focus-visible {
+  outline: 3px solid rgba(30, 127, 65, 0.35);
+  outline-offset: 2px;
+}
+
+@media (max-width: 420px) {
+  .alert-actions {
+    flex-direction: column-reverse;
+  }
+  .alert-btn {
+    width: 100%;
+  }
+}
+
+/* In-form feedback: the card shakes and the offending fields turn red,
+   so the error is visible where the admin is looking, not only in the alert. */
+.login-card.shake {
+  animation: cardShake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes cardShake {
+  15%, 85% { transform: translateX(-2px); }
+  30%, 70% { transform: translateX(5px); }
+  45%, 55% { transform: translateX(-7px); }
+  50%      { transform: translateX(7px); }
+}
+
+.input-box.invalid {
+  border-color: #e3a29b;
+  background: #fff8f7;
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.08);
+}
+
+.input-box.invalid > i:first-child {
+  color: #c0392b;
+}
+
+/* Sign-in button while the request is in flight. */
+#loginForm button[type="submit"]:disabled {
+  opacity: 0.75;
+  cursor: progress;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alert-box,
+  .login-card.shake {
+    animation: none;
+  }
 }

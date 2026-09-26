@@ -24,9 +24,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="../cssPages/pages.css">
 <style>
-  @view-transition {
-  navigation: auto;
-}
   html, body {
     visibility: visible;
     opacity: 1;
@@ -54,10 +51,6 @@
     a{
       text-decoration:none;
       color:inherit
-    }
-    .app{
-      display:flex;
-      min-height:100vh
     }
 
     .main{
@@ -693,21 +686,15 @@
   </div>
   <script type="module">
     import { db } from "../jsPages/firebase-config.js";
+    import { escapeHtml } from "../jsPages/utils.js";
     import { collection, onSnapshot, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { formatPortalDate, formatPortalTime, portalTimeZone } from "../jsPages/datetime-prefs.js";
+    import { formatPortalDate, formatPortalTime, portalTimeZone, toPortalDate as toDate } from "../jsPages/datetime-prefs.js";
     import { createMakilingMap } from "../jsPages/makiling-area.js";
     import { watchActiveHikers } from "../jsPages/active-hikers.js";
 
     const setSummaryValue = (id, value) => {
       document.getElementById(id).textContent = value;
     };
-
-    const escapeHtml = (value) => String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
 
     /* This is a Mount Makiling map only: everything outside a 6 km radius of
        the summit is greyed out, and panning/zooming is locked to that area so
@@ -753,13 +740,6 @@
     };
 
     const isVerified = (report) => String(report.status ?? 'pending').trim().toLowerCase() === 'verified';
-
-    const toDate = (value) => {
-      if (!value) return null;
-      if (typeof value.toDate === 'function') return value.toDate();
-      const date = new Date(value);
-      return Number.isNaN(date.getTime()) ? null : date;
-    };
 
     // Follow Settings > Date & Time (datetime-prefs.js).
     const formatAlertDate = (value) => formatPortalDate(toDate(value)) || 'Recent';

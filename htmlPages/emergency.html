@@ -24,9 +24,6 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
-  @view-transition {
-  navigation: auto;
-}
   html, body {
     visibility: visible;
     opacity: 1;
@@ -50,13 +47,10 @@ a{
 text-decoration:none;
 color:inherit;
 }
-.app{
-display:flex;
-min-height:100vh;
-}
 .main{
 flex:1;
 padding:26px 32px;
+min-width:0;
 }
 .topbar{
 display:flex;
@@ -213,7 +207,13 @@ margin-bottom:18px;
   padding-bottom:10px;
   margin-bottom:14px;
 }
+/* The tabs are real buttons, so they need the button chrome removed. */
 .tab{
+  background:none;
+  border:none;
+  border-bottom:2px solid transparent;
+  padding:0 0 8px;
+  font:inherit;
   font-size:13px;
   color:var(--text-secondary);
   cursor:pointer;
@@ -252,14 +252,11 @@ tbody td{
   border-radius:999px;
   font-size:12px;
   font-weight:700;
+  white-space:nowrap;
 }
 .status-badge.responding{
   background:rgba(201,130,31,.12);
   color:#c97211;
-}
-.status-badge.searching{
-  background:rgba(42,99,181,.12);
-  color:#2a63b5;
 }
 .status-badge.closed{
   background:rgba(47,143,78,.12);
@@ -274,17 +271,23 @@ tbody td{
   border-radius:8px;
   border:1px solid var(--border);
   color:var(--text-secondary);
+  background:var(--dm-surface, #fff);
+  font-size:13px;
+  cursor:pointer;
+  margin-right:6px;
 }
 .map-panel{
-  display:grid;
-  grid-template-rows:1fr auto;
-  gap:14px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
 }
 .map-legend{
   display:flex;
+  flex-wrap:wrap;
   gap:12px;
   justify-content:center;
   font-size:12px;
+  color:var(--text-secondary);
 }
 .legend-item{
   display:flex;
@@ -319,6 +322,8 @@ tbody td{
   border-radius:12px;
   display:grid;
   place-items:center;
+  flex-shrink:0;
+  font-size:13px;
   color:#fff;
 }
 .activity-icon.sos{
@@ -342,6 +347,7 @@ tbody td{
   justify-content:space-between;
   align-items:center;
   gap:14px;
+  margin-bottom:20px;
 }
 .alert-banner strong{
   color:var(--danger);
@@ -358,6 +364,8 @@ tbody td{
   border:1px solid var(--border);
   color:var(--danger);
   font-weight:700;
+  cursor:pointer;
+  white-space:nowrap;
 }
 /* ==========================================
    LIVE DATA
@@ -367,9 +375,6 @@ tbody td{
    over the hidden attribute the script toggles. */
 [hidden]{
   display:none !important;
-}
-.main{
-  min-width:0;
 }
 .link-btn{
   background:none;
@@ -383,15 +388,6 @@ tbody td{
 }
 .link-btn:hover{
   text-decoration:underline;
-}
-/* The tabs are real buttons now, so they need the button chrome removed. */
-.tab{
-  background:none;
-  border:none;
-  border-bottom:2px solid transparent;
-  padding:0 0 8px;
-  font:inherit;
-  font-size:13px;
 }
 .tab:focus-visible,
 tbody tr[data-id]:focus-visible{
@@ -421,9 +417,6 @@ tbody tr.is-new td{
   color:#fff;
   white-space:nowrap;
 }
-.status-badge{
-  white-space:nowrap;
-}
 .status-badge.active{
   background:rgba(200,64,47,.12);
   color:#b3261e;
@@ -445,12 +438,6 @@ tbody tr.is-new td{
 .actions-cell{
   white-space:nowrap;
 }
-.action-btn{
-  background:var(--dm-surface, #fff);
-  font-size:13px;
-  cursor:pointer;
-  margin-right:6px;
-}
 .action-btn:hover:not(:disabled){
   background:var(--accent-light);
   color:var(--accent-dark);
@@ -466,11 +453,6 @@ tbody tr.is-new td{
 }
 
 /* ---- Map ---- */
-.map-panel{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
 .map-panel .panel-header{
   margin-bottom:0;
 }
@@ -492,10 +474,6 @@ tbody tr.is-new td{
   border:1px solid var(--border);
   border-radius:14px;
   overflow:hidden;
-}
-.map-legend{
-  flex-wrap:wrap;
-  color:var(--text-secondary);
 }
 .map-caption{
   font-size:12px;
@@ -555,10 +533,6 @@ tbody tr.is-new td{
   gap:10px;
   min-width:0;
 }
-.activity-icon{
-  flex-shrink:0;
-  font-size:13px;
-}
 .activity-title{
   font-weight:700;
   font-size:13px;
@@ -579,9 +553,6 @@ tbody tr.is-new td{
 }
 
 /* ---- Banner ---- */
-.alert-banner{
-  margin-bottom:20px;
-}
 /* Weather, not an unanswered alert: amber instead of red. */
 .alert-banner.warning{
   background:var(--amber-bg);
@@ -592,10 +563,6 @@ tbody tr.is-new td{
 }
 .alert-banner.warning .alert-button{
   color:var(--amber-text);
-}
-.alert-button{
-  cursor:pointer;
-  white-space:nowrap;
 }
 
 /* ---- Details dialog ---- */
@@ -994,18 +961,12 @@ tbody tr.is-new td{
 </div>
 <script type="module">
   import { auth, db } from '../jsPages/firebase-config.js';
+  import { escapeHtml } from '../jsPages/utils.js';
   import { collection, doc, onSnapshot, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   import { formatPortalDate, formatPortalDateTime, formatPortalTime, portalTimeZone, toPortalDate } from '../jsPages/datetime-prefs.js';
   import { createMakilingMap } from '../jsPages/makiling-area.js';
 
   const $ = (id) => document.getElementById(id);
-
-  const escapeHtml = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 
   // Objects (GeoPoints, maps) are not text, and user records store "—" for a
   // blank field, so both read as empty.

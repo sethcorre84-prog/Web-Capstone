@@ -24,9 +24,6 @@
 <script type="module" src="../jsPages/notification.js"></script>
 <title>PeakPath Admin — Hazard Reports</title>
 <style>
-  @view-transition {
-  navigation: auto;
-}
   /* Palette, radii and typography come from pages.css (:root). */
 
   *{box-sizing:border-box; margin:0; padding:0;}
@@ -38,10 +35,6 @@
     -webkit-font-smoothing:antialiased;
   }
 
-  .app{
-    display:flex;
-    min-height:100vh;
-  }
 
   /* Main */
   .main{
@@ -162,125 +155,6 @@
     color:var(--text-600);
   }
 
-  /* Top-right admin menu */
-.admin-menu-wrap{
-    position:relative;
-}
-.admin-menu-btn{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    background:transparent;
-    border:none;
-    padding:0;
-    cursor:pointer;
-}
-.admin-dropdown{
-    display:none;
-    position:absolute;
-    top:calc(100% + 10px);
-    right:0;
-    width:200px;
-    background:var(--dm-surface, #fff);
-    border:1px solid var(--border);
-    border-radius:10px;
-    box-shadow:0 10px 30px rgba(0,0,0,.15);
-    overflow:hidden;
-    z-index:50;
-}
-.admin-dropdown.open{
-    display:block;
-}
-.admin-dropdown a{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:11px 14px;
-    font-size:13px;
-    font-weight:500;
-    color:var(--text-900);
-    text-decoration:none;
-}
-.admin-dropdown a:hover{
-    background:var(--dm-surface-2, #f5f7f3);
-}
-.admin-dropdown a svg{
-    width:16px;
-    height:16px;
-    flex-shrink:0;
-    stroke:currentColor;
-    fill:none;
-    stroke-width:1.8;
-    stroke-linecap:round;
-    stroke-linejoin:round;
-}
-.admin-dropdown-divider{
-    height:1px;
-    background:var(--border);
-    margin:4px 0;
-}
-.admin-dropdown a.logout-item{
-    color:var(--red-text);
-}
-.admin-dropdown a.logout-item:hover{
-    background:var(--red-bg);
-}
-
-/* Display submenu */
-.display-submenu{
-    display:none;
-    flex-direction:column;
-    background:var(--dm-surface-2, #f8f9f7);
-}
-:root[data-theme="dark"] .display-submenu{
-    background:#141712;
-}
-.display-submenu.open{
-    display:flex;
-}
-.display-option{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:9px 14px 9px 34px !important;
-    font-size:12.5px !important;
-}
-.display-option .check-icon{
-    width:14px;
-    height:14px;
-    stroke:var(--accent);
-    display:none;
-}
-.display-option.active .check-icon{
-    display:block;
-}
-.display-toggle-arrow{
-    margin-left:auto;
-    width:14px;
-    height:14px;
-    transition:transform .15s;
-}
-.display-toggle-arrow.open{
-    transform:rotate(180deg);
-}
-
-/* Settings submenu */
-.settings-submenu{
-    display:none;
-    flex-direction:column;
-    background:var(--dm-surface-2, #f8f9f7);
-}
-:root[data-theme="dark"] .settings-submenu{
-    background:#141712;
-}
-.settings-submenu.open{
-    display:flex;
-}
-.settings-submenu a{
-    padding:9px 14px 9px 34px !important;
-    font-size:12.5px !important;
-}
-
 /* Dark theme overrides (adapted to this page's variable names) */
 :root[data-theme="dark"] .search-box,
 :root[data-theme="dark"] select.filter-select,
@@ -295,16 +169,6 @@
 }
 :root[data-theme="dark"] tbody tr.selected{
     background:#1d3324;
-}
-:root[data-theme="dark"] .admin-dropdown{
-    background:var(--card);
-    border-color:var(--border);
-}
-:root[data-theme="dark"] .admin-dropdown a{
-    color:var(--text-900);
-}
-:root[data-theme="dark"] .admin-dropdown a:hover{
-    background:#232922;
 }
 
   .content{
@@ -492,10 +356,6 @@
   .btn-outline:hover{
     background:var(--dm-surface-2, #f5f5f2);
   }
-  .btn-clear{
-    color:#c0453c;
-    background:var(--dm-surface, #fff);
-  }
 
   table{
     width:100%;
@@ -682,14 +542,6 @@
     /* Break long words/links instead of widening the card sideways. */
     overflow-wrap:anywhere;
   }
-
-  .map-wrap{
-    border-radius:12px;
-    overflow:hidden;
-    border:1px solid var(--border);
-    position:relative;
-  }
-  .map-wrap img, .map-wrap svg{display:block;width:100%;height:auto;}
 
   .reporter-block{
     display:flex;
@@ -1668,25 +1520,11 @@
 
 <!-- Firebase -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch, deleteDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-// Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyAUHQe9hXSF3wI-et48Km5fs23eSEjMyW0",
-  authDomain: "peakpath-ccd4a.firebaseapp.com",
-  projectId: "peakpath-ccd4a",
-  storageBucket: "peakpath-ccd4a.firebasestorage.app",
-  messagingSenderId: "153325648552",
-  appId: "1:153325648552:web:637b98f31cab359923a09d",
-  measurementId: "G-1EEW8LSELB"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+import { auth, db } from "../jsPages/firebase-config.js";
+import { escapeHtml } from "../jsPages/utils.js";
+import { toPortalDate as toJsDate } from "../jsPages/datetime-prefs.js";
+import { collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // State management
 let allReports = [];
@@ -1730,22 +1568,6 @@ function getStatusBadgeClass(status) {
 }
 
 // Format date
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-// Firestore Timestamp, Date or date string -> Date (null if missing/invalid).
-function toJsDate(value) {
-  if (!value) return null;
-  const date = value.toDate ? value.toDate() : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
 function formatDate(timestamp) {
   if (!timestamp) return 'N/A';
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);

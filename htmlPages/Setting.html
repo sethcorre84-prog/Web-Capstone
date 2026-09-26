@@ -22,9 +22,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="../cssPages/pages.css">
 <style>
-  @view-transition {
-  navigation: auto;
-}
   html, body {
     visibility: visible;
     opacity: 1;
@@ -49,7 +46,6 @@
   a{text-decoration:none;color:inherit;}
   button{font-family:inherit;cursor:pointer;}
 
-  .app{display:flex;min-height:100vh;}
 
   /* ---------------- Main ---------------- */
   .main{flex:1;min-width:0;padding:26px 32px;}
@@ -96,13 +92,13 @@
   .admin-mini .avatar{width:34px;height:34px;background:var(--accent-dark);font-size:12px;}
   .admin-mini .name{font-size:13.5px;font-weight:600;}
   .admin-mini .role{font-size:11px;color:var(--text-600);}
-  .chev{color:var(--text-400);font-size:11px;margin-left:2px;}
 
   /* ---------------- Settings layout ---------------- */
   .settings-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:18px;
+    margin-bottom:18px;
   }
   .settings-grid.full{grid-template-columns:1fr;}
 
@@ -114,7 +110,6 @@
     padding:18px 20px;
   }
   .panel + .panel{margin-top:0;}
-  .settings-grid{margin-bottom:18px;}
 
   .panel-title{
     font-size:15px;
@@ -168,15 +163,6 @@
     flex-shrink:0;
   }
   .chevron{color:var(--text-400);font-size:15px;}
-
-  select.inline-select{
-    padding:7px 10px;
-    border:1px solid var(--border);
-    border-radius:8px;
-    background:var(--dm-surface-2, #fbfcfa);
-    font-size:12.5px;
-    color:var(--text-900);
-  }
 
   /* Toggle switch */
   .switch{
@@ -407,6 +393,33 @@
   cursor:pointer;
 }
 .archive-theme .ghost-btn:hover{background:var(--accent-light);}
+
+/* Archive rows open their full details. */
+.archive-item.is-clickable{cursor:pointer;transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease;}
+.archive-item.is-clickable:hover{border-color:var(--accent);box-shadow:0 6px 16px rgba(31,107,57,.12);transform:translateY(-1px);}
+.archive-item.is-clickable:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.archive-item-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;}
+.archive-item-hint{font-size:11.5px;font-weight:600;color:var(--accent-dark);}
+
+/* Details dialog: wider than the list, and scrolls on its own. */
+.archive-detail-card{width:min(620px, 100%);max-height:calc(100vh - 40px);display:flex;flex-direction:column;}
+.archive-detail-card .modal-body{overflow:auto;}
+.detail-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
+.detail-hero h4{margin:0 0 4px;font-size:16px;color:var(--sidebar-bg);overflow-wrap:anywhere;}
+.detail-hero .detail-sub{font-size:12px;color:var(--dm-text-2, #4f6e58);}
+.detail-chip{flex-shrink:0;padding:4px 10px;border-radius:999px;background:var(--accent-light);color:var(--accent-dark);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+.detail-section{margin-top:14px;padding:12px 14px;border:1px solid var(--dm-border, #d3e8d9);border-radius:10px;background:var(--dm-surface, #fff);}
+.detail-section-title{margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-dark);}
+.detail-grid{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px 16px;}
+.detail-field .lbl{font-size:11px;color:var(--dm-text-2, #6b7c70);margin-bottom:2px;}
+.detail-field .val{font-size:12.5px;color:var(--text-900);line-height:1.45;overflow-wrap:anywhere;white-space:pre-line;}
+.detail-text{margin:0;font-size:12.5px;line-height:1.6;color:var(--text-900);white-space:pre-line;overflow-wrap:anywhere;}
+.detail-list{margin:0;padding-left:18px;font-size:12.5px;line-height:1.6;color:var(--text-900);}
+.detail-media{display:grid;grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));gap:8px;}
+.detail-media a,.detail-media video{display:block;width:100%;aspect-ratio:4 / 3;border-radius:8px;overflow:hidden;background:var(--dm-surface-2, #eef2ed);}
+.detail-media img,.detail-media video{width:100%;height:100%;object-fit:cover;}
+.detail-media .file-link{display:flex;align-items:center;justify-content:center;padding:8px;font-size:11.5px;color:var(--accent-dark);text-align:center;overflow-wrap:anywhere;}
+@media (max-width:520px){ .detail-grid{grid-template-columns:1fr;} }
 /* General-settings forms follow the same green dialog language as the
    Notification Settings archive dialogs, while keeping form controls easy
    to scan and edit. */
@@ -848,7 +861,26 @@
   </div>
 </div>
 
-<!-- Unarchive confirmation modal (for Archived Hazard Reports) -->
+<!-- Full details of one archived hazard report or expired advisory -->
+<div id="archiveDetailModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal-card archive-theme archive-detail-card" role="dialog" aria-modal="true" aria-labelledby="archiveDetailTitle">
+    <div class="modal-header">
+      <h3 id="archiveDetailTitle">Archived Details</h3>
+      <button type="button" class="close-btn" id="archiveDetailCloseBtn" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="archiveDetailBody"></div>
+      <div class="modal-actions">
+        <button type="button" class="ghost-btn" id="archiveDetailBackBtn">Back to list</button>
+        <button type="button" class="primary-btn" id="archiveDetailUnarchiveBtn">Unarchive</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Unarchive confirmation modal (for Archived Hazard and Archived Resolved Reports) -->
 <div id="unarchiveConfirmModal" class="modal-backdrop" aria-hidden="true">
   <div class="modal-card archive-theme" role="dialog" aria-modal="true" aria-labelledby="unarchiveConfirmTitle">
     <div class="modal-header">
@@ -859,7 +891,7 @@
     </div>
     <div class="modal-body">
       <p style="font-size:12.5px;color:var(--text-600);margin-bottom:14px;">
-        This report will be moved back to <strong>Rejected Reports</strong>.
+        This report will be moved back to <strong id="unarchiveModalDestination">Rejected Reports</strong>.
       </p>
       <div class="archive-item" id="unarchiveModalReportBox">
         <div class="archive-item-title" id="unarchiveModalHazardType">Hazard Report</div>
@@ -912,6 +944,7 @@
 
 <script type="module">
   import { auth, db } from '../jsPages/firebase-config.js';
+  import { escapeHtml as escapeHTML } from '../jsPages/utils.js';
   import { collection, getDoc, getDocs, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, updateProfile, verifyBeforeUpdateEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import { DEFAULT_ADMIN_ROLE, renderAdminIdentity } from '../jsPages/admin-identity.js';
@@ -966,16 +999,6 @@
     modal.setAttribute('aria-hidden', 'true');
   }
 
-  function escapeHTML(value) {
-    if (value === null || value === undefined) return '';
-    return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
   // Follows the Date & Time setting; unparseable values are shown as stored.
   function formatArchiveDate(value) {
     if (!value) return 'Unknown date';
@@ -1007,11 +1030,224 @@
     return Number.isNaN(date.getTime()) ? 0 : date.getTime();
   };
 
+  // -----------------------------
+  // Archive details modal: every field an archived hazard report or
+  // expired advisory has. Known fields get friendly labels and their own
+  // sections; anything else the document holds is listed under
+  // "Other details", so nothing stored is hidden.
+  // -----------------------------
+  const archiveDetailModalEl = document.getElementById('archiveDetailModal');
+  const archiveDetailBody = document.getElementById('archiveDetailBody');
+  const archiveDetailUnarchiveBtn = document.getElementById('archiveDetailUnarchiveBtn');
+  let archiveDetailUnarchive = null;
+
+  const DETAIL_LABELS = {
+    id: 'Document ID', reportId: 'Report ID', hazardType: 'Hazard Type', trail: 'Trail', location: 'Location',
+    status: 'Status', reportedBy: 'Reported By', reportedById: 'Reporter ID', userId: 'User ID', contact: 'Contact',
+    timestamp: 'Reported On', updatedAt: 'Last Updated', archivedAt: 'Archived On', archivedBy: 'Archived By',
+    rejectedAt: 'Rejected On', unarchivedAt: 'Last Unarchived', resolvedAt: 'Resolved On', resolutionNote: 'Resolution Note',
+    title: 'Title', type: 'Advisory Type', riskLevel: 'Risk Level', target: 'Target Trails', visibility: 'Visibility',
+    channels: 'Channels', publishedBy: 'Published By', publishedAt: 'Published On', effectiveDate: 'Effective From',
+    expiresAt: 'Expires On', createdAt: 'Created On', restoredAt: 'Last Restored', visible: 'Visible to Hikers',
+    resolvedBy: 'Resolved By', statusNote: 'Admin Note', hazard: 'Hazard', where: 'Where', action: 'Action Taken',
+    who: 'Handled By', clearedOn: 'Cleared On', safety: 'Trail Safety', extra: 'Additional Notes'
+  };
+
+  const detailLabel = (key) => DETAIL_LABELS[key] || String(key)
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const isTimestampLike = (value) => value instanceof Date || typeof value?.toDate === 'function'
+    || (value && typeof value === 'object' && typeof value.seconds === 'number' && typeof value.nanoseconds === 'number');
+
+  // Any stored value -> readable text ('' when there is nothing to show).
+  function detailText(key, value) {
+    if (value === null || value === undefined || value === '') return '';
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (key === 'status' && typeof value === 'string') return value.charAt(0).toUpperCase() + value.slice(1);
+    if (isTimestampLike(value)) return formatPortalDateTime(value);
+    if (typeof value === 'string' && /(At|On|Date|timestamp)$/.test(key) && !/^https?:/i.test(value)) {
+      return formatPortalDateTime(value) || value;
+    }
+    if (Array.isArray(value)) return value.map((v) => detailText('', v)).filter(Boolean).join(', ');
+    if (typeof value === 'object') {
+      if (typeof value.latitude === 'number' && typeof value.longitude === 'number') {
+        return `${value.latitude.toFixed(6)}, ${value.longitude.toFixed(6)}`;
+      }
+      return Object.entries(value)
+        .map(([k, v]) => { const text = detailText(k, v); return text ? `${detailLabel(k)}: ${text}` : ''; })
+        .filter(Boolean)
+        .join('\n');
+    }
+    return String(value);
+  }
+
+  // Links stay clickable; everything else is escaped text.
+  function detailValueHTML(key, value) {
+    const text = detailText(key, value);
+    if (/^https?:\/\/\S+$/i.test(text)) {
+      return `<a href="${escapeHTML(text)}" target="_blank" rel="noopener">${escapeHTML(text)}</a>`;
+    }
+    return escapeHTML(text);
+  }
+
+  // Renders the listed keys the item actually has, and marks them as shown.
+  function detailGrid(item, keys, shown) {
+    const fields = keys
+      .filter((key) => { shown.add(key); return detailText(key, item[key]) !== ''; })
+      .map((key) => `
+        <div class="detail-field">
+          <div class="lbl">${escapeHTML(detailLabel(key))}</div>
+          <div class="val">${detailValueHTML(key, item[key])}</div>
+        </div>`)
+      .join('');
+    return fields ? `<div class="detail-grid">${fields}</div>` : '';
+  }
+
+  const detailSection = (title, inner) => inner
+    ? `<section class="detail-section"><h5 class="detail-section-title">${escapeHTML(title)}</h5>${inner}</section>`
+    : '';
+
+  // Photo URLs (hazard reports) or saved media entries (advisories).
+  function detailMediaHTML(entries) {
+    const tiles = entries.map((entry) => {
+      const url = typeof entry === 'string' ? entry : entry?.url;
+      if (!url) return '';
+      const kind = `${entry?.type || ''} ${entry?.contentType || ''}`.trim().toLowerCase();
+      const name = entry?.name || 'Attachment';
+      if (kind.includes('video')) {
+        return `<video src="${escapeHTML(url)}" controls preload="metadata"></video>`;
+      }
+      if (kind && !kind.includes('image') && !kind.includes('photo')) {
+        return `<a class="file-link" href="${escapeHTML(url)}" target="_blank" rel="noopener">${escapeHTML(name)}</a>`;
+      }
+      return `<a href="${escapeHTML(url)}" target="_blank" rel="noopener" title="Open full size">
+        <img src="${escapeHTML(url)}" alt="${escapeHTML(name)}" loading="lazy"></a>`;
+    }).join('');
+    return tiles ? `<div class="detail-media">${tiles}</div>` : '';
+  }
+
+  // Every field not already shown in a section above.
+  function otherDetailsHTML(item, shown) {
+    const keys = Object.keys(item).filter((key) => !shown.has(key)).sort();
+    return detailSection('Other details', detailGrid(item, keys, shown));
+  }
+
+  function openArchiveDetail({ title, heading, sub, chip, html, onUnarchive }) {
+    document.getElementById('archiveDetailTitle').textContent = title;
+    archiveDetailBody.innerHTML = `
+      <div class="detail-hero">
+        <div>
+          <h4>${escapeHTML(heading)}</h4>
+          <div class="detail-sub">${escapeHTML(sub)}</div>
+        </div>
+        <span class="detail-chip">${escapeHTML(chip)}</span>
+      </div>
+      ${html}`;
+    archiveDetailUnarchive = onUnarchive;
+    archiveDetailModalEl.classList.add('visible');
+    archiveDetailModalEl.setAttribute('aria-hidden', 'false');
+    archiveDetailModalEl.querySelector('.modal-body').scrollTop = 0;
+    document.getElementById('archiveDetailCloseBtn').focus();
+  }
+
+  function closeArchiveDetail() {
+    archiveDetailModalEl.classList.remove('visible');
+    archiveDetailModalEl.setAttribute('aria-hidden', 'true');
+    archiveDetailUnarchive = null;
+  }
+
+  function openHazardDetail(reportId, kind = 'archived') {
+    const item = reportArchive(kind).find((r) => r.id === reportId);
+    if (!item) return;
+    const shown = new Set(['description', 'photoUrl', 'photoUrls', 'resolutionNote', 'resolutionDetails']);
+    const resolution = item.resolutionDetails && typeof item.resolutionDetails === 'object' ? item.resolutionDetails : {};
+    const photos = Array.isArray(item.photoUrls) ? item.photoUrls.filter(Boolean) : (item.photoUrl ? [item.photoUrl] : []);
+
+    const html = [
+      detailSection('Report', detailGrid(item, ['reportId', 'hazardType', 'status', 'trail', 'location', 'timestamp', 'updatedAt', 'archivedAt', 'archivedBy', 'rejectedAt', 'unarchivedAt'], shown)),
+      detailSection('Description', item.description ? `<p class="detail-text">${escapeHTML(item.description)}</p>` : ''),
+      detailSection('Resolution', [
+        item.resolutionNote ? `<p class="detail-text">${escapeHTML(item.resolutionNote)}</p>` : '',
+        detailGrid({ resolvedAt: item.resolvedAt, resolvedBy: item.resolvedBy, ...resolution },
+          ['resolvedAt', 'resolvedBy', ...Object.keys(resolution)], shown)
+      ].join('')),
+      detailSection('Reporter', detailGrid(item, ['reportedBy', 'contact', 'reportedById', 'userId'], shown)),
+      detailSection(`Photos (${photos.length})`, detailMediaHTML(photos))
+    ].join('');
+
+    openArchiveDetail({
+      title: kind === 'resolved' ? 'Archived Resolved Report' : 'Archived Hazard Report',
+      heading: item.hazardType || 'Unknown Hazard',
+      sub: `${item.reportId || item.id} • ${item.location || 'No location'}`,
+      chip: item.status || 'Archived',
+      html: html + otherDetailsHTML(item, shown),
+      onUnarchive: () => openUnarchiveModal(item.id, kind)
+    });
+  }
+
+  function openAdvisoryDetail(advisoryId) {
+    const item = lastExpiredAdvisories.find((a) => a.id === advisoryId);
+    if (!item) return;
+    const shown = new Set(['title', 'desc', 'recommendedActions', 'media']);
+    const actions = Array.isArray(item.recommendedActions) ? item.recommendedActions.filter(Boolean) : [];
+    const media = Array.isArray(item.media) ? item.media.filter(Boolean) : [];
+
+    const html = [
+      detailSection('Advisory', detailGrid(item, ['type', 'status', 'riskLevel', 'target', 'visibility', 'channels', 'publishedBy', 'visible'], shown)),
+      detailSection('Schedule', detailGrid(item, ['effectiveDate', 'expiresAt', 'createdAt', 'publishedAt', 'archivedAt', 'archivedBy', 'restoredAt', 'unarchivedAt'], shown)),
+      detailSection('Description', item.desc ? `<p class="detail-text">${escapeHTML(item.desc)}</p>` : ''),
+      detailSection('Recommended Actions', actions.length
+        ? `<ul class="detail-list">${actions.map((a) => `<li>${escapeHTML(detailText('', a))}</li>`).join('')}</ul>` : ''),
+      detailSection(`Media (${media.length})`, detailMediaHTML(media))
+    ].join('');
+
+    openArchiveDetail({
+      title: 'Archived Expired Advisory',
+      heading: item.title || 'Untitled advisory',
+      sub: `${item.type || 'Advisory'} • ${item.target || 'All Trails'}`,
+      chip: item.status || 'Archived',
+      html: html + otherDetailsHTML(item, shown),
+      onUnarchive: () => openUnarchiveAdvisoryModal(item.id)
+    });
+  }
+
+  // Rows open on click, Enter or Space, like a button.
+  function bindArchiveRows(list, selector, open) {
+    list.querySelectorAll(selector).forEach((row) => {
+      row.addEventListener('click', () => open(row));
+      row.addEventListener('keydown', (event) => {
+        if (event.target !== row || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        open(row);
+      });
+    });
+  }
+
+  archiveDetailUnarchiveBtn.addEventListener('click', () => {
+    const unarchive = archiveDetailUnarchive;
+    closeArchiveDetail();
+    unarchive?.();
+  });
+  document.getElementById('archiveDetailCloseBtn').addEventListener('click', closeArchiveDetail);
+  document.getElementById('archiveDetailBackBtn').addEventListener('click', closeArchiveDetail);
+  archiveDetailModalEl.addEventListener('click', (event) => {
+    if (event.target === archiveDetailModalEl) closeArchiveDetail();
+  });
+  // Capture phase, so Escape closes only the details and leaves the
+  // archive list underneath open.
+  window.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !archiveDetailModalEl.classList.contains('visible')) return;
+    event.stopPropagation();
+    closeArchiveDetail();
+  }, true);
+
   // Resolved hazard reports an admin has archived, using the Archive button
   // on the Hazard Reports page's Resolved Reports panel. Resolving a report
   // does NOT put it here — it stays in that panel until someone archives it.
-  // Resolving is final, so unlike the other archives there is nothing to
-  // restore; each item links back to its full details instead.
+  // Unarchiving only clears that flag, so the report returns to the panel
+  // still resolved.
   async function loadResolvedReports() {
     const archiveList = document.getElementById('resolvedReportsList');
     if (!archiveList) return;
@@ -1025,7 +1261,7 @@
         .filter((item) => item.archived === true) // archived by an admin, not merely resolved
         .sort((a, b) => toMillis(b.resolvedAt) - toMillis(a.resolvedAt)); // newest first
 
-      lastResolvedReports = resolved; // cache for PDF export
+      lastResolvedReports = resolved; // cache for PDF export and modal lookups
 
       if (!resolved.length) {
         archiveList.innerHTML = '<div class="archive-empty">No resolved reports have been archived yet.</div>';
@@ -1033,7 +1269,8 @@
       }
 
       archiveList.innerHTML = resolved.map((item) => `
-        <div class="archive-item">
+        <div class="archive-item is-clickable" role="button" tabindex="0" data-detail-resolved="${escapeHTML(item.id)}"
+             aria-label="View details of ${escapeHTML(item.hazardType || 'hazard report')} ${escapeHTML(item.reportId || item.id)}">
           <div class="archive-item-title">${escapeHTML(item.hazardType || 'Unknown Hazard')}</div>
           <div class="archive-item-meta">
             <span>${escapeHTML(item.reportId || item.id)}</span>
@@ -1043,11 +1280,20 @@
             <span>Resolved ${escapeHTML(formatArchiveDate(item.resolvedAt))}</span>
           </div>
           ${item.resolutionNote ? `<div class="archive-item-note">${escapeHTML(item.resolutionNote)}</div>` : ''}
-          <div style="margin-top:8px;text-align:right">
-            <a class="ghost-btn" href="hazardreport.html?report=${encodeURIComponent(item.id)}">View report</a>
+          <div class="archive-item-foot">
+            <span class="archive-item-hint">View details ›</span>
+            <button type="button" class="ghost-btn" data-unarchive-resolved="${escapeHTML(item.id)}">Unarchive</button>
           </div>
         </div>
       `).join('');
+
+      archiveList.querySelectorAll('[data-unarchive-resolved]').forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+          event.stopPropagation(); // not a click on the row itself
+          openUnarchiveModal(btn.dataset.unarchiveResolved, 'resolved');
+        });
+      });
+      bindArchiveRows(archiveList, '[data-detail-resolved]', (row) => openHazardDetail(row.dataset.detailResolved, 'resolved'));
     } catch (error) {
       console.error('Error loading archived resolved reports:', error);
       archiveList.innerHTML = '<div class="archive-empty">Unable to load archived resolved reports right now.</div>';
@@ -1075,7 +1321,8 @@
       }
 
       archiveList.innerHTML = archived.map((item) => `
-        <div class="archive-item">
+        <div class="archive-item is-clickable" role="button" tabindex="0" data-detail-report="${escapeHTML(item.id)}"
+             aria-label="View details of ${escapeHTML(item.hazardType || 'hazard report')} ${escapeHTML(item.reportId || item.id)}">
           <div class="archive-item-title">${escapeHTML(item.hazardType || 'Unknown Hazard')}</div>
           <div class="archive-item-meta">
             <span>${escapeHTML(item.reportId || item.id)}</span>
@@ -1084,15 +1331,20 @@
             <span>•</span>
             <span>${escapeHTML(formatArchiveDate(item.archivedAt))}</span>
           </div>
-          <div style="margin-top:8px;text-align:right">
-            <button type="button" class="ghost-btn" data-unarchive-report="${item.id}">Unarchive</button>
+          <div class="archive-item-foot">
+            <span class="archive-item-hint">View details ›</span>
+            <button type="button" class="ghost-btn" data-unarchive-report="${escapeHTML(item.id)}">Unarchive</button>
           </div>
         </div>
       `).join('');
 
       archiveList.querySelectorAll('[data-unarchive-report]').forEach((btn) => {
-        btn.addEventListener('click', () => openUnarchiveModal(btn.dataset.unarchiveReport));
+        btn.addEventListener('click', (event) => {
+          event.stopPropagation(); // not a click on the row itself
+          openUnarchiveModal(btn.dataset.unarchiveReport);
+        });
       });
+      bindArchiveRows(archiveList, '[data-detail-report]', (row) => openHazardDetail(row.dataset.detailReport));
     } catch (error) {
       console.error('Error loading archived hazard reports:', error);
       archiveList.innerHTML = '<div class="archive-empty">Unable to load the archive right now.</div>';
@@ -1100,20 +1352,27 @@
   }
 
   // -----------------------------
-  // Unarchive confirmation modal (Archived Hazard Reports)
+  // Unarchive confirmation modal (Archived Hazard and Archived Resolved Reports)
   // -----------------------------
-  let pendingUnarchiveId = null;
+  // kind 'archived': an archived hazard report, which goes back to Rejected.
+  // kind 'resolved': an archived resolved report, which goes back to the
+  // Resolved Reports panel and stays resolved.
+  let pendingUnarchive = null;
 
   const unarchiveModalEl = document.getElementById('unarchiveConfirmModal');
   const unarchiveModalConfirmBtn = document.getElementById('unarchiveModalConfirmBtn');
   const unarchiveModalErrorEl = document.getElementById('unarchiveModalError');
 
-  function openUnarchiveModal(reportId) {
-    const item = lastArchivedHazardReports.find((r) => r.id === reportId);
+  const reportArchive = (kind) => (kind === 'resolved' ? lastResolvedReports : lastArchivedHazardReports);
+
+  function openUnarchiveModal(reportId, kind = 'archived') {
+    const item = reportArchive(kind).find((r) => r.id === reportId);
     if (!item) return;
 
-    pendingUnarchiveId = reportId;
+    pendingUnarchive = { id: reportId, kind };
 
+    document.getElementById('unarchiveModalDestination').textContent =
+      kind === 'resolved' ? 'Resolved Reports' : 'Rejected Reports';
     document.getElementById('unarchiveModalHazardType').textContent = item.hazardType || 'Unknown Hazard';
     document.getElementById('unarchiveModalReportId').textContent = item.reportId || item.id;
     document.getElementById('unarchiveModalLocation').textContent = item.location || 'N/A';
@@ -1129,19 +1388,27 @@
   function closeUnarchiveModal() {
     unarchiveModalEl.classList.remove('visible');
     unarchiveModalEl.setAttribute('aria-hidden', 'true');
-    pendingUnarchiveId = null;
+    pendingUnarchive = null;
   }
 
   async function confirmUnarchiveHazardReport() {
-    if (!pendingUnarchiveId) return;
-    const reportId = pendingUnarchiveId;
-    const item = lastArchivedHazardReports.find((r) => r.id === reportId);
+    if (!pendingUnarchive) return;
+    const { id: reportId, kind } = pendingUnarchive;
+    const item = reportArchive(kind).find((r) => r.id === reportId);
 
     unarchiveModalConfirmBtn.disabled = true;
     unarchiveModalConfirmBtn.textContent = 'Unarchiving...';
     unarchiveModalErrorEl.textContent = '';
 
     try {
+      if (kind === 'resolved') {
+        await updateDoc(doc(db, 'reports', reportId), { archived: false, unarchivedAt: new Date() });
+        closeUnarchiveModal();
+        showToast('Report moved back to Resolved Reports');
+        loadResolvedReports(); // refresh this modal's list
+        return;
+      }
+
       const year = item?.timestamp
         ? (item.timestamp.toDate ? item.timestamp.toDate() : new Date(item.timestamp)).getFullYear()
         : new Date().getFullYear();
@@ -1208,7 +1475,8 @@
       }
 
       archiveList.innerHTML = expired.map((item) => `
-        <div class="archive-item">
+        <div class="archive-item is-clickable" role="button" tabindex="0" data-detail-advisory="${escapeHTML(item.id)}"
+             aria-label="View details of ${escapeHTML(item.title || 'advisory')}">
           <div class="archive-item-title">${escapeHTML(item.title || 'Untitled advisory')}</div>
           <div class="archive-item-meta">
             <span>${escapeHTML(item.type || 'Advisory')}</span>
@@ -1217,15 +1485,20 @@
             <span>•</span>
             <span>${escapeHTML(formatArchiveDate(item.archivedAt || item.expiresAt || item.effectiveDate || item.publishedAt || item.createdAt))}</span>
           </div>
-          <div style="margin-top:8px;text-align:right">
-            <button type="button" class="ghost-btn" data-unarchive-advisory="${item.id}">Unarchive</button>
+          <div class="archive-item-foot">
+            <span class="archive-item-hint">View details ›</span>
+            <button type="button" class="ghost-btn" data-unarchive-advisory="${escapeHTML(item.id)}">Unarchive</button>
           </div>
         </div>
       `).join('');
 
       archiveList.querySelectorAll('[data-unarchive-advisory]').forEach((btn) => {
-        btn.addEventListener('click', () => openUnarchiveAdvisoryModal(btn.dataset.unarchiveAdvisory));
+        btn.addEventListener('click', (event) => {
+          event.stopPropagation(); // not a click on the row itself
+          openUnarchiveAdvisoryModal(btn.dataset.unarchiveAdvisory);
+        });
       });
+      bindArchiveRows(archiveList, '[data-detail-advisory]', (row) => openAdvisoryDetail(row.dataset.detailAdvisory));
     } catch (error) {
       console.error('Error loading expired advisory archive:', error);
       archiveList.innerHTML = '<div class="archive-empty">Unable to load the archive right now.</div>';
@@ -1758,7 +2031,7 @@
       archivedResolvedReports: {
         title: 'Archived Resolved Reports',
         content: `
-          <div class="field-hint">Resolving a hazard is final, so these reports can't be restored.</div>
+          <div class="field-hint">Unarchiving returns a report to the Resolved Reports panel. It stays resolved.</div>
           <div class="archive-list" id="resolvedReportsList">
             <div class="archive-empty">Loading archived resolved reports...</div>
           </div>
