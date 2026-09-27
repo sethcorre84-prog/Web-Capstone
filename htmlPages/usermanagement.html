@@ -293,7 +293,9 @@
   .btn-tooltip {
     position: absolute;
     top: calc(100% + 8px);
-    right: 0;
+    left: 50%;
+    right: auto;
+    text-align: center;
     z-index: 5;
     white-space: nowrap;
     padding: 6px 8px;
@@ -303,14 +305,14 @@
     font-size: 11px;
     font-weight: 400;
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translate(-50%, -4px);
     pointer-events: none;
     transition: all .15s ease;
     box-shadow: 0 8px 18px rgba(0,0,0,.12);
   }
 
   .icon-only:hover .btn-tooltip,
-  .icon-only:focus-visible .btn-tooltip { opacity: 1; transform: translateY(0); }
+  .icon-only:focus-visible .btn-tooltip { opacity: 1; transform: translate(-50%, 0); }
 
   .table-foot {
     display: flex;
@@ -459,15 +461,15 @@
 
   .clear-btn:hover { background: var(--dm-surface-2, #f5f5f2); }
   
-  /* Wide screens: a table held at a width its seven columns can be read at.
+  /* Wide screens: a table held at a width its six columns can be read at.
      When the card is narrower, .table-wrapper scrolls it sideways instead of
      squeezing the columns until words break one letter per line. Narrow
      screens switch to one card per user (see the 700px block below). */
   .user-list-table {
     width: 100%;
-    min-width: 860px;
+    min-width: 760px;
     border-collapse: collapse;
-    table-layout: auto;
+    table-layout: fixed;
     margin-top: 8px;
   }
 
@@ -563,10 +565,19 @@
 
   /* A hiker can be in several teams, so the cell holds a chip per team
      rather than one string. A team they lead is marked with a star. */
-  .team-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .team-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+  }
   .team-chip {
     display: inline-flex;
     align-items: center;
+    flex: 0 1 auto;
+    min-width: 0;
     max-width: 100%;
     padding: 2px 9px;
     border-radius: 20px;
@@ -574,9 +585,8 @@
     color: var(--accent-dark);
     font-size: 11.5px;
     font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .team-chip.is-leader::before { content: '°5'; margin-right: 5px; font-size: 9px; }
   /* Still on the old free-text field, not in a team document. */
@@ -588,12 +598,16 @@
   /* The detail row's value is a single ellipsised line; chips need to wrap. */
   .detail-value.team-value {
     display: flex;
+    flex: 1;
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 4px;
     white-space: normal;
     overflow: visible;
   }
+
+  .detail-value.team-value .team-chips { justify-content: flex-end; }
+  .detail-value.team-value .team-chip { text-align: left; }
 
   .team-picker {
     display: flex;
@@ -641,32 +655,6 @@
   .status-pill.inactive { background: var(--dm-surface-2, #eef1ec); color: #5b6b60; }
   .status-pill.suspended { background: #fbe9e7; color: #c8402f; }
 
-  .table-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  
-  .table-action i { font-size: 11.5px; }
-
-  .table-action {
-    width: 30px;
-    height: 30px;
-    border: 1px solid var(--dm-border, #e4e7e1);
-    border-radius: 6px;
-    background: var(--dm-surface, #fff);
-    color: #93a199;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .table-action:hover {
-    border-color: var(--dm-border, #e4e7e1);
-    background: var(--dm-surface-2, #fbfcfa);
-  }
-  
   .profile-header {
     display: flex;
     align-items: center;
@@ -1182,41 +1170,6 @@
     color: #93a199;
   }
 
-  .row-menu-wrap { position: relative; display: inline-flex; }
-
-  .row-menu {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    z-index: 30;
-    min-width: 150px;
-    padding: 5px;
-    background: var(--dm-surface, #ffffff);
-    border: 1px solid var(--dm-border, #e4e7e1);
-    border-radius: 9px;
-    box-shadow: 0 12px 28px rgba(15,23,42,0.14);
-  }
-
-  .row-menu button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 8px 10px;
-    border: none;
-    background: transparent;
-    border-radius: 6px;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--dm-text-2, #5b6b60);
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .row-menu button:hover { background: var(--dm-surface-2, #eef1ec); }
-  .row-menu button.danger { color: #c8402f; }
-  .row-menu button.danger:hover { background: var(--dm-surface-2, #fbe9e7); }
-
   .activity-title {
     font-size: 12px;
     font-weight: 600;
@@ -1330,7 +1283,7 @@
 
     /* Small screens: every user is a card. The name and email span the top,
        the other fields sit two to a row, each under its own label (taken
-       from the cell's data-label), and the actions run along the bottom. */
+       from the cell's data-label). */
     .user-list-table { min-width: 0; margin-top: 4px; }
     .user-list-table thead { display: none; }
     .user-list-table,
@@ -1347,7 +1300,6 @@
     }
     .user-list-table td { padding: 0; border: 0; }
     .user-list-table td:first-child,
-    .user-list-table td:last-child,
     .user-list-table td[colspan] { grid-column: 1 / -1; }
     .user-list-table td[data-label]::before {
       content: attr(data-label);
@@ -1436,7 +1388,7 @@
           <div class="hero-icon blue"><i class="fa-solid fa-users"></i></div>
         </div>
         <div class="card-content">
-          <h3>Total Hikers</h3>
+          <h3>Total Users</h3>
           <span class="hero-trend" id="totalUsersTrend">—</span>
         </div>
       </div>
@@ -1520,13 +1472,12 @@
           <table class="user-list-table">
             <thead>
               <tr>
-                <th style="width:24%">User</th>
-                <th style="width:11%">Role</th>
-                <th style="width:16%">Team / Group</th>
-                <th style="width:11%">Status</th>
-                <th style="width:14%">Last Active</th>
-                <th style="width:14%">Registered On</th>
-                <th style="width:10%">Actions</th>
+                <th style="width:28%">User</th>
+                <th style="width:12%">Role</th>
+                <th style="width:18%">Team / Group</th>
+                <th style="width:12%">Status</th>
+                <th style="width:15%">Last Active</th>
+                <th style="width:15%">Registered On</th>
               </tr>
             </thead>
             <tbody id="usersTableBody"></tbody>
@@ -1589,52 +1540,6 @@
   </main>
 </div>
 
-<div id="editUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
-  <form id="editUserForm" class="modal">
-    <h2 id="editUserTitle">Edit User</h2>
-    <div class="field">
-      <label for="editUserName">Full Name</label>
-      <input id="editUserName" name="fullName" type="text" required>
-    </div>
-    <div class="field">
-      <label for="editUserEmail">Email</label>
-      <input id="editUserEmail" name="email" type="email" required>
-    </div>
-    <div class="field">
-        <label for="editUserStatus">Status</label>
-        <select id="editUserStatus" name="status">
-          <option>Active</option>
-          <option>Inactive</option>
-          <option>Pending</option>
-          <option>Suspended</option>
-        </select>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Teams</label>
-        <div class="team-picker" id="editUserTeams"></div>
-        <p class="team-picker-hint" id="editUserTeamsHint"></p>
-      </div>
-      <div class="field">
-        <label for="editUserPhone">Phone</label>
-        <input id="editUserPhone" name="phone" type="text">
-      </div>
-    </div>
-    <div class="field">
-      <label for="editUserEmergencyContact">Emergency Contact</label>
-      <input id="editUserEmergencyContact" name="emergencyContact" type="text">
-    </div>
-    <div class="field">
-      <label for="editUserArea">Assigned Area</label>
-      <input id="editUserArea" name="assignedArea" type="text">
-    </div>
-    <div class="modal-actions">
-      <button id="cancelEditUserBtn" class="modal-cancel" type="button">Cancel</button>
-      <button id="saveEditUserBtn" class="modal-save" type="submit">Save Changes</button>
-    </div>
-  </form>
-</div>
-
 <div id="suspendUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="suspendUserTitle">
   <form id="suspendUserForm" class="modal">
     <h2 id="suspendUserTitle">Suspend User</h2>
@@ -1664,8 +1569,18 @@
       <input id="addUserName" name="fullName" type="text" required>
     </div>
     <div class="field">
+      <label for="addUserUsername">Username</label>
+      <input id="addUserUsername" name="username" type="text" autocomplete="off" maxlength="100" pattern="[A-Za-z0-9_.\-]+" aria-describedby="addUserUsernameHint" required>
+      <p id="addUserUsernameHint" class="field-hint">Use this username and password to sign in to the mobile app. Usernames are case-sensitive; use letters, numbers, dots, underscores, or hyphens.</p>
+    </div>
+    <div class="field">
       <label for="addUserEmail">Email</label>
       <input id="addUserEmail" name="email" type="email" required>
+    </div>
+    <div class="field">
+      <label for="addUserPassword">Password</label>
+      <input id="addUserPassword" name="password" type="password" autocomplete="new-password" minlength="6" aria-describedby="addUserPasswordHint" required>
+      <p id="addUserPasswordHint" class="field-hint">Use at least 6 characters.</p>
     </div>
     <div class="field-row">
       <div class="field">
@@ -1775,14 +1690,15 @@
   import { watchActiveHikers } from '../jsPages/active-hikers.js';
   import { MAKILING_BOUNDS } from '../jsPages/makiling-area.js';
   import { openExportMenu } from '../jsPages/export-table.js';
-  import { sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+  import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { initializeAuth, inMemoryPersistence, createUserWithEmailAndPassword, deleteUser, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
-    addDoc,
+    getFirestore,
+    runTransaction,
     arrayRemove,
     arrayUnion,
     collection,
     doc,
-    deleteDoc,
     onSnapshot,
     serverTimestamp,
     updateDoc
@@ -1821,10 +1737,6 @@
   const viewProfileModal = document.getElementById('viewProfileModal');
   const closeViewProfileBtn = document.getElementById('closeViewProfileBtn');
 
-  const editUserModal = document.getElementById('editUserModal');
-  const editUserForm = document.getElementById('editUserForm');
-  const cancelEditUserBtn = document.getElementById('cancelEditUserBtn');
-  const saveEditUserBtn = document.getElementById('saveEditUserBtn');
 
   const addUserBtn = document.getElementById('addUserBtn');
   const addUserModal = document.getElementById('addUserModal');
@@ -2178,10 +2090,6 @@
     });
   };
 
-  const closeRowMenus = () => {
-    document.querySelectorAll('.row-menu').forEach(menu => menu.remove());
-  };
-
   const renderPager = (totalPages) => {
     userPager.innerHTML = '';
     if (totalPages <= 1) return;
@@ -2223,13 +2131,12 @@
   };
 
   const renderUserTable = () => {
-    closeRowMenus();
     const filtered = getFilteredUsers();
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     if (state.page > totalPages) state.page = totalPages;
 
     if (!filtered.length) {
-      usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#93a199;">No users found for the selected filters.</td></tr>';
+      usersTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#93a199;">No users found for the selected filters.</td></tr>';
       userCountSummary.textContent = 'No users to show';
       renderPager(1);
       return;
@@ -2258,15 +2165,6 @@
         <td data-label="Status"><span class="badge ${getUserStatusClass(effectiveStatusOf(user))}">${escapeHtml(effectiveStatusOf(user))}</span></td>
         <td class="stacked-date" data-label="Last Active">${formatStackedDateTime(user.lastActive)}</td>
         <td class="stacked-date" data-label="Registered On">${formatStackedDateTime(user.memberSince)}</td>
-        <td>
-          <div class="table-actions">
-            <button class="table-action" data-action="view" type="button" aria-label="View details" title="View details"><i class="fa-solid fa-eye"></i></button>
-            <button class="table-action" data-action="edit" type="button" aria-label="Edit user" title="Edit user"><i class="fa-solid fa-pen"></i></button>
-            <span class="row-menu-wrap">
-              <button class="table-action" data-action="more" type="button" aria-label="More actions" title="More actions"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-            </span>
-          </div>
-        </td>
       </tr>
     `).join('');
 
@@ -2284,54 +2182,9 @@
         renderSelectedUser();
       });
 
-      row.querySelector('[data-action="view"]').addEventListener('click', (event) => {
-        event.stopPropagation();
-        state.selectedUserId = userId;
-        renderUserTable();
-        renderSelectedUser();
-        userDetailCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      });
-
-      row.querySelector('[data-action="edit"]').addEventListener('click', (event) => {
-        event.stopPropagation();
-        state.selectedUserId = userId;
-        renderUserTable();
-        renderSelectedUser();
-        openEditUserModal();
-      });
-
-      const moreButton = row.querySelector('[data-action="more"]');
-      moreButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        const wrap = moreButton.parentElement;
-        const alreadyOpen = wrap.querySelector('.row-menu');
-        closeRowMenus();
-        if (alreadyOpen) return;
-
-        state.selectedUserId = userId;
-        renderSelectedUser();
-
-        const menu = document.createElement('div');
-        menu.className = 'row-menu';
-        menu.innerHTML = `
-          <button type="button" data-menu="reset"><i class="fa-solid fa-rotate"></i>Reset Password</button>
-          <button type="button" class="danger" data-menu="delete"><i class="fa-solid fa-trash"></i>Delete Account</button>
-        `;
-        menu.addEventListener('click', (menuEvent) => menuEvent.stopPropagation());
-        menu.querySelector('[data-menu="reset"]').addEventListener('click', () => {
-          closeRowMenus();
-          resetPasswordBtn.click();
-        });
-        menu.querySelector('[data-menu="delete"]').addEventListener('click', () => {
-          closeRowMenus();
-          deleteSelectedUser();
-        });
-        wrap.appendChild(menu);
-      });
     });
   };
 
-  document.addEventListener('click', closeRowMenus);
 
   // ---------------------------------------------------------------------
   // Selected user panel
@@ -2468,45 +2321,12 @@
   // ---------------------------------------------------------------------
   // Modals
   // ---------------------------------------------------------------------
-  const closeEditUserModal = () => editUserModal.classList.remove('open');
-  const closeAddUserModal = () => addUserModal.classList.remove('open');
+  const closeAddUserModal = () => {
+    if (saveAddUserBtn.disabled) return;
+    addUserModal.classList.remove('open');
+    addUserForm.reset();
+  };
   const closeViewProfileModal = () => viewProfileModal.classList.remove('open');
-
-  const openEditUserModal = () => {
-    const user = getSelectedUser();
-    if (!user) return;
-
-    document.getElementById('editUserName').value = user.name === 'Unnamed user' ? '' : user.name;
-    document.getElementById('editUserEmail').value = hasValidEmail(user.email) ? user.email : '';
-    document.getElementById('editUserStatus').value = effectiveStatusOf(user);
-    renderTeamPicker(
-      document.getElementById('editUserTeams'),
-      document.getElementById('editUserTeamsHint'),
-      user
-    );
-    document.getElementById('editUserPhone').value = user.phone === '—' ? '' : user.phone;
-    document.getElementById('editUserEmergencyContact').value = user.emergencyContact === '—' ? '' : user.emergencyContact;
-    document.getElementById('editUserArea').value = user.area === '—' ? '' : user.area;
-    editUserModal.classList.add('open');
-    document.getElementById('editUserName').focus();
-  };
-
-  const deleteSelectedUser = async () => {
-    const user = getSelectedUser();
-    if (!user) return;
-
-    const confirmed = window.confirm(`Delete ${user.name}'s account? This action cannot be undone.`);
-    if (!confirmed) return;
-
-    try {
-      await deleteDoc(doc(db, 'users', user.id));
-      state.selectedUserId = null;
-      setResetPasswordStatus('User account deleted.', 'success');
-    } catch (error) {
-      console.error('Failed to delete user account:', error);
-      setResetPasswordStatus('Unable to delete this user account right now.', 'error');
-    }
-  };
 
   const openUserProfileModal = () => {
     const user = getSelectedUser();
@@ -2541,14 +2361,9 @@
     if (event.target === viewProfileModal) closeViewProfileModal();
   });
 
-  cancelEditUserBtn.addEventListener('click', closeEditUserModal);
-  editUserModal.addEventListener('click', (event) => {
-    if (event.target === editUserModal) closeEditUserModal();
-  });
-
   addUserBtn.addEventListener('click', () => {
     addUserForm.reset();
-    // No account yet, so every team starts unticked; a full team is still
+    // Every team starts unticked; a full team is still
     // shown as full and cannot be picked.
     renderTeamPicker(
       document.getElementById('addUserTeams'),
@@ -2569,9 +2384,7 @@
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
     closeViewProfileModal();
-    closeEditUserModal();
     closeAddUserModal();
-    closeRowMenus();
   });
 
   contactUserBtn.addEventListener('click', () => {
@@ -2648,69 +2461,19 @@
     await Promise.all(writes);
   };
 
-  editUserForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const user = getSelectedUser();
-    if (!user) return;
-
-    const formData = new FormData(editUserForm);
-    const email = normalizeText(formData.get('email'));
-    if (!hasValidEmail(email)) return;
-
-    const wantedTeamIds = pickedTeamIds(document.getElementById('editUserTeams'));
-    // Mirrored onto the user document so anything still reading the old
-    // `team` field (the mobile app, an export) keeps agreeing with teams/.
-    const teamMirror = state.teams
-      .filter(team => wantedTeamIds.includes(team.id))
-      .map(team => team.name)
-      .join(', ');
-
-    /* Status is also settable here, which has to agree with the Suspend
-       action. Only a real change touches the suspension fields, so saving an
-       unrelated edit never shortens or wipes a suspension already running.
-         -> Suspended  no end date, i.e. until an admin lifts it. Use the
-                       Suspend action for a timed one. Clearing any old date
-                       stops a date already in the past reading as expired.
-         -> anything   the suspension is over, so its fields go with it. */
-    const previousStatus = effectiveStatusOf(user);
-    const nextStatus = normalizeText(formData.get('status'));
-    const statusChanged = nextStatus.toLowerCase() !== previousStatus.toLowerCase();
-    const suspensionPatch = !statusChanged
-      ? {}
-      : nextStatus.toLowerCase() === 'suspended'
-        ? { suspendedUntil: null, suspendedAt: serverTimestamp(), suspendedBy: auth.currentUser?.uid || null, suspensionDays: null }
-        : { suspendedUntil: null, suspendedAt: null, suspendedBy: null, suspensionDays: null, suspensionReason: null };
-
-    saveEditUserBtn.disabled = true;
-    saveEditUserBtn.textContent = 'Saving...';
-    try {
-      await updateDoc(doc(db, 'users', user.id), {
-        ...suspensionPatch,
-        fullName: normalizeText(formData.get('fullName')),
-        email,
-        status: nextStatus,
-        team: teamMirror || '—',
-        phone: normalizeText(formData.get('phone')) || '—',
-        emergencyContact: normalizeText(formData.get('emergencyContact')) || '—',
-        assignedArea: normalizeText(formData.get('assignedArea')) || '—'
-      });
-      await applyTeamMembership(user.uid || user.id, wantedTeamIds);
-      closeEditUserModal();
-      setResetPasswordStatus('User details updated.', 'success');
-    } catch (error) {
-      console.error('Failed to update user details:', error);
-      alert('Unable to update this user right now.');
-    } finally {
-      saveEditUserBtn.disabled = false;
-      saveEditUserBtn.textContent = 'Save Changes';
-    }
-  });
-
   addUserForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (saveAddUserBtn.disabled || !addUserForm.reportValidity()) return;
     const formData = new FormData(addUserForm);
     const email = normalizeText(formData.get('email'));
-    if (!hasValidEmail(email)) return;
+    const username = String(formData.get('username') || '').trim();
+    const password = String(formData.get('password') || '');
+    if (!hasValidEmail(email) || password.length < 6) return;
+    if (!/^[A-Za-z0-9_.-]{1,100}$/.test(username) || username === '.' || username === '..' || /^__.*__$/.test(username)) {
+      addUserStatusMessage.textContent = 'Choose a different username using letters, numbers, dots, underscores, or hyphens.';
+      addUserStatusMessage.className = 'action-status error';
+      return;
+    }
 
     saveAddUserBtn.disabled = true;
     saveAddUserBtn.textContent = 'Adding...';
@@ -2722,29 +2485,82 @@
       .filter(team => wantedTeamIds.includes(team.id))
       .map(team => team.name)
       .join(', ');
-
+    let accountApp;
+    let accountAuth;
+    let createdUser;
+    let profileSaved = false;
     try {
-      const created = await addDoc(collection(db, 'users'), {
-        fullName: normalizeText(formData.get('fullName')),
-        email,
-        role: normalizeText(formData.get('role')) || 'Hiker',
-        status: normalizeText(formData.get('status')) || 'Active',
-        team: teamMirror || '—',
-        phone: normalizeText(formData.get('phone')) || '—',
-        createdAt: serverTimestamp()
+      // Isolate the new account's session from the signed-in administrator.
+      accountApp = initializeApp(auth.app.options, 'add-user-' + crypto.randomUUID());
+      accountAuth = initializeAuth(accountApp, { persistence: inMemoryPersistence });
+      const credential = await createUserWithEmailAndPassword(accountAuth, email, password);
+      createdUser = credential.user;
+      // Mobile login resolves usernames/{username} before authenticating.
+      // Use the new user's isolated session to satisfy the lookup's owner rule.
+      const accountDb = getFirestore(accountApp);
+      const usernameRef = doc(accountDb, 'usernames', username);
+      const phone = normalizeText(formData.get('phone'));
+      const phoneE164 = phone.startsWith('0') ? '+63' + phone.slice(1) : phone;
+      await runTransaction(accountDb, async (transaction) => {
+        if ((await transaction.get(usernameRef)).exists()) {
+          const error = new Error('Username already taken');
+          error.code = 'account/username-taken';
+          throw error;
+        }
+        transaction.set(doc(accountDb, 'users', createdUser.uid), {
+          uid: createdUser.uid,
+          fullName: normalizeText(formData.get('fullName')),
+          username,
+          email,
+          role: normalizeText(formData.get('role')) || 'Hiker',
+          status: normalizeText(formData.get('status')) || 'Active',
+          team: teamMirror || '—',
+          phone,
+          phoneE164,
+          phoneLinked: false,
+          createdAt: serverTimestamp()
+        });
+        transaction.set(usernameRef, {
+          uid: createdUser.uid,
+          email,
+          phoneE164,
+          phoneLinked: false
+        });
       });
-      // A user added here has no Auth account yet, so the document id is the
-      // only id there is -- the same one normalizeUser() reports as `uid`.
-      await applyTeamMembership(created.id, wantedTeamIds);
-      closeAddUserModal();
-      setResetPasswordStatus('New user added.', 'success');
+      profileSaved = true;
+      await applyTeamMembership(createdUser.uid, wantedTeamIds);
+      setResetPasswordStatus(`New ${normalizeText(formData.get('role')) || 'Hiker'} added. Mobile username: ${username}. Sign in with the password entered here.`, 'success');
     } catch (error) {
-      console.error('Failed to add user:', error);
-      addUserStatusMessage.textContent = 'Unable to add this user right now.';
-      addUserStatusMessage.className = 'action-status error';
+      if (profileSaved) {
+        setResetPasswordStatus('User account created, but some team assignments could not be saved. Check their team memberships.', 'error');
+      } else {
+        let rollbackFailed = false;
+        if (createdUser) {
+          try { await deleteUser(createdUser); }
+          catch { rollbackFailed = true; }
+        }
+        const messages = {
+          'account/username-taken': 'That username is already taken. Choose another username.',
+          'auth/email-already-in-use': 'This email already has an account. Use a different email.',
+          'auth/invalid-email': 'Enter a valid email address.',
+          'auth/weak-password': 'Choose a stronger password that meets the password requirements.',
+          'auth/password-does-not-meet-requirements': 'Choose a stronger password that meets the password requirements.',
+          'auth/operation-not-allowed': 'Email/password account creation is not enabled in Firebase.',
+          'auth/network-request-failed': 'Network error. Check your connection and try again.',
+          'auth/too-many-requests': 'Too many attempts. Please try again later.'
+        };
+        addUserStatusMessage.textContent = rollbackFailed
+          ? 'The sign-in account was created, but its profile could not be saved or the account removed. Resolve this account in Firebase before trying again.'
+          : messages[error.code] || 'Unable to add this user right now. Please try again.';
+        addUserStatusMessage.className = 'action-status error';
+      }
     } finally {
+      document.getElementById('addUserPassword').value = '';
+      if (accountAuth) await signOut(accountAuth).catch(() => {});
+      if (accountApp) await deleteApp(accountApp).catch(() => {});
       saveAddUserBtn.disabled = false;
       saveAddUserBtn.textContent = 'Add User';
+      if (profileSaved) closeAddUserModal();
     }
   });
 
@@ -3052,7 +2868,7 @@
 
     if (!state.users.length) {
       state.selectedUserId = null;
-      usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#93a199;">No users found in database.</td></tr>';
+      usersTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#93a199;">No users found in database.</td></tr>';
       userCountSummary.textContent = 'No users to show';
       userPager.innerHTML = '';
       renderStats();
@@ -3080,7 +2896,7 @@
     }
   }, (error) => {
     console.error('Error loading users:', error);
-    usersTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#93a199;">Unable to load users from database.</td></tr>';
+    usersTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#93a199;">Unable to load users from database.</td></tr>';
     userCountSummary.textContent = 'Unable to load users';
   });
 

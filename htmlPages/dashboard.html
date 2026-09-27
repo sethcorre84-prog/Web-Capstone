@@ -159,8 +159,8 @@
             font-weight: 600;
             color: var(--accent);
             white-space: nowrap;
+            text-decoration: none;
         }
-        .card-link:hover { text-decoration: underline; }
 
         .card > .empty-state { flex: 1; }
 
@@ -343,15 +343,15 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 2px;
             min-width: 0;
-            padding: 14px 8px;
+            padding: 8px 6px;
             border: 1px solid var(--border);
             border-radius: 12px;
             text-align: center;
         }
-        .summary-tile i { margin-bottom: 4px; font-size: 22px; }
-        .summary-tile strong { font-size: 18px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .summary-tile i { margin-bottom: 2px; font-size: 17px; }
+        .summary-tile strong { font-size: 16px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
         .summary-tile span { font-size: 11.5px; color: var(--text-secondary); }
         .summary-tile small { font-size: 11px; color: var(--text-muted); }
         .summary-tile.tone-green i { color: var(--green-text); }
@@ -360,7 +360,7 @@
         .summary-tile.tone-red i { color: var(--red-text); }
 
         /* ---- Hazard Trends: bars per hazard type this month ---- */
-        .bar-chart { flex: 1; display: flex; flex-direction: column; min-height: 190px; }
+        .bar-chart { flex: 1; display: flex; flex-direction: column; min-height: 110px; }
         .bar-legend { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 11.5px; color: var(--text-secondary); }
         .bar-legend::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
         .bars { flex: 1; display: flex; align-items: flex-end; gap: 12px; padding: 0 4px; border-bottom: 1px solid var(--border); }
@@ -556,7 +556,7 @@
                 <div class="card">
                     <div class="card-top">
                         <h2>Trail Status Overview</h2>
-                        <a class="card-link" href="trail.html">Manage trails →</a>
+                        <a class="card-link" href="trail.html">Manage trails</a>
                     </div>
                     <ul class="pill-list" id="trailStatusList"><li class="pill-item"><span>Loading trails...</span></li></ul>
                 </div>
@@ -567,7 +567,7 @@
                 <div class="card map-card">
                     <div class="card-top">
                         <h2>Mount Makiling Map Overview</h2>
-                        <a class="card-link" href="geomap.html">Open Geomap →</a>
+                        <a class="card-link" href="geomap.html">Open Geomap</a>
                     </div>
                     <div id="dashboardMap" aria-label="Interactive map of Mount Makiling"></div>
                 </div>
@@ -575,7 +575,7 @@
                 <div class="card">
                     <div class="card-top">
                         <h2>Recent Hazard Reports</h2>
-                        <a class="card-link" href="hazardreport.html">View all →</a>
+                        <a class="card-link" href="hazardreport.html">View all</a>
                     </div>
                     <div class="table-wrap">
                         <table class="mini-table">
@@ -589,14 +589,14 @@
                     <div class="card">
                         <div class="card-top">
                             <h2>Recent Announcements</h2>
-                            <a class="card-link" href="A&amp;A.html">View all →</a>
+                            <a class="card-link" href="A&amp;A.html">View all</a>
                         </div>
                         <ul class="timeline" id="recentAnnouncementsList"><li class="timeline-empty">Loading announcements...</li></ul>
                     </div>
                     <div class="card emergency-card">
                         <div class="card-top">
                             <h2><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>Active Emergency Alerts</h2>
-                            <a class="card-link" href="emergency.html">View all →</a>
+                            <a class="card-link" href="emergency.html">View all</a>
                         </div>
                         <div class="table-wrap">
                             <table class="mini-table">
@@ -624,7 +624,7 @@
                 <div class="card">
                     <div class="card-top">
                         <h2>Hazard Trends <small>(This Month)</small></h2>
-                        <a class="card-link" href="hazardreport.html">View reports →</a>
+                        <a class="card-link" href="hazardreport.html">View reports</a>
                     </div>
                     <div class="bar-chart" id="hazardTrends"><div class="empty-state"><span>Loading hazard trends...</span></div></div>
                 </div>
@@ -740,6 +740,7 @@
            summary tile uses too, so the two pages can never disagree. */
         watchActiveHikers({
             db,
+            live: true,
             bounds: makilingBounds,
             onUpdate: ({ hikedToday, onMountainNow }) => {
                 document.getElementById('summaryOnMountain').textContent = onMountainNow;
@@ -803,12 +804,13 @@
         onSnapshot(collection(db, 'reports'), (snapshot) => {
             const reports = snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
             const activeHazards = reports.filter(report => (report.status || 'pending') === 'verified');
+            // Same list as the top of the Hazard Reports page: active reports
+            // only (rejected, archived and resolved live in their own panels
+            // there), newest report ID first.
             const recentReports = reports
-                .filter(report => (report.status || 'pending') !== 'rejected')
-                .sort((first, second) => {
-                    return getRecordDate(second.timestamp, second.createdAt)
-                        - getRecordDate(first.timestamp, first.createdAt);
-                })
+                .filter(report => !['rejected', 'archived', 'resolved'].includes(report.status || 'pending'))
+                .sort((first, second) => String(second.reportId || '')
+                    .localeCompare(String(first.reportId || ''), undefined, { numeric: true, sensitivity: 'base' }))
                 .slice(0, 4);
             document.getElementById('activeHazardsValue').textContent = activeHazards.length;
             document.getElementById('recentHazardsList').innerHTML = recentReports.length
@@ -840,11 +842,16 @@
         onSnapshot(collection(db, 'Advisory'), (snapshot) => {
             const advisories = snapshot.docs
                 .map(document => ({ id: document.id, ...document.data() }))
-                .filter(advisory => advisory.visible !== false)
-                .sort((first, second) => {
-                    return getRecordDate(second.createdAt, second.effectiveDate, second.publishedAt)
-                        - getRecordDate(first.createdAt, first.effectiveDate, first.publishedAt);
+                // Same list as the top of the Advisories & Announcements page:
+                // Expired and Archived are left out (an advisory past its
+                // expiresAt counts as expired), newest createdAt first.
+                .filter(advisory => {
+                    const status = String(advisory.status || '').toLowerCase();
+                    if (status === 'archived' || status === 'expired') return false;
+                    const expires = advisory.expiresAt ? getRecordDate(advisory.expiresAt).getTime() : 0;
+                    return !(expires > 0 && expires <= Date.now());
                 })
+                .sort((first, second) => getRecordDate(second.createdAt) - getRecordDate(first.createdAt))
                 .slice(0, 3);
             document.getElementById('recentAnnouncementsList').innerHTML = advisories.length
                 ? advisories.map(advisory => `<li><a href="A&amp;A.html?advisory=${encodeURIComponent(advisory.id)}">

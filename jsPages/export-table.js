@@ -191,8 +191,10 @@ function buildMenu() {
     errorEl.textContent = '';
     buttons.forEach((item) => { item.disabled = true; });
     try {
-      const table = options.getTable();
-      if (format === 'pdf') await savePdf(table);
+      // Chart exports can keep their own document layout using onExport.
+      const table = options.getTable?.();
+      if (options.onExport) await options.onExport(format);
+      else if (format === 'pdf') await savePdf(table);
       else await saveExcel(table);
       closeMenu();
       options.onDone?.(format, table);

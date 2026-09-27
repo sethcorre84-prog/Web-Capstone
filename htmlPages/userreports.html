@@ -63,7 +63,7 @@
   .tab.active{color:var(--accent-dark);border-bottom-color:var(--accent-dark);}
 
   /* ---------------- Stat cards ---------------- */
-  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px;}
+  .stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:18px;}
   /* 128px, the portal-wide summary card height (see trail.html). This one
      lays its icon out beside the figure, so the content centres in it. */
   .stat-card{display:flex;align-items:center;gap:16px;min-width:0;min-height:128px;padding:18px 20px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);box-shadow:0 18px 36px rgba(15,23,42,0.06);transition:transform 0.2s ease, box-shadow 0.2s ease;}
@@ -212,8 +212,11 @@
   .chart-head h3{margin:0;font-size:13.5px;font-weight:700;color:var(--accent-dark);white-space:nowrap;}
   select.period-select{height:28px;min-width:0;max-width:112px;padding:0 22px 0 8px;font-size:11px;background-position:right 8px center;}
   .chart-tools{display:flex;align-items:center;gap:6px;min-width:0;}
-  .export-charts-btn{flex-shrink:0;cursor:pointer;}
-  .export-charts-btn i{color:#1d6f42;font-size:13px;}
+  .export-charts-btn{position:relative;flex-shrink:0;cursor:pointer;}
+  .export-charts-btn .btn-tooltip{position:absolute;top:calc(100% + 8px);left:50%;right:auto;text-align:center;z-index:5;white-space:nowrap;padding:6px 8px;border-radius:8px;background:#1d2b1d;color:#fff;font-size:11px;font-weight:400;opacity:0;transform:translate(-50%, -4px);pointer-events:none;transition:all .15s ease;box-shadow:0 8px 18px rgba(0,0,0,.12);}
+  .export-charts-btn:hover .btn-tooltip,
+  .export-charts-btn:focus-visible .btn-tooltip{opacity:1;transform:translate(-50%, 0);}
+  .export-charts-btn i{color:var(--accent-dark);font-size:13px;}
   .export-charts-btn:hover:not(:disabled){background:var(--accent-light);border-color:var(--accent);}
   .export-charts-btn:disabled{opacity:.5;cursor:progress;}
   .chart-sub{margin-bottom:12px;font-size:11.5px;font-weight:600;color:var(--text-900);}
@@ -477,6 +480,14 @@
           <div class="stat-meta flat" id="resolvedReportsTrend"><i class="fa-solid fa-minus"></i><span>Loading…</span></div>
         </div>
       </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="fa-solid fa-unlock" aria-hidden="true"></i></div>
+        <div class="stat-body">
+          <div class="stat-label">Lifted Accounts</div>
+          <div class="stat-value" id="liftedAccountsValue">0</div>
+          <div class="stat-meta flat"><span>Accounts with suspensions lifted</span></div>
+        </div>
+      </div>
     </section>
 
     <div class="content-grid">
@@ -529,8 +540,8 @@
             </label>
             <label>Sort By
               <select id="reportsSortFilter" class="filter">
-                <option value="newest">Report ID (newest first)</option>
-                <option value="oldest">Report ID (oldest first)</option>
+                <option value="newest">Newest reports first</option>
+                <option value="oldest">Oldest reports first</option>
               </select>
             </label>
             <button class="clear-btn" id="clearFiltersBtn" type="button">
@@ -581,9 +592,6 @@
                 <option value="year">This Year</option>
                 <option value="all">All Time</option>
               </select>
-              <button type="button" id="exportChartsBtn" class="icon-btn export-charts-btn" aria-label="Export charts to Excel" title="Export charts to Excel (.xlsx)">
-                <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
-              </button>
               </div>
             </div>
             <div class="chart-sub">Reports by Type <span id="typeChartRange"></span></div>
@@ -598,7 +606,13 @@
           </div>
 
           <div class="chart-col">
-            <div class="chart-head"><h3>Report Status Distribution</h3></div>
+            <div class="chart-head">
+              <h3>Report Status Distribution</h3>
+              <button type="button" id="exportChartsBtn" class="icon-btn export-charts-btn" aria-label="Export" aria-haspopup="menu" aria-expanded="false">
+                <i class="fa-solid fa-download" aria-hidden="true"></i>
+                <span class="btn-tooltip" aria-hidden="true">Export</span>
+              </button>
+            </div>
             <div class="chart-sub"><span id="statusChartRange"></span></div>
             <div id="statusChart"></div>
           </div>
@@ -841,6 +855,7 @@
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
 <script type="module">
+  import { openExportMenu } from '../jsPages/export-table.js';
   import { auth, db } from '../jsPages/firebase-config.js';
   import { escapeHtml, normalizeText } from '../jsPages/utils.js';
   import { formatPortalDate, formatPortalTime, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
@@ -1225,6 +1240,7 @@
       location: readLocation(data),
       status,
       date,
+      submittedAt: toDate(data.createdAt) || toDate(data.timestamp) || toDate(data.reportedAt) || date,
       resolvedAt: toDate(data.resolvedAt),
       resolutionOutcome: normalizeText(data.resolutionOutcome),
       resolutionNote: normalizeText(data.resolutionNote),
@@ -1363,7 +1379,7 @@
     const byStatus = (key) => state.reports.filter((report) => report.status.key === key);
 
     const pending = byStatus('pending');
-    const review = state.reports.filter((report) => IN_PROGRESS.includes(report.status.key));
+    const review = byStatus('review');
     const resolved = byStatus('resolved');
     const resolvedDate = (report) => report.resolvedAt || report.date;
 
@@ -1371,6 +1387,12 @@
     $('pendingReportsValue').textContent = pending.length.toLocaleString();
     $('underReviewValue').textContent = review.length.toLocaleString();
     $('resolvedReportsValue').textContent = resolved.length.toLocaleString();
+    // Multiple lifted reports for the same account count as one account.
+    const liftedAccounts = new Set(byStatus('lifted')
+      .map((report) => report.reportedUser.user)
+      .filter((user) => user && !user.suspensionActive)
+      .map((user) => user.uid || user.id));
+    $('liftedAccountsValue').textContent = liftedAccounts.size.toLocaleString();
 
     setTrend('totalReportsTrend', count(state.reports, thisMonth), count(state.reports, lastMonth));
     setTrend('pendingReportsTrend', count(pending, thisMonth), count(pending, lastMonth));
@@ -1454,9 +1476,9 @@
           && (linkFilter.value === 'all' || (linkFilter.value === 'linked') === Boolean(report.reportedUser.user));
       })
       .sort((a, b) => {
-        // Ordering follows the Report ID, so the ID column always reads in
-        // sequence rather than jumping around with the reported dates.
-        const diff = reportOrder(b) - reportOrder(a);
+        // Submission time determines recency; IDs break ties consistently.
+        const diff = (b.submittedAt?.getTime() || 0) - (a.submittedAt?.getTime() || 0)
+          || reportOrder(b) - reportOrder(a);
         return sortFilter.value === 'oldest' ? -diff : diff;
       });
   };
@@ -2344,13 +2366,63 @@
       showToast('Charts exported to Excel.', 'success');
     } catch (error) {
       console.error('Failed to export the charts:', error);
-      showToast('Unable to export the charts right now.', 'error');
+      throw error;
     } finally {
       button.disabled = false;
     }
   };
 
-  $('exportChartsBtn').addEventListener('click', exportChartsToExcel);
+  let pdfLoading = null;
+  const loadChartPdf = () => {
+    if (window.jspdf) return Promise.resolve(window.jspdf.jsPDF);
+    pdfLoading ||= new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.onload = () => resolve(window.jspdf.jsPDF);
+      script.onerror = () => {
+        pdfLoading = null;
+        reject(new Error('Could not load the PDF library. Check your connection and try again.'));
+      };
+      document.head.appendChild(script);
+    });
+    return pdfLoading;
+  };
+
+  const exportChartsToPdf = async () => {
+    const button = $('exportChartsBtn');
+    button.disabled = true;
+    try {
+      const jsPDF = await loadChartPdf();
+      const range = chartRange();
+      const reports = state.reports.filter((report) => inRange(report.date, range));
+      const period = `${periodSelect.selectedOptions[0].textContent} (${rangeLabel(range)})`;
+      const total = reports.length;
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      pdf.setFontSize(16);
+      pdf.setTextColor(31, 107, 57);
+      pdf.text('PeakPath - User Reports Overview', 14, 16);
+      pdf.setFontSize(10);
+      pdf.setTextColor(90);
+      pdf.text(`${period} | Total reports: ${total}`, 14, 23);
+      const donutSize = { width: 520, height: 280 };
+      const typeChart = drawDonutChart({ ...donutSize, title: 'Reports by Type', subtitle: period, segments: typeSegments(reports), total });
+      const statusChart = drawDonutChart({ ...donutSize, title: 'Report Status Distribution', subtitle: period, segments: statusSegments(reports), total });
+      const timeChart = drawLineChart({ width: 1040, height: 340, title: 'Reports Over Time', subtitle: period, buckets: timeBuckets(reports, range) });
+      pdf.addImage(typeChart.toDataURL('image/png'), 'PNG', 14, 30, 132, 71);
+      pdf.addImage(statusChart.toDataURL('image/png'), 'PNG', 151, 30, 132, 71);
+      pdf.addImage(timeChart.toDataURL('image/png'), 'PNG', 14, 107, 269, 88);
+      pdf.save(`PeakPath-User-Reports-Overview-${new Date().toISOString().slice(0, 10)}.pdf`);
+      showToast('Charts exported to PDF.', 'success');
+    } finally {
+      button.disabled = false;
+    }
+  };
+
+  $('exportChartsBtn').addEventListener('click', () => {
+    openExportMenu($('exportChartsBtn'), {
+      onExport: (format) => format === 'pdf' ? exportChartsToPdf() : exportChartsToExcel()
+    });
+  });
 
   periodSelect.addEventListener('change', renderCharts);
 
@@ -3011,6 +3083,9 @@
   });
 
   onSnapshot(collection(db, REPORTS_COLLECTION), (snapshot) => {
+    const hasNewReports = state.reportsLoaded
+      && snapshot.docChanges().some((change) => change.type === 'added');
+    if (hasNewReports && sortFilter.value === 'newest') state.page = 1;
     // One malformed document must not blank the whole table.
     state.reportDocs = snapshot.docs.flatMap((snapshotDoc) => {
       try {

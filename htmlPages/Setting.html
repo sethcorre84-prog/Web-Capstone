@@ -351,7 +351,7 @@
 .close-btn .btn-tooltip{
   position:absolute;
   top:calc(100% + 8px);
-  right:0;
+  left:50%;right:auto;text-align:center;
   z-index:5;
   white-space:nowrap;
   padding:6px 8px;
@@ -361,13 +361,13 @@
   font-size:11px;
   font-weight:400;
   opacity:0;
-  transform:translateY(-4px);
+  transform:translate(-50%, -4px);
   pointer-events:none;
   transition:all .15s ease;
   box-shadow:0 8px 18px rgba(0,0,0,.12);
 }
 .close-btn.export-mode:hover .btn-tooltip,
-.close-btn.export-mode:focus-visible .btn-tooltip{opacity:1;transform:translateY(0);}
+.close-btn.export-mode:focus-visible .btn-tooltip{opacity:1;transform:translate(-50%, 0);}
 
 /* ===== Archive dialogs: forest-green theme ===============================
    Archived Hazard Reports, Archived Resolved Reports, Expired Advisories and
@@ -824,17 +824,6 @@
 
       <div class="panel">
         <div class="panel-title">System Settings</div>
-
-        <div class="setting-row" data-action="systemPreferences">
-          <div class="setting-left">
-            <div class="setting-icon">⚙️</div>
-            <div class="setting-text">
-              <div class="label">System Preferences</div>
-              <div class="desc">Configure system preferences.</div>
-            </div>
-          </div>
-          <div class="setting-right"><span class="chevron">›</span></div>
-        </div>
 
         <div class="setting-row" data-action="dataBackup">
           <div class="setting-left">
@@ -2227,33 +2216,6 @@
           <div class="modal-actions">
             <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
             <button type="button" class="primary-btn" data-save-modal="accessControl">Update Access</button>
-          </div>
-        `
-      },
-      systemPreferences: {
-        title: 'System Preferences',
-        content: `
-          <div class="form-grid">
-            <div class="field">
-              <label for="themeSelect">Theme</label>
-              <select id="themeSelect">
-                <option selected>Light</option>
-                <option>Dark</option>
-                <option>System Default</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="defaultPage">Default Landing Page</label>
-              <select id="defaultPage">
-                <option selected>Dashboard</option>
-                <option>Hazard Reports</option>
-                <option>Analytics</option>
-              </select>
-            </div>
-          </div>
-          <div class="modal-actions">
-            <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
-            <button type="button" class="primary-btn" data-save-modal="systemPreferences">Apply</button>
           </div>
         `
       },

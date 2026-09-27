@@ -5,6 +5,7 @@ import { collection, limit, onSnapshot, orderBy, query } from 'https://www.gstat
 const notificationLimit = 20;
 let notifications = [];
 let pendingReports = [];
+let userReports = [];
 let activeAdvisories = [];
 let latestAnalysis = null;
 
@@ -74,7 +75,7 @@ const refreshNotifications = () => {
       id: `report-${report.id}`,
       type: 'hazard_pending',
       title: 'New hazard report',
-      message: `${report.hazardType || 'Hazard'} at ${report.location || 'reported location'} is awaiting verification.`,
+      message: `${report.hazardType || 'Hazard'} at ${report.location || 'reported location'} has been reported.`,
       createdAt: report.timestamp || report.createdAt,
       read: !!readAt,
       readAt,
@@ -83,8 +84,25 @@ const refreshNotifications = () => {
     };
   });
 
+  const userReportNotifications = userReports.map((report) => {
+    const readKey = `peakpath:user-report-read:${report.id}`;
+    const readAt = getReadAt(readKey);
+    const reason = String(report.reason || report.reportType || report.type || 'User behavior').replace(/_/g, ' ');
+    return {
+      id: `user-report-${report.id}`,
+      type: 'user_report',
+      title: 'New user report',
+      message: `${reason} has been reported. Open to review the details.`,
+      createdAt: report.createdAt || report.timestamp || report.reportedAt || report.date,
+      read: !!readAt,
+      readAt,
+      readKey,
+      link: `userreports.html?report=${encodeURIComponent(report.id)}`
+    };
+  });
+
   const advisoryNotifications = activeAdvisories.map((advisory) => {
-    const createdAt = advisory.restoredAt || advisory.effectiveDate || advisory.createdAt || advisory.publishedAt;
+    const createdAt = advisory.restoredAt || advisory.createdAt || advisory.publishedAt || advisory.effectiveDate;
     const readKey = advisoryReadKey(advisory.id, getDate(createdAt)?.getTime());
     const readAt = getAdvisoryReadAt(advisory, readKey);
     return {
@@ -128,7 +146,7 @@ const refreshNotifications = () => {
     });
   }
 
-  notifications = sortNotifications([...pendingNotifications, ...advisoryNotifications, ...analysisNotifications]);
+  notifications = sortNotifications([...pendingNotifications, ...userReportNotifications, ...advisoryNotifications, ...analysisNotifications]);
   render();
 };
 
@@ -273,10 +291,16 @@ document.addEventListener('keydown', (event) => {
   });
 });
 
+onSnapshot(collection(db, 'reportedUser'), (snapshot) => {
+  userReports = snapshot.docs.map((report) => ({ ...report.data(), id: report.id }));
+  refreshNotifications();
+}, (error) => {
+  console.error('Unable to load user report notifications:', error);
+});
+
 onSnapshot(collection(db, 'reports'), (snapshot) => {
   pendingReports = snapshot.docs
-    .map((report) => ({ id: report.id, ...report.data() }))
-    .filter((report) => (report.status || 'pending').toLowerCase() === 'pending');
+    .map((report) => ({ ...report.data(), id: report.id }));
   refreshNotifications();
 }, (error) => {
   console.error('Unable to load pending hazard reports:', error);
@@ -295,8 +319,7 @@ onSnapshot(collection(db, 'Advisory'), (snapshot) => {
   activeAdvisories = snapshot.docs
     .map((advisory) => ({ id: advisory.id, ...advisory.data() }))
     .filter((advisory) => advisory.visible !== false)
-    .filter((advisory) => (advisory.status || 'Active').toLowerCase() !== 'expired')
-    .filter((advisory) => Array.isArray(advisory.channels) && advisory.channels.includes('In-App'));
+    .filter((advisory) => (advisory.status || 'Active').toLowerCase() !== 'expired');
   refreshNotifications();
 }, (error) => {
   console.error('Unable to load advisory notifications:', error);

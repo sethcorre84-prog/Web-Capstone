@@ -20,6 +20,7 @@
 import {
     collection,
     getDocs,
+    onSnapshot,
     query,
     where,
     Timestamp
@@ -104,7 +105,51 @@ export async function fetchActiveHikers(db, bounds) {
 
    Returns a stop function. Overlapping polls are skipped rather than queued,
    so a slow network cannot stack requests up. */
-export function watchActiveHikers({ db, bounds, onUpdate, onError }) {
+export function watchActiveHikers({ db, bounds, onUpdate, onError, live = false }) {
+    if (live) {
+        let unsubscribe;
+        let dayKey;
+        let records = [];
+        let stopped = false;
+        const refresh = () => {
+            if (stopped || document.hidden) return;
+            const midnight = portalMidnight();
+            midnight.setMilliseconds(0);
+            const nextDay = midnight.getTime();
+            if (nextDay !== dayKey) {
+                unsubscribe?.();
+                dayKey = nextDay;
+                records = [];
+                unsubscribe = onSnapshot(query(
+                    collection(db, 'locations'),
+                    where('updatedAt', '>=', Timestamp.fromDate(midnight))
+                ), (snapshot) => {
+                    if (stopped || dayKey !== nextDay) return;
+                    records = snapshot.docs.map((doc) => doc.data());
+                    onUpdate(countActiveHikers(records, bounds));
+                }, (error) => {
+                    if (stopped) return;
+                    dayKey = undefined;
+                    onError(error?.code === 'permission-denied'
+                        ? 'Hiker locations blocked by Firestore rules'
+                        : 'Hiker activity unavailable');
+                });
+            } else {
+                onUpdate(countActiveHikers(records, bounds));
+            }
+        };
+        refresh();
+        const timer = setInterval(refresh, HIKER_POLL_MS);
+        document.addEventListener('visibilitychange', refresh);
+        window.addEventListener('online', refresh);
+        return () => {
+            stopped = true;
+            unsubscribe?.();
+            clearInterval(timer);
+            document.removeEventListener('visibilitychange', refresh);
+            window.removeEventListener('online', refresh);
+        };
+    }
     let polling = false;
 
     const tick = async () => {
