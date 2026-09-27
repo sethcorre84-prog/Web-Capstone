@@ -63,31 +63,10 @@
             padding: 26px 32px;
         }
 
-        /* ---- Page header: plain text on the page, like every other page ---- */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 18px;
-            margin-bottom: 20px;
-        }
-        .top-copy h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; color: var(--text-primary); }
-        .top-copy p { margin: 0; font-size: 13.5px; color: var(--text-secondary); }
-        .top-meta {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            white-space: nowrap;
-        }
-        .top-meta i { color: var(--icon); }
-        /* Fixed-width digits, so the ticking clock does not jiggle. */
-        .top-meta strong { font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+        /* ---- Page header: layout, sizes and the clock pill are shared in
+           pages.css, so this header matches every other page. ---- */
+        .top-copy h1 { color: var(--text-primary); }
+        .top-copy p { color: var(--text-secondary); }
 
         /* ---- Stat row ---- */
         .hero-grid {
@@ -360,6 +339,10 @@
                         <i class="fa-regular fa-clock" aria-hidden="true"></i>
                         <span id="live-day">Tuesday</span>
                         <strong id="live-clock">10:30 AM</strong>
+                    </div>
+                    <div class="bell-wrap">
+                        <button class="bell-btn" type="button" aria-label="Open notifications"></button>
+                        <span class="bell-badge" hidden>0</span>
                     </div>
                     <div class="avatar avatar-logo topbar-logo"><img src="../assets/images/logo.png" alt="PeakPath logo"></div>
                 </div>

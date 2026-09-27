@@ -641,6 +641,24 @@ body .avatar.avatar-logo {
     background: var(--sidebar-bg-light);
     color: #fff;
 }
+/* sidebar.js injects the real button on DOMContentLoaded, which waits on the
+   Firebase modules. Until then this draws an identical one in its place, so
+   the top of the sidebar is never empty and nothing shifts when it arrives.
+   The icon is the same three-line SVG, in the button's #c4d1c4. */
+.sidebar:not(:has(> .sidebar-toggle))::before {
+    content: "";
+    box-sizing: border-box;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    margin: 0 auto 14px 0;
+    border: 1px solid #2a3d2a;
+    border-radius: 8px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23c4d1c4' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M3 6h18M3 12h18M3 18h18'/%3E%3C/svg%3E") center / 18px no-repeat;
+}
+.sidebar-was-collapsed .sidebar:not(:has(> .sidebar-toggle))::before {
+    margin-left: 11px;
+}
 
 /* Collapsed state, applied by sidebar.js after the toggle is clicked */
 .sidebar.collapsed {
@@ -656,11 +674,13 @@ body .avatar.avatar-logo {
    Centring in the 56px rail uses fixed padding, since justify-content
    cannot animate: (56 - 18px icon) / 2 = 19px, (56 - 36px avatar) / 2 = 10px,
    (56 - 34px toggle) / 2 = 11px. */
+/* Labels wrap while the sidebar is open, so a long one such as "Advisories
+   & Announcements" shows in full on two lines. They go single-line only
+   while collapsed (below), so they shrink away instead of stacking up. */
 .nav-text,
 .user-chip > div:not(.avatar) {
     min-width: 0;
     overflow: hidden;
-    white-space: nowrap;
     transition: opacity .15s ease;
 }
 
@@ -681,6 +701,16 @@ body .avatar.avatar-logo {
 .sidebar.collapsed .nav-text,
 .sidebar.collapsed .user-chip > div:not(.avatar) {
     opacity: 0;
+    white-space: nowrap;
+}
+/* Until sidebar.js runs (DOMContentLoaded, which waits on the Firebase
+   modules), the labels are bare text with no .nav-text span to fade, so a
+   page opened collapsed would show them wrapping in the rail. font-size: 0
+   hides that text; the icons are sized in px and are unaffected. init()
+   adds .collapsed, which ends this, and from then on .nav-text handles it. */
+.sidebar-was-collapsed .sidebar:not(.collapsed) .nav li a,
+.sidebar-was-collapsed .sidebar:not(.collapsed) .logout-btn {
+    font-size: 0;
 }
 .sidebar-was-collapsed .sidebar .nav li a,
 .sidebar.collapsed .nav li a {
@@ -699,6 +729,7 @@ body .avatar.avatar-logo {
         transition: none !important;
     }
 }
+.sidebar-was-collapsed .sidebar .logout-btn,
 .sidebar.collapsed .logout-btn {
     justify-content: center;
     padding: 9px;
@@ -719,7 +750,8 @@ body .avatar.avatar-logo {
         width: 76px;
         padding: 22px 10px;
     }
-    .sidebar-toggle {
+    .sidebar-toggle,
+    .sidebar:not(:has(> .sidebar-toggle))::before {
         display: none;
     }
     .sidebar .brand {
@@ -756,7 +788,100 @@ body .avatar.avatar-logo {
     }
 }
 
+/* ==========================================================================
+   Page header (the title row at the top of every admin page)
+   Pages call it .topbar or .top-bar and each once set its own title size,
+   spacing and alignment, so the header shifted from page to page. These
+   rules set one layout for all of them. `body` puts them above the pages'
+   own .topbar / .topbar h1 rules. Kept above the 760px block further down,
+   which stacks the header on narrow screens and must win over this.
+   ========================================================================== */
+body :is(.topbar, .top-bar) {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 20px;
+}
+body :is(.topbar, .top-bar) h1 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+body :is(.topbar, .top-bar) h1 + p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.4;
+}
+/* Right side: [date/time pill] [bell] [logo], always in that order. */
+body :is(.topbar-right, .top-bar-right) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+/* Every top-bar logo avatar is the same size, whichever wrapper it is in. */
+body :is(.topbar, .top-bar) .avatar.avatar-logo {
+    width: 36px;
+    height: 36px;
+}
+/* Current date and time, shown as a pill on the pages that have a clock. */
+.top-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--card-bg);
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.top-meta i {
+    color: var(--icon);
+}
+/* Fixed-width digits, so the ticking clock does not jiggle. */
+.top-meta strong {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
 /* Shared verified-hazard notification control */
+/* Base look for the bell's box and count badge, for pages that do not style
+   their own. :where() keeps it at zero specificity, so every page's own
+   .bell-wrap / .bell-badge rules still win. */
+:where(.bell-wrap) {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--card-bg);
+}
+:where(.bell-badge) {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 17px;
+    height: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--danger);
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+}
 .notification-center {
     position: relative;
     overflow: visible;
@@ -841,9 +966,18 @@ body .avatar.avatar-logo {
 .notification-item:visited {
     text-decoration: none;
 }
-.notification-item:hover,
+/* Green means unread and nothing else. Hover used to share it, so a
+   notification just clicked (marked read, cursor still on it) stayed green
+   and looked unread; hover is now a neutral tint. */
 .notification-item.unread {
     background: var(--accent-light, #e7f5eb);
+}
+.notification-item:hover {
+    background: var(--page-bg, #eef1ec);
+}
+.notification-item.unread:hover {
+    background: var(--accent-light, #e7f5eb);
+    filter: brightness(.97);
 }
 .notification-item:last-child {
     border-bottom: 0;
