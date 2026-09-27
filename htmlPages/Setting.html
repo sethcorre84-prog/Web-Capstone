@@ -1001,6 +1001,7 @@
   import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile, verifyBeforeUpdateEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import { DEFAULT_ADMIN_ROLE, renderAdminIdentity, updateAdminProfile } from '../jsPages/admin-identity.js';
   import { DATE_FORMATS, TIME_FORMATS, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
+  import { openExportMenu } from '../jsPages/export-table.js';
 
   const STORAGE_KEY = 'peakpath-settings';
   const defaultSettings = {
@@ -1062,12 +1063,14 @@
   // Same icon + hover label as User Management's Export button.
   const EXPORT_ICON = '<i class="fa-solid fa-download" aria-hidden="true"></i><span class="btn-tooltip">Export</span>';
 
-  // Which export function + tooltip each archive modal's header button should trigger.
-  // Any action not listed here falls back to the default close behavior.
+  // Which table each archive modal's header button exports, and its tooltip.
+  // The button opens the PDF / Excel menu (export-table.js). Any action not
+  // listed here falls back to the default close behavior.
+  const exportHandler = (getTable) => (event) => openExportMenu(event.currentTarget, { getTable });
   const HEADER_EXPORT_ACTIONS = {
-    archivedHazardReports: { handler: () => exportArchivedHazardReportsToPDF(), label: 'Export reports' },
-    archivedResolvedReports: { handler: () => exportResolvedReportsToPDF(), label: 'Export reports' },
-    expiredAdvisoryArchive: { handler: () => exportExpiredAdvisoryArchiveToPDF(), label: 'Export advisories' }
+    archivedHazardReports: { handler: exportHandler(() => archivedHazardReportsTable()), label: 'Export reports' },
+    archivedResolvedReports: { handler: exportHandler(() => resolvedReportsTable()), label: 'Export reports' },
+    expiredAdvisoryArchive: { handler: exportHandler(() => expiredAdvisoryArchiveTable()), label: 'Export advisories' }
   };
 
   const headerActionBtn = document.querySelector('.close-btn');
@@ -1628,93 +1631,54 @@
     }
   });
 
-  function exportArchivedHazardReportsToPDF() {
-    const { jsPDF } = window.jspdf;
-    const docPdf = new jsPDF({ orientation: 'landscape' });
-
-    docPdf.setFontSize(14);
-    docPdf.text('PeakPath — Archived Hazard Reports', 14, 15);
-    docPdf.setFontSize(10);
-    docPdf.setTextColor(100);
-    docPdf.text(`Generated ${formatPortalDateTime(new Date())} • ${lastArchivedHazardReports.length} report(s)`, 14, 21);
-
-    const rows = lastArchivedHazardReports.map((item) => [
-      item.reportId || item.id,
-      item.hazardType || 'Unknown Hazard',
-      item.location || 'N/A',
-      formatArchiveDate(item.archivedAt)
-    ]);
-
-    docPdf.autoTable({
-      startY: 26,
-      head: [['Report ID', 'Hazard Type', 'Location', 'Archived On']],
-      body: rows,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [47, 143, 78] },
-      alternateRowStyles: { fillColor: [247, 249, 247] }
-    });
-
-    docPdf.save(`archived-hazard-reports-${new Date().toISOString().slice(0, 10)}.pdf`);
+  /* The three archive tables, as the Export menu (export-table.js) saves
+     them to PDF or Excel. Same columns and file names the PDF-only export
+     always used. */
+  function archivedHazardReportsTable() {
+    return {
+      title: 'Archived Hazard Reports',
+      filename: 'archived-hazard-reports',
+      countLabel: `${lastArchivedHazardReports.length} report(s)`,
+      headers: ['Report ID', 'Hazard Type', 'Location', 'Archived On'],
+      rows: lastArchivedHazardReports.map((item) => [
+        item.reportId || item.id,
+        item.hazardType || 'Unknown Hazard',
+        item.location || 'N/A',
+        formatArchiveDate(item.archivedAt)
+      ])
+    };
   }
 
-  function exportResolvedReportsToPDF() {
-    const { jsPDF } = window.jspdf;
-    const docPdf = new jsPDF({ orientation: 'landscape' });
-
-    docPdf.setFontSize(14);
-    docPdf.text('PeakPath — Resolved Hazard Reports', 14, 15);
-    docPdf.setFontSize(10);
-    docPdf.setTextColor(100);
-    docPdf.text(`Generated ${formatPortalDateTime(new Date())} • ${lastResolvedReports.length} report(s)`, 14, 21);
-
-    const rows = lastResolvedReports.map((item) => [
-      item.reportId || item.id,
-      item.hazardType || 'Unknown Hazard',
-      item.location || 'N/A',
-      item.riskLevel || '—',
-      formatArchiveDate(item.resolvedAt),
-      item.resolutionNote || '—'
-    ]);
-
-    docPdf.autoTable({
-      startY: 26,
-      head: [['Report ID', 'Hazard Type', 'Location', 'Risk Level', 'Resolved On', 'Resolution Note']],
-      body: rows,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [47, 143, 78] },
-      alternateRowStyles: { fillColor: [247, 249, 247] }
-    });
-
-    docPdf.save(`resolved-hazard-reports-${new Date().toISOString().slice(0, 10)}.pdf`);
+  function resolvedReportsTable() {
+    return {
+      title: 'Resolved Hazard Reports',
+      filename: 'resolved-hazard-reports',
+      countLabel: `${lastResolvedReports.length} report(s)`,
+      headers: ['Report ID', 'Hazard Type', 'Location', 'Risk Level', 'Resolved On', 'Resolution Note'],
+      rows: lastResolvedReports.map((item) => [
+        item.reportId || item.id,
+        item.hazardType || 'Unknown Hazard',
+        item.location || 'N/A',
+        item.riskLevel || '—',
+        formatArchiveDate(item.resolvedAt),
+        item.resolutionNote || '—'
+      ])
+    };
   }
 
-  function exportExpiredAdvisoryArchiveToPDF() {
-    const { jsPDF } = window.jspdf;
-    const docPdf = new jsPDF({ orientation: 'landscape' });
-
-    docPdf.setFontSize(14);
-    docPdf.text('PeakPath — Expired Advisories Archive', 14, 15);
-    docPdf.setFontSize(10);
-    docPdf.setTextColor(100);
-    docPdf.text(`Generated ${formatPortalDateTime(new Date())} • ${lastExpiredAdvisories.length} advisory(ies)`, 14, 21);
-
-    const rows = lastExpiredAdvisories.map((item) => [
-      item.title || 'Untitled advisory',
-      item.type || 'Advisory',
-      item.target || 'All Trails',
-      formatArchiveDate(item.archivedAt || item.expiresAt || item.effectiveDate || item.publishedAt || item.createdAt)
-    ]);
-
-    docPdf.autoTable({
-      startY: 26,
-      head: [['Title', 'Type', 'Target', 'Archived / Expired On']],
-      body: rows,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [47, 143, 78] },
-      alternateRowStyles: { fillColor: [247, 249, 247] }
-    });
-
-    docPdf.save(`expired-advisories-${new Date().toISOString().slice(0, 10)}.pdf`);
+  function expiredAdvisoryArchiveTable() {
+    return {
+      title: 'Expired Advisories Archive',
+      filename: 'expired-advisories',
+      countLabel: `${lastExpiredAdvisories.length} advisory(ies)`,
+      headers: ['Title', 'Type', 'Target', 'Archived / Expired On'],
+      rows: lastExpiredAdvisories.map((item) => [
+        item.title || 'Untitled advisory',
+        item.type || 'Advisory',
+        item.target || 'All Trails',
+        formatArchiveDate(item.archivedAt || item.expiresAt || item.effectiveDate || item.publishedAt || item.createdAt)
+      ])
+    };
   }
 
   // Firebase itself accepts 6; the portal asks admins for a little more.

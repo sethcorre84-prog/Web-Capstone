@@ -1776,6 +1776,7 @@
   // The Dashboard and Geomap count active hikers from these too.
   import { watchActiveHikers } from '../jsPages/active-hikers.js';
   import { MAKILING_BOUNDS } from '../jsPages/makiling-area.js';
+  import { openExportMenu } from '../jsPages/export-table.js';
   import { sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
     addDoc,
@@ -2938,39 +2939,39 @@
     }
   });
 
+  // Opens the PDF / Excel menu (export-table.js) for the users the current
+  // search and filters show.
   exportUsersBtn.addEventListener('click', () => {
-    const rows = getFilteredUsers();
-    if (!rows.length) {
+    if (!getFilteredUsers().length) {
       setResetPasswordStatus('There is nothing to export for the current filters.', 'error');
       return;
     }
 
-    const headers = ['Name', 'Email', 'Role', 'Team / Group', 'Status', 'Phone', 'Last Active', 'Registered On'];
-    const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-    const csv = [
-      headers.map(escapeCsv).join(','),
-      ...rows.map(user => [
-        user.name,
-        user.email,
-        user.role,
-        userTeamNames(user).join('; '),
-        effectiveStatusOf(user),
-        user.phone,
-        formatDisplayDateTime(user.lastActive),
-        formatDisplayDate(user.memberSince)
-      ].map(escapeCsv).join(','))
-    ].join('\r\n');
-
-    const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `peakpath-users-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    setResetPasswordStatus(`Exported ${rows.length} user${rows.length === 1 ? '' : 's'}.`, 'success');
+    openExportMenu(exportUsersBtn, {
+      getTable: () => {
+        const users = getFilteredUsers();
+        return {
+          title: 'Users',
+          filename: 'peakpath-users',
+          countLabel: `${users.length} user${users.length === 1 ? '' : 's'}`,
+          headers: ['Name', 'Email', 'Role', 'Team / Group', 'Status', 'Phone', 'Last Active', 'Registered On'],
+          rows: users.map(user => [
+            user.name,
+            user.email,
+            user.role,
+            userTeamNames(user).join('; '),
+            effectiveStatusOf(user),
+            user.phone,
+            formatDisplayDateTime(user.lastActive),
+            formatDisplayDate(user.memberSince)
+          ])
+        };
+      },
+      onDone: (format, table) => {
+        const kind = format === 'pdf' ? 'PDF' : 'Excel';
+        setResetPasswordStatus(`Exported ${table.rows.length} user${table.rows.length === 1 ? '' : 's'} to ${kind}.`, 'success');
+      }
+    });
   });
 
   // ---------------------------------------------------------------------
