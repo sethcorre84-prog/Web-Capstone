@@ -1218,7 +1218,6 @@ input[type="password"]::-ms-clear {
     justify-content: center;
     padding: 20px;
     background: rgba(12, 24, 18, .45);
-    backdrop-filter: blur(2px);
 }
 .admin-profile-overlay.open {
     display: flex;
@@ -1372,4 +1371,120 @@ input[type="password"]::-ms-clear {
 @media (max-width: 420px) {
     .admin-profile-row { grid-template-columns: 30px minmax(0, 1fr); }
     .admin-profile-row-value { grid-column: 2; }
+}
+
+/* ==========================================================================
+   Logout confirmation — built by dashboard-guard.js on every admin page.
+   ========================================================================== */
+.logout-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(10, 20, 12, 0.55);
+}
+.logout-modal-backdrop.open {
+    display: flex;
+}
+.logout-modal {
+    width: 100%;
+    max-width: 380px;
+    padding: 26px 24px 22px;
+    border-radius: var(--radius-lg, 14px);
+    border: 1px solid var(--dm-border, transparent);
+    background: var(--dm-surface, #fff);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    animation: logoutModalIn 0.16s ease-out;
+}
+@keyframes logoutModalIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+}
+.logout-modal-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--danger-light);
+    color: var(--danger);
+}
+.logout-modal h3 {
+    margin: 0 0 6px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-900);
+}
+.logout-modal p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-600);
+}
+.logout-modal-error {
+    min-height: 0;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--danger);
+}
+.logout-modal-error:empty {
+    display: none;
+}
+.logout-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+.logout-modal-actions button {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.logout-modal-cancel {
+    border: 1px solid var(--border);
+    background: var(--dm-surface-2, #fff);
+    color: var(--text-900);
+}
+.logout-modal-cancel:hover {
+    background: var(--accent-light);
+}
+.logout-modal-confirm {
+    border: 1px solid var(--danger);
+    background: var(--danger);
+    color: #fff;
+}
+.logout-modal-confirm:hover {
+    background: var(--danger-dark);
+    border-color: var(--danger-dark);
+}
+.logout-modal-confirm:disabled {
+    opacity: 0.7;
+    cursor: default;
+}
+
+/* ==========================================================================
+   Modal backdrops — every popup blurs the page behind it, the same amount
+   on every page. Covers each page's own overlay class plus the ones built
+   by JS (quick-actions.js, dashboard-guard.js) and trail.html's inline ones.
+   ========================================================================== */
+.modal-overlay,
+.modal-backdrop,
+.qa-modal,
+.admin-profile-overlay,
+.logout-modal-backdrop,
+#addTrailModal,
+#deleteConfirmModal {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
