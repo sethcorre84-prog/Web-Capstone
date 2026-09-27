@@ -298,7 +298,7 @@
         <aside class="sidebar">
             <div class="brand">
               <div class="brand-icon">
-                <img src="../assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
+                <img src="../assets/images/logo.png" alt="PeakPath logo">
                 </div>
               <div>
                 <div class="brand-name">PeakPath</div>
@@ -320,7 +320,7 @@
 
             <div class="sidebar-footer">
               <div class="user-chip">
-                <div class="avatar">AU</div>
+                <div class="avatar avatar-logo"><img src="../assets/images/logo.png" alt="PeakPath logo"></div>
                 <div>
                   <div class="name">Admin User</div>
                   <div class="role">Super Administrator</div>
@@ -354,11 +354,14 @@
                         window.portalGreeting(new Date().getHours()) + ', Admin!';
                 </script>
                 <!-- Who is signed in is already in the sidebar account chip, so
-                     the header only carries the day and a live clock. -->
-                <div class="top-meta" aria-label="Current day and time">
-                    <i class="fa-regular fa-clock" aria-hidden="true"></i>
-                    <span id="live-day">Tuesday</span>
-                    <strong id="live-clock">10:30 AM</strong>
+                     the header only carries the day, a live clock and the logo. -->
+                <div class="top-bar-right">
+                    <div class="top-meta" aria-label="Current day and time">
+                        <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                        <span id="live-day">Tuesday</span>
+                        <strong id="live-clock">10:30 AM</strong>
+                    </div>
+                    <div class="avatar avatar-logo topbar-logo"><img src="../assets/images/logo.png" alt="PeakPath logo"></div>
                 </div>
             </section>
 

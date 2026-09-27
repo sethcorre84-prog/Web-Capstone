@@ -461,17 +461,26 @@ body {
     flex-shrink: 0;
     padding: 4px 8px 20px 8px;
     text-align: center;
+    max-height: 160px;
+    overflow: hidden;
+    transition: max-height .22s ease, padding .22s ease, opacity .15s ease, visibility .22s;
 }
 .brand-icon {
-    width: 34px;
-    height: 34px;
+    width: 52px;
+    height: 52px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto;
-    border-radius: 9px;
+    border-radius: 12px;
     background: linear-gradient(160deg, #3fa860, #1f6b39);
+}
+/* Fits the collapsed sidebar too (76px wide, 56px inside its padding). */
+.brand-icon img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
 }
 .brand-name {
     margin-top: 4px;
@@ -515,7 +524,7 @@ body {
     font-weight: 500;
     color: #c4d1c4;
     text-decoration: none;
-    transition: background .15s ease, color .15s ease;
+    transition: background .15s ease, color .15s ease, padding .22s ease, gap .22s ease;
 }
 .nav li a:hover {
     background: var(--sidebar-bg-light);
@@ -547,6 +556,7 @@ body {
     align-items: center;
     gap: 10px;
     padding: 6px 8px 14px 8px;
+    transition: padding .22s ease, gap .22s ease;
 }
 /* Deliberately not scoped to .sidebar: the top-bar and profile avatars reuse
    this base and only override the size. */
@@ -562,6 +572,26 @@ body {
     font-size: 13px;
     font-weight: 700;
     color: #fff;
+}
+/* Account avatars (sidebar chip and top bar): the PeakPath logo in place of
+   initials, on the same green gradient as the brand mark. `body` outranks the
+   pages' own `.admin-mini .avatar` backgrounds. */
+body .avatar.avatar-logo {
+    background: linear-gradient(160deg, #3fa860, #1f6b39);
+}
+.topbar-logo {
+    width: 34px;
+    height: 34px;
+}
+.top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.avatar-logo img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
 }
 .user-chip .name {
     font-size: 13.5px;
@@ -605,7 +635,7 @@ body {
     cursor: pointer;
     margin: 0 auto 14px 0;
     flex-shrink: 0;
-    transition: background .15s;
+    transition: background .15s, margin-left .22s ease;
 }
 .sidebar-toggle:hover {
     background: var(--sidebar-bg-light);
@@ -621,25 +651,53 @@ body {
     margin-left: auto;
     margin-right: auto;
 }
+/* Collapsing animates alongside the sidebar's width (.22s): labels fade and
+   shrink to nothing, and the logo block folds up, rather than popping out.
+   Centring in the 56px rail uses fixed padding, since justify-content
+   cannot animate: (56 - 18px icon) / 2 = 19px, (56 - 36px avatar) / 2 = 10px,
+   (56 - 34px toggle) / 2 = 11px. */
+.nav-text,
+.user-chip > div:not(.avatar) {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity .15s ease;
+}
+
+.sidebar.collapsed .sidebar-toggle {
+    margin-left: 11px;
+}
+/* The icon rail drops the logo block entirely; the toggle button heads it. */
+.sidebar-was-collapsed .sidebar .brand,
 .sidebar.collapsed .brand {
-    padding-bottom: 14px;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    visibility: hidden;
 }
-.sidebar.collapsed .brand-name,
-.sidebar.collapsed .brand-sub,
+.sidebar-was-collapsed .sidebar .nav-text,
+.sidebar-was-collapsed .sidebar .user-chip > div:not(.avatar),
 .sidebar.collapsed .nav-text,
-.sidebar.collapsed .user-chip .name,
-.sidebar.collapsed .user-chip .role {
-    display: none;
+.sidebar.collapsed .user-chip > div:not(.avatar) {
+    opacity: 0;
 }
+.sidebar-was-collapsed .sidebar .nav li a,
 .sidebar.collapsed .nav li a {
-    justify-content: center;
-    padding: 10px;
-}
-/* gap: 0 so the emptied name/role wrapper doesn't push the avatar off-centre. */
-.sidebar.collapsed .user-chip {
-    justify-content: center;
     gap: 0;
-    padding: 6px 0 14px 0;
+    padding: 10px 19px;
+}
+.sidebar-was-collapsed .sidebar .user-chip,
+.sidebar.collapsed .user-chip {
+    gap: 0;
+    padding: 6px 10px 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar,
+    .sidebar * {
+        transition: none !important;
+    }
 }
 .sidebar.collapsed .logout-btn {
     justify-content: center;
@@ -666,6 +724,15 @@ body {
     }
     .sidebar .brand {
         padding-bottom: 14px;
+    }
+    .sidebar .brand-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+    .sidebar .brand-icon img {
+        width: 26px;
+        height: 26px;
     }
     .sidebar .brand-name,
     .sidebar .brand-sub,

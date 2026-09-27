@@ -1087,7 +1087,7 @@
   <aside class="sidebar">
       <div class="brand">
         <div class="brand-icon">
-        <img src="../assets/images/logo.png" alt="PeakPath logo" style="width:22px;height:22px;">
+        <img src="../assets/images/logo.png" alt="PeakPath logo">
         </div>
         <div>
           <div class="brand-name">PeakPath</div>
@@ -1107,7 +1107,7 @@
       </ul>
       <div class="sidebar-footer">
         <div class="user-chip">
-          <div class="avatar" id="userInitials">AU</div>
+          <div class="avatar avatar-logo"><img src="../assets/images/logo.png" alt="PeakPath logo"></div>
           <div class="user-info">
             <div class="name" id="userName">Admin User</div>
             <div class="role" id="userRole">Super Administrator</div>
@@ -1131,7 +1131,7 @@
 						<span class="bell-badge" hidden>0</span>
 					</div>
 					<div class="profile-chip" id="profileChip">
-						<div class="avatar">AU</div>
+						<div class="avatar avatar-logo"><img src="../assets/images/logo.png" alt="PeakPath logo"></div>
 						<div class="profile-menu" id="profileMenu"><a href="Home.html">Logout</a></div>
 					</div>
 				</div>
@@ -3147,8 +3147,6 @@ document.addEventListener('keydown', (event) => {
 // Auth state listener
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    const userInitials = document.getElementById('userInitials');
-    if (userInitials) userInitials.textContent = 'AU';
     loadReports();
   } else {
     window.location.href = 'Home.html';

@@ -1,7 +1,7 @@
 // admin-identity.js
-// Puts the signed-in admin's own name, role and initials into the sidebar
-// account chip and the top-bar avatar on every admin page, in place of the
-// "Admin User" / "AU" placeholders baked into the markup.
+// Puts the signed-in admin's own name and role into the sidebar account chip
+// on every admin page, in place of the "Admin User" placeholder baked into the
+// markup. The avatars show the PeakPath logo; hovering one shows the name.
 //
 // Name comes from Settings > Profile Information, saved to admins/{uid}.name
 // and mirrored to the Firebase Auth displayName. If neither is set yet, the
@@ -15,12 +15,6 @@ import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase
 // reads the same in the Profile dialog as in the sidebar.
 export const DEFAULT_ADMIN_ROLE = 'Super Administrator';
 
-export function adminInitials(name) {
-  const words = String(name || '').trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return 'AU';
-  return words.slice(0, 2).map((word) => word[0].toUpperCase()).join('');
-}
-
 // Settings calls this straight after a save so the current page updates
 // without waiting for a reload; every other page runs it on sign-in below.
 export function renderAdminIdentity({ name, role } = {}) {
@@ -29,10 +23,7 @@ export function renderAdminIdentity({ name, role } = {}) {
 
   if (cleanName) {
     document.querySelectorAll('.user-chip .name').forEach((el) => { el.textContent = cleanName; });
-    document.querySelectorAll('.user-chip .avatar, .admin-mini .avatar').forEach((el) => {
-      el.textContent = adminInitials(cleanName);
-      el.title = cleanName;
-    });
+    document.querySelectorAll('.avatar-logo').forEach((el) => { el.title = cleanName; });
   }
   if (cleanRole) {
     document.querySelectorAll('.user-chip .role').forEach((el) => { el.textContent = cleanRole; });
