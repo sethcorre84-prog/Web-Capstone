@@ -780,3 +780,9 @@ button:hover{
     animation: none;
   }
 }
+
+/* The sign-in alert can open on top of the Forgot Password window (for an
+   email that is not a registered admin), so it stacks above it. */
+#errorModal {
+  z-index: 1100;
+}

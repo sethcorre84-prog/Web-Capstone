@@ -106,6 +106,22 @@ service cloud.firestore {
       allow create, delete: if false;
     }
 
+    /* Admin sign-in addresses, one document per admin, id = the email in
+       lower case. The login page's Forgot Password checks an address here
+       before anyone is signed in, so a single document can be read by
+       anyone -- but the collection can never be listed, so the addresses
+       cannot be browsed. An admin can only write the entry for their own
+       sign-in email; the login page does this on every admin sign-in. */
+    match /adminEmails/{email} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if isAdmin()
+                            && request.auth.token.email is string
+                            && email == request.auth.token.email.lower()
+                            && request.resource.data.uid == request.auth.uid;
+      allow delete: if false;
+    }
+
     // ===================================================================
     // Safety. Never gated by a suspension.
     // ===================================================================

@@ -7,9 +7,33 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   doc,
-  getDoc
+  getDoc,
+  serverTimestamp,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { isAccountBlocked } from "./account-status.js";
+
+// Remember me: the last admin email is kept in this browser and filled in
+// the next time the login page opens. Only the email, never the password.
+const REMEMBER_KEY = "peakpath-remembered-email";
+
+const readRememberedEmail = () => {
+  try { return localStorage.getItem(REMEMBER_KEY) || ""; } catch { return ""; }
+};
+
+const saveRememberedEmail = (email, remember) => {
+  try {
+    if (remember) localStorage.setItem(REMEMBER_KEY, email);
+    else localStorage.removeItem(REMEMBER_KEY);
+  } catch { /* storage blocked: the checkbox just has no effect */ }
+};
+
+/* adminEmails/{lowercase email} lists the sign-in address of every admin, so
+   Forgot Password can check an address before anyone is signed in (admins/
+   is only readable after sign-in). The rules allow reading one address at a
+   time, never listing them, and an admin can only add their own address.
+   Each admin's entry is written when they sign in (see login() below). */
+const adminEmailRef = (email) => doc(db, "adminEmails", email.trim().toLowerCase());
 
 const DEACTIVATED_MESSAGE =
   "This account has been deactivated. Ask another administrator to reactivate it in User Management.";
@@ -80,6 +104,22 @@ const ALERTS = {
     title: "Your access has been turned off",
     message: DEACTIVATED_MESSAGE
   },
+  notAdminEmail: {
+    variant: "danger",
+    icon: "fa-user-shield",
+    eyebrow: "Password reset",
+    title: "This account is not a registered admin",
+    message: "Please enter the admin Gmail. Password resets are only available for registered PeakPath administrators.",
+    fields: ["forgotEmail"]
+  },
+  resetCheckFailed: {
+    variant: "warning",
+    icon: "fa-wifi",
+    eyebrow: "Password reset",
+    title: "Couldn't check that email",
+    message: "We couldn't confirm whether this is an admin email right now. Check your connection and try again.",
+    fields: ["forgotEmail"]
+  },
   unknown: {
     variant: "danger",
     icon: "fa-triangle-exclamation",
@@ -127,8 +167,8 @@ function closeErrorModal() {
 }
 
 function markInvalidFields(ids) {
-  ["email", "password"].forEach((id) => {
-    document.getElementById(id).closest(".input-box").classList.toggle("invalid", ids.includes(id));
+  ["email", "password", "forgotEmail"].forEach((id) => {
+    document.getElementById(id)?.closest(".input-box").classList.toggle("invalid", ids.includes(id));
   });
 }
 
@@ -188,6 +228,16 @@ function login() {
 
         // User is a verified admin — proceed
         console.log("Admin verified:", user.email);
+        saveRememberedEmail(email, document.getElementById("rememberMe").checked);
+
+        // Registers this admin's address for Forgot Password. A failure only
+        // means the reset check misses them until the next sign-in, so it
+        // never holds up the login.
+        if (user.email) {
+          await setDoc(adminEmailRef(user.email), { uid: user.uid, email: user.email.toLowerCase(), updatedAt: serverTimestamp() })
+            .catch((error) => console.warn("Could not register the admin email for password resets:", error.message));
+        }
+
         window.location.href = "dashboard.html";
       } else {
         // Not an admin — sign them out immediately
@@ -224,10 +274,8 @@ function handleLoginError(code) {
   }
 }
 
-// Same message whether or not the account exists, so the form can't be
-// used to discover which emails are registered.
 const RESET_SENT_MESSAGE =
-  "If an account exists for that email, a reset link has been sent. Check your inbox and spam folder.";
+  "A reset link has been sent to this admin email. Check your inbox and spam folder.";
 
 function setForgotStatus(message, type = "") {
   const status = document.getElementById("forgotStatus");
@@ -259,6 +307,26 @@ async function sendResetLink() {
   }
 
   submitBtn.disabled = true;
+  setForgotStatus("Checking...");
+
+  // Only registered admins can reset a password from this page.
+  let isAdminEmail = false;
+  try {
+    isAdminEmail = (await getDoc(adminEmailRef(email))).exists();
+  } catch (error) {
+    console.error("Could not check the admin email:", error.code, error.message);
+    setForgotStatus("");
+    submitBtn.disabled = false;
+    showErrorModal("resetCheckFailed");
+    return;
+  }
+  if (!isAdminEmail) {
+    setForgotStatus("");
+    submitBtn.disabled = false;
+    showErrorModal("notAdminEmail");
+    return;
+  }
+
   setForgotStatus("Sending...");
 
   try {
@@ -272,8 +340,8 @@ async function sendResetLink() {
         message = "That email address looks invalid.";
         break;
       case "auth/user-not-found":
-        setForgotStatus(RESET_SENT_MESSAGE, "success");
-        return;
+        message = "No sign-in account was found for this admin email.";
+        break;
       case "auth/too-many-requests":
         message = "Too many requests. Please wait and try again.";
         break;
@@ -295,6 +363,15 @@ document.addEventListener("DOMContentLoaded", () => {
     params.delete("reason");
     const query = params.toString();
     history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : "") + window.location.hash);
+  }
+
+  // Remember me: fill in the remembered admin email and go straight to the
+  // password field.
+  const rememberedEmail = readRememberedEmail();
+  if (rememberedEmail) {
+    document.getElementById("email").value = rememberedEmail;
+    document.getElementById("rememberMe").checked = true;
+    document.getElementById("password").focus();
   }
 
   const closeBtn = document.getElementById("errorModalClose");
@@ -361,7 +438,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // The red highlight clears as soon as the admin starts fixing the field.
-  [emailInput, passwordInput].forEach((input) => {
+  [emailInput, passwordInput, document.getElementById("forgotEmail")].forEach((input) => {
     input.addEventListener("input", () => {
       input.closest(".input-box").classList.remove("invalid");
     });
@@ -391,10 +468,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (forgotModal.classList.contains("show")) {
-      closeForgotModal();
-    } else if (overlay.classList.contains("show")) {
+    // The alert can sit on top of the reset window, so it closes first.
+    if (overlay.classList.contains("show")) {
       closeErrorModal();
+    } else if (forgotModal.classList.contains("show")) {
+      closeForgotModal();
     }
   });
 });
