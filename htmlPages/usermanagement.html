@@ -1472,12 +1472,12 @@
       </div>
       <div class="hero-card">
         <div class="card-top">
-          <p id="adminCountValue">—</p>
-          <div class="hero-icon purple"><i class="fa-solid fa-shield-halved"></i></div>
+          <p id="guideCountValue">—</p>
+          <div class="hero-icon purple"><i class="fa-solid fa-compass"></i></div>
         </div>
         <div class="card-content">
-          <h3>Administrators</h3>
-          <span class="hero-trend" id="adminCountTrend">—</span>
+          <h3>Total Guides</h3>
+          <span class="hero-trend" id="guideCountTrend">—</span>
         </div>
       </div>
     </section>
@@ -1568,7 +1568,6 @@
 
         <div class="detail-actions">
           <button id="viewProfileBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-eye"></i>View Profile</button>
-          <button id="editUserBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-pen"></i>Edit User</button>
           <button id="resetPasswordBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-rotate"></i>Reset Password</button>
           <button id="suspendUserBtn" class="action-btn danger" type="button" disabled><i class="fa-solid fa-ban"></i>Suspend User</button>
           <button id="deactivateUserBtn" class="action-btn danger" type="button" disabled><i class="fa-solid fa-user-slash"></i>Deactivate User</button>
@@ -1803,7 +1802,6 @@
 
   const userDetailCard = document.getElementById('userDetailCard');
   const viewProfileBtn = document.getElementById('viewProfileBtn');
-  const editUserBtn = document.getElementById('editUserBtn');
   const resetPasswordBtn = document.getElementById('resetPasswordBtn');
   const deactivateUserBtn = document.getElementById('deactivateUserBtn');
   const contactUserBtn = document.getElementById('contactUserBtn');
@@ -2127,7 +2125,7 @@
   const renderStats = () => {
     const users = state.users;
     const total = users.length;
-    const admins = users.filter(user => toBadgeClass(user.role) === 'admin').length;
+    const guides = users.filter(user => toBadgeClass(user.role) === 'guide').length;
     // The real count of teams, so one with no members still counts. Falls
     // back to the distinct free-text values if the collection is unreadable.
     const teamCount = state.teams.length
@@ -2150,12 +2148,12 @@
     document.getElementById('totalUsersValue').textContent = total.toLocaleString();
     document.getElementById('teamCountValue').textContent = teamCount.toLocaleString();
     document.getElementById('emergencyAlertsValue').textContent = state.emergencies.length.toLocaleString();
-    document.getElementById('adminCountValue').textContent = admins.toLocaleString();
+    document.getElementById('guideCountValue').textContent = guides.toLocaleString();
 
     setTrend('totalUsersTrend', newThisMonth ? `+${newThisMonth} new this month` : 'No new sign-ups this month', newThisMonth ? 'up' : '');
     setTrend('teamCountTrend', `${usersInTeams.toLocaleString()} users assigned`);
     setTrend('emergencyAlertsTrend', unresolvedAlerts ? `${unresolvedAlerts} unresolved` : 'All resolved', unresolvedAlerts ? 'down' : 'up');
-    setTrend('adminCountTrend', `${percent(admins)}% of all users`);
+    setTrend('guideCountTrend', `${percent(guides)}% of all users`);
   };
 
   // ---------------------------------------------------------------------
@@ -2339,7 +2337,7 @@
   // ---------------------------------------------------------------------
   // Selected user panel
   // ---------------------------------------------------------------------
-  const detailActionButtons = [viewProfileBtn, editUserBtn, resetPasswordBtn, suspendUserBtn, deactivateUserBtn, contactUserBtn];
+  const detailActionButtons = [viewProfileBtn, resetPasswordBtn, suspendUserBtn, deactivateUserBtn, contactUserBtn];
 
   const getSelectedUser = () => state.users.find(user => user.id === state.selectedUserId) || null;
 
@@ -2544,7 +2542,6 @@
     if (event.target === viewProfileModal) closeViewProfileModal();
   });
 
-  editUserBtn.addEventListener('click', openEditUserModal);
   cancelEditUserBtn.addEventListener('click', closeEditUserModal);
   editUserModal.addEventListener('click', (event) => {
     if (event.target === editUserModal) closeEditUserModal();
