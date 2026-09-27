@@ -33,10 +33,13 @@ export function renderAdminIdentity({ name, role } = {}) {
 
   if (cleanName) {
     document.querySelectorAll('.user-chip .name').forEach((el) => { el.textContent = cleanName; });
-    document.querySelectorAll('.user-chip .avatar, .admin-mini .avatar:not(.avatar-logo)').forEach((el) => {
+    // Avatars that show the PeakPath logo keep it; writing initials into one
+    // would replace the logo image with text ("MR").
+    document.querySelectorAll('.user-chip .avatar:not(.avatar-logo), .admin-mini .avatar:not(.avatar-logo)').forEach((el) => {
       el.textContent = adminInitials(cleanName);
       el.title = cleanName;
     });
+    document.querySelectorAll('.user-chip .avatar-logo').forEach((el) => { el.title = cleanName; });
   }
   if (cleanRole) {
     document.querySelectorAll('.user-chip .role').forEach((el) => { el.textContent = cleanRole; });

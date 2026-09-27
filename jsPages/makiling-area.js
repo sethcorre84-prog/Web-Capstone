@@ -80,8 +80,8 @@ export function createMakilingMap(element) {
     interactive: false
   }).addTo(map);
 
-  // sidebar.js flips data-theme on <html> when Dark Mode is switched in
-  // another tab; follow it without a reload.
+  // sidebar.js flips data-theme on <html> when the theme changes in
+  // another tab or the computer switches (System); follow it without a reload.
   new MutationObserver(() => mask.setStyle({ fillColor: maskColor() }))
     .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   L.polygon(MAKILING_RING, {

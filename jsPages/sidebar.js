@@ -13,8 +13,8 @@
      them when collapsed — no HTML edits needed.
    - Saves the collapsed/expanded state to localStorage so it persists
      as the admin navigates between pages.
-   - Applies the Dark Mode setting (Settings > General Settings) the same
-     way: before paint, so a dark page never flashes white first.
+   - Applies the Theme setting (Settings > General Settings: Light, Dark or
+     System) the same way: before paint, so a dark page never flashes white first.
    ========================================================================== */
 
 /* Dark mode. Kept outside the sidebar code because it applies to the whole
@@ -22,17 +22,23 @@
    choice is stored per browser, like the other Settings toggles. */
 (function () {
     var THEME_KEY = 'peakpath-theme';
+    var THEMES = ['light', 'dark', 'system'];
+    // "system" follows the computer's own light/dark setting, live.
+    var systemDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
+    // The stored choice: 'light', 'dark' or 'system'.
     function read() {
         try {
-            return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+            var saved = localStorage.getItem(THEME_KEY);
+            return THEMES.indexOf(saved) === -1 ? 'light' : saved;
         } catch (error) {
             return 'light'; // storage blocked: stay on the default look
         }
     }
 
     function apply(theme) {
-        if (theme === 'dark') {
+        var dark = theme === 'dark' || (theme === 'system' && !!systemDark && systemDark.matches);
+        if (dark) {
             document.documentElement.setAttribute('data-theme', 'dark');
         } else {
             document.documentElement.removeAttribute('data-theme');
@@ -46,10 +52,19 @@
         if (event.key === THEME_KEY) apply(read());
     });
 
+    // On "system", flip along with the computer (e.g. its evening dark mode).
+    if (systemDark) {
+        var onSystemChange = function () {
+            if (read() === 'system') apply('system');
+        };
+        if (systemDark.addEventListener) systemDark.addEventListener('change', onSystemChange);
+        else if (systemDark.addListener) systemDark.addListener(onSystemChange);
+    }
+
     window.PeakPathTheme = {
         get: read,
         set: function (theme) {
-            var next = theme === 'dark' ? 'dark' : 'light';
+            var next = THEMES.indexOf(theme) === -1 ? 'light' : theme;
             localStorage.setItem(THEME_KEY, next);
             apply(next);
             return next;

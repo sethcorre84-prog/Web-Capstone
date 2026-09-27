@@ -1430,15 +1430,13 @@ function updateTime() {
 
     const date = now.toLocaleDateString([], {
         timeZone,
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+        weekday: 'long'
     });
 
     const time = now.toLocaleTimeString([], {
         timeZone,
         hourCycle: portalHourCycle(),
-        hour: '2-digit',
+        hour: portalHourCycle() === 'h23' ? '2-digit' : 'numeric',
         minute: '2-digit',
         second: '2-digit'
     });

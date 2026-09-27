@@ -164,6 +164,36 @@
   }
   .chevron{color:var(--text-400);font-size:15px;}
 
+  /* Theme dropdown: the browser's own arrow is hidden and a chevron drawn in
+     its place, so it looks the same in every browser and in both themes. */
+  .theme-picker{position:relative;}
+  .theme-picker select{
+    appearance:none;
+    -webkit-appearance:none;
+    min-width:118px;
+    height:34px;
+    padding:0 32px 0 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--card-bg);
+    color:var(--text-primary);
+    font:inherit;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .theme-picker select:hover{border-color:var(--accent);}
+  .theme-picker select:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .theme-picker i{
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    font-size:10px;
+    color:var(--text-secondary);
+    pointer-events:none;
+  }
+
   /* Toggle switch */
   .switch{
     position:relative;
@@ -709,15 +739,19 @@
           <div class="setting-left">
             <div class="setting-icon">🌙</div>
             <div class="setting-text">
-              <div class="label" id="darkModeLabel">Dark Mode</div>
-              <div class="desc">Use a dark theme on every admin page in this browser.</div>
+              <div class="label" id="themeLabel">Theme</div>
+              <div class="desc">Light, dark, or match your computer's setting, on every admin page in this browser.</div>
             </div>
           </div>
           <div class="setting-right">
-            <label class="switch">
-              <input type="checkbox" id="darkModeToggle" aria-labelledby="darkModeLabel">
-              <span class="slider"></span>
-            </label>
+            <div class="theme-picker">
+              <select id="themePicker" aria-labelledby="themeLabel">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="system">System</option>
+              </select>
+              <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            </div>
           </div>
         </div>
       </div>
@@ -2400,32 +2434,33 @@
     });
   });
 
-  /* Dark Mode. sidebar.js owns the theme (it applies it before paint on
-     every page); this switch just flips it, so the change is instant and
-     needs no Save. */
-  const darkModeToggle = document.getElementById('darkModeToggle');
-  if (darkModeToggle && window.PeakPathTheme) {
-    const syncDarkModeToggle = () => {
-      darkModeToggle.checked = window.PeakPathTheme.get() === 'dark';
+  /* Theme. sidebar.js owns it (it applies it before paint on every page, and
+     follows the computer live on "System"); this dropdown just sets it, so
+     the change is instant and needs no Save. */
+  const themePicker = document.getElementById('themePicker');
+  if (themePicker && window.PeakPathTheme) {
+    const THEME_NAMES = { light: 'Light', dark: 'Dark', system: 'System' };
+    const syncThemePicker = () => {
+      themePicker.value = window.PeakPathTheme.get();
     };
-    syncDarkModeToggle();
+    syncThemePicker();
 
-    darkModeToggle.addEventListener('change', () => {
+    themePicker.addEventListener('change', () => {
       try {
-        window.PeakPathTheme.set(darkModeToggle.checked ? 'dark' : 'light');
+        window.PeakPathTheme.set(themePicker.value);
       } catch (error) {
         // localStorage can be blocked (private mode, site-data settings).
-        console.error('Failed to save dark mode:', error);
-        syncDarkModeToggle();
+        console.error('Failed to save the theme:', error);
+        syncThemePicker();
         showToast('Your browser blocked saving this setting.');
         return;
       }
-      statusText.textContent = darkModeToggle.checked ? 'Dark mode on' : 'Dark mode off';
+      statusText.textContent = `Theme: ${THEME_NAMES[themePicker.value]}`;
     });
 
     // Switched from another open tab.
     window.addEventListener('storage', (event) => {
-      if (event.key === 'peakpath-theme') syncDarkModeToggle();
+      if (event.key === 'peakpath-theme') syncThemePicker();
     });
   }
 

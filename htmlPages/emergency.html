@@ -809,7 +809,7 @@ tbody tr.is-new td{
       <div class="topbar-right">
         <div class="top-meta" aria-label="Current date and time">
           <i class="fa-regular fa-clock" aria-hidden="true"></i>
-          <span id="live-date">May 20, 2025</span>
+          <span id="live-date">Tuesday</span>
           <strong id="live-time">10:30 AM</strong>
         </div>
         <div class="bell-wrap">
@@ -1710,9 +1710,7 @@ tbody tr.is-new td{
         const timeZone = portalTimeZone();
         dateEl.textContent = now.toLocaleDateString([], {
             timeZone,
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
+            weekday: 'long'
         });
         timeEl.textContent = now.toLocaleTimeString([], {
             timeZone,

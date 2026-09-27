@@ -856,7 +856,7 @@ body :is(.topbar, .top-bar) .avatar.avatar-logo {
     padding: 0 12px;
     border: 1px solid var(--border);
     border-radius: 9px;
-    background: var(--card-bg);
+    background: transparent;
     font-size: 13px;
     color: var(--text-secondary);
     white-space: nowrap;
