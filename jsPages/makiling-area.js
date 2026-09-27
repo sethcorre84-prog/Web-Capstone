@@ -25,6 +25,21 @@ export const MAKILING_RING = (() => {
   return points;
 })();
 
+/* The same box L.latLngBounds(MAKILING_RING) gives, for pages that count
+   hikers on the mountain without drawing a map (User Management), so they
+   need neither Leaflet nor a map element. Only contains([lat, lng]) is used. */
+export const MAKILING_BOUNDS = (() => {
+  const lats = MAKILING_RING.map(([lat]) => lat);
+  const lngs = MAKILING_RING.map(([, lng]) => lng);
+  const south = Math.min(...lats);
+  const north = Math.max(...lats);
+  const west = Math.min(...lngs);
+  const east = Math.max(...lngs);
+  return {
+    contains: ([lat, lng]) => lat >= south && lat <= north && lng >= west && lng <= east
+  };
+})();
+
 // The same colours as the page behind the map in each theme (pages.css).
 const maskColor = () =>
   (document.documentElement.getAttribute('data-theme') === 'dark' ? '#111410' : '#e8edf0');

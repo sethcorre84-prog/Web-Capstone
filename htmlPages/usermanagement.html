@@ -459,20 +459,29 @@
 
   .clear-btn:hover { background: var(--dm-surface-2, #f5f5f2); }
   
+  /* Wide screens: a table held at a width its seven columns can be read at.
+     When the card is narrower, .table-wrapper scrolls it sideways instead of
+     squeezing the columns until words break one letter per line. Narrow
+     screens switch to one card per user (see the 700px block below). */
   .user-list-table {
     width: 100%;
+    min-width: 860px;
     border-collapse: collapse;
     table-layout: auto;
     margin-top: 8px;
   }
-  
+
   .user-list-table th,
   .user-list-table td {
     text-align: left;
     border-bottom: 1px solid var(--dm-border, #e7ebe7);
     padding: 12px 8px;
     vertical-align: middle;
-    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+  .user-list-table th,
+  .user-list-table .stacked-date {
+    white-space: nowrap;
   }
   
   .table-wrapper {
@@ -1318,15 +1327,46 @@
     .card-head { flex-direction: column; align-items: stretch; }
     .card-head-actions { justify-content: flex-end; }
     .detail-actions { grid-template-columns: 1fr; }
+
+    /* Small screens: every user is a card. The name and email span the top,
+       the other fields sit two to a row, each under its own label (taken
+       from the cell's data-label), and the actions run along the bottom. */
+    .user-list-table { min-width: 0; margin-top: 4px; }
+    .user-list-table thead { display: none; }
+    .user-list-table,
+    .user-list-table tbody,
+    .user-list-table td { display: block; width: 100%; }
+    .user-list-table tbody tr {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 14px;
+      margin-bottom: 10px;
+      padding: 14px;
+      border: 1px solid var(--dm-border, #e7ebe7);
+      border-radius: 12px;
+    }
+    .user-list-table td { padding: 0; border: 0; }
+    .user-list-table td:first-child,
+    .user-list-table td:last-child,
+    .user-list-table td[colspan] { grid-column: 1 / -1; }
+    .user-list-table td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      margin-bottom: 4px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #93a199;
+    }
+    .user-list-table .user-name { white-space: normal; }
+    .user-list-table .user-email { overflow-wrap: anywhere; }
   }
 
   @media (max-width:560px) {
     .modal .field-row { grid-template-columns: 1fr; }
     .modal-actions { flex-direction: column-reverse; }
     .modal-actions button { width: 100%; }
-    /* The user list has more columns than a phone can show legibly: hold it
-       at a readable width and let .table-wrapper scroll it sideways. */
-    .user-list-table { min-width: 720px; }
   }
 </style>
 </head>
@@ -1404,7 +1444,7 @@
           <div class="hero-icon green"><i class="fa-solid fa-user-check"></i></div>
         </div>
         <div class="card-content">
-          <h3>Active Users</h3>
+          <h3>Active Hikers Today</h3>
           <span class="hero-trend" id="activeUsersTrend">—</span>
         </div>
       </div>
@@ -1732,6 +1772,9 @@
   // The same rule login.js and dashboard-guard.js enforce, and the one the
   // mobile app has to mirror. Suspensions end on their own date.
   import { suspensionState } from '../jsPages/account-status.js';
+  // The Dashboard and Geomap count active hikers from these too.
+  import { watchActiveHikers } from '../jsPages/active-hikers.js';
+  import { MAKILING_BOUNDS } from '../jsPages/makiling-area.js';
   import { sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
     addDoc,
@@ -2083,7 +2126,6 @@
   const renderStats = () => {
     const users = state.users;
     const total = users.length;
-    const activeUsers = users.filter(user => effectiveStatusOf(user).toLowerCase() === 'active').length;
     const admins = users.filter(user => toBadgeClass(user.role) === 'admin').length;
     // The real count of teams, so one with no members still counts. Falls
     // back to the distinct free-text values if the collection is unreadable.
@@ -2105,13 +2147,11 @@
     const percent = (part) => (total ? Math.round((part / total) * 100) : 0);
 
     document.getElementById('totalUsersValue').textContent = total.toLocaleString();
-    document.getElementById('activeUsersValue').textContent = activeUsers.toLocaleString();
     document.getElementById('teamCountValue').textContent = teamCount.toLocaleString();
     document.getElementById('emergencyAlertsValue').textContent = state.emergencies.length.toLocaleString();
     document.getElementById('adminCountValue').textContent = admins.toLocaleString();
 
     setTrend('totalUsersTrend', newThisMonth ? `+${newThisMonth} new this month` : 'No new sign-ups this month', newThisMonth ? 'up' : '');
-    setTrend('activeUsersTrend', `${percent(activeUsers)}% of all users`);
     setTrend('teamCountTrend', `${usersInTeams.toLocaleString()} users assigned`);
     setTrend('emergencyAlertsTrend', unresolvedAlerts ? `${unresolvedAlerts} unresolved` : 'All resolved', unresolvedAlerts ? 'down' : 'up');
     setTrend('adminCountTrend', `${percent(admins)}% of all users`);
@@ -2215,11 +2255,11 @@
             </div>
           </div>
         </td>
-        <td><span class="badge ${toBadgeClass(user.role)}">${escapeHtml(user.role)}</span></td>
-        <td class="team-cell">${teamChipsHtml(user)}</td>
-        <td><span class="badge ${getUserStatusClass(effectiveStatusOf(user))}">${escapeHtml(effectiveStatusOf(user))}</span></td>
-        <td class="stacked-date">${formatStackedDateTime(user.lastActive)}</td>
-        <td class="stacked-date">${formatStackedDateTime(user.memberSince)}</td>
+        <td data-label="Role"><span class="badge ${toBadgeClass(user.role)}">${escapeHtml(user.role)}</span></td>
+        <td class="team-cell" data-label="Team / Group">${teamChipsHtml(user)}</td>
+        <td data-label="Status"><span class="badge ${getUserStatusClass(effectiveStatusOf(user))}">${escapeHtml(effectiveStatusOf(user))}</span></td>
+        <td class="stacked-date" data-label="Last Active">${formatStackedDateTime(user.lastActive)}</td>
+        <td class="stacked-date" data-label="Registered On">${formatStackedDateTime(user.memberSince)}</td>
         <td>
           <div class="table-actions">
             <button class="table-action" data-action="view" type="button" aria-label="View details" title="View details"><i class="fa-solid fa-eye"></i></button>
@@ -2989,6 +3029,25 @@
       });
     });
   };
+
+  /* Active Hikers Today: counted in active-hikers.js, exactly as on the
+     Dashboard and Geomap, so all three pages show the same number. It used
+     to count accounts with status "Active", which says nothing about who is
+     hiking. */
+  watchActiveHikers({
+    db,
+    bounds: MAKILING_BOUNDS,
+    onUpdate: ({ hikedToday, onMountainNow }) => {
+      document.getElementById('activeUsersValue').textContent = hikedToday.toLocaleString();
+      setTrend('activeUsersTrend', hikedToday
+        ? `${onMountainNow} on the mountain now`
+        : 'No hikers have signed in today');
+    },
+    onError: (message) => {
+      document.getElementById('activeUsersValue').textContent = '—';
+      setTrend('activeUsersTrend', message);
+    }
+  });
 
   onSnapshot(collection(db, 'users'), (snapshot) => {
     state.users = snapshot.docs.map(normalizeUser)

@@ -615,7 +615,7 @@ body .avatar.avatar-logo {
     font-weight: 500;
     color: #c4d1c4;
     text-decoration: none;
-    transition: background .15s ease;
+    transition: background .15s ease, padding .22s ease, gap .22s ease;
 }
 .logout-btn:hover {
     background: var(--sidebar-bg-light);
@@ -729,10 +729,25 @@ body .avatar.avatar-logo {
         transition: none !important;
     }
 }
+/* 17px each side leaves exactly the 20px icon inside the 56px rail (with the
+   1px borders), so the faded label is squeezed to nothing and cannot push
+   the icon off-centre. Same idea as the nav links' 19px above. */
 .sidebar-was-collapsed .sidebar .logout-btn,
 .sidebar.collapsed .logout-btn {
     justify-content: center;
-    padding: 9px;
+    gap: 0;
+    padding: 9px 17px;
+}
+/* On its own in the rail, the 15px Logout icon read as smaller than the nav
+   icons above it; it grows to 20px, and back when the sidebar opens. */
+.logout-btn svg {
+    flex-shrink: 0;
+    transition: width .22s ease, height .22s ease;
+}
+.sidebar-was-collapsed .sidebar .logout-btn svg,
+.sidebar.collapsed .logout-btn svg {
+    width: 20px;
+    height: 20px;
 }
 
 /* Applied instantly by the inline <head> script (before paint) so the
@@ -784,7 +799,12 @@ body .avatar.avatar-logo {
     }
     .sidebar .logout-btn {
         justify-content: center;
-        padding: 9px;
+        gap: 0;
+        padding: 9px 17px;
+    }
+    .sidebar .logout-btn svg {
+        width: 20px;
+        height: 20px;
     }
 }
 
