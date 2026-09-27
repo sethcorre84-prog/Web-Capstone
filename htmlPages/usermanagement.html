@@ -1416,8 +1416,6 @@
         </div>
         <div class="admin-mini">
           <div class="avatar avatar-logo"><img src="../assets/images/logo.png" alt="PeakPath logo"></div>
-          <div class="admin-mini-text">
-          </div>
         </div>
       </div>
     </section>
@@ -1768,7 +1766,7 @@
 <script type="module">
   import { auth, db } from '../jsPages/firebase-config.js';
   import { escapeHtml, normalizeText } from '../jsPages/utils.js';
-  import { toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
+  import { formatPortalDate, formatPortalDateTime, formatPortalTime, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
   // The same rule login.js and dashboard-guard.js enforce, and the one the
   // mobile app has to mirror. Suspensions end on their own date.
   import { suspensionState } from '../jsPages/account-status.js';
@@ -1857,21 +1855,20 @@
   const formatDisplayDate = (value) => {
     const date = toDate(value);
     if (!date) return typeof value === 'string' && value.trim() ? value : '—';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return formatPortalDate(date);
   };
 
   const formatDisplayDateTime = (value) => {
     const date = toDate(value);
     if (!date) return typeof value === 'string' && value.trim() ? value : '—';
-    return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    return formatPortalDateTime(date); // follows Settings > Date & Time
   };
 
   // Table cells show the date on one line and the time under it, as in the design.
   const formatStackedDateTime = (value) => {
     const date = toDate(value);
     if (!date) return '<span class="stacked-empty">—</span>';
-    return `<strong>${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>`
-      + `<span>${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>`;
+    return `<strong>${formatPortalDate(date)}</strong><span>${formatPortalTime(date)}</span>`;
   };
 
   const getInitials = (name) => {

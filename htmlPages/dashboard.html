@@ -448,7 +448,7 @@
         import { db } from "../jsPages/firebase-config.js";
         import { escapeHtml } from "../jsPages/utils.js";
         import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { formatPortalDate, portalTimeZone } from "../jsPages/datetime-prefs.js";
+        import { formatPortalDate, portalHourCycle, portalTimeZone } from "../jsPages/datetime-prefs.js";
         import { createMakilingMap } from "../jsPages/makiling-area.js";
         import { watchActiveHikers } from "../jsPages/active-hikers.js";
 
@@ -626,7 +626,8 @@
             const timeZone = portalTimeZone();
             clock.textContent = now.toLocaleTimeString([], {
                 timeZone,
-                hour: 'numeric',
+                hourCycle: portalHourCycle(),
+                hour: portalHourCycle() === 'h23' ? '2-digit' : 'numeric',
                 minute: '2-digit',
                 second: '2-digit'
             });

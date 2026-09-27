@@ -11,15 +11,13 @@
 
 const STORAGE_KEY = 'peakpath-datetime';
 
-export const TIME_ZONES = [
-  { value: 'Asia/Manila', label: '(UTC+08:00) Philippine Time' },
-  { value: 'UTC', label: '(UTC+00:00) Coordinated Universal Time' },
-  { value: 'America/New_York', label: 'US Eastern Time (UTC−05:00 / −04:00)' },
-  { value: 'Asia/Tokyo', label: '(UTC+09:00) Japan Standard Time' },
-  { value: 'Asia/Singapore', label: '(UTC+08:00) Singapore Time' },
-  { value: 'Asia/Dubai', label: '(UTC+04:00) UAE – Gulf Standard Time' },
-  { value: 'Australia/Sydney', label: 'Australian Eastern Time (UTC+10:00 / +11:00)' },
-  { value: 'Europe/London', label: 'UK Time (UTC+00:00 / +01:00)' }
+// Every time is shown in Philippine Time; the admin only picks how the hour
+// is written.
+const TIME_ZONE = 'Asia/Manila';
+
+export const TIME_FORMATS = [
+  { value: '12h', label: 'Philippine Time (12-hour) — 3:45 PM' },
+  { value: '24h', label: 'Military Time (24-hour) — 15:45' }
 ];
 
 // Labels are an example date, so the choice is obvious at a glance.
@@ -30,17 +28,19 @@ export const DATE_FORMATS = [
   { value: 'YYYY-MM-DD', label: '2026-09-21' }
 ];
 
-// 'MMM D, YYYY' in Manila is what every page showed before this setting
-// existed, so an admin who never opens it sees no change.
-const DEFAULTS = { timeZone: 'Asia/Manila', dateFormat: 'MMM D, YYYY' };
+// 12-hour 'MMM D, YYYY' in Manila is what every page showed before this
+// setting existed, so an admin who never opens it sees no change.
+const DEFAULTS = { timeZone: TIME_ZONE, timeFormat: '12h', dateFormat: 'MMM D, YYYY' };
 
 const isKnown = (list, value) => list.some((item) => item.value === value);
 
 function readPrefs() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    // A zone saved before this was fixed to Manila is simply ignored.
     return {
-      timeZone: isKnown(TIME_ZONES, stored.timeZone) ? stored.timeZone : DEFAULTS.timeZone,
+      timeZone: TIME_ZONE,
+      timeFormat: isKnown(TIME_FORMATS, stored.timeFormat) ? stored.timeFormat : DEFAULTS.timeFormat,
       dateFormat: isKnown(DATE_FORMATS, stored.dateFormat) ? stored.dateFormat : DEFAULTS.dateFormat
     };
   } catch {
@@ -54,11 +54,19 @@ function readPrefs() {
 let prefs = readPrefs();
 let formatters = buildFormatters(prefs);
 
-function buildFormatters({ timeZone }) {
+// A function declaration, not a const: buildFormatters() runs while the
+// module is still loading, before a const below it would exist.
+function hourCycleFor(timeFormat) {
+  return timeFormat === '24h' ? 'h23' : 'h12';
+}
+
+function buildFormatters({ timeZone, timeFormat }) {
+  const military = timeFormat === '24h';
   return {
     medium: new Intl.DateTimeFormat('en-US', { timeZone, month: 'short', day: 'numeric', year: 'numeric' }),
     numeric: new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }),
-    time: new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit' })
+    // Military time is always two-digit hours: 09:05, 15:45.
+    time: new Intl.DateTimeFormat('en-US', { timeZone, hour: military ? '2-digit' : 'numeric', minute: '2-digit', hourCycle: hourCycleFor(timeFormat) })
   };
 }
 
@@ -78,7 +86,8 @@ export function getDateTimePrefs() {
 
 export function saveDateTimePrefs(next) {
   const merged = {
-    timeZone: isKnown(TIME_ZONES, next?.timeZone) ? next.timeZone : prefs.timeZone,
+    timeZone: TIME_ZONE,
+    timeFormat: isKnown(TIME_FORMATS, next?.timeFormat) ? next.timeFormat : prefs.timeFormat,
     dateFormat: isKnown(DATE_FORMATS, next?.dateFormat) ? next.dateFormat : prefs.dateFormat
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
@@ -86,9 +95,14 @@ export function saveDateTimePrefs(next) {
   return { ...merged };
 }
 
-// The chosen IANA zone, for pages that build their own Intl options (clocks).
+// The portal's IANA zone, for pages that build their own Intl options (clocks).
 export function portalTimeZone() {
   return prefs.timeZone;
+}
+
+// 'h12' or 'h23' for those same clocks, so they follow Philippine / Military Time.
+export function portalHourCycle() {
+  return hourCycleFor(prefs.timeFormat);
 }
 
 // Firestore Timestamp, {seconds}, Date, ISO string or epoch ms -> Date | null.

@@ -53,7 +53,17 @@
 		.profile-menu a:hover{background:var(--accent-light)}
 		.button{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;border-radius:8px;border:none;font-weight:700;font-size:13px}
 		.button-green{background:var(--accent);color:#fff}
-		.content-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:18px;align-items:start}
+		.content-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:18px;align-items:stretch}
+		/* The right column stacks the details card over the Expired panel. With
+		   nothing selected, the details card grows to the list's height (like
+		   Hazard Reports' "Hazard Details") instead of collapsing to a sliver. */
+		.detail-column{display:flex;flex-direction:column;min-width:0}
+		.detail-card-title{margin:0 0 14px;font-size:15px;font-weight:700;color:var(--accent-dark)}
+		.detail-empty{display:none;margin:auto;padding:24px 0;text-align:center;font-size:13px;color:var(--text-secondary)}
+		.detail.is-empty{flex:1;display:flex;flex-direction:column;min-height:420px}
+		.detail.is-empty .detail-top,
+		.detail.is-empty #detailBody{display:none !important}
+		.detail.is-empty .detail-empty{display:block}
 		.panel{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px}
 		.panel-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--accent-dark)}
 		.panel-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -324,8 +334,10 @@
     		</div>
 		</div>
 
-				<div>
-					<div class="panel detail">
+				<div class="detail-column">
+					<div class="panel detail is-empty" id="detailCard">
+						<p class="detail-card-title">Announcement Details</p>
+						<p class="detail-empty">Select an advisory to view details</p>
 						<div class="detail-top">
 							<div class="detail-icon" id="detailIcon" style="background:var(--danger-light);color:var(--danger)"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg></div>
 							<div class="detail-head">
@@ -857,10 +869,7 @@ async function syncExpiredAdvisories(){
 					}
 					if (selectedArchiveIds.size === 0) {
 						selectedId = null;
-						document.getElementById('detailTitle').textContent = 'Select an advisory';
-						document.getElementById('detailSub').textContent = 'Choose an item from the list to see full details here.';
-						document.getElementById('detailBody').style.display = 'none';
-						document.getElementById('detailStatusPill').style.display = 'none';
+						showEmptyDetail();
 					} else {
 						selectedId = [...selectedArchiveIds].slice(-1)[0];
 						selectAdvisory(selectedId);
@@ -967,10 +976,20 @@ async function syncExpiredAdvisories(){
 			});
 		}
 
+		// Nothing selected: the details card shows only its heading and prompt.
+		function showEmptyDetail(){
+			document.getElementById('detailCard').classList.add('is-empty');
+			document.getElementById('detailTitle').textContent = 'Select an advisory';
+			document.getElementById('detailSub').textContent = 'Choose an item from the list to see full details here.';
+			document.getElementById('detailBody').style.display = 'none';
+			document.getElementById('detailStatusPill').style.display = 'none';
+		}
+
 		function selectAdvisory(id) {
 			const it = allItems.find(d => d.id === id);
 			if (!it) return;
 			selectedId = id;
+			document.getElementById('detailCard').classList.remove('is-empty');
 			updateArchiveButtonState();
 			const meta = typeMeta(it.type);
 
@@ -1048,6 +1067,10 @@ onSnapshot(advisoryQuery, (snapshot) => {
         }
     } else if (allItems.length) {
         selectAdvisory(allItems[0].id);
+    }
+    if (!allItems.length) {
+        selectedId = null;
+        showEmptyDetail();
     }
 }, (err) => {
     document.getElementById('pageInfo').textContent = 'Error loading advisories: ' + err.message;
@@ -1544,10 +1567,7 @@ setInterval(() => {
 		pendingRestoreId = null;
 		selectedId = null;
 		selectedArchiveIds.clear();
-		document.getElementById('detailTitle').textContent = 'Select an advisory';
-		document.getElementById('detailSub').textContent = 'Choose an item from the list to see full details here.';
-		document.getElementById('detailBody').style.display = 'none';
-		document.getElementById('detailStatusPill').style.display = 'none';
+		showEmptyDetail();
 		updateArchiveButtonState();
 		applyFiltersAndRender();
 	});

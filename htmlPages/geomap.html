@@ -703,7 +703,7 @@
     import { db } from "../jsPages/firebase-config.js";
     import { escapeHtml } from "../jsPages/utils.js";
     import { collection, onSnapshot, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { formatPortalDate, portalTimeZone, toPortalDate as toDate } from "../jsPages/datetime-prefs.js";
+    import { formatPortalDate, portalHourCycle, portalTimeZone, toPortalDate as toDate } from "../jsPages/datetime-prefs.js";
     import { createMakilingMap } from "../jsPages/makiling-area.js";
     import { watchActiveHikers } from "../jsPages/active-hikers.js";
 
@@ -1437,10 +1437,10 @@ function updateTime() {
 
     const time = now.toLocaleTimeString([], {
         timeZone,
+        hourCycle: portalHourCycle(),
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
-        hour12: true
+        second: '2-digit'
     });
 
     document.getElementById('liveDate').textContent = date;

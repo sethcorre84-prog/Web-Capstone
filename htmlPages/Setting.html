@@ -698,7 +698,7 @@
             <div class="setting-icon">🕐</div>
             <div class="setting-text">
               <div class="label">Date &amp; Time</div>
-              <div class="desc">Set your timezone and date format.</div>
+              <div class="desc">Choose Philippine or Military time and a date format.</div>
             </div>
           </div>
           <div class="setting-right"><span class="chevron">›</span></div>
@@ -966,7 +966,7 @@
   import { collection, getDoc, getDocs, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile, verifyBeforeUpdateEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import { DEFAULT_ADMIN_ROLE, renderAdminIdentity, updateAdminProfile } from '../jsPages/admin-identity.js';
-  import { DATE_FORMATS, TIME_ZONES, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
+  import { DATE_FORMATS, TIME_FORMATS, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
 
   const STORAGE_KEY = 'peakpath-settings';
   const defaultSettings = {
@@ -1967,26 +1967,26 @@
      dates across the portal follow the chosen zone and format. */
   function bindDateTimeForm() {
     const form = document.getElementById('dateTimeForm');
-    const zoneSelect = document.getElementById('timezoneSelect');
+    const timeSelect = document.getElementById('timeFormatSelect');
     const formatSelect = document.getElementById('dateFormat');
     const preview = document.getElementById('dateTimePreview');
     if (!form) return;
 
     const current = getDateTimePrefs();
-    zoneSelect.value = current.timeZone;
+    timeSelect.value = current.timeFormat;
     formatSelect.value = current.dateFormat;
 
     const updatePreview = () => {
-      preview.textContent = `Now: ${previewDateTime(new Date(), { timeZone: zoneSelect.value, dateFormat: formatSelect.value })}`;
+      preview.textContent = `Now: ${previewDateTime(new Date(), { timeZone: current.timeZone, timeFormat: timeSelect.value, dateFormat: formatSelect.value })}`;
     };
-    zoneSelect.addEventListener('change', updatePreview);
+    timeSelect.addEventListener('change', updatePreview);
     formatSelect.addEventListener('change', updatePreview);
     updatePreview();
 
     form.addEventListener('submit', (event) => {
       event.preventDefault();
       try {
-        saveDateTimePrefs({ timeZone: zoneSelect.value, dateFormat: formatSelect.value });
+        saveDateTimePrefs({ timeFormat: timeSelect.value, dateFormat: formatSelect.value });
       } catch (error) {
         // localStorage can be blocked (private mode, site-data settings).
         console.error('Failed to save date & time settings:', error);
@@ -2147,9 +2147,9 @@
           <form id="dateTimeForm" novalidate>
             <div class="form-grid unified-form-grid">
               <div class="field">
-                <label for="timezoneSelect">Time Zone</label>
-                <select id="timezoneSelect">
-                  ${TIME_ZONES.map((zone) => `<option value="${escapeHTML(zone.value)}">${escapeHTML(zone.label)}</option>`).join('')}
+                <label for="timeFormatSelect">Time</label>
+                <select id="timeFormatSelect">
+                  ${TIME_FORMATS.map((format) => `<option value="${escapeHTML(format.value)}">${escapeHTML(format.label)}</option>`).join('')}
                 </select>
               </div>
               <div class="field">

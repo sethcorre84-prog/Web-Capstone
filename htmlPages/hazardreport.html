@@ -1505,7 +1505,7 @@
 <script type="module">
 import { auth, db } from "../jsPages/firebase-config.js";
 import { escapeHtml } from "../jsPages/utils.js";
-import { toPortalDate as toJsDate } from "../jsPages/datetime-prefs.js";
+import { formatPortalDate, formatPortalTime, toPortalDate as toJsDate } from "../jsPages/datetime-prefs.js";
 import { collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -1553,10 +1553,10 @@ function getStatusBadgeClass(status) {
 // Format date
 function formatDate(timestamp) {
   if (!timestamp) return 'N/A';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  const formatted = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-  const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-  return `${formatted}<span class="sub">${time}</span>`;
+  const date = toJsDate(timestamp);
+  if (!date) return 'N/A';
+  // Follows Settings > Date & Time (date format, Philippine / Military time).
+  return `${formatPortalDate(date)}<span class="sub">${formatPortalTime(date)}</span>`;
 }
 
 // Get status pill class and color
