@@ -996,8 +996,9 @@
 
 <script type="module">
   import { auth, db } from '../jsPages/firebase-config.js';
-  import { escapeHtml as escapeHTML } from '../jsPages/utils.js';
-  import { collection, getDoc, getDocs, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { escapeHtml as escapeHTML, sortByReportId } from '../jsPages/utils.js';
+  import { collection, getDoc, getDocs, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { planReportIds } from '../jsPages/report-ids.js';
   import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile, verifyBeforeUpdateEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import { DEFAULT_ADMIN_ROLE, renderAdminIdentity, updateAdminProfile } from '../jsPages/admin-identity.js';
   import { DATE_FORMATS, TIME_FORMATS, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
@@ -1311,10 +1312,14 @@
 
     try {
       const snapshot = await getDocs(query(collection(db, 'reports'), where('status', '==', 'resolved')));
-      const resolved = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((item) => item.archived === true) // archived by an admin, not merely resolved
-        .sort((a, b) => toMillis(b.resolvedAt) - toMillis(a.resolvedAt)); // newest first
+      // In ID order, newest first (AR-YYYY-003, 002, 001), like the Resolved panel on
+      // the Hazard Reports page.
+      const resolved = sortByReportId(
+        snapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((item) => item.archived === true), // archived by an admin, not merely resolved
+        (item) => new Date(toMillis(item.resolvedAt))
+      );
 
       lastResolvedReports = resolved; // cache for PDF export and modal lookups
 
@@ -1364,9 +1369,13 @@
     try {
       const reportsQuery = query(collection(db, 'reports'), orderBy('timestamp', 'desc'));
       const snapshot = await getDocs(reportsQuery);
-      const archived = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((item) => (item.status || '').toLowerCase() === 'archived');
+      // In ID order, newest first (A-YYYY-003, 002, 001), like the resolved lists.
+      const archived = sortByReportId(
+        snapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((item) => (item.status || '').toLowerCase() === 'archived'),
+        (item) => new Date(toMillis(item.archivedAt || item.timestamp))
+      );
 
       lastArchivedHazardReports = archived; // cache for PDF export and modal lookups
 
@@ -1456,34 +1465,43 @@
     unarchiveModalErrorEl.textContent = '';
 
     try {
+      // Every report, so the lists' IDs can be worked out (report-ids.js):
+      // the one leaving the archive closes its gap there, and the rest of
+      // that archive list moves up one, all in the same write.
+      const reportsSnapshot = await getDocs(collection(db, 'reports'));
+      const allReports = reportsSnapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+      const batch = writeBatch(db);
+
       if (kind === 'resolved') {
-        await updateDoc(doc(db, 'reports', reportId), { archived: false, unarchivedAt: new Date() });
+        // Back to the end of Resolved Reports as the next RES-YYYY-###.
+        const idPlan = planReportIds(allReports, new Map([[reportId, { archived: false }]]));
+        batch.update(doc(db, 'reports', reportId), {
+          archived: false,
+          unarchivedAt: new Date(),
+          ...(idPlan.has(reportId) ? { reportId: idPlan.get(reportId) } : {})
+        });
+        idPlan.forEach((newId, id) => {
+          if (id !== reportId) batch.update(doc(db, 'reports', id), { reportId: newId });
+        });
+        await batch.commit();
         closeUnarchiveModal();
         showToast('Report moved back to Resolved Reports');
         loadResolvedReports(); // refresh this modal's list
         return;
       }
 
-      const year = item?.timestamp
-        ? (item.timestamp.toDate ? item.timestamp.toDate() : new Date(item.timestamp)).getFullYear()
-        : new Date().getFullYear();
-
-      // Appends after the last existing rejected number for the year —
-      // same as a fresh rejection would — instead of shifting other IDs.
-      const reportsSnapshot = await getDocs(collection(db, 'reports'));
-      const lastRejectedNumber = reportsSnapshot.docs.reduce((max, docSnap) => {
-        const data = docSnap.data();
-        if (docSnap.id === reportId || (data.status || '').toLowerCase() !== 'rejected') return max;
-        const match = /^R-(\d{4})-(\d+)$/.exec(data.reportId || '');
-        if (!match || Number(match[1]) !== year) return max;
-        return Math.max(max, Number(match[2]));
-      }, 0);
-
-      await updateDoc(doc(db, 'reports', reportId), {
+      // Back to Rejected Reports as the next R-YYYY-###, and Archived Hazard
+      // Reports closes up behind it.
+      const idPlan = planReportIds(allReports, new Map([[reportId, { status: 'rejected' }]]));
+      batch.update(doc(db, 'reports', reportId), {
         status: 'rejected',
-        reportId: `R-${year}-${String(lastRejectedNumber + 1).padStart(3, '0')}`,
-        unarchivedAt: new Date()
+        unarchivedAt: new Date(),
+        ...(idPlan.has(reportId) ? { reportId: idPlan.get(reportId) } : {})
       });
+      idPlan.forEach((newId, id) => {
+        if (id !== reportId) batch.update(doc(db, 'reports', id), { reportId: newId });
+      });
+      await batch.commit();
       closeUnarchiveModal();
       showToast('Report moved back to Rejected Reports');
       loadArchivedHazardReports(); // refresh this modal's list

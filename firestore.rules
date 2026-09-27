@@ -170,7 +170,7 @@ service cloud.firestore {
 
       allow update: if isAdmin() && (
         /* Before it is resolved: the ordinary verify / reject / edit /
-           archive-a-rejected-report writes, plus the HR-, R- and RES-
+           archive-a-rejected-report writes, plus the HR-, R- and A-
            renumbering of the reports left behind.
 
            CHANGED: resolutionDetails added. It holds the structured answers
@@ -193,14 +193,20 @@ service cloud.firestore {
         )
         ||
         /* CHANGED. Resolving stays final: a resolved report cannot be
-           reopened, reworded or re-resolved. One exception, an admin filing
-           it into Settings > Archived Resolved Reports, which sets these
-           three fields and nothing else and leaves status as resolved.
-           Resolving no longer archives on its own, so without this branch
-           the Archive button on the Resolved panel could never write. */
+           reopened, reworded or re-resolved. The exceptions are filing:
+           archiving it into Settings > Archived Resolved Reports, and
+           unarchiving it back (unarchivedAt), plus the renumbering that
+           keeps both lists gap-free (report-ids.js): the report moving
+           takes the next RES- or AR- number, and the ones after it move up
+           one. Status and everything the hiker reads stay untouched, and a
+           new reportId must be a RES- or AR- number. */
         (
           resource.data.get('status', 'pending') == 'resolved'
-          && changedKeys().hasOnly(['archived', 'archivedAt', 'archivedBy'])
+          && changedKeys().hasOnly(['archived', 'archivedAt', 'archivedBy', 'unarchivedAt', 'reportId'])
+          && (
+            !('reportId' in changedKeys())
+            || request.resource.data.reportId.matches('^(RES|AR)-[0-9]{4}-[0-9]+$')
+          )
         )
       );
 

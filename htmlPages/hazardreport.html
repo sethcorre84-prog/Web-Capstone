@@ -1504,7 +1504,8 @@
 <!-- Firebase -->
 <script type="module">
 import { auth, db } from "../jsPages/firebase-config.js";
-import { escapeHtml } from "../jsPages/utils.js";
+import { escapeHtml, sortByReportId } from "../jsPages/utils.js";
+import { planReportIds } from "../jsPages/report-ids.js";
 import { formatPortalDate, formatPortalTime, toPortalDate as toJsDate } from "../jsPages/datetime-prefs.js";
 import { collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -1716,7 +1717,12 @@ function updateResolvedArchiveButtonState() {
 
 function renderRejectedList() {
   const wrap = document.getElementById('rejectedList');
-  const rejected = allReports.filter(r => r.status === 'rejected');
+  // In ID order, newest first (R-YYYY-003, 002, 001), like Resolved Reports
+  // and the Settings archives. The numbers have no gaps (report-ids.js).
+  const rejected = sortByReportId(
+    allReports.filter(r => r.status === 'rejected'),
+    r => toJsDate(r.updatedAt)
+  );
 
   // Drop any stale selections for reports that are no longer rejected
   // (e.g. they were just archived or re-verified elsewhere).
@@ -1826,7 +1832,13 @@ function renderResolvedList() {
   // Resolving does not file a report away on its own. A resolved report
   // stays in this panel until an admin selects it and presses Archive, and
   // only then does it appear under Settings > Archived Resolved Reports.
-  const resolved = allReports.filter(r => r.status === 'resolved' && !r.archived);
+  // Always in ID order, newest first (RES-YYYY-003, 002, 001), like the
+  // Settings archives. The numbers have no gaps (report-ids.js), so the list
+  // ends at 001 and a report unarchived in Settings joins it at the top.
+  const resolved = sortByReportId(
+    allReports.filter(r => r.status === 'resolved' && !r.archived),
+    r => toJsDate(r.resolvedAt)
+  );
 
   wrap.innerHTML = '';
 
@@ -1951,16 +1963,21 @@ async function confirmArchiveReports() {
 
   try {
     if (archiveMode === 'resolved') {
-      // A resolved report keeps its status and its report id -- archiving it
-      // is just the admin filing it away, so the only thing the write adds is
-      // the flag that Settings > Archived Resolved Reports reads.
+      // A resolved report keeps its status; archiving adds the flag that
+      // Settings > Archived Resolved Reports reads. It moves to the end of
+      // that list as AR-YYYY-###, and the Resolved list closes up behind it.
       const resolvedBatch = writeBatch(db);
+      const idPlan = planReportIds(allReports, new Map(ids.map(id => [id, { archived: true }])));
       ids.forEach(id => {
         resolvedBatch.update(doc(db, 'reports', id), {
           archived: true,
           archivedAt: serverTimestamp(),
-          archivedBy: auth.currentUser?.uid || null
+          archivedBy: auth.currentUser?.uid || null,
+          ...(idPlan.has(id) ? { reportId: idPlan.get(id) } : {})
         });
+      });
+      idPlan.forEach((newId, id) => {
+        if (!ids.includes(id)) resolvedBatch.update(doc(db, 'reports', id), { reportId: newId });
       });
       await resolvedBatch.commit();
       closeArchiveModal();
@@ -1971,62 +1988,21 @@ async function confirmArchiveReports() {
     const batch = writeBatch(db);
     const idSet = new Set(ids);
 
-    // Archived reports get their own per-year counter, appended after
-    // however many are already in the archive — same append pattern as a
-    // fresh rejection, just against the archive list instead.
-    const archivedCountsByYear = {};
-    allReports.forEach(r => {
-      if (r.status !== 'archived') return;
-      const y = r.timestamp
-        ? (r.timestamp.toDate ? r.timestamp.toDate() : new Date(r.timestamp)).getFullYear()
-        : new Date().getFullYear();
-      archivedCountsByYear[y] = (archivedCountsByYear[y] || 0) + 1;
-    });
-
+    // Archived reports join the archive's own list as the next A-YYYY-###,
+    // and the Rejected list closes up behind them (report-ids.js). This
+    // used to be "archived count + 1", which reused a number still held by
+    // someone once an earlier archived report had been unarchived.
+    const idPlan = planReportIds(allReports, new Map(ids.map(id => [id, { status: 'archived' }])));
     ids.forEach(id => {
-      const report = allReports.find(r => r.id === id);
-      const year = report?.timestamp
-        ? (report.timestamp.toDate ? report.timestamp.toDate() : new Date(report.timestamp)).getFullYear()
-        : new Date().getFullYear();
-      archivedCountsByYear[year] = (archivedCountsByYear[year] || 0) + 1;
-
       batch.update(doc(db, 'reports', id), {
         status: 'archived',
         archivedAt: serverTimestamp(),
         archivedBy: auth.currentUser?.uid || null,
-        reportId: `A-${year}-${String(archivedCountsByYear[year]).padStart(3, '0')}`
+        ...(idPlan.has(id) ? { reportId: idPlan.get(id) } : {})
       });
     });
-
-    // Archived items are always previously-rejected reports here, so close
-    // the gap(s) they leave behind in the rejected numbering — the
-    // remaining rejected reports for each affected year restart at 001,
-    // same as when one is verified back out of the rejected list.
-    const affectedYears = new Set(
-      allReports
-        .filter(r => idSet.has(r.id))
-        .map(r => (r.timestamp
-          ? (r.timestamp.toDate ? r.timestamp.toDate() : new Date(r.timestamp))
-          : new Date()
-        ).getFullYear())
-    );
-
-    affectedYears.forEach(year => {
-      const remainingRejected = allReports
-        .filter(r => !idSet.has(r.id) && r.status === 'rejected')
-        .map(r => {
-          const match = /^R-(\d{4})-(\d+)$/.exec(r.reportId || '');
-          return { id: r.id, reportId: r.reportId, year: match ? Number(match[1]) : year, num: match ? Number(match[2]) : Infinity };
-        })
-        .filter(r => r.year === year)
-        .sort((a, b) => a.num - b.num);
-
-      remainingRejected.forEach((r, index) => {
-        const newRejectedId = `R-${year}-${String(index + 1).padStart(3, '0')}`;
-        if (r.reportId !== newRejectedId) {
-          batch.update(doc(db, 'reports', r.id), { reportId: newRejectedId });
-        }
-      });
+    idPlan.forEach((newId, id) => {
+      if (!idSet.has(id)) batch.update(doc(db, 'reports', id), { reportId: newId });
     });
 
     await batch.commit();
@@ -2656,25 +2632,7 @@ async function confirmStatusUpdate() {
     const batch = writeBatch(db);
 
     if (newStatus === 'rejected' || newStatus === 'resolved') {
-      if (newStatus === 'rejected') {
-        // New rejections are appended after however many rejected reports
-        // already exist for the year — not a full resync of every ID.
-        const rejectedCount = allReports.filter(r =>
-          r.id !== reportId &&
-          r.status === 'rejected' &&
-          (r.timestamp ? (r.timestamp.toDate ? r.timestamp.toDate() : new Date(r.timestamp)).getFullYear() : new Date().getFullYear()) === reportYear
-        ).length;
-        updateData.reportId = `R-${reportYear}-${String(rejectedCount + 1).padStart(3, '0')}`;
-      } else {
-        // Resolved reports get their own sequence (RES-YYYY-001, 002, ...),
-        // continuing after the highest one used that year. Resolving is
-        // final, so these numbers never shift afterwards.
-        const lastResolvedNumber = allReports.reduce((max, r) => {
-          const match = /^RES-(\d{4})-(\d+)$/.exec(r.reportId || '');
-          return match && Number(match[1]) === reportYear ? Math.max(max, Number(match[2])) : max;
-        }, 0);
-        updateData.reportId = `RES-${reportYear}-${String(lastResolvedNumber + 1).padStart(3, '0')}`;
-      }
+      // Its new R-YYYY-### or RES-YYYY-### comes from planReportIds() below.
 
       // This report is leaving the active HR list, so close the gap it
       // leaves behind there too: whoever was next in line moves up. (The
@@ -2706,25 +2664,16 @@ async function confirmStatusUpdate() {
         return Math.max(max, Number(match[2]));
       }, 0);
       updateData.reportId = `HR-${reportYear}-${String(lastHrNumber + 1).padStart(3, '0')}`;
-
-      // This report is leaving the rejected list, so close the gap it
-      // leaves behind: whoever was #2 becomes #1, and so on.
-      const remainingRejected = allReports
-        .filter(r => r.id !== reportId && r.status === 'rejected')
-        .map(r => {
-          const match = /^R-(\d{4})-(\d+)$/.exec(r.reportId || '');
-          return { id: r.id, reportId: r.reportId, year: match ? Number(match[1]) : reportYear, num: match ? Number(match[2]) : Infinity };
-        })
-        .filter(r => r.year === reportYear)
-        .sort((a, b) => a.num - b.num);
-
-      remainingRejected.forEach((r, index) => {
-        const newRejectedId = `R-${reportYear}-${String(index + 1).padStart(3, '0')}`;
-        if (r.reportId !== newRejectedId) {
-          batch.update(doc(db, 'reports', r.id), { reportId: newRejectedId });
-        }
-      });
+      // The Rejected list closes the gap it leaves (planReportIds below).
     }
+
+    // Rejecting or resolving gives the report the next R- or RES- number
+    // (report-ids.js); any change that takes one out of a list closes the
+    // gap it leaves there.
+    planReportIds(allReports, new Map([[reportId, { status: newStatus }]])).forEach((newId, id) => {
+      if (id === reportId) updateData.reportId = newId;
+      else batch.update(doc(db, 'reports', id), { reportId: newId });
+    });
 
     batch.update(reportRef, updateData);
 
@@ -3007,6 +2956,36 @@ function populateHazardFilter() {
   }
 }
 
+/* Brings the resolved, rejected and archived lists' IDs into line (report-ids.js):
+   each starts at 001 with no gaps, and archived resolved reports carry AR-
+   rather than the RES- they had before that list got its own numbers. Every
+   action that moves a report already keeps them in line, so after the first
+   load this finds nothing to do; it is here for reports saved before the
+   rule existed, or moved by an older copy of a page. Only IDs that differ
+   are written, so the snapshot this causes settles straight away. */
+let tidyingReportIds = false;
+async function tidyReportIds() {
+  if (tidyingReportIds) return;
+  const changes = [...planReportIds(allReports)];
+  if (!changes.length) return;
+
+  tidyingReportIds = true;
+  try {
+    // A batch holds at most 500 writes.
+    for (let start = 0; start < changes.length; start += 400) {
+      const batch = writeBatch(db);
+      changes.slice(start, start + 400).forEach(([id, reportId]) => {
+        batch.update(doc(db, 'reports', id), { reportId });
+      });
+      await batch.commit();
+    }
+  } catch (error) {
+    console.warn('Could not renumber resolved/archived report IDs:', error.message);
+  } finally {
+    tidyingReportIds = false;
+  }
+}
+
 // Real-time listener for reports
 function loadReports() {
   const reportsRef = collection(db, 'reports');
@@ -3040,6 +3019,8 @@ function loadReports() {
       const idB = String(b.reportId || '');
       return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: 'base' });
     });
+
+    tidyReportIds();
 
     // Don't reset the page on a background data refresh — keep the admin
     // on whatever page they're currently viewing.
