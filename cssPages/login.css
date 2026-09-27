@@ -786,3 +786,11 @@ button:hover{
 #errorModal {
   z-index: 1100;
 }
+
+/* Edge (and old IE) draw their own black "reveal password" eye inside every
+   password field. The page has its own show/hide button, so hide the
+   browser's to avoid two eyes side by side. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}

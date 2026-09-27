@@ -488,6 +488,24 @@
   cursor:pointer;
 }
 .preference-theme .ghost-btn:hover{background:var(--accent-light);}
+
+/* Profile Information: a wider card with the logo, name and role on top and
+   the fields in two columns. */
+.modal-card.profile-wide{width:min(600px, 100%);}
+.profile-summary{display:flex;align-items:center;gap:14px;margin-bottom:14px;padding:14px 16px;border-radius:12px;
+  background:linear-gradient(135deg, var(--accent-light) 0%, var(--dm-surface, #fff) 100%);border:1px solid var(--dm-border, #d3e8d9);}
+.profile-summary-avatar{width:58px;height:58px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;overflow:hidden;
+  background:#fff;border:3px solid var(--accent);box-shadow:0 4px 12px rgba(31,107,57,.18);}
+.profile-summary-avatar img{width:78%;height:78%;object-fit:contain;}
+.profile-summary-text{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.profile-summary-text strong{font-size:16px;color:var(--text-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.profile-summary-text span{font-size:12px;color:var(--text-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.profile-summary-text .profile-summary-role{align-self:flex-start;margin-top:4px;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;
+  background:var(--accent);color:#fff;}
+.profile-summary-role:empty{display:none;}
+.profile-grid{grid-template-columns:repeat(2, minmax(0, 1fr));}
+.profile-grid .profile-grid-wide{grid-column:1 / -1;}
+@media (max-width:560px){ .profile-grid{grid-template-columns:minmax(0, 1fr);} }
   .modal-body{padding:18px 20px 20px;}
   .form-grid{display:grid;gap:12px;}
   .field label{display:block;font-size:12px;font-weight:600;color:var(--text-600);margin-bottom:6px;}
@@ -947,7 +965,7 @@
   import { escapeHtml as escapeHTML } from '../jsPages/utils.js';
   import { collection, getDoc, getDocs, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile, verifyBeforeUpdateEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-  import { DEFAULT_ADMIN_ROLE, renderAdminIdentity } from '../jsPages/admin-identity.js';
+  import { DEFAULT_ADMIN_ROLE, renderAdminIdentity, updateAdminProfile } from '../jsPages/admin-identity.js';
   import { DATE_FORMATS, TIME_ZONES, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
 
   const STORAGE_KEY = 'peakpath-settings';
@@ -1788,7 +1806,10 @@
   function bindProfileForm() {
     const form = document.getElementById('profileForm');
     const nameInput = document.getElementById('profileName');
+    const usernameInput = document.getElementById('profileUsername');
     const emailInput = document.getElementById('profileEmail');
+    const phoneInput = document.getElementById('profilePhone');
+    const genderInput = document.getElementById('profileGender');
     const roleInput = document.getElementById('profileRole');
     const passwordField = document.getElementById('profilePasswordField');
     const passwordInput = document.getElementById('profileCurrentPassword');
@@ -1797,7 +1818,15 @@
     if (!form) return;
 
     const user = auth.currentUser;
-    const saved = { name: user?.displayName || '', email: user?.email || '' };
+    const saved = { name: user?.displayName || '', username: '', phone: '', gender: '', email: user?.email || '' };
+
+    // The header card mirrors what is saved, not what is being typed.
+    const renderSummary = (role) => {
+      document.getElementById('profileSummaryName').textContent = saved.name || 'Admin';
+      document.getElementById('profileSummaryEmail').textContent =
+        [saved.username && `@${saved.username}`, saved.email].filter(Boolean).join(' · ');
+      if (role !== undefined) document.getElementById('profileSummaryRole').textContent = role;
+    };
 
     const fail = (message, input) => {
       errorEl.textContent = message;
@@ -1823,17 +1852,25 @@
     nameInput.value = saved.name;
     emailInput.value = saved.email;
     roleInput.value = DEFAULT_ADMIN_ROLE;
+    renderSummary(DEFAULT_ADMIN_ROLE);
 
     // Fields stay locked until the admin doc is in, so a save can never write
-    // over a name the admin has not been shown yet.
-    const lockables = [nameInput, emailInput, submitBtn];
+    // over details the admin has not been shown yet.
+    const lockables = [nameInput, usernameInput, emailInput, phoneInput, genderInput, submitBtn];
     lockables.forEach((el) => { el.disabled = true; });
     getDoc(doc(db, 'admins', user.uid))
       .then((snap) => {
         const data = snap.exists() ? snap.data() : {};
         if (data.name) saved.name = data.name;
+        saved.username = data.username || '';
+        saved.phone = data.phone || '';
+        saved.gender = data.gender || '';
         nameInput.value = saved.name;
+        usernameInput.value = saved.username;
+        phoneInput.value = saved.phone;
+        genderInput.value = saved.gender;
         roleInput.value = data.role || DEFAULT_ADMIN_ROLE;
+        renderSummary(roleInput.value);
       })
       .catch((error) => {
         console.warn('Could not load the admin profile:', error.message);
@@ -1848,14 +1885,25 @@
       errorEl.textContent = '';
 
       const name = nameInput.value.trim().replace(/\s+/g, ' ');
+      const username = usernameInput.value.trim();
+      const phone = phoneInput.value.trim().replace(/\s+/g, ' ');
+      const gender = genderInput.value;
       const email = emailInput.value.trim();
       const nameChanged = name !== saved.name;
+      const detailsChanged = nameChanged || username !== saved.username || phone !== saved.phone || gender !== saved.gender;
       const changingEmail = emailChanged();
 
       if (!auth.currentUser) return fail('Your session has expired. Sign in again to edit your profile.');
       if (!name) return fail('Enter your full name.', nameInput);
+      if (username && !/^[A-Za-z0-9._]{3,30}$/.test(username)) {
+        return fail('Usernames use 3–30 letters, numbers, dots or underscores.', usernameInput);
+      }
       if (!EMAIL_PATTERN.test(email)) return fail('Enter a valid email address.', emailInput);
-      if (!nameChanged && !changingEmail) {
+      // Digits with optional +, spaces, dashes or brackets; 7–15 digits in all.
+      if (phone && (!/^\+?[\d\s()-]+$/.test(phone) || !/^\d{7,15}$/.test(phone.replace(/\D/g, '')))) {
+        return fail('Enter a valid phone number, e.g. 0917 123 4567.', phoneInput);
+      }
+      if (!detailsChanged && !changingEmail) {
         closeModal();
         return;
       }
@@ -1871,11 +1919,12 @@
         if (changingEmail) {
           await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, passwordInput.value));
         }
-        if (nameChanged) {
-          await setDoc(doc(db, 'admins', user.uid), { name, updatedAt: serverTimestamp() }, { merge: true });
-          await updateProfile(user, { displayName: name });
-          saved.name = name;
+        if (detailsChanged) {
+          await setDoc(doc(db, 'admins', user.uid), { name, username, phone, gender, updatedAt: serverTimestamp() }, { merge: true });
+          if (nameChanged) await updateProfile(user, { displayName: name });
+          Object.assign(saved, { name, username, phone, gender });
           renderAdminIdentity({ name });
+          updateAdminProfile({ name, username, phone, gender });
         }
         // Switch the sign-in email now. A project with email enumeration
         // protection on refuses that, so fall back to a verification link.
@@ -1960,23 +2009,50 @@
            toast cannot fire for a save that did not happen. */
         content: `
           <form id="profileForm" novalidate>
-            <div class="form-grid unified-form-grid">
+            <!-- The PeakPath logo is the admin's picture: there is nothing to
+                 upload or pick. -->
+            <div class="profile-summary">
+              <div class="profile-summary-avatar"><img src="../assets/images/logo.png" alt=""></div>
+              <div class="profile-summary-text">
+                <strong id="profileSummaryName">Admin</strong>
+                <span id="profileSummaryEmail"></span>
+                <span class="profile-summary-role" id="profileSummaryRole"></span>
+              </div>
+            </div>
+            <div class="form-grid unified-form-grid profile-grid">
               <div class="field">
                 <label for="profileName">Full Name</label>
                 <input id="profileName" type="text" autocomplete="name" maxlength="80" required>
               </div>
               <div class="field">
+                <label for="profileUsername">Username</label>
+                <input id="profileUsername" type="text" autocomplete="username" maxlength="30" placeholder="e.g. peakpath_admin" spellcheck="false">
+              </div>
+              <div class="field">
                 <label for="profileEmail">Email Address</label>
                 <input id="profileEmail" type="email" autocomplete="email" required>
               </div>
-              <div class="field" id="profilePasswordField" hidden>
-                <label for="profileCurrentPassword">Current Password</label>
-                <input id="profileCurrentPassword" type="password" autocomplete="current-password" placeholder="Required to change your email">
+              <div class="field">
+                <label for="profilePhone">Phone Number</label>
+                <input id="profilePhone" type="tel" autocomplete="tel" maxlength="20" placeholder="e.g. 0917 123 4567">
+              </div>
+              <div class="field">
+                <label for="profileGender">Gender</label>
+                <select id="profileGender">
+                  <option value="">Select gender</option>
+                  <option>Male</option>
+                  <option>Female</option>
+                  <option>Prefer not to say</option>
+                </select>
               </div>
               <div class="field">
                 <label for="profileRole">Role</label>
                 <input id="profileRole" type="text" readonly aria-describedby="profileRoleHint">
-                <div class="field-hint" id="profileRoleHint">Roles are assigned by a system administrator.</div>
+                <div class="field-hint" id="profileRoleHint">Assigned by a system administrator.</div>
+              </div>
+              <div class="field profile-grid-wide" id="profilePasswordField" hidden>
+                <label for="profileCurrentPassword">Current Password</label>
+                <input id="profileCurrentPassword" type="password" autocomplete="current-password" placeholder="Required to change your email">
               </div>
             </div>
             <div class="form-error" id="profileError" role="alert"></div>
@@ -2241,6 +2317,7 @@
       ['archivedHazardReports', 'archivedResolvedReports', 'expiredAdvisoryArchive'].includes(action)
     );
     modalCard.classList.toggle('preference-theme', ['profile', 'password', 'timezone'].includes(action));
+    modalCard.classList.toggle('profile-wide', action === 'profile');
     modalTitle.textContent = config.title;
     modalBody.innerHTML = config.content;
     modal.classList.add('visible');
@@ -2297,6 +2374,14 @@
   document.querySelectorAll('.setting-row[data-action]').forEach((row) => {
     row.addEventListener('click', () => openModal(row.dataset.action));
   });
+
+  // "Edit Profile" in the top-bar profile card links here with ?open=profile.
+  // The form needs the signed-in account, so it opens once auth is ready.
+  const openParam = new URLSearchParams(window.location.search).get('open');
+  if (openParam === 'profile') {
+    history.replaceState(null, '', window.location.pathname + window.location.hash);
+    auth.authStateReady().then(() => { if (auth.currentUser) openModal('profile'); });
+  }
 
   modal.addEventListener('click', (event) => {
     if (event.target === modal) closeModal();

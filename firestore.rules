@@ -97,12 +97,16 @@ service cloud.firestore {
     }
 
     match /admins/{userId} {
-      allow read: if signedIn();
-      // Settings > Profile Information saves the admin's own name. Nothing
-      // else, so no one can grant themselves a role or add another admin.
+      // Anyone may check whether one known UID is an admin: Forgot Password
+      // does this before sign-in. Listing every admin still needs sign-in.
+      allow get: if true;
+      allow list: if signedIn();
+      // Settings > Profile Information saves the admin's own name, username,
+      // phone number and gender. Nothing else, so no one can grant
+      // themselves a role or add another admin.
       allow update: if signedIn()
                     && request.auth.uid == userId
-                    && changedKeys().hasOnly(['name', 'updatedAt']);
+                    && changedKeys().hasOnly(['name', 'username', 'phone', 'gender', 'updatedAt']);
       allow create, delete: if false;
     }
 

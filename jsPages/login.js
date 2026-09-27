@@ -28,11 +28,12 @@ const saveRememberedEmail = (email, remember) => {
   } catch { /* storage blocked: the checkbox just has no effect */ }
 };
 
-/* adminEmails/{lowercase email} lists the sign-in address of every admin, so
-   Forgot Password can check an address before anyone is signed in (admins/
-   is only readable after sign-in). The rules allow reading one address at a
-   time, never listing them, and an admin can only add their own address.
-   Each admin's entry is written when they sign in (see login() below). */
+/* adminEmails/{lowercase email} maps each admin's sign-in address to their
+   Auth UID, so Forgot Password can find the UID for an address before anyone
+   is signed in and then confirm admins/{uid} exists. The rules allow reading
+   one address at a time, never listing them, and an admin can only add their
+   own address. Each admin's entry is written when they sign in (see login()
+   below). */
 const adminEmailRef = (email) => doc(db, "adminEmails", email.trim().toLowerCase());
 
 const DEACTIVATED_MESSAGE =
@@ -309,10 +310,15 @@ async function sendResetLink() {
   submitBtn.disabled = true;
   setForgotStatus("Checking...");
 
-  // Only registered admins can reset a password from this page.
+  // Only registered admins can reset a password from this page. The email
+  // leads to its UID (adminEmails), and that UID must still be in admins/ --
+  // the same check the login itself makes -- so an admin who has been
+  // removed can no longer reset either.
   let isAdminEmail = false;
   try {
-    isAdminEmail = (await getDoc(adminEmailRef(email))).exists();
+    const entry = await getDoc(adminEmailRef(email));
+    const uid = entry.exists() ? entry.data().uid : null;
+    isAdminEmail = Boolean(uid) && (await getDoc(doc(db, "admins", uid))).exists();
   } catch (error) {
     console.error("Could not check the admin email:", error.code, error.message);
     setForgotStatus("");

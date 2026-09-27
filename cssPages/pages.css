@@ -1163,3 +1163,193 @@ body {
         padding: 12px 10px;
     }
 }
+
+/* Edge draws its own black "reveal password" eye inside password fields.
+   Settings > Change Password has its own show/hide buttons, so hide the
+   browser's to avoid two eyes side by side. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
+}
+
+/* ==========================================================================
+   Admin profile card — opened from the PeakPath logo beside the
+   notification bell on every admin page (admin-identity.js).
+   ========================================================================== */
+.profile-trigger {
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+.profile-trigger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px var(--accent-light), 0 4px 12px rgba(31, 107, 57, .18);
+}
+.profile-trigger:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.admin-profile-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(12, 24, 18, .45);
+    backdrop-filter: blur(2px);
+}
+.admin-profile-overlay.open {
+    display: flex;
+}
+.admin-profile-card {
+    position: relative;
+    width: min(420px, 100%);
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    padding: 0 24px 22px;
+    border-radius: 18px;
+    background: var(--dm-surface, #fff);
+    border: 1px solid var(--dm-border, #dce6df);
+    box-shadow: 0 24px 60px rgba(12, 24, 18, .28);
+    text-align: center;
+    animation: adminProfileIn .22s ease-out;
+}
+@keyframes adminProfileIn {
+    from { transform: translateY(10px) scale(.97); opacity: 0; }
+    to   { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .admin-profile-card { animation: none; }
+}
+.admin-profile-banner {
+    height: 92px;
+    margin: 0 -24px;
+    background: linear-gradient(135deg, var(--sidebar-bg-light, #1d3324) 0%, var(--accent-dark, #1f6b39) 55%, var(--accent, #2f8f4e) 100%);
+}
+.admin-profile-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, .35);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .16);
+    color: #fff;
+    cursor: pointer;
+}
+.admin-profile-close:hover {
+    background: rgba(255, 255, 255, .28);
+}
+.admin-profile-close i {
+    color: #fff;
+}
+.admin-profile-avatar {
+    width: 96px;
+    height: 96px;
+    margin: -48px auto 10px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #fff;
+    border: 4px solid var(--dm-surface, #fff);
+    box-shadow: 0 0 0 3px var(--accent, #2f8f4e), 0 8px 20px rgba(12, 24, 18, .2);
+}
+.admin-profile-avatar img {
+    width: 76%;
+    height: 76%;
+    object-fit: contain;
+}
+.admin-profile-name {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--dm-text, #17231c);
+    overflow-wrap: anywhere;
+}
+.admin-profile-role {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: var(--accent-light, #e7f5eb);
+    color: var(--accent-dark, #1f6b39);
+    font-size: 11.5px;
+    font-weight: 700;
+}
+.admin-profile-rows {
+    margin: 18px 0 16px;
+    border: 1px solid var(--dm-border, #dce6df);
+    border-radius: 12px;
+    overflow: hidden;
+    text-align: left;
+}
+.admin-profile-row {
+    display: grid;
+    grid-template-columns: 30px 110px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--dm-border, #edf1ee);
+    font-size: 13px;
+}
+.admin-profile-row:last-child {
+    border-bottom: none;
+}
+.admin-profile-row-icon {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--accent-light, #e7f5eb);
+}
+.admin-profile-row-icon i {
+    font-size: 12px;
+}
+.admin-profile-row-label {
+    color: var(--text-secondary, #5b6b60);
+    font-size: 12px;
+}
+.admin-profile-row-value {
+    color: var(--dm-text, #17231c);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.admin-profile-row-value.empty {
+    color: var(--text-muted, #93a199);
+    font-weight: 400;
+    font-style: italic;
+}
+.admin-profile-actions {
+    display: flex;
+    justify-content: center;
+}
+.admin-profile-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 10px;
+    background: var(--accent-dark, #1f6b39);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+}
+.admin-profile-edit:hover {
+    background: var(--accent, #2f8f4e);
+}
+.admin-profile-edit i {
+    color: #fff;
+}
+@media (max-width: 420px) {
+    .admin-profile-row { grid-template-columns: 30px minmax(0, 1fr); }
+    .admin-profile-row-value { grid-column: 2; }
+}
