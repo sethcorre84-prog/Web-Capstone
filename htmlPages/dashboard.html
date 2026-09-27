@@ -115,21 +115,25 @@
         .hero-card p { margin: 0; font-size: 24px; font-weight: 700; line-height: 1.15; color: var(--text-primary); font-variant-numeric: tabular-nums; }
         .hero-card span { display: block; font-size: 12px; line-height: 1.4; color: var(--text-muted); }
 
-        /* ---- Content grid ---- */
-        .dashboard-grid {
+        /* ---- Content: three rows of three cards ----
+             1  Visitor Trends | Visitors per Trail | Trail Status Overview
+             2  Map            | Recent Hazards     | Announcements + Emergencies
+             3  Trail Summary  | Hazard Trends      | Quick Actions
+           Cards in a row share one height so their edges line up. */
+        .dash-row {
             display: grid;
-            grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.2fr) minmax(0, 1fr);
             gap: 18px;
-            /* Cards size to their content instead of being stretched to
-               match each other, which is what left big empty gaps. */
-            align-items: start;
+            align-items: stretch;
+            margin-bottom: 18px;
         }
-        .left-column,
-        .right-column {
-            display: grid;
+        .dash-stack {
+            display: flex;
+            flex-direction: column;
             gap: 18px;
             min-width: 0;
         }
+        .dash-stack > .card { flex: 1; }
         .card {
             display: flex;
             flex-direction: column;
@@ -148,6 +152,7 @@
             margin-bottom: 14px;
         }
         .card h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--accent-dark); }
+        .card h2 small { font-size: 12px; font-weight: 500; color: var(--text-muted); }
         .card-link {
             flex-shrink: 0;
             font-size: 12.5px;
@@ -157,15 +162,11 @@
         }
         .card-link:hover { text-decoration: underline; }
 
-        /* Both cards in the visitor row stretch to one height. */
-        .visitor-row {
-            margin-top: 18px;
-            align-items: stretch;
-        }
-        .visitor-row .empty-state { flex: 1; }
+        .card > .empty-state { flex: 1; }
 
         #dashboardMap {
-            height: 400px;
+            flex: 1;
+            min-height: 380px;
             border: 1px solid var(--border);
             border-radius: 10px;
             overflow: hidden;
@@ -226,11 +227,164 @@
         .pill-red { background: var(--red-bg); color: var(--red-text); }
         .pill-yellow { background: var(--amber-bg); color: var(--amber-text); }
 
-        /* ---- Quick actions: one neutral style, one primary ---- */
+        /* ---- Trail Status Overview: photo, name, distance, status ---- */
+        .trail-row { gap: 10px; }
+        .trail-thumb {
+            width: 38px;
+            height: 38px;
+            flex-shrink: 0;
+            border-radius: 9px;
+            background: var(--dm-surface-2, #eef2ed) center / cover no-repeat;
+            border: 1px solid var(--border);
+        }
+        .trail-row .item-main { flex: 1; }
+        .trail-dist { flex-shrink: 0; font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+
+        /* ---- Compact tables (hazard reports, emergency alerts) ---- */
+        /* A table that is still too wide scrolls inside its card instead of
+           spilling into the card beside it. */
+        .table-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+        .mini-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .mini-table th {
+            padding: 0 4px 8px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .02em;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .mini-table .pill-chip { padding: 2px 8px; font-size: 11px; }
+        .mini-table td {
+            padding: 9px 4px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+            color: var(--text-secondary);
+        }
+        .mini-table tr:last-child td { border-bottom: none; }
+        .mini-table tbody tr[data-href] { cursor: pointer; }
+        .mini-table tbody tr[data-href]:hover td { background: var(--dm-surface-2, #f6f9f6); }
+        .mini-table strong { display: block; font-size: 12px; font-weight: 600; color: var(--text-primary); }
+        .mini-table td:last-child { white-space: nowrap; }
+        .mini-table .sub { display: block; margin-top: 2px; font-size: 11.5px; color: var(--text-muted); }
+        .mini-table .empty-cell { padding: 18px 6px; text-align: center; color: var(--text-muted); }
+        .type-cell { display: flex; align-items: center; gap: 6px; }
+        .type-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            background: var(--red-bg);
+            color: var(--red-text);
+            font-size: 11px;
+        }
+        .type-icon i { color: inherit; }
+
+        /* ---- Recent Announcements: a timeline ---- */
+        .timeline { list-style: none; margin: 0; padding: 0 0 0 4px; }
+        .timeline li { position: relative; padding: 0 0 14px 18px; border-left: 2px solid var(--border); }
+        .timeline li:last-child { padding-bottom: 0; border-left-color: transparent; }
+        .timeline li::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 3px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+        .timeline a { display: block; }
+        .timeline a:hover strong { color: var(--accent-dark); }
+        .timeline strong { display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+        .timeline p {
+            margin: 3px 0;
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--text-secondary);
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            overflow: hidden;
+        }
+        .timeline .item-meta { font-size: 11.5px; }
+        .timeline-empty { padding-left: 18px; font-size: 13px; color: var(--text-secondary); }
+        .timeline-empty::before { display: none; }
+
+        /* ---- Active Emergency Alerts: red-tinted, like the Emergency page ---- */
+        .card.emergency-card { border-color: rgba(200, 64, 47, .28); background: linear-gradient(180deg, var(--red-bg) 0, var(--card-bg) 64px); }
+        .emergency-card h2 { display: flex; align-items: center; gap: 8px; color: var(--red-text); }
+        .emergency-card h2 i { color: var(--red-text); }
+        .emergency-card .card-link { color: var(--red-text); }
+        .emergency-total { margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--red-text); }
+        .call-btn {
+            width: 28px;
+            height: 28px;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+        }
+        .call-btn i { color: var(--accent); font-size: 12px; }
+        .call-btn.is-disabled { opacity: .4; pointer-events: none; }
+        .pill-sos { background: var(--red-bg); color: var(--red-text); text-transform: uppercase; }
+        .pill-blue { background: var(--blue-bg); color: var(--blue-text); }
+
+        /* ---- Trail Summary: four tiles ---- */
+        .summary-tiles { flex: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+        .summary-tile {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            min-width: 0;
+            padding: 14px 8px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            text-align: center;
+        }
+        .summary-tile i { margin-bottom: 4px; font-size: 22px; }
+        .summary-tile strong { font-size: 18px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .summary-tile span { font-size: 11.5px; color: var(--text-secondary); }
+        .summary-tile small { font-size: 11px; color: var(--text-muted); }
+        .summary-tile.tone-green i { color: var(--green-text); }
+        .summary-tile.tone-blue i { color: var(--blue-text); }
+        .summary-tile.tone-purple i { color: #6b4cc9; }
+        .summary-tile.tone-red i { color: var(--red-text); }
+
+        /* ---- Hazard Trends: bars per hazard type this month ---- */
+        .bar-chart { flex: 1; display: flex; flex-direction: column; min-height: 190px; }
+        .bar-legend { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 11.5px; color: var(--text-secondary); }
+        .bar-legend::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+        .bars { flex: 1; display: flex; align-items: flex-end; gap: 12px; padding: 0 4px; border-bottom: 1px solid var(--border); }
+        .bar-col { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
+        .bar-value { font-size: 11.5px; font-weight: 700; color: var(--text-primary); }
+        .bar { width: 100%; max-width: 38px; min-height: 3px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%); }
+        .bar-labels { display: flex; gap: 12px; padding: 6px 4px 0; }
+        .bar-labels span { flex: 1; min-width: 0; font-size: 11px; line-height: 1.3; text-align: center; color: var(--text-secondary); overflow-wrap: anywhere; }
+        .bar-chart .empty-state { flex: 1; }
+
+        /* ---- Quick actions: coloured buttons in two columns ---- */
         .action-grid {
             display: grid;
-            gap: 8px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
         }
+        .action-grid .button { justify-content: center; }
+        .action-grid .button-wide { grid-column: 1 / -1; }
+        .action-grid .button { padding: 11px 8px; font-size: 12.5px; white-space: nowrap; }
+        .action-grid .button-blue { background: #2a63b5; border-color: #2a63b5; color: #fff; }
+        .action-grid .button-purple { background: #6b4cc9; border-color: #6b4cc9; color: #fff; }
+        .action-grid .button-blue i, .action-grid .button-purple i { color: #fff; }
+        .action-grid .button-blue:hover { background: #22549b; border-color: #22549b; }
+        .action-grid .button-purple:hover { background: #5a3db3; border-color: #5a3db3; }
         .button {
             display: flex;
             align-items: center;
@@ -255,11 +409,20 @@
            Shared chrome (sidebar rail, page padding, header stacking) lives
            in pages.css; these are this page's own grids.
         ========================================== */
+        /* Below this the tables no longer fit three across: two across, the
+           first card of each row spanning both. */
+        @media (max-width: 1360px) {
+            .dash-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .dash-row > :first-child { grid-column: 1 / -1; }
+        }
         @media (max-width: 1240px) {
             .hero-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         }
-        @media (max-width: 980px) {
-            .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+        @media (max-width: 1100px) {
+            .dash-row { grid-template-columns: minmax(0, 1fr); }
+        }
+        @media (max-width: 560px) {
+            .summary-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 760px) {
             .hero-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -372,64 +535,10 @@
                 </article>
             </section>
 
-            <!-- Live content first. The two visitor sections have no data
-                 source yet, so they share their own row at the bottom. -->
-            <section class="dashboard-grid">
-                <div class="left-column">
-                    <div class="card map-card">
-                        <div class="card-top">
-                            <h2>Mount Makiling Map</h2>
-                            <a class="card-link" href="geomap.html">Open Geomap →</a>
-                        </div>
-                        <div id="dashboardMap" aria-label="Interactive map of Mount Makiling"></div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-top">
-                            <h2>Trail Status</h2>
-                            <a class="card-link" href="trail.html">Manage trails →</a>
-                        </div>
-                        <ul class="pill-list" id="trailStatusList"><li class="pill-item"><span>Loading trails...</span></li></ul>
-                    </div>
-                </div>
-
-                <div class="right-column">
-                    <div class="card">
-                        <div class="card-top">
-                            <h2>Recent Hazard Reports</h2>
-                            <a class="card-link" href="hazardreport.html">View all →</a>
-                        </div>
-                        <ul class="pill-list" id="recentHazardsList"><li class="pill-item"><span>Loading hazard reports...</span></li></ul>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-top">
-                            <h2>Recent Announcements</h2>
-                            <a class="card-link" href="A&amp;A.html">View all →</a>
-                        </div>
-                        <ul class="pill-list" id="recentAnnouncementsList"><li class="pill-item"><span>Loading announcements...</span></li></ul>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-top"><h2>Quick Actions</h2></div>
-                        <div class="action-grid">
-                            <!-- Add Trail and Post Announcement open a popup here
-                                 (quick-actions.js); the href is only the fallback. -->
-                            <a class="button button-primary" href="trail.html" data-quick-action="add-trail"><i class="fa-solid fa-plus" aria-hidden="true"></i>Add Trail</a>
-                            <a class="button" href="trail.html"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>Add Checkpoint</a>
-                            <a class="button" href="A&amp;A.html" data-quick-action="post-advisory"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i>Post Announcement</a>
-                            <a class="button" href="hazardreport.html"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>View Reports</a>
-                            <a class="button" href="geomap.html"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>Open Geomap Monitoring</a>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Same 2:1 columns as above, so the cards line up with the map
-                 and the side column. -->
-            <section class="dashboard-grid visitor-row">
+            <!-- Row 1: visitors and trails -->
+            <section class="dash-row">
                 <div class="card">
-                    <div class="card-top"><h2>Visitor Trends</h2></div>
+                    <div class="card-top"><h2>Visitor Trends <small>(Mount Makiling)</small></h2></div>
                     <div class="empty-state">
                         <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
                         <strong>No visitor data yet</strong>
@@ -437,11 +546,99 @@
                     </div>
                 </div>
                 <div class="card">
-                    <div class="card-top"><h2>Visitors per Trail</h2></div>
+                    <div class="card-top"><h2>Visitors per Trail <small>(This Month)</small></h2></div>
                     <div class="empty-state">
                         <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
                         <strong>No visitor data yet</strong>
                         <span>A per-trail breakdown will appear once visitor check-ins are recorded.</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-top">
+                        <h2>Trail Status Overview</h2>
+                        <a class="card-link" href="trail.html">Manage trails →</a>
+                    </div>
+                    <ul class="pill-list" id="trailStatusList"><li class="pill-item"><span>Loading trails...</span></li></ul>
+                </div>
+            </section>
+
+            <!-- Row 2: the mountain, what is being reported, what has been said -->
+            <section class="dash-row">
+                <div class="card map-card">
+                    <div class="card-top">
+                        <h2>Mount Makiling Map Overview</h2>
+                        <a class="card-link" href="geomap.html">Open Geomap →</a>
+                    </div>
+                    <div id="dashboardMap" aria-label="Interactive map of Mount Makiling"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-top">
+                        <h2>Recent Hazard Reports</h2>
+                        <a class="card-link" href="hazardreport.html">View all →</a>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="mini-table">
+                            <thead><tr><th>Type / Reported By</th><th>Location</th><th>Status</th><th>Date</th></tr></thead>
+                            <tbody id="recentHazardsList"><tr><td colspan="4" class="empty-cell">Loading hazard reports...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="dash-stack">
+                    <div class="card">
+                        <div class="card-top">
+                            <h2>Recent Announcements</h2>
+                            <a class="card-link" href="A&amp;A.html">View all →</a>
+                        </div>
+                        <ul class="timeline" id="recentAnnouncementsList"><li class="timeline-empty">Loading announcements...</li></ul>
+                    </div>
+                    <div class="card emergency-card">
+                        <div class="card-top">
+                            <h2><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>Active Emergency Alerts</h2>
+                            <a class="card-link" href="emergency.html">View all →</a>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="mini-table">
+                                <thead><tr><th>Hiker</th><th>Location</th><th>Time</th><th>Status</th><th>Action</th></tr></thead>
+                                <tbody id="emergencyList"><tr><td colspan="5" class="empty-cell">Loading emergency alerts...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="emergency-total" id="emergencyTotal"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Row 3: trail figures, hazard trend, shortcuts -->
+            <section class="dash-row">
+                <div class="card">
+                    <div class="card-top"><h2>Trail Summary <small>(Right Now)</small></h2></div>
+                    <div class="summary-tiles">
+                        <div class="summary-tile tone-green"><i class="fa-solid fa-people-group" aria-hidden="true"></i><strong id="summaryOnMountain">—</strong><span>Hikers on the Mountain</span><small>Signed in now</small></div>
+                        <div class="summary-tile tone-blue"><i class="fa-solid fa-ruler-horizontal" aria-hidden="true"></i><strong id="summaryDistance">—</strong><span>Total Trail Distance</span><small>All trails</small></div>
+                        <div class="summary-tile tone-red"><i class="fa-solid fa-ban" aria-hidden="true"></i><strong id="summaryClosed">—</strong><span>Closed Trails</span><small id="summaryClosedMeta">&nbsp;</small></div>
+                        <div class="summary-tile tone-purple"><i class="fa-solid fa-route" aria-hidden="true"></i><strong id="summaryTrails">—</strong><span>Total Trails</span><small>In Trail Management</small></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-top">
+                        <h2>Hazard Trends <small>(This Month)</small></h2>
+                        <a class="card-link" href="hazardreport.html">View reports →</a>
+                    </div>
+                    <div class="bar-chart" id="hazardTrends"><div class="empty-state"><span>Loading hazard trends...</span></div></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-top"><h2>Quick Actions</h2></div>
+                    <div class="action-grid">
+                        <!-- Add Trail and Post Announcement open a popup here
+                             (quick-actions.js); the href is only the fallback. -->
+                        <a class="button button-primary" href="trail.html" data-quick-action="add-trail"><i class="fa-solid fa-plus" aria-hidden="true"></i>Add Trail</a>
+                        <a class="button button-primary" href="trail.html"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>Add Checkpoint</a>
+                        <a class="button button-blue" href="A&amp;A.html" data-quick-action="post-advisory"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i>Post Announcement</a>
+                        <a class="button button-purple" href="hazardreport.html"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>View Reports</a>
+                        <a class="button button-wide" href="geomap.html"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>Open Geomap Monitoring</a>
                     </div>
                 </div>
             </section>
@@ -451,7 +648,8 @@
         import { db } from "../jsPages/firebase-config.js";
         import { escapeHtml } from "../jsPages/utils.js";
         import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { formatPortalDate, portalHourCycle, portalTimeZone } from "../jsPages/datetime-prefs.js";
+        import { formatPortalDate, formatPortalTime, portalHourCycle, portalTimeZone, toPortalDate } from "../jsPages/datetime-prefs.js";
+        import { getTrailImage } from "../jsPages/trail-images.js";
         import { createMakilingMap } from "../jsPages/makiling-area.js";
         import { watchActiveHikers } from "../jsPages/active-hikers.js";
 
@@ -467,6 +665,57 @@
             return new Date(0);
         };
 
+        /* ---- Hazard helpers ---- */
+        const HAZARD_ICONS = [
+            [/tree|branch|log/, 'fa-tree'],
+            [/landslide|rockslide|erosion|mud/, 'fa-hill-rockslide'],
+            [/flood|water|river|stream/, 'fa-water'],
+            [/fire|smoke/, 'fa-fire'],
+            [/animal|wildlife|snake|bee|insect/, 'fa-paw'],
+            [/bridge|trail damage|path|washout/, 'fa-road-barrier']
+        ];
+        function hazardIcon(type) {
+            const lower = String(type || '').toLowerCase();
+            return (HAZARD_ICONS.find(([pattern]) => pattern.test(lower)) || [null, 'fa-triangle-exclamation'])[1];
+        }
+
+        // Reports per hazard type this month (portal time zone), top five
+        // types plus "Others". Rejected reports were judged false, so they
+        // are left out.
+        function renderHazardTrends(reports) {
+            const monthKey = (date) => date.toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).slice(0, 7);
+            const thisMonth = monthKey(new Date());
+            const counts = new Map();
+            reports.forEach((report) => {
+                if ((report.status || 'pending') === 'rejected') return;
+                const date = toPortalDate(report.timestamp || report.createdAt);
+                if (!date || monthKey(date) !== thisMonth) return;
+                const type = String(report.hazardType || 'Other').trim() || 'Other';
+                counts.set(type, (counts.get(type) || 0) + 1);
+            });
+
+            const container = document.getElementById('hazardTrends');
+            const sorted = [...counts].sort((a, b) => b[1] - a[1]);
+            if (!sorted.length) {
+                container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><strong>No hazard reports this month</strong><span>Bars appear here as reports come in.</span></div>';
+                return;
+            }
+            const bars = sorted.slice(0, 5);
+            const others = sorted.slice(5).reduce((sum, [, value]) => sum + value, 0);
+            if (others) bars.push(['Others', others]);
+            const max = Math.max(...bars.map(([, value]) => value));
+
+            container.innerHTML = `
+                <div class="bar-legend">Number of Reports</div>
+                <div class="bars">${bars.map(([type, value]) => `
+                    <div class="bar-col" title="${escapeHtml(type)}: ${value}">
+                        <span class="bar-value">${value}</span>
+                        <span class="bar" style="height:${Math.max(4, (value / max) * 100)}%"></span>
+                    </div>`).join('')}
+                </div>
+                <div class="bar-labels">${bars.map(([type]) => `<span>${escapeHtml(type)}</span>`).join('')}</div>`;
+        }
+
         /* Mount Makiling only: the same 6 km area as the Geomap page, from
            makiling-area.js. Everything past it is greyed out and the view
            cannot be panned or zoomed off the mountain. */
@@ -475,6 +724,9 @@
             .bindPopup('<strong>Mount Makiling</strong><br>1,096 m')
             .addTo(dashboardMap);
         const trailLayer = L.layerGroup().addTo(dashboardMap);
+        // The map fills its row, whose height follows the cards beside it, so
+        // Leaflet is told whenever that box changes size.
+        new ResizeObserver(() => dashboardMap.invalidateSize()).observe(document.getElementById('dashboardMap'));
 
         const getCoordinates = (trail) => {
             const latitude = Number(trail.latitude ?? trail.lat ?? trail.coordinates?.latitude);
@@ -490,6 +742,7 @@
             db,
             bounds: makilingBounds,
             onUpdate: ({ hikedToday, onMountainNow }) => {
+                document.getElementById('summaryOnMountain').textContent = onMountainNow;
                 document.getElementById('activeHikersValue').textContent = hikedToday;
                 document.getElementById('activeHikersMeta').textContent = hikedToday
                     ? `${onMountainNow} on the mountain now`
@@ -522,9 +775,26 @@
                 ? trails.map(trail => {
                     const status = trail.Status || 'Open';
                     const chipClass = status === 'Open' ? 'pill-green' : status === 'Closed' ? 'pill-red' : 'pill-yellow';
-                    return `<li class="pill-item"><strong>${escapeHtml(trail.Trail || 'Untitled Trail')}</strong><span class="pill-chip ${chipClass}">${escapeHtml(status)}</span></li>`;
+                    const distance = trail['Approximate Distance'] || '';
+                    return `<li class="pill-item trail-row">
+                        <span class="trail-thumb" style="background-image:url('${escapeHtml(getTrailImage(trail))}')" aria-hidden="true"></span>
+                        <div class="item-main"><strong>${escapeHtml(trail.Trail || 'Untitled Trail')}</strong>${trail.Municipality ? `<span class="item-meta">${escapeHtml(trail.Municipality)}</span>` : ''}</div>
+                        ${distance ? `<span class="trail-dist">${escapeHtml(distance)}</span>` : ''}
+                        <span class="pill-chip ${chipClass}">${escapeHtml(status)}</span>
+                    </li>`;
                 }).join('')
                 : '<li class="pill-item"><span>No trails found.</span></li>';
+
+            // Trail Summary tiles.
+            const closed = trails.filter(trail => (trail.Status || 'Open') === 'Closed').length;
+            const kilometres = trails.reduce((sum, trail) => {
+                const value = parseFloat(String(trail['Approximate Distance'] || '').replace(/,/g, ''));
+                return Number.isFinite(value) ? sum + value : sum;
+            }, 0);
+            document.getElementById('summaryTrails').textContent = trails.length;
+            document.getElementById('summaryClosed').textContent = closed;
+            document.getElementById('summaryClosedMeta').textContent = trails.length ? `${Math.round((closed / trails.length) * 100)}% of trails` : 'No trails yet';
+            document.getElementById('summaryDistance').textContent = kilometres ? `${Math.round(kilometres * 10) / 10} km` : '—';
         }, (error) => {
             console.error('Error loading dashboard trails:', error);
             document.getElementById('trailStatusList').innerHTML = '<li class="pill-item"><span>Unable to load trail data.</span></li>';
@@ -544,14 +814,27 @@
             document.getElementById('recentHazardsList').innerHTML = recentReports.length
                 ? recentReports.map(report => {
                     const status = report.status || 'pending';
-                    const chipClass = status === 'verified' ? 'pill-green' : 'pill-yellow';
-                    // Date on its own muted line; the pill only carries the status.
-                    return `<li class="pill-item"><div class="item-main"><strong>${escapeHtml(report.hazardType || 'Unknown hazard')}</strong><span class="item-meta">${escapeHtml(formatReportDate(report.timestamp || report.createdAt))}</span></div><span class="pill-chip ${chipClass}">${escapeHtml(status)}</span></li>`;
+                    const chipClass = status === 'verified' ? 'pill-green' : status === 'resolved' ? 'pill-blue' : 'pill-yellow';
+                    const when = toPortalDate(report.timestamp || report.createdAt);
+                    return `<tr data-href="hazardreport.html?report=${encodeURIComponent(report.id)}">
+                        <td><div class="type-cell"><span class="type-icon"><i class="fa-solid ${hazardIcon(report.hazardType)}" aria-hidden="true"></i></span><div><strong>${escapeHtml(report.hazardType || 'Unknown hazard')}</strong><span class="sub">by ${escapeHtml(report.reportedBy || 'Anonymous')}</span></div></div></td>
+                        <td><strong>${escapeHtml(report.location || 'N/A')}</strong>${report.trail ? `<span class="sub">${escapeHtml(report.trail)}</span>` : ''}</td>
+                        <td><span class="pill-chip ${chipClass}">${escapeHtml(status)}</span></td>
+                        <td>${when ? `${escapeHtml(formatPortalDate(when))}<span class="sub">${escapeHtml(formatPortalTime(when))}</span>` : 'Date unavailable'}</td>
+                    </tr>`;
                 }).join('')
-                : '<li class="pill-item"><span>No hazard reports found.</span></li>';
+                : '<tr><td colspan="4" class="empty-cell">No hazard reports found.</td></tr>';
+            renderHazardTrends(reports);
         }, (error) => {
             console.error('Error loading dashboard reports:', error);
-            document.getElementById('recentHazardsList').innerHTML = '<li class="pill-item"><span>Unable to load hazard data.</span></li>';
+            document.getElementById('recentHazardsList').innerHTML = '<tr><td colspan="4" class="empty-cell">Unable to load hazard data.</td></tr>';
+            document.getElementById('hazardTrends').innerHTML = '<div class="empty-state"><span>Unable to load hazard data.</span></div>';
+        });
+
+        // Rows in the dashboard tables open their record.
+        document.addEventListener('click', (event) => {
+            const row = event.target.closest('tr[data-href]');
+            if (row && !event.target.closest('a')) window.location.href = row.dataset.href;
         });
 
         onSnapshot(collection(db, 'Advisory'), (snapshot) => {
@@ -564,11 +847,73 @@
                 })
                 .slice(0, 3);
             document.getElementById('recentAnnouncementsList').innerHTML = advisories.length
-                ? advisories.map(advisory => `<li class="pill-item"><div class="item-main"><strong>${escapeHtml(advisory.title || 'Untitled advisory')}</strong><span class="item-meta">${escapeHtml(formatReportDate(advisory.effectiveDate || advisory.createdAt || advisory.publishedAt))}</span></div></li>`).join('')
-                : '<li class="pill-item"><span>No announcements found.</span></li>';
+                ? advisories.map(advisory => `<li><a href="A&amp;A.html?advisory=${encodeURIComponent(advisory.id)}">
+                    <strong>${escapeHtml(advisory.title || 'Untitled advisory')}</strong>
+                    ${advisory.desc ? `<p>${escapeHtml(advisory.desc)}</p>` : ''}
+                    <span class="item-meta">${escapeHtml(formatReportDate(advisory.effectiveDate || advisory.createdAt || advisory.publishedAt))}</span>
+                </a></li>`).join('')
+                : '<li class="timeline-empty">No announcements found.</li>';
         }, (error) => {
             console.error('Error loading dashboard announcements:', error);
-            document.getElementById('recentAnnouncementsList').innerHTML = '<li class="pill-item"><span>Unable to load announcements.</span></li>';
+            document.getElementById('recentAnnouncementsList').innerHTML = '<li class="timeline-empty">Unable to load announcements.</li>';
+        });
+
+        /* ---- Active Emergency Alerts ---- */
+        // Same closed words as emergency.html, so both pages agree on what is still open.
+        const emergencyStatus = (data) => {
+            const raw = String(data.status ?? data.Status ?? data.state ?? 'active').toLowerCase();
+            if (/cancel|false alarm|dismiss/.test(raw)) return 'cancelled';
+            if (/resolv|closed|complet|rescued|safe/.test(raw)) return 'resolved';
+            if (/respond|dispatch|assign|progress|en route|search/.test(raw)) return 'responding';
+            return 'active';
+        };
+        const emergencyType = (data) => {
+            const raw = String(data.type ?? data.Type ?? data.category ?? data.emergencyType ?? data.title ?? '').toLowerCase();
+            if (/sos|panic|distress/.test(raw)) return 'SOS';
+            if (/medic|injur|hurt|sick|first aid|health|bleed|faint/.test(raw)) return 'Medical';
+            if (/lost|missing|search|stray/.test(raw)) return 'Lost';
+            return 'Emergency';
+        };
+        const emergencyPlace = (data) => {
+            const place = String(data.location ?? data.Location ?? '').trim();
+            // Some records store "14.13, 121.19" in location; show a trail name instead when there is one.
+            if (place && !/^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/.test(place)) return place;
+            return String(data.trail ?? data.trailName ?? data.Trail ?? data.area ?? '').trim() || 'Location shared on map';
+        };
+
+        onSnapshot(collection(db, 'emergency'), (snapshot) => {
+            const open = snapshot.docs
+                .map(document => ({ id: document.id, data: document.data() || {} }))
+                .filter(({ data }) => ['active', 'responding'].includes(emergencyStatus(data)))
+                .map(({ id, data }) => ({
+                    id,
+                    data,
+                    status: emergencyStatus(data),
+                    when: toPortalDate(data.timestamp ?? data.createdAt ?? data.reportedAt ?? data.date ?? data.time)
+                }))
+                .sort((first, second) => (second.when?.getTime() || 0) - (first.when?.getTime() || 0));
+
+            document.getElementById('emergencyTotal').textContent = open.length
+                ? `Total active alerts: ${open.length}`
+                : '';
+            document.getElementById('emergencyList').innerHTML = open.length
+                ? open.slice(0, 3).map(({ data, status, when }) => {
+                    const name = String(data.hikerName ?? data.userName ?? data.name ?? data.reportedBy ?? data.email ?? '').trim() || 'Unknown hiker';
+                    const phone = String(data.phone ?? data.phoneNumber ?? data.contactNumber ?? data.mobile ?? '').trim();
+                    const type = emergencyType(data);
+                    const chip = status === 'responding' ? 'pill-blue' : type === 'SOS' ? 'pill-sos' : 'pill-red';
+                    return `<tr data-href="emergency.html">
+                        <td><strong>${escapeHtml(name)}</strong></td>
+                        <td>${escapeHtml(emergencyPlace(data))}</td>
+                        <td>${when ? escapeHtml(formatPortalTime(when)) : '—'}</td>
+                        <td><span class="pill-chip ${chip}">${escapeHtml(status === 'responding' ? 'Responding' : type)}</span></td>
+                        <td><a class="call-btn${phone ? '' : ' is-disabled'}" ${phone ? `href="tel:${escapeHtml(phone)}"` : 'aria-disabled="true"'} title="${phone ? `Call ${escapeHtml(phone)}` : 'No phone number shared'}"><i class="fa-solid fa-phone" aria-hidden="true"></i></a></td>
+                    </tr>`;
+                }).join('')
+                : '<tr><td colspan="5" class="empty-cell">No active emergency alerts.</td></tr>';
+        }, (error) => {
+            console.error('Error loading dashboard emergencies:', error);
+            document.getElementById('emergencyList').innerHTML = '<tr><td colspan="5" class="empty-cell">Unable to load emergency alerts.</td></tr>';
         });
 
         const weatherCodes = {

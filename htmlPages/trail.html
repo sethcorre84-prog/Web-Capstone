@@ -1271,6 +1271,7 @@ tbody tr:last-child td{
 <script type="module">
 import { db, storage } from "../jsPages/firebase-config.js";
 import { formatPortalDate, formatPortalDateTime } from "../jsPages/datetime-prefs.js";
+import { getTrailImage } from "../jsPages/trail-images.js";
 
 // Follows Settings > Date & Time (datetime-prefs.js).
 function formatTimestamp(ts) {
@@ -1349,18 +1350,6 @@ let editing = false;
 // userreports.html) so the number of pages is consistent across the portal.
 const PAGE_SIZE = 10;
 let currentPage = 1;
-
-const trailImages = {
-  "Makiling Botanic Gardens Trail": "../assets/images/botanicGarden.jpg",
-  "Makiling Traverse (MakTrav)": "../assets/images/makilingTraverse.jpg",
-  "Sipit Trail": "../assets/images/sipitTrail.jpg",
-  "Mariang Makiling Trail": "../assets/images/mariangMakiling.jpg"
-};
-const defaultTrailImage = "../assets/images/bg.png";
-
-function getTrailImage(t) {
-  return t.imageUrl || t.imageURL || t.ImageUrl || t.photoUrl || t.photoURL || t.PhotoUrl || trailImages[t.Trail] || defaultTrailImage;
-}
 
 function diffClass(diff) {
   if (!diff) return "moderate";

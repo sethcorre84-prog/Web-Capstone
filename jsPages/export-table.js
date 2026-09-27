@@ -15,16 +15,18 @@
 // countLabel  optional, e.g. "12 report(s)", shown under the PDF title
 //
 // The PDF looks like the archive exports always have: landscape, PeakPath
-// green header row, a "Generated ..." line. jsPDF, its table plugin and
-// SheetJS are loaded from cdnjs the first time they are needed, so pages
-// that never export never download them.
+// green header row, a "Generated ..." line. The Excel file gets the same
+// green header row, so the column names stand out from the data. jsPDF, its
+// table plugin and ExcelJS are loaded from cdnjs the first time they are
+// needed, so pages that never export never download them.
 
 import { formatPortalDateTime } from './datetime-prefs.js';
 
 const LIBRARIES = {
   jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
   autotable: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
-  xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+  // ExcelJS, not SheetJS: the free SheetJS build cannot colour cells.
+  exceljs: 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js'
 };
 
 const loading = {};
@@ -50,7 +52,7 @@ async function loadPdfLibraries() {
 }
 
 async function loadExcelLibrary() {
-  if (!window.XLSX) await loadScript(LIBRARIES.xlsx);
+  if (!window.ExcelJS) await loadScript(LIBRARIES.exceljs);
 }
 
 const today = () => {
@@ -85,22 +87,56 @@ async function savePdf(table) {
   pdf.save(`${table.filename}-${today()}.pdf`);
 }
 
+const HEADER_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F8F4E' } }; // PeakPath green
+const ZEBRA_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7F9F7' } };
+const RULE = { style: 'thin', color: { argb: 'FFDCE6DF' } };
+
 async function saveExcel(table) {
   await loadExcelLibrary();
-  const { XLSX } = window;
-  const data = [table.headers, ...table.rows.map((row) => row.map(cellText))];
-  const sheet = XLSX.utils.aoa_to_sheet(data);
+  const book = new window.ExcelJS.Workbook();
+  book.creator = 'PeakPath Admin';
+  book.created = new Date();
+  // Excel limits sheet names to 31 characters and a few symbols. The header
+  // row stays in view while scrolling.
+  const sheet = book.addWorksheet(table.title.replace(/[\\/?*[\]:]/g, '').slice(0, 31) || 'Export', {
+    views: [{ state: 'frozen', ySplit: 1 }]
+  });
+
+  const rows = table.rows.map((row) => row.map(cellText));
 
   // Each column as wide as its longest value (within reason), so the file
   // opens readable instead of every cell cut off at Excel's default width.
-  sheet['!cols'] = table.headers.map((_, column) => ({
-    wch: Math.min(60, Math.max(10, ...data.map((row) => cellText(row[column]).length + 2)))
+  sheet.columns = table.headers.map((header, column) => ({
+    width: Math.min(60, Math.max(12, ...[header, ...rows.map((row) => row[column])].map((value) => cellText(value).length + 3)))
   }));
 
-  const book = XLSX.utils.book_new();
-  // Excel limits sheet names to 31 characters and a few symbols.
-  XLSX.utils.book_append_sheet(book, sheet, table.title.replace(/[\\/?*[\]:]/g, '').slice(0, 31) || 'Export');
-  XLSX.writeFile(book, `${table.filename}-${today()}.xlsx`);
+  // Column names: green fill, bold white text, so they read as the header.
+  const headerRow = sheet.addRow(table.headers);
+  headerRow.height = 22;
+  headerRow.eachCell((cell) => {
+    cell.fill = HEADER_FILL;
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+    cell.border = { bottom: { style: 'medium', color: { argb: 'FF1F6B39' } } };
+  });
+
+  rows.forEach((values, index) => {
+    const row = sheet.addRow(values);
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      if (index % 2) cell.fill = ZEBRA_FILL;
+      cell.border = { bottom: RULE };
+      cell.alignment = { vertical: 'top', wrapText: true };
+    });
+  });
+
+  const buffer = await book.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const link = Object.assign(document.createElement('a'), { href: url, download: `${table.filename}-${today()}.xlsx` });
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /* ---------- The menu ---------- */
