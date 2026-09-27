@@ -631,6 +631,65 @@ a { color: inherit; text-decoration: none; }
   font-size: 11.5px;
   line-height: 1.55;
 }
+/* Prescriptive analysis: when it was last run, and the button that runs it. */
+.analysis-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: -2px 0 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--dm-surface-2, #f6faf7);
+  border: 1px solid var(--border);
+}
+.analysis-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.analysis-status strong {
+  color: var(--text-primary);
+}
+.analysis-status .analysis-new {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fff5df;
+  color: #9a6512;
+  font-size: 11px;
+  font-weight: 700;
+}
+.analysis-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--accent-dark);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.analysis-refresh i {
+  color: #fff;
+}
+.analysis-refresh:hover:not(:disabled) {
+  background: var(--accent);
+}
+.analysis-refresh:disabled {
+  opacity: .6;
+  cursor: progress;
+}
+.analysis-refresh.is-busy i {
+  animation: analysisSpin .8s linear infinite;
+}
+@keyframes analysisSpin {
+  to { transform: rotate(360deg); }
+}
 .btn-outline {
   display: inline-flex;
   align-items: center;
@@ -1154,6 +1213,12 @@ a { color: inherit; text-decoration: none; }
         <div class="section-body">
           <div class="sub-card sub-card--wide">
             <h3>Recommended Actions (AI Generated)</h3>
+            <div class="analysis-bar">
+              <span class="analysis-status" id="analysisStatus" aria-live="polite">Loading the latest analysis…</span>
+              <button type="button" class="analysis-refresh" id="refreshAnalysisBtn" disabled>
+                <i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh analysis</span>
+              </button>
+            </div>
             <div class="alert-list" id="recommendationsList">
               <div class="empty-state">Loading recommendations…</div>
             </div>
@@ -1199,8 +1264,8 @@ a { color: inherit; text-decoration: none; }
 <script type="module">
   import { db } from '../jsPages/firebase-config.js';
   import { escapeHtml, normalizeText } from '../jsPages/utils.js';
-  import { toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
-  import { collection, doc, onSnapshot, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { formatPortalDateTime, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
+  import { collection, doc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   /* Mount Makiling — the same coordinates the geomap page forecasts against. */
   const MAKILING = { latitude: 14.136, longitude: 121.197 };
@@ -2518,15 +2583,17 @@ a { color: inherit; text-decoration: none; }
 
   const renderRecommendations = () => {
     const list = document.getElementById('recommendationsList');
-    const stillLoading = state.hazards === null || state.trails === null || state.emergencies === null;
+    renderAnalysisBar();
 
-    if (stillLoading) {
-      list.innerHTML = '<div class="empty-state">Loading recommendations…</div>';
+    // The list shows the last published analysis, not the live data, so it
+    // (and its notification) only changes when the analysis is refreshed.
+    if (!published.record) {
+      list.innerHTML = `<div class="empty-state">${published.loaded ? 'No analysis yet. Click Refresh analysis to run the first one.' : 'Loading recommendations…'}</div>`;
       setText('actionsSummaryCircle', '0');
       return;
     }
 
-    const actions = buildRecommendations();
+    const actions = Array.isArray(published.record.actions) ? published.record.actions : [];
     const counts = {
       high: actions.filter((action) => action.priority === 'high').length,
       med: actions.filter((action) => action.priority === 'med').length,
@@ -2614,7 +2681,7 @@ a { color: inherit; text-decoration: none; }
     ].join(', ');
 
     inputsText.textContent =
-      `Computed live from ${counts}, plus the ${forecast.length}-day Open-Meteo rainfall forecast for Mount Makiling and the 3 days of rain before it. ` +
+      `The forecasts are computed live from ${counts}, plus the ${forecast.length}-day Open-Meteo rainfall forecast for Mount Makiling and the 3 days of rain before it; the recommended actions are the last published analysis (Refresh analysis runs a new one). ` +
       `The daily risk score adds rainfall (up to ${RISK_MODEL.rainfallMaxPoints} pts), already-soaked ground from the previous 3 days (up to ${RISK_MODEL.saturationMaxPoints} pts), ` +
       `active hazards weighted by risk level, review status and age (up to ${RISK_MODEL.hazardMaxPoints} pts), active emergencies (up to ${RISK_MODEL.emergencyMaxPoints} pts), ` +
       `trail closures (up to ${RISK_MODEL.closedTrailMaxPoints} pts) and busier-than-average days (${RISK_MODEL.busyDayPoints} pts); ` +
@@ -2623,48 +2690,119 @@ a { color: inherit; text-decoration: none; }
       'Each recommendation below states the number that triggered it. Empty sections mean that collection has no data yet.';
   };
 
-  /* ---------------- Daily record ---------------- */
+  /* ---------------- Published analysis ---------------- */
 
-  /* The list above stays live. Alongside it, each Manila calendar day gets one
-     Firestore record that is rewritten whenever that day's list changes, so
-     once the day is over its record holds the day's final recommendations. */
+  /* The descriptive and predictive panels stay live. The prescriptive
+     recommendations do not: they come from the latest prescriptiveHistory
+     record, which is only written when the admin clicks "Refresh analysis",
+     or automatically once the last one is 7 or more days old. Each write is
+     what notification.js announces, so the bell no longer fires on every
+     data change. One record per Manila day the analysis was run. */
   const HISTORY_COLLECTION = 'prescriptiveHistory';
   const RECORD_SOURCES = ['hazards', 'trails', 'users', 'advisories', 'emergencies', 'forecast'];
+  const AUTO_REFRESH_DAYS = 7;
+
+  const published = { loaded: false, record: null };
+  let refreshing = false;
+  let autoRefreshTried = false;
 
   const manilaDateKey = () =>
     new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
 
-  let lastSavedRecord = '';
+  const sourcesReady = () => RECORD_SOURCES.every((key) => state[key] !== null);
+  const publishedAt = () => toDate(published.record?.updatedAt) || (published.record?.date ? new Date(`${published.record.date}T00:00:00+08:00`) : null);
+  const actionsSignature = (actions) => JSON.stringify((actions || []).map(({ title, meta, priority, kind }) => ({ title, meta, priority, kind })));
+  const hasNewData = () => sourcesReady() && published.record
+    && actionsSignature(buildRecommendations()) !== actionsSignature(published.record.actions);
 
-  const saveDailyRecord = async () => {
-    if (RECORD_SOURCES.some((key) => state[key] === null)) return;
+  const renderAnalysisBar = () => {
+    const status = document.getElementById('analysisStatus');
+    const button = document.getElementById('refreshAnalysisBtn');
+    button.disabled = refreshing || !sourcesReady();
+    button.classList.toggle('is-busy', refreshing);
+    button.querySelector('span').textContent = refreshing ? 'Refreshing…' : 'Refresh analysis';
 
-    const date = manilaDateKey();
+    if (!published.loaded) {
+      status.textContent = 'Loading the latest analysis…';
+      return;
+    }
+    const when = publishedAt();
+    if (!when) {
+      status.textContent = 'No analysis has been run yet.';
+      return;
+    }
+    const nextAuto = new Date(when.getTime() + AUTO_REFRESH_DAYS * DAY_MS);
+    const daysLeft = Math.max(0, Math.ceil((nextAuto - Date.now()) / DAY_MS));
+    status.innerHTML = `Last analysed <strong>${escapeHtml(formatPortalDateTime(when))}</strong>`
+      + ` · refreshes automatically ${daysLeft ? `in ${daysLeft} day${daysLeft === 1 ? '' : 's'}` : 'today'}`
+      + (hasNewData() ? '<span class="analysis-new">New data available</span>' : '');
+  };
+
+  /* Runs the analysis on the current data and publishes it. A manual refresh
+     that finds nothing new publishes nothing, so no notification goes out. */
+  const refreshAnalysis = async ({ auto = false } = {}) => {
+    if (refreshing || !sourcesReady()) return;
     const actions = buildRecommendations();
-    const signature = JSON.stringify({ date, actions });
-    if (signature === lastSavedRecord) return;
-    lastSavedRecord = signature;
+    if (!auto && published.record && actionsSignature(actions) === actionsSignature(published.record.actions)) {
+      document.getElementById('analysisStatus').innerHTML =
+        `No changes since the last analysis (${escapeHtml(formatPortalDateTime(publishedAt()))}). Nothing new to publish.`;
+      return;
+    }
 
+    refreshing = true;
+    renderAnalysisBar();
+    const date = manilaDateKey();
     const today = dailyRisk()[0];
     const countOf = (priority) => actions.filter((action) => action.priority === priority).length;
+    const record = {
+      date,
+      actions,
+      counts: { total: actions.length, high: countOf('high'), med: countOf('med'), low: countOf('low') },
+      riskScore: today.score,
+      riskLevel: bucketLabel(today.bucket),
+      inputs: Object.fromEntries(RECORD_SOURCES.map((key) => [key, state[key].length])),
+      // Sources that failed to load, so a thin record can be told apart from a quiet day.
+      unavailableInputs: Object.keys(state.errors),
+      trigger: auto ? 'auto' : 'manual',
+      updatedAt: serverTimestamp()
+    };
 
     try {
-      await setDoc(doc(db, HISTORY_COLLECTION, date), {
-        date,
-        actions,
-        counts: { total: actions.length, high: countOf('high'), med: countOf('med'), low: countOf('low') },
-        riskScore: today.score,
-        riskLevel: bucketLabel(today.bucket),
-        inputs: Object.fromEntries(RECORD_SOURCES.map((key) => [key, state[key].length])),
-        // Sources that failed to load, so a thin record can be told apart from a quiet day.
-        unavailableInputs: Object.keys(state.errors),
-        updatedAt: serverTimestamp()
-      });
+      await setDoc(doc(db, HISTORY_COLLECTION, date), record);
+      // Show it straight away; the listener below confirms it moments later.
+      published.record = { ...record, updatedAt: new Date() };
     } catch (error) {
-      lastSavedRecord = ''; // try again on the next data change
-      console.error(`Failed to save the ${date} prescriptive record:`, error);
+      console.error(`Failed to publish the ${date} prescriptive analysis:`, error);
+      document.getElementById('analysisStatus').textContent = 'Could not save the analysis. Check your connection and try again.';
+      refreshing = false;
+      renderAnalysisBar();
+      return;
     }
+    refreshing = false;
+    renderRecommendations();
   };
+
+  // Once everything has loaded: publish automatically only when there is no
+  // analysis yet or the last one is 7 or more days old.
+  const maybeAutoRefresh = () => {
+    if (autoRefreshTried || !published.loaded || !sourcesReady()) return;
+    autoRefreshTried = true;
+    const when = publishedAt();
+    if (!when || Date.now() - when.getTime() >= AUTO_REFRESH_DAYS * DAY_MS) refreshAnalysis({ auto: true });
+  };
+
+  document.getElementById('refreshAnalysisBtn').addEventListener('click', () => refreshAnalysis());
+
+  onSnapshot(query(collection(db, HISTORY_COLLECTION), orderBy('date', 'desc'), limit(1)), (snapshot) => {
+    published.loaded = true;
+    published.record = snapshot.empty ? null : snapshot.docs[0].data();
+    renderRecommendations();
+    maybeAutoRefresh();
+  }, (error) => {
+    console.error('Failed to load the latest prescriptive analysis:', error);
+    published.loaded = true;
+    renderRecommendations();
+  });
 
   const renderAll = () => {
     renderDescriptive();
@@ -2676,7 +2814,7 @@ a { color: inherit; text-decoration: none; }
     renderTrailRisk();
     renderRecommendations();
     renderInsights();
-    saveDailyRecord();
+    maybeAutoRefresh();
   };
 
   /* ---------------- Live sources ---------------- */

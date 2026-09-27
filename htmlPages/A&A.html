@@ -182,9 +182,13 @@
 		.stat-label{font-size:12px;font-weight:600;color:var(--text-secondary)}
 		.stat-label .meta-line{font-size:11px;color:var(--text-muted);margin-top:2px;font-weight:400}
 		/* Modal */
-		.modal-overlay{position:fixed;inset:0;background:rgba(15,25,15,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;z-index:100}
+		/* One scrollbar only: the page behind is locked while a dialog is open,
+		   and a tall dialog (Create New Advisory) scrolls inside itself, with
+		   its scrollbar on the dialog's own edge. */
+		.modal-overlay{position:fixed;inset:0;background:rgba(15,25,15,.45);display:none;align-items:center;justify-content:center;padding:40px 16px;overflow:hidden;z-index:100}
 		.modal-overlay.open{display:flex}
-		.modal{background:var(--card-bg);border-radius:12px;width:100%;max-width:560px;padding:22px 24px 24px}
+		html:has(.modal-overlay.open){overflow:hidden}
+		.modal{background:var(--card-bg);border-radius:12px;width:100%;max-width:560px;max-height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--border) transparent;padding:22px 24px 24px}
 		.modal h2{font-size:17px;margin-bottom:16px}
 		.field{margin-bottom:13px}
 		.field label{display:block;font-size:12.5px;font-weight:600;color:var(--text-secondary);margin-bottom:5px}
@@ -193,6 +197,9 @@
 		.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 		.checks{display:flex;gap:16px;flex-wrap:wrap;padding-top:2px}
 		.checks label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--text-primary)}
+		/* .field input makes every input full width; a checkbox must stay its own size. */
+		.checks input[type="checkbox"]{width:auto;margin:0;accent-color:var(--accent)}
+		.checks label{white-space:nowrap}
 		.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
 		.btn-secondary{background:var(--dm-surface-2, #f1f3ef);color:var(--text-primary);border:none;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13px}
 		.btn-primary{background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13px}
