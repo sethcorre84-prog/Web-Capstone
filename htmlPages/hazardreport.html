@@ -407,16 +407,15 @@
   .badge.unknown{background:var(--dm-surface-2, #eef2ee);color:var(--dm-text-2, #5b6b60);}
 
   /* One text size across the whole Hazard Reports List — headers, cells,
-     badges, the time under each date, icons, footer and page buttons —
-     matching the 13px search/filter controls above the table. */
+     badges, the time under each date, icons and footer text — matching the
+     13px search/filter controls above the table. The page buttons keep the
+     shared pages.css size, the same as A&A.html's list. */
   .list-card th,
   .list-card td,
   .list-card td .sub,
   .list-card .badge,
   .list-card .hazard-icon,
-  .list-card .actions-btn,
-  .list-card .table-footer,
-  .list-card .pagination button{font-size:13px;}
+  .list-card .table-footer{font-size:13px;}
 
   /* Every page of the list is exactly the same size: fixed column widths
      (the <colgroup>), one row height, cell text cut to two lines (full text
@@ -425,8 +424,9 @@
   .list-card tbody tr{height:80px;}
   .list-card td{padding:14px 8px;line-height:1.35;overflow:hidden;}
   .list-card th{padding:13px 8px;}
-  .list-card th:last-child,
-  .list-card td:last-child{padding-left:0;padding-right:0;text-align:center;}
+  /* Risk Level and Status badges sit in the middle of their columns. */
+  .list-card th.center-cell,
+  .list-card td.center-cell{text-align:center;}
   .list-card .clamp-2{
     display:-webkit-box;
     -webkit-box-orient:vertical;
@@ -441,11 +441,6 @@
   .list-card tbody tr.filler-row,
   .list-card tbody tr.filler-row:hover{cursor:default;background:transparent;}
   .list-card tbody tr.filler-row td{border-bottom-color:transparent;}
-
-  .actions-btn{
-    background:none;border:none;color:var(--text-400);
-    font-size:16px;cursor:pointer;padding:4px 8px;
-  }
 
   .table-footer{
     display:flex;
@@ -1048,6 +1043,20 @@
   @media (max-width: 1150px){
     .panels{grid-template-columns:minmax(0,1fr);}
   }
+  /* A resolved report's details (the "resolving is final" note and the
+     resolution in its history) run much taller than the list, which then
+     stretched to match and left a blank gap above its footer. While the two
+     cards sit side by side, the list sets the row height instead:
+     contain:size stops the details card sizing the row, and it scrolls
+     within the list's height. */
+  @media (min-width: 1151px){
+    .details-card.is-resolved{
+      contain:size;
+      overflow-y:auto;
+      scrollbar-width:thin;
+      scrollbar-color:var(--border) transparent;
+    }
+  }
   /* Six across needs the room; below this they read as two rows of three
      rather than six squeezed columns. */
   @media (max-width: 1320px){
@@ -1241,8 +1250,7 @@
               <col style="width:12%">   <!-- Reported By -->
               <col style="width:13.5%"> <!-- Risk Level -->
               <col style="width:12.5%"> <!-- Status -->
-              <col style="width:14%">   <!-- Reported On -->
-              <col style="width:4%">    <!-- actions -->
+              <col style="width:18%">   <!-- Reported On -->
             </colgroup>
             <thead>
               <tr>
@@ -1250,15 +1258,14 @@
                 <th>Hazard Type</th>
                 <th>Location / Trail</th>
                 <th>Reported By</th>
-                <th>Risk Level</th>
-                <th>Status</th>
+                <th class="center-cell">Risk Level</th>
+                <th class="center-cell">Status</th>
                 <th>Reported On</th>
-                <th></th>
               </tr>
             </thead>
             <tbody id="reportsTable">
               <tr>
-                <td colspan="8" class="loading">
+                <td colspan="7" class="loading">
                   <div class="spinner"></div>
                 </td>
               </tr>
@@ -1420,31 +1427,6 @@
   </div>
 </div>
 
-<!-- Delete confirmation modal -->
-<div class="modal-overlay" id="deleteConfirmModal" aria-hidden="true">
-  <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
-    <div class="modal-header">
-      <div class="modal-icon reject">🗑</div>
-      <div>
-        <h3 id="deleteConfirmTitle">Delete Report</h3>
-        <p>This action cannot be undone.</p>
-      </div>
-    </div>
-    <div class="modal-body">
-      <div class="modal-report-box">
-        <div class="modal-report-id" id="deleteModalReportId">Report</div>
-        <strong id="deleteModalHazardType">Hazard Report</strong>
-        <span id="deleteModalLocation">Location</span>
-      </div>
-      <div class="form-error" id="deleteReportError" role="alert"></div>
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="modal-btn cancel" id="deleteModalCancelBtn">Cancel</button>
-      <button type="button" class="modal-btn confirm-reject" id="deleteModalConfirmBtn">Delete Report</button>
-    </div>
-  </div>
-</div>
-
 <!-- Archive confirmation modal -->
 <div class="modal-overlay" id="archiveConfirmModal" aria-hidden="true">
   <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="archiveConfirmTitle">
@@ -1523,7 +1505,7 @@
 import { auth, db } from "../jsPages/firebase-config.js";
 import { escapeHtml } from "../jsPages/utils.js";
 import { toPortalDate as toJsDate } from "../jsPages/datetime-prefs.js";
-import { collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // State management
@@ -1632,7 +1614,7 @@ function renderReportsTable(reports) {
   const paginatedReports = reports.slice(startIndex, startIndex + itemsPerPage);
 
   if (reports.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="loading" style="padding:20px;">No reports found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="loading" style="padding:20px;">No reports found</td></tr>';
     document.getElementById('reportCount').textContent = 'Showing 0 of 0 reports';
     renderPagination(0);
     return;
@@ -1651,17 +1633,16 @@ function renderReportsTable(reports) {
         <td><div class="hazard-cell"><span class="hazard-icon">${getHazardIcon(report.hazardType)}</span>${clampCell(report.hazardType)}</div></td>
         <td>${clampCell(report.location || 'N/A')}</td>
         <td>${clampCell(report.reportedBy || 'Anonymous')}</td>
-        <td><span class="badge ${risk.className}">${risk.label}</span></td>
-        <td><span class="badge ${getStatusBadgeClass(report.status)}">${getStatusLabel(report.status)}</span></td>
+        <td class="center-cell"><span class="badge ${risk.className}">${risk.label}</span></td>
+        <td class="center-cell"><span class="badge ${getStatusBadgeClass(report.status)}">${getStatusLabel(report.status)}</span></td>
         <td class="date-cell">${formatDate(report.timestamp)}</td>
-        <td><button class="actions-btn" onclick="event.stopPropagation(); openDeleteModal('${report.id}')">⋮</button></td>
       </tr>
     `;
   }).join('');
 
   // Blank rows top up a short (usually the last) page, so every page is
   // exactly as tall as a full first page and nothing below it jumps.
-  const fillerRows = '<tr class="filler-row" aria-hidden="true"><td colspan="8"></td></tr>'
+  const fillerRows = '<tr class="filler-row" aria-hidden="true"><td colspan="7"></td></tr>'
     .repeat(itemsPerPage - paginatedReports.length);
 
   tbody.innerHTML = rowsHtml + fillerRows;
@@ -1685,11 +1666,12 @@ function renderPagination(totalItems) {
     return;
   }
 
-  let html = `<button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''}>&lt;</button>`;
+  // Prev / numbered / next, the same as A&A.html's list.
+  let html = `<button class="page-btn" id="prevPageBtn" aria-label="Previous page" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
   for (let i = 1; i <= totalPages; i++) {
-    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+    html += `<button class="page-btn${i === currentPage ? ' active current' : ''}" data-page="${i}">${i}</button>`;
   }
-  html += `<button id="nextPageBtn" ${currentPage === totalPages ? 'disabled' : ''}>&gt;</button>`;
+  html += `<button class="page-btn" id="nextPageBtn" aria-label="Next page" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
 
   pagination.innerHTML = html;
 
@@ -1699,7 +1681,7 @@ function renderPagination(totalItems) {
   document.getElementById('nextPageBtn')?.addEventListener('click', () => {
     if (currentPage < totalPages) { currentPage++; renderReportsTable(currentFilteredReports); }
   });
-  pagination.querySelectorAll('.page-btn').forEach(btn => {
+  pagination.querySelectorAll('.page-btn[data-page]').forEach(btn => {
     btn.addEventListener('click', () => {
       currentPage = parseInt(btn.dataset.page, 10);
       renderReportsTable(currentFilteredReports);
@@ -2214,7 +2196,7 @@ function renderReportDetails(report) {
     ? `<button class="btn btn-resolve" onclick="updateReportStatus('${report.id}', 'resolved')"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Resolve Report</button>`
     : `<button class="btn btn-resolve" disabled style="opacity:.6;cursor:not-allowed" title="${resolveBlockedReason}"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Resolve Report</button>`;
 
-  detailsCard.className = 'card details-card';
+  detailsCard.className = 'card details-card' + (isResolved ? ' is-resolved' : '');
   detailsCard.innerHTML = `
     <p class="details-card-title">Hazard Details</p>
 
@@ -2833,126 +2815,6 @@ function closeEditConfirmModal() {
   editConfirmTarget = null;
 }
 
-// -----------------------------
-// Delete report confirmation modal
-// -----------------------------
-let deleteTargetId = null;
-
-function openDeleteModal(reportId) {
-  const report = allReports.find(r => r.id === reportId);
-  if (!report) {
-    console.error('Report not found:', reportId);
-    return;
-  }
-  deleteTargetId = reportId;
-
-  document.getElementById('deleteModalReportId').textContent = report.reportId || report.id;
-  document.getElementById('deleteModalHazardType').textContent = report.hazardType || 'Hazard Report';
-  document.getElementById('deleteModalLocation').textContent = report.location || 'Unknown Location';
-  document.getElementById('deleteReportError').textContent = '';
-
-  const confirmBtn = document.getElementById('deleteModalConfirmBtn');
-  confirmBtn.disabled = false;
-  confirmBtn.textContent = 'Delete Report';
-
-  const modal = document.getElementById('deleteConfirmModal');
-  modal.classList.add('show');
-  modal.setAttribute('aria-hidden', 'false');
-}
-window.openDeleteModal = openDeleteModal; // needed since it's called from inline onclick
-
-function closeDeleteModal() {
-  const modal = document.getElementById('deleteConfirmModal');
-  modal.classList.remove('show');
-  modal.setAttribute('aria-hidden', 'true');
-  deleteTargetId = null;
-}
-
-// Reassigns reportId sequentially per year, based on submission order (newest first).
-// Run after any delete so gaps close and there are never duplicate IDs.
-async function renumberReports() {
-  const snapshot = await getDocs(collection(db, 'reports'));
-  const batch = writeBatch(db);
-  const countersByYear = {};        // for HR-YYYY-XXX (pending + verified)
-  const rejectedCountersByYear = {}; // separate count for rejected reports
-  let changes = 0;
-
-  const docs = snapshot.docs
-    .map(docSnap => {
-      const data = docSnap.data();
-      const date = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
-      return { docSnap, data, date };
-    })
-    // Archived and resolved reports keep their A-/RES- numbers for good.
-    .filter(({ data }) => !['archived', 'resolved'].includes(data.status))
-    .sort((a, b) => b.date - a.date); // newest first
-
-  docs.forEach(({ docSnap, data, date }) => {
-    const year = date.getFullYear();
-
-    if (data.status === 'rejected') {
-      // Rejected reports get their own counter, separate from HR-XXX
-      rejectedCountersByYear[year] = (rejectedCountersByYear[year] || 0) + 1;
-      const newRejectedId = `R-${year}-${String(rejectedCountersByYear[year]).padStart(3, '0')}`;
-
-      if (data.reportId !== newRejectedId) {
-        batch.update(docSnap.ref, { reportId: newRejectedId });
-        changes++;
-      }
-    } else {
-      // Only pending + verified consume the main HR-XXX sequence
-      countersByYear[year] = (countersByYear[year] || 0) + 1;
-      const newReportId = `HR-${year}-${String(countersByYear[year]).padStart(3, '0')}`;
-
-      if (data.reportId !== newReportId) {
-        batch.update(docSnap.ref, { reportId: newReportId });
-        changes++;
-      }
-    }
-  });
-
-  if (changes > 0) {
-    await batch.commit();
-  }
-}
-window.renumberReports = renumberReports; // temporary, for manual resync
-
-async function confirmDeleteReport() {
-  if (!deleteTargetId) return;
-  const confirmBtn = document.getElementById('deleteModalConfirmBtn');
-  const errorEl = document.getElementById('deleteReportError');
-
-  confirmBtn.disabled = true;
-  confirmBtn.textContent = 'Deleting...';
-  errorEl.textContent = '';
-
-  try {
-    await deleteDoc(doc(db, 'reports', deleteTargetId));
-    await window.renumberReports(); // re-sequence reportIds after delete
-
-    if (selectedReport?.id === deleteTargetId) {
-      selectedReport = null;
-      renderReportDetails(null);
-    }
-
-    closeDeleteModal();
-    // onSnapshot() will refresh the table, stats, and rejected list automatically.
-  } catch (error) {
-    console.error('Error deleting report:', error);
-    confirmBtn.disabled = false;
-    confirmBtn.textContent = 'Delete Report';
-    errorEl.textContent = error?.code === 'permission-denied'
-      ? 'Firebase denied this delete. Check your Firestore security rules.'
-      : `Could not delete the report: ${error.message || 'Unknown error'}`;
-  }
-}
-
-document.getElementById('deleteModalCancelBtn').addEventListener('click', closeDeleteModal);
-document.getElementById('deleteModalConfirmBtn').addEventListener('click', confirmDeleteReport);
-document.getElementById('deleteConfirmModal').addEventListener('click', (event) => {
-  if (event.target.id === 'deleteConfirmModal') closeDeleteModal();
-});
-
 // Archive modal listeners
 document.getElementById('archiveSelectedBtn').addEventListener('click', openArchivePrompt);
 document.getElementById('archiveResolvedBtn').addEventListener('click', openResolvedArchivePrompt);
@@ -3266,10 +3128,6 @@ document.addEventListener('keydown', (event) => {
     const modal = document.getElementById('statusModal');
     if (modal.classList.contains('show')) {
       closeStatusModal();
-    }
-    const deleteModal = document.getElementById('deleteConfirmModal');
-    if (deleteModal.classList.contains('show')) {
-      closeDeleteModal();
     }
     const editModal = document.getElementById('editConfirmModal');
     if (editModal.classList.contains('show')) {

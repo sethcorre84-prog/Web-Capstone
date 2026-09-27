@@ -74,6 +74,8 @@
 		table{width:100%;border-collapse:collapse}
 		thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);padding:8px 6px;border-bottom:1px solid var(--border);font-weight:600}
 		tbody td{padding:10px 6px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+		/* Type, Target and Status sit in the middle of their columns. */
+		thead th.center-cell,tbody td.center-cell{text-align:center}
 		tbody tr{cursor:pointer;transition:background .12s}
 		tbody tr:hover{background:var(--dm-surface-2, #f6f8f4)}
 		tbody tr.selected{background:var(--accent-light)}
@@ -311,7 +313,7 @@
         		</div>
         		<div class="table-scroll">
         			<table>
-            			<thead><tr><th>Title</th><th>Type</th><th>Target</th><th>Status</th><th>Published / Scheduled</th><th>Actions</th></tr></thead>
+            			<thead><tr><th>Title</th><th class="center-cell">Type</th><th class="center-cell">Target</th><th class="center-cell">Status</th><th>Published / Scheduled</th><th>Actions</th></tr></thead>
             			<tbody id="listBody"></tbody>
         			</table>
         		</div>
@@ -408,7 +410,7 @@
 			<div class="field-row">
 				<div class="field"><label>Published By</label><input id="mPublishedBy" value="Admin User"></div>
 				<div class="field"><label>Visibility</label>
-					<select id="mVisibility"><option>All Users</option><option>Registered Users</option><option>Premium Users</option></select>
+					<select id="mVisibility"><option>All Users</option><option>Guide</option></select>
 				</div>
 			</div>
 			<div class="field"><label>Channels</label>
@@ -752,10 +754,10 @@ async function syncExpiredAdvisories(){
 				wrap.appendChild(thumb); wrap.appendChild(titleWrap);
 				tdTitle.appendChild(wrap);
 
-				const tdType = document.createElement('td');
+				const tdType = document.createElement('td'); tdType.className = 'center-cell';
 				tdType.innerHTML = `<span class="badge ${meta.cls}">${escapeHtml(it.type || '')}</span>`;
-				const tdTarget = document.createElement('td'); tdTarget.textContent = it.target || '';
-				const tdStatus = document.createElement('td');
+				const tdTarget = document.createElement('td'); tdTarget.className = 'center-cell'; tdTarget.textContent = it.target || '';
+				const tdStatus = document.createElement('td'); tdStatus.className = 'center-cell';
 				tdStatus.innerHTML = effectiveStatus ? `<span class="status-badge ${effectiveStatus.toLowerCase()}">${escapeHtml(effectiveStatus)}</span>` : '';
 				const tdPub = document.createElement('td'); tdPub.textContent = fmtDateTime(it.effectiveDate || it.publishedAt || it.createdAt);
 
@@ -1307,7 +1309,9 @@ setInterval(() => {
 			document.getElementById('mEffective').value = toLocalInputValue(it?.effectiveDate || it?.publishedAt) || toLocalInputValue(new Date());
 			document.getElementById('mExpires').value = toLocalInputValue(it?.expiresAt);
 			document.getElementById('mPublishedBy').value = it?.publishedBy || 'Admin User';
-			document.getElementById('mVisibility').value = it?.visibility || 'All Users';
+			// Advisories saved with a retired option (Registered/Premium Users)
+			// open as All Users, since the select no longer offers those.
+			document.getElementById('mVisibility').value = it?.visibility === 'Guide' ? 'Guide' : 'All Users';
 			const channels = it?.channels || ['In-App'];
 			document.getElementById('mChanInApp').checked = channels.includes('In-App');
 			document.getElementById('mChanEmail').checked = channels.includes('Email');

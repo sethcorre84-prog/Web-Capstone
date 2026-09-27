@@ -165,6 +165,13 @@
   .badge.status.pending{background:var(--orange-bg);color:var(--orange-text);}
   .badge.status.review{background:var(--blue-bg);color:var(--blue-text);}
   .badge.status.resolved{background:var(--green-bg);color:var(--green-text);}
+  .badge.status.warned,.status-pill.warned{background:#fdf3cf;color:#8a6a00;}
+  .badge.status.suspended,.status-pill.suspended{background:var(--red-bg);color:var(--red-text);}
+  .badge.status.lifted,.status-pill.lifted{background:#e0f5f2;color:#13786c;}
+  :root[data-theme="dark"] .badge.status.lifted,
+  :root[data-theme="dark"] .status-pill.lifted{background:#143530;color:#6fd3c4;}
+  :root[data-theme="dark"] .badge.status.warned,
+  :root[data-theme="dark"] .status-pill.warned{background:#3a3212;color:#e8c95c;}
 
   .desc-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-width:130px;max-width:170px;font-size:11px;line-height:1.45;color:var(--text-600);}
   .loc-text{display:block;min-width:80px;max-width:110px;font-size:11px;line-height:1.45;color:var(--text-900);}
@@ -204,6 +211,11 @@
   .chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:28px;margin-bottom:4px;}
   .chart-head h3{margin:0;font-size:13.5px;font-weight:700;color:var(--accent-dark);white-space:nowrap;}
   select.period-select{height:28px;min-width:0;max-width:112px;padding:0 22px 0 8px;font-size:11px;background-position:right 8px center;}
+  .chart-tools{display:flex;align-items:center;gap:6px;min-width:0;}
+  .export-charts-btn{flex-shrink:0;cursor:pointer;}
+  .export-charts-btn i{color:#1d6f42;font-size:13px;}
+  .export-charts-btn:hover:not(:disabled){background:var(--accent-light);border-color:var(--accent);}
+  .export-charts-btn:disabled{opacity:.5;cursor:progress;}
   .chart-sub{margin-bottom:12px;font-size:11.5px;font-weight:600;color:var(--text-900);}
   .chart-sub span{font-weight:400;color:var(--text-400);}
 
@@ -483,6 +495,9 @@
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
               <option value="review">Under Review</option>
+              <option value="warned">Warned</option>
+              <option value="suspended">Suspended</option>
+              <option value="lifted">Lifted</option>
               <option value="resolved">Resolved</option>
             </select>
             <select id="reportsTypeFilter" class="filter" aria-label="Filter by report type">
@@ -557,6 +572,7 @@
           <div class="chart-col">
             <div class="chart-head">
               <h3>Reports Overview</h3>
+              <div class="chart-tools">
               <select id="periodSelect" class="filter period-select" aria-label="Chart period">
                 <option value="7">Last 7 Days</option>
                 <option value="month" selected>This Month</option>
@@ -565,6 +581,10 @@
                 <option value="year">This Year</option>
                 <option value="all">All Time</option>
               </select>
+              <button type="button" id="exportChartsBtn" class="icon-btn export-charts-btn" aria-label="Export charts to Excel" title="Export charts to Excel (.xlsx)">
+                <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
+              </button>
+              </div>
             </div>
             <div class="chart-sub">Reports by Type <span id="typeChartRange"></span></div>
             <div id="typeChart"></div>
@@ -824,6 +844,7 @@
   import { auth, db } from '../jsPages/firebase-config.js';
   import { escapeHtml, normalizeText } from '../jsPages/utils.js';
   import { formatPortalDate, formatPortalTime, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
+  import { suspensionState } from '../jsPages/account-status.js';
   import {
     arrayUnion,
     collection,
@@ -967,12 +988,23 @@
   const STATUSES = {
     pending: { key: 'pending', label: 'Pending', chart: '#e8a63c' },
     review: { key: 'review', label: 'Under Review', chart: '#2a63b5' },
+    warned: { key: 'warned', label: 'Warned', chart: '#e0b000' },
+    suspended: { key: 'suspended', label: 'Suspended', chart: '#c8402f' },
+    lifted: { key: 'lifted', label: 'Lifted', chart: '#1a9e8f' },
     resolved: { key: 'resolved', label: 'Resolved', chart: '#2f8f4e' }
   };
+
+  // Warned and Suspended reports are still open: an admin has acted on them,
+  // but they are not resolved yet.
+  // Lifted means the suspension ended, not that the report was closed.
+  const IN_PROGRESS = ['review', 'warned', 'suspended', 'lifted'];
 
   const resolveStatus = (raw) => {
     const lower = normalizeText(raw).toLowerCase();
     if (/resolv|closed|done|complete|dismiss/.test(lower)) return STATUSES.resolved;
+    if (/lift/.test(lower)) return STATUSES.lifted;
+    if (/suspend/.test(lower)) return STATUSES.suspended;
+    if (/warn/.test(lower)) return STATUSES.warned;
     if (/review|investigat|progress|process|ongoing/.test(lower)) return STATUSES.review;
     return STATUSES.pending;
   };
@@ -1007,6 +1039,9 @@
       role: getFirstAvailable(data.role, data.Role, 'Hiker'),
       status: getFirstAvailable(data.status, data.Status, 'Active'),
       warnings: Number(data.warnings ?? data.warningCount ?? 0) || 0,
+      // Same rule as User Management and the app: a suspension whose end
+      // date has passed no longer counts.
+      suspensionActive: suspensionState(data).active,
       photo: pickPhoto(data)
     };
   };
@@ -1268,11 +1303,19 @@
   // Joins reports with users. Runs whenever either collection changes so a
   // late-arriving users snapshot still links every report.
   const rebuildReports = () => {
-    state.reports = assignReportNumbers(state.reportDocs.map((report) => ({
-      ...report,
-      reportedUser: toPerson(report.reportedRef),
-      reportedBy: toPerson(report.reporterRef)
-    })));
+    state.reports = assignReportNumbers(state.reportDocs.map((report) => {
+      const reportedUser = toPerson(report.reportedRef);
+      // Once the suspension is lifted in User Management, or a timed one
+      // runs out, the report shows Lifted instead of Suspended. Reports with
+      // no linked account cannot be checked, so they keep their status.
+      const lifted = report.status.key === 'suspended' && reportedUser.user && !reportedUser.user.suspensionActive;
+      return {
+        ...report,
+        status: lifted ? STATUSES.lifted : report.status,
+        reportedUser,
+        reportedBy: toPerson(report.reporterRef)
+      };
+    }));
   };
 
   const reportDateLabel = (report) => {
@@ -1320,7 +1363,7 @@
     const byStatus = (key) => state.reports.filter((report) => report.status.key === key);
 
     const pending = byStatus('pending');
-    const review = byStatus('review');
+    const review = state.reports.filter((report) => IN_PROGRESS.includes(report.status.key));
     const resolved = byStatus('resolved');
     const resolvedDate = (report) => report.resolvedAt || report.date;
 
@@ -1675,13 +1718,8 @@
         </div>`).join('')}
     </div>`;
 
-  const renderTypeChart = (reports, range) => {
-    $('typeChartRange').textContent = `· ${rangeLabel(range)}`;
-    if (!reports.length) {
-      $('typeChart').innerHTML = emptyChart('No reports in this period.');
-      return;
-    }
-
+  // Counts behind each chart, shared with the Excel export.
+  const typeSegments = (reports) => {
     const counts = new Map();
     reports.forEach((report) => {
       const entry = counts.get(report.type.key) || { label: report.type.label, color: report.type.chart, value: 0 };
@@ -1690,10 +1728,35 @@
     });
 
     // Known types keep their fixed order so colours stay put between periods.
-    const segments = [
+    return [
       ...REPORT_TYPES.filter((type) => counts.has(type.key)).map((type) => counts.get(type.key)),
       ...[...counts].filter(([key]) => key.startsWith('other')).map(([, entry]) => entry)
     ];
+  };
+
+  const statusSegments = (reports) => Object.values(STATUSES).map((status) => ({
+    label: status.label,
+    color: status.chart,
+    value: reports.filter((report) => report.status.key === status.key).length
+  }));
+
+  const timeBuckets = (reports, range) => {
+    // Future days of the current month/year are not plotted.
+    const cappedRange = [range[0], new Date(Math.min(range[1].getTime(), startOfDay(new Date()).getTime() + 86400000))];
+    return buildBuckets(cappedRange).map((bucket) => ({
+      ...bucket,
+      count: reports.filter((report) => inRange(report.date, [bucket.start, bucket.end])).length
+    }));
+  };
+
+  const renderTypeChart = (reports, range) => {
+    $('typeChartRange').textContent = `· ${rangeLabel(range)}`;
+    if (!reports.length) {
+      $('typeChart').innerHTML = emptyChart('No reports in this period.');
+      return;
+    }
+
+    const segments = typeSegments(reports);
 
     $('typeChart').innerHTML = `<div class="donut-block">${donutHtml(segments, reports.length)}${legendHtml(segments, reports.length)}</div>`;
   };
@@ -1705,11 +1768,7 @@
       return;
     }
 
-    const segments = Object.values(STATUSES).map((status) => ({
-      label: status.label,
-      color: status.chart,
-      value: reports.filter((report) => report.status.key === status.key).length
-    }));
+    const segments = statusSegments(reports);
 
     $('statusChart').innerHTML = `<div class="donut-block">${donutHtml(segments, reports.length)}${legendHtml(segments, reports.length)}</div>`;
   };
@@ -1746,12 +1805,7 @@
     const svg = $('timeChart');
     $('timeChartRange').textContent = rangeLabel(range);
 
-    // Future days of the current month/year are not plotted.
-    const cappedRange = [range[0], new Date(Math.min(range[1].getTime(), startOfDay(new Date()).getTime() + 86400000))];
-    const buckets = buildBuckets(cappedRange).map((bucket) => ({
-      ...bucket,
-      count: reports.filter((report) => inRange(report.date, [bucket.start, bucket.end])).length
-    }));
+    const buckets = timeBuckets(reports, range);
 
     const width = Math.max(220, Math.round(svg.getBoundingClientRect().width) || 320);
     svg.setAttribute('viewBox', `0 0 ${width} 170`);
@@ -1806,6 +1860,497 @@
     renderTimeChart(reports, range);
     renderStatusChart(reports, range);
   };
+
+  /* Excel export of the three charts for the selected period.
+       Overview             a dashboard: banner, four summary tiles, all
+                            three charts and both breakdown tables
+       Reports by Type      chart + table
+       Reports Over Time    chart + a day-by-day table shaded by volume
+       Status Distribution  chart + table
+     ExcelJS is only fetched the first time someone exports, so the page
+     does not pay for it on every load. The chart pictures are drawn on a
+     canvas from the same counts as the page's charts (not screenshots of
+     them), so they match and always come out in the light theme. */
+  const EXCELJS_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+  let excelLoading = null;
+  const loadExcelJs = () => {
+    if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+    excelLoading ||= new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = EXCELJS_SRC;
+      script.onload = () => resolve(window.ExcelJS);
+      script.onerror = () => { excelLoading = null; reject(new Error('Could not load the Excel library.')); };
+      document.head.appendChild(script);
+    });
+    return excelLoading;
+  };
+
+  /* ---------- Chart pictures ---------- */
+  const CHART_FONT = '"Segoe UI", Roboto, Arial, sans-serif';
+
+  // A 2x canvas so the picture stays sharp when Excel is zoomed, on a white
+  // card with a thin border and a green accent strip down the left edge.
+  const makeCanvas = (width, height, title, subtitle) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = width * 2;
+    canvas.height = height * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(2, 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = '#dbe6de';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, width - 1, height - 1);
+    ctx.fillStyle = '#2f8f4e';
+    ctx.fillRect(0, 0, 4, height);
+    ctx.fillStyle = '#1f6b39';
+    ctx.font = `700 15px ${CHART_FONT}`;
+    ctx.fillText(title, 20, 28);
+    ctx.fillStyle = '#6b7c70';
+    ctx.font = `11.5px ${CHART_FONT}`;
+    ctx.fillText(subtitle, 20, 46);
+    return { canvas, ctx };
+  };
+
+  const drawDonutChart = ({ width, height, title, subtitle, segments, total }) => {
+    const { canvas, ctx } = makeCanvas(width, height, title, subtitle);
+    // The whole ring (radius + half its thickness) fits below the heading
+    // and leaves the legend at least ~60% of the width.
+    const top = 62;
+    const available = height - top - 16;
+    const outer = Math.min(available / 2, width * 0.2);
+    const radius = outer / 1.18;
+    const thickness = radius * 0.36;
+    const cx = 24 + outer;
+    const cy = top + available / 2;
+
+    ctx.lineWidth = thickness;
+    ctx.strokeStyle = '#edf0ec';
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const visible = segments.filter((segment) => segment.value > 0);
+    const gap = visible.length > 1 ? 0.025 : 0;
+    let angle = -Math.PI / 2;
+    visible.forEach((segment) => {
+      const sweep = (segment.value / total) * Math.PI * 2;
+      ctx.strokeStyle = segment.color;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, angle + gap / 2, angle + sweep - gap / 2);
+      ctx.stroke();
+      angle += sweep;
+    });
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#6b7c70';
+    ctx.font = `11.5px ${CHART_FONT}`;
+    ctx.fillText('Total', cx, cy - 6);
+    ctx.fillStyle = '#17231c';
+    ctx.font = `700 ${Math.round(radius * 0.36)}px ${CHART_FONT}`;
+    ctx.fillText(total.toLocaleString(), cx, cy + radius * 0.3);
+    ctx.textAlign = 'left';
+
+    const legendX = cx + radius + thickness / 2 + 28;
+    if (!total) {
+      ctx.fillStyle = '#93a199';
+      ctx.font = `13px ${CHART_FONT}`;
+      ctx.fillText('No reports in this period.', legendX, cy + 4);
+      return canvas;
+    }
+
+    const rowHeight = Math.min(26, (height - top - 20) / Math.max(segments.length, 1));
+    const firstY = cy - (rowHeight * (segments.length - 1)) / 2 + 4;
+    segments.forEach((segment, index) => {
+      const y = firstY + index * rowHeight;
+      ctx.fillStyle = segment.color;
+      ctx.beginPath();
+      ctx.arc(legendX, y - 4, 5.5, 0, Math.PI * 2);
+      ctx.fill();
+      const count = `${segment.value} (${Math.round((segment.value / total) * 100)}%)`;
+      ctx.font = `600 12.5px ${CHART_FONT}`;
+      const room = width - 20 - ctx.measureText(count).width - 10 - (legendX + 14);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#4a5a50';
+      ctx.fillText(count, width - 20, y);
+      ctx.textAlign = 'left';
+      // Long labels get a smaller font, then an ellipsis, rather than
+      // running into the count.
+      let size = 12.5;
+      ctx.font = `${size}px ${CHART_FONT}`;
+      while (size > 10.5 && ctx.measureText(segment.label).width > room) {
+        size -= 0.5;
+        ctx.font = `${size}px ${CHART_FONT}`;
+      }
+      let label = segment.label;
+      while (label.length > 3 && ctx.measureText(label).width > room) label = `${label.slice(0, -2)}…`;
+      ctx.fillStyle = '#26332b';
+      ctx.fillText(label, legendX + 14, y);
+    });
+    return canvas;
+  };
+
+  const drawLineChart = ({ width, height, title, subtitle, buckets }) => {
+    const { canvas, ctx } = makeCanvas(width, height, title, subtitle);
+    const left = 48;
+    const right = width - 22;
+    const top = 70;
+    const bottom = height - 38;
+    const maxCount = Math.max(...buckets.map((bucket) => bucket.count), 0);
+    const step = Math.max(1, Math.ceil(maxCount / 4));
+    const yMax = step * 4;
+    const x = (index) => left + (buckets.length === 1 ? (right - left) / 2 : (index * (right - left)) / (buckets.length - 1));
+    const y = (value) => bottom - (value / yMax) * (bottom - top);
+
+    ctx.font = `11px ${CHART_FONT}`;
+    ctx.textAlign = 'right';
+    for (let tick = 0; tick <= 4; tick += 1) {
+      const ty = y(tick * step);
+      ctx.strokeStyle = '#edf0ec';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(left, ty);
+      ctx.lineTo(right, ty);
+      ctx.stroke();
+      ctx.fillStyle = '#93a199';
+      ctx.fillText(String(tick * step), left - 10, ty + 4);
+    }
+
+    ctx.textAlign = 'center';
+    const labelEvery = Math.max(1, Math.ceil(buckets.length / Math.max(4, Math.floor((right - left) / 60))));
+    buckets.forEach((bucket, index) => {
+      const isLast = index === buckets.length - 1;
+      const crowdsLast = !isLast && buckets.length - 1 - index < labelEvery / 2;
+      if ((index % labelEvery === 0 && !crowdsLast) || isLast) {
+        ctx.textAlign = index === 0 ? 'left' : isLast ? 'right' : 'center';
+        ctx.fillText(bucket.label, x(index) + (index === 0 ? -4 : isLast ? 4 : 0), bottom + 20);
+      }
+    });
+    ctx.textAlign = 'left';
+
+    if (buckets.length) {
+      const gradient = ctx.createLinearGradient(0, top, 0, bottom);
+      gradient.addColorStop(0, 'rgba(200,64,47,.28)');
+      gradient.addColorStop(1, 'rgba(200,64,47,.02)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.moveTo(x(0), bottom);
+      buckets.forEach((bucket, index) => ctx.lineTo(x(index), y(bucket.count)));
+      ctx.lineTo(x(buckets.length - 1), bottom);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = '#c8402f';
+      ctx.lineWidth = 2.25;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      buckets.forEach((bucket, index) => (index ? ctx.lineTo(x(index), y(bucket.count)) : ctx.moveTo(x(index), y(bucket.count))));
+      ctx.stroke();
+
+      if (buckets.length <= 31) {
+        buckets.forEach((bucket, index) => {
+          ctx.fillStyle = bucket.count ? '#c8402f' : '#ffffff';
+          ctx.beginPath();
+          ctx.arc(x(index), y(bucket.count), bucket.count ? 4 : 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        });
+      }
+
+      // Label the busiest point so the peak reads at a glance.
+      if (maxCount > 0) {
+        const peak = buckets.findIndex((bucket) => bucket.count === maxCount);
+        const text = `Peak: ${maxCount} on ${buckets[peak].label}`;
+        ctx.font = `600 11px ${CHART_FONT}`;
+        const boxWidth = ctx.measureText(text).width + 14;
+        const bx = Math.min(Math.max(x(peak) - boxWidth / 2, left), right - boxWidth);
+        const by = Math.max(y(maxCount) - 30, top - 14);
+        ctx.fillStyle = '#c8402f';
+        ctx.beginPath();
+        ctx.roundRect(bx, by, boxWidth, 20, 6);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(text, bx + 7, by + 14);
+      }
+    }
+
+    if (!maxCount) {
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#93a199';
+      ctx.font = `13px ${CHART_FONT}`;
+      ctx.fillText('No reports in this period', (left + right) / 2, top + 40);
+      ctx.textAlign = 'left';
+    }
+    return canvas;
+  };
+
+  /* ---------- Sheet styling ---------- */
+  const argb = (hex) => `FF${hex.replace('#', '').toUpperCase()}`;
+  const BRAND = 'FF1F6B39';
+  const BRAND_TINT = 'FFE7F5EB';
+  const ZEBRA = 'FFF7FAF8';
+  const RULE = { style: 'thin', color: { argb: 'FFDCE6DF' } };
+  const solid = (color) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: color } });
+
+  // Blends a hex colour toward white; used for the heat shading.
+  const tint = (hex, strength) => {
+    const n = parseInt(hex.replace('#', ''), 16);
+    const mix = (channel) => Math.round(255 - (255 - channel) * strength).toString(16).padStart(2, '0');
+    return `FF${mix(n >> 16)}${mix((n >> 8) & 255)}${mix(n & 255)}`.toUpperCase();
+  };
+
+  const newSheet = (workbook, name, widths) => {
+    const sheet = workbook.addWorksheet(name, {
+      views: [{ showGridLines: false }],
+      pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } }
+    });
+    sheet.columns = widths.map((width) => ({ width }));
+    return sheet;
+  };
+
+  // Green banner + a light strip with the period, merged across the sheet.
+  const addBanner = (sheet, fromCol, toCol, title, period) => {
+    sheet.getRow(1).height = 10;
+    sheet.mergeCells(2, fromCol, 2, toCol);
+    const banner = sheet.getCell(2, fromCol);
+    banner.value = title;
+    banner.font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
+    banner.fill = solid(BRAND);
+    banner.alignment = { vertical: 'middle', indent: 1 };
+    sheet.getRow(2).height = 38;
+
+    sheet.mergeCells(3, fromCol, 3, toCol);
+    const strip = sheet.getCell(3, fromCol);
+    strip.value = `Period: ${period}   •   Generated: ${formatDateTime(new Date())}`;
+    strip.font = { size: 10.5, color: { argb: 'FF2F5A3E' } };
+    strip.fill = solid(BRAND_TINT);
+    strip.alignment = { vertical: 'middle', indent: 1 };
+    sheet.getRow(3).height = 22;
+  };
+
+  const sectionTitle = (sheet, row, fromCol, toCol, text) => {
+    sheet.mergeCells(row, fromCol, row, toCol);
+    const cell = sheet.getCell(row, fromCol);
+    cell.value = text;
+    cell.font = { bold: true, size: 12.5, color: { argb: BRAND } };
+    cell.border = { bottom: { style: 'medium', color: { argb: 'FF2F8F4E' } } };
+    sheet.getRow(row).height = 22;
+  };
+
+  const addPicture = (workbook, sheet, canvas, col, row, width, height) => {
+    const id = workbook.addImage({ base64: canvas.toDataURL('image/png'), extension: 'png' });
+    sheet.addImage(id, { tl: { col, row }, ext: { width, height } });
+  };
+
+  const rowsFor = (pixels) => Math.ceil(pixels / 20);
+
+  /* A breakdown table starting at (row, col): a colour swatch, the label,
+     the count and the share as a real percentage. Returns the next free row. */
+  const addBreakdownTable = (sheet, row, col, heading, segments, total) => {
+    const headers = ['', heading, 'Reports', 'Share'];
+    headers.forEach((text, i) => {
+      const cell = sheet.getCell(row, col + i);
+      cell.value = text;
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = solid('FF2F8F4E');
+      cell.alignment = { vertical: 'middle', horizontal: i >= 2 ? 'right' : 'left' };
+    });
+    sheet.getRow(row).height = 22;
+
+    segments.forEach((segment, index) => {
+      const r = row + 1 + index;
+      const cells = [0, 1, 2, 3].map((i) => sheet.getCell(r, col + i));
+      cells[0].fill = solid(argb(segment.color));
+      cells[1].value = segment.label;
+      cells[2].value = segment.value;
+      cells[3].value = total ? segment.value / total : 0;
+      cells[3].numFmt = '0.0%';
+      cells.slice(1).forEach((cell) => {
+        if (index % 2) cell.fill = solid(ZEBRA);
+        cell.border = { bottom: RULE };
+      });
+      cells[2].font = { bold: segment.value > 0 };
+      sheet.getRow(r).height = 20;
+    });
+
+    const totalRow = row + 1 + segments.length;
+    const totals = ['', 'Total', total, total ? 1 : 0];
+    totals.forEach((value, i) => {
+      const cell = sheet.getCell(totalRow, col + i);
+      cell.value = value;
+      cell.font = { bold: true, color: { argb: BRAND } };
+      cell.fill = solid(BRAND_TINT);
+      cell.border = { top: { style: 'thin', color: { argb: 'FF2F8F4E' } } };
+      if (i === 3) cell.numFmt = '0.0%';
+    });
+    sheet.getRow(totalRow).height = 22;
+    return totalRow + 1;
+  };
+
+  // Day (or week/month) rows, the count cell shaded darker the busier it was.
+  const addTimeTable = (sheet, row, col, buckets, total) => {
+    const max = Math.max(...buckets.map((bucket) => bucket.count), 0);
+    ['Date', 'Reports', 'Share'].forEach((text, i) => {
+      const cell = sheet.getCell(row, col + i);
+      cell.value = text;
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = solid('FF2F8F4E');
+      cell.alignment = { vertical: 'middle', horizontal: i ? 'right' : 'left' };
+    });
+    sheet.getRow(row).height = 22;
+
+    buckets.forEach((bucket, index) => {
+      const r = row + 1 + index;
+      const last = new Date(bucket.end.getTime() - 1);
+      const span = bucket.start.toDateString() === last.toDateString()
+        ? formatDate(bucket.start)
+        : `${formatDate(bucket.start)} – ${formatDate(last)}`;
+      const dateCell = sheet.getCell(r, col);
+      const countCell = sheet.getCell(r, col + 1);
+      const shareCell = sheet.getCell(r, col + 2);
+      dateCell.value = span;
+      countCell.value = bucket.count;
+      shareCell.value = total ? bucket.count / total : 0;
+      shareCell.numFmt = '0.0%';
+      if (index % 2) { dateCell.fill = solid(ZEBRA); shareCell.fill = solid(ZEBRA); }
+      countCell.fill = solid(bucket.count && max ? tint('#c8402f', 0.15 + 0.55 * (bucket.count / max)) : (index % 2 ? ZEBRA : 'FFFFFFFF'));
+      countCell.font = { bold: bucket.count > 0, color: { argb: bucket.count === max && max ? 'FFFFFFFF' : 'FF26332B' } };
+      [dateCell, countCell, shareCell].forEach((cell) => { cell.border = { bottom: RULE }; });
+    });
+
+    const totalRow = row + 1 + buckets.length;
+    const sum = buckets.reduce((acc, bucket) => acc + bucket.count, 0);
+    ['Total', sum, total ? 1 : 0].forEach((value, i) => {
+      const cell = sheet.getCell(totalRow, col + i);
+      cell.value = value;
+      if (i === 2) cell.numFmt = '0.0%';
+      cell.font = { bold: true, color: { argb: BRAND } };
+      cell.fill = solid(BRAND_TINT);
+      cell.border = { top: { style: 'thin', color: { argb: 'FF2F8F4E' } } };
+    });
+    return totalRow + 1;
+  };
+
+  // Four summary tiles across the Overview, two merged columns each.
+  const addTiles = (sheet, row, tiles) => {
+    tiles.forEach((tile, index) => {
+      const col = 2 + index * 2;
+      sheet.mergeCells(row, col, row, col + 1);
+      sheet.mergeCells(row + 1, col, row + 1, col + 1);
+      sheet.mergeCells(row + 2, col, row + 2, col + 1);
+      const label = sheet.getCell(row, col);
+      const value = sheet.getCell(row + 1, col);
+      const note = sheet.getCell(row + 2, col);
+      label.value = tile.label.toUpperCase();
+      label.font = { bold: true, size: 9.5, color: { argb: argb(tile.color) } };
+      value.value = tile.value;
+      value.font = { bold: true, size: 24, color: { argb: 'FF17231C' } };
+      note.value = tile.note;
+      note.font = { size: 9.5, color: { argb: 'FF6B7C70' } };
+      [label, value, note].forEach((cell) => {
+        cell.fill = solid(tint(tile.color, 0.12));
+        cell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1, shrinkToFit: true };
+      });
+      label.border = { top: { style: 'thick', color: { argb: argb(tile.color) } } };
+    });
+    sheet.getRow(row).height = 22;
+    sheet.getRow(row + 1).height = 36;
+    sheet.getRow(row + 2).height = 20;
+  };
+
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const exportChartsToExcel = async () => {
+    const button = $('exportChartsBtn');
+    button.disabled = true;
+    try {
+      const ExcelJS = await loadExcelJs();
+      const range = chartRange();
+      const reports = state.reports.filter((report) => inRange(report.date, range));
+      const period = `${periodSelect.selectedOptions[0].textContent} (${rangeLabel(range)})`;
+      const total = reports.length;
+
+      const types = typeSegments(reports);
+      const statuses = statusSegments(reports);
+      const buckets = timeBuckets(reports, range);
+      const countOf = (keys) => reports.filter((report) => keys.includes(report.status.key)).length;
+      const pct = (value) => (total ? `${Math.round((value / total) * 100)}% of reports` : 'No reports');
+      const topType = types.reduce((best, segment) => (!best || segment.value > best.value ? segment : best), null);
+
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'PeakPath Admin';
+      workbook.created = new Date();
+
+      /* ----- Overview: all three charts on one page ----- */
+      // A: margin | B–I: four tiles of two columns | J: margin
+      const overview = newSheet(workbook, 'Overview', [2, 5, 23, 14, 14, 5, 23, 14, 14, 2]);
+      addBanner(overview, 2, 9, 'User Reports Overview', period);
+
+      addTiles(overview, 5, [
+        { label: 'Total reports', value: total, note: topType ? `Most common: ${topType.label}` : 'No reports yet', color: '#2f8f4e' },
+        { label: 'Pending', value: countOf(['pending']), note: pct(countOf(['pending'])), color: '#e8a63c' },
+        { label: 'In progress', value: countOf(IN_PROGRESS), note: 'Review, warned, suspended', color: '#2a63b5' },
+        { label: 'Resolved', value: countOf(['resolved']), note: pct(countOf(['resolved'])), color: '#2f8f4e' }
+      ]);
+
+      sectionTitle(overview, 9, 2, 9, 'Charts');
+      // B–E and F–I are about 410px each, so one donut sits over each table.
+      const donutSize = { width: 390, height: 250 };
+      addPicture(workbook, overview, drawDonutChart({ ...donutSize, title: 'Reports by Type', subtitle: period, segments: types, total }), 1, 10, donutSize.width, donutSize.height);
+      addPicture(workbook, overview, drawDonutChart({ ...donutSize, title: 'Report Status Distribution', subtitle: period, segments: statuses, total }), 5.05, 10, donutSize.width, donutSize.height);
+      const lineTop = 10 + rowsFor(donutSize.height) + 1;
+      const lineSize = { width: 790, height: 270 };
+      addPicture(workbook, overview, drawLineChart({ ...lineSize, title: 'Reports Over Time', subtitle: period, buckets }), 1, lineTop, lineSize.width, lineSize.height);
+
+      const tablesRow = lineTop + rowsFor(lineSize.height) + 2;
+      sectionTitle(overview, tablesRow, 2, 9, 'Breakdown');
+      addBreakdownTable(overview, tablesRow + 2, 2, 'Report Type', types, total);
+      addBreakdownTable(overview, tablesRow + 2, 6, 'Status', statuses, total);
+
+      /* ----- One sheet per chart, with its full table ----- */
+      const detailWidths = [2, 5, 44, 14, 14, 2];
+      const detailPicture = { width: 520, height: 270 };
+
+      const typeSheet = newSheet(workbook, 'Reports by Type', detailWidths);
+      addBanner(typeSheet, 2, 5, 'Reports by Type', period);
+      addPicture(workbook, typeSheet, drawDonutChart({ ...detailPicture, title: 'Reports by Type', subtitle: period, segments: types, total }), 1, 4, detailPicture.width, detailPicture.height);
+      addBreakdownTable(typeSheet, 5 + rowsFor(detailPicture.height) + 1, 2, 'Report Type', types, total);
+
+      const timeSheet = newSheet(workbook, 'Reports Over Time', detailWidths);
+      addBanner(timeSheet, 2, 5, 'Reports Over Time', period);
+      addPicture(workbook, timeSheet, drawLineChart({ ...detailPicture, title: 'Reports Over Time', subtitle: period, buckets }), 1, 4, detailPicture.width, detailPicture.height);
+      addTimeTable(timeSheet, 5 + rowsFor(detailPicture.height) + 1, 3, buckets, total);
+
+      const statusSheet = newSheet(workbook, 'Status Distribution', detailWidths);
+      addBanner(statusSheet, 2, 5, 'Report Status Distribution', period);
+      addPicture(workbook, statusSheet, drawDonutChart({ ...detailPicture, title: 'Report Status Distribution', subtitle: period, segments: statuses, total }), 1, 4, detailPicture.width, detailPicture.height);
+      addBreakdownTable(statusSheet, 5 + rowsFor(detailPicture.height) + 1, 2, 'Status', statuses, total);
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadBlob(
+        new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+        `PeakPath-User-Reports-Overview-${stamp}.xlsx`
+      );
+      showToast('Charts exported to Excel.', 'success');
+    } catch (error) {
+      console.error('Failed to export the charts:', error);
+      showToast('Unable to export the charts right now.', 'error');
+    } finally {
+      button.disabled = false;
+    }
+  };
+
+  $('exportChartsBtn').addEventListener('click', exportChartsToExcel);
 
   periodSelect.addEventListener('change', renderCharts);
 
@@ -2249,8 +2794,9 @@
           {
             warningsIssued: increment(1),
             lastWarningAt: nowIso,
-            // A warned report is actively being handled, so pull it out of the pending queue.
-            ...(report.status.key === 'pending' ? { status: 'Under Review' } : {})
+            // The report now shows that a warning went out. A suspension is
+            // the stronger action, so a Suspended report stays Suspended.
+            ...(['resolved', 'suspended'].includes(report.status.key) ? {} : { status: 'Warned' })
           }
         );
 
@@ -2328,7 +2874,7 @@
           {
             suspendedUserId: linkedUser.id,
             lastSuspendedAt: nowIso,
-            ...(report.status.key === 'pending' ? { status: 'Under Review' } : {})
+            ...(report.status.key === 'resolved' ? {} : { status: 'Suspended' })
           }
         );
 
