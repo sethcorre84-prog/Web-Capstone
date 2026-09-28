@@ -4,8 +4,9 @@
 // "Admin User" / "AU" placeholders baked into the markup.
 //
 // Name comes from Settings > Profile Information, saved to admins/{uid}.name
-// and mirrored to the Firebase Auth displayName. If neither is set yet, the
-// placeholder text is left alone, so nothing changes until a name is saved.
+// and mirrored to the Firebase Auth displayName. The markup leaves the name
+// blank so no placeholder flashes between pages; if no name is saved at all,
+// "Admin User" is filled in once the admin doc has loaded.
 //
 // It also makes the PeakPath logo beside the notification bell open a small
 // profile card for the signed-in admin (name, role, username, email, phone,
@@ -25,12 +26,31 @@ export function adminInitials(name) {
   return words.slice(0, 2).map((word) => word[0].toUpperCase()).join('');
 }
 
+// The last name/role shown is kept in this browser so the next page can show
+// it straight away, instead of a blank chip until Firebase has signed in.
+const IDENTITY_KEY = 'peakpath-admin-identity';
+const FALLBACK_NAME = 'Admin User';
+
+const readCachedIdentity = () => {
+  try { return JSON.parse(localStorage.getItem(IDENTITY_KEY)) || {}; } catch { return {}; }
+};
+
+const cacheIdentity = (changes) => {
+  try { localStorage.setItem(IDENTITY_KEY, JSON.stringify({ ...readCachedIdentity(), ...changes })); } catch { /* storage blocked */ }
+};
+
 // Settings calls this straight after a save so the current page updates
 // without waiting for a reload; every other page runs it on sign-in below.
 export function renderAdminIdentity({ name, role } = {}) {
   const cleanName = String(name || '').trim();
   const cleanRole = String(role || '').trim();
 
+  if (cleanName) cacheIdentity({ name: cleanName });
+  if (cleanRole) cacheIdentity({ role: cleanRole });
+  applyIdentity(cleanName, cleanRole);
+}
+
+function applyIdentity(cleanName, cleanRole) {
   if (cleanName) {
     document.querySelectorAll('.user-chip .name').forEach((el) => { el.textContent = cleanName; });
     // Avatars that show the PeakPath logo keep it; writing initials into one
@@ -137,8 +157,31 @@ document.querySelectorAll('.topbar-right .avatar-logo, .avatar-logo.topbar-logo'
   });
 });
 
+// Show the cached name before sign-in resolves. It is only trusted for the
+// admin who saved it; a different account overwrites it below.
+{
+  const cached = readCachedIdentity();
+  applyIdentity(cached.name || '', cached.role || '');
+}
+
+// No name anywhere (a brand-new admin): fall back to the old placeholder
+// rather than leaving the chip blank.
+const showFallbackName = () => {
+  document.querySelectorAll('.user-chip .name').forEach((el) => {
+    if (!el.textContent.trim()) el.textContent = FALLBACK_NAME;
+  });
+};
+
 onAuthStateChanged(auth, async (user) => {
   if (!user) return; // The page's own guard handles signed-out visitors.
+
+  const cached = readCachedIdentity();
+  if (cached.uid !== user.uid) {
+    try { localStorage.setItem(IDENTITY_KEY, JSON.stringify({ uid: user.uid })); } catch { /* storage blocked */ }
+    if (cached.name) {
+      document.querySelectorAll('.user-chip .name').forEach((el) => { el.textContent = ''; });
+    }
+  }
 
   // Auth's displayName is already in hand, so show it right away; the admin
   // doc (which also carries the role) follows once it has loaded.
@@ -147,7 +190,7 @@ onAuthStateChanged(auth, async (user) => {
 
   try {
     const snap = await getDoc(doc(db, 'admins', user.uid));
-    if (!snap.exists()) return;
+    if (!snap.exists()) { showFallbackName(); return; }
     const data = snap.data();
 
     // Keep this admin's adminEmails entry (email -> UID) in place, which is
@@ -158,6 +201,7 @@ onAuthStateChanged(auth, async (user) => {
         .catch((error) => console.warn('Could not register the admin email for password resets:', error.message));
     }
     renderAdminIdentity({ name: data.name || user.displayName, role: data.role });
+    showFallbackName();
     updateAdminProfile({
       name: data.name || user.displayName || '',
       role: data.role || DEFAULT_ADMIN_ROLE,
@@ -167,5 +211,6 @@ onAuthStateChanged(auth, async (user) => {
     });
   } catch (error) {
     console.warn('Could not load the admin profile for the account chip:', error.message);
+    showFallbackName();
   }
 });

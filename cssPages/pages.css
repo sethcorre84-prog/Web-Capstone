@@ -598,6 +598,11 @@ body .avatar.avatar-logo {
     font-weight: 600;
     color: #fff;
 }
+/* Starts empty until admin-identity.js fills in the name; keep its line
+   height so the chip doesn't jump when it does. */
+.user-chip .name:empty::before {
+    content: '\00a0';
+}
 .user-chip .role {
     font-size: 11px;
     color: #8fa88f;
