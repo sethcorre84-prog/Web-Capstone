@@ -1464,8 +1464,10 @@ input[type="password"]::-ms-clear {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--danger-light);
-    color: var(--danger);
+    /* Green, like the rest of the portal's actions: logging out is a
+       normal step, not a destructive one. */
+    background: var(--accent-light);
+    color: var(--accent);
 }
 .logout-modal h3 {
     margin: 0 0 6px;
@@ -1514,13 +1516,13 @@ input[type="password"]::-ms-clear {
     background: var(--accent-light);
 }
 .logout-modal-confirm {
-    border: 1px solid var(--danger);
-    background: var(--danger);
+    border: 1px solid var(--accent);
+    background: var(--accent);
     color: #fff;
 }
 .logout-modal-confirm:hover {
-    background: var(--danger-dark);
-    border-color: var(--danger-dark);
+    background: var(--accent-dark);
+    border-color: var(--accent-dark);
 }
 .logout-modal-confirm:disabled {
     opacity: 0.7;
