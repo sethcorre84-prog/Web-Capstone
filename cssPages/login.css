@@ -957,6 +957,23 @@ button:hover {
     text-align: left;
 }
 
+/* Read-only email: greyed, a lock at the end, and no text cursor, so it
+   reads as fixed rather than as a field to fill in. */
+.forgot-box .input-box--locked {
+    background: #eef2f5;
+    border-color: #d5dde4;
+    cursor: not-allowed;
+}
+.forgot-box .input-box--locked input {
+    color: #3c4c59;
+    cursor: not-allowed;
+    user-select: text;
+}
+.forgot-box .input-box--locked .locked-icon {
+    color: #8d9aa6;
+    font-size: 13px;
+}
+
 .forgot-box .forgot-status {
     min-height: 18px;
     margin: 0 0 16px;

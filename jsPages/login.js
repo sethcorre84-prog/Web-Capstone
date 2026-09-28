@@ -286,12 +286,23 @@ function setForgotStatus(message, type = "") {
 
 function openForgotModal() {
   const forgotEmail = document.getElementById("forgotEmail");
-  // Carry over whatever the admin already typed on the login form.
-  forgotEmail.value = document.getElementById("email").value.trim();
-  setForgotStatus("");
-  document.getElementById("forgotSubmit").disabled = false;
+  const submitBtn = document.getElementById("forgotSubmit");
+  // The reset always goes to the email on the login form; the field here is
+  // read-only, so a different address has to be typed there first.
+  const email = document.getElementById("email").value.trim();
+  forgotEmail.value = email;
+  // The field can't be typed in, so its red mark from a previous attempt
+  // would never clear on its own.
+  forgotEmail.closest(".input-box").classList.remove("invalid");
+  if (email) {
+    setForgotStatus("");
+    submitBtn.disabled = false;
+  } else {
+    setForgotStatus("Type your admin email on the login form first, then click Forgot Password again.", "error");
+    submitBtn.disabled = true;
+  }
   document.getElementById("forgotModal").classList.add("show");
-  forgotEmail.focus();
+  (email ? submitBtn : document.getElementById("forgotCancel")).focus();
 }
 
 function closeForgotModal() {
@@ -299,7 +310,9 @@ function closeForgotModal() {
 }
 
 async function sendResetLink() {
-  const email = document.getElementById("forgotEmail").value.trim();
+  // Read from the login form, not the modal field, so the address can't be
+  // swapped by editing the read-only input in dev tools.
+  const email = document.getElementById("email").value.trim();
   const submitBtn = document.getElementById("forgotSubmit");
 
   if (!email) {

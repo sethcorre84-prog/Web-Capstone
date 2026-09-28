@@ -197,11 +197,14 @@
   <div class="modal-box forgot-box">
     <i class="fa-solid fa-key modal-icon forgot-icon"></i>
     <h3>Reset Password</h3>
-    <p>Enter your admin email and we'll send you a link to reset your password.</p>
+    <p>We'll send a link to reset the password to the admin email below.</p>
     <form id="forgotForm" novalidate>
-      <div class="input-box">
+      <!-- Read-only: the reset goes to the email entered on the login form,
+           so it can't be changed here. -->
+      <div class="input-box input-box--locked" title="To use a different email, change it on the login form">
         <i class="fa-regular fa-envelope"></i>
-        <input type="email" id="forgotEmail" placeholder="admin@peakpath.com" autocomplete="email">
+        <input type="email" id="forgotEmail" placeholder="No email entered" autocomplete="off" readonly aria-readonly="true" tabindex="-1">
+        <i class="fa-solid fa-lock locked-icon" aria-hidden="true"></i>
       </div>
       <p id="forgotStatus" class="forgot-status" role="status"></p>
       <div class="forgot-actions">
@@ -212,6 +215,6 @@
   </div>
 </div>
 
-<script type="module" src="../jsPages/login.js?v=2026-09-27-2"></script>
+<script type="module" src="../jsPages/login.js?v=2026-09-28-1"></script>
 </body>
 </html>
