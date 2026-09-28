@@ -485,13 +485,13 @@
                      Settings > Date & Time, and with the hour changing while
                      the page is left open. -->
                 <script>
-                    // 7:00-11:59 morning, 12:00-17:59 afternoon,
-                    // 18:00-21:59 evening, 22:00-6:59 the small hours.
+                    // 6:00-11:59 morning, 12:00-17:59 afternoon,
+                    // 18:00-21:59 evening, 22:00-5:59 night (until sunrise).
                     window.portalGreeting = function (hour) {
-                        if (hour >= 7 && hour < 12) return 'Good Morning';
-                        if (hour >= 12 && hour < 18) return 'Good Afternoon';
-                        if (hour >= 18 && hour < 22) return 'Good Evening';
-                        return 'Hello Night Owl';
+                        if (hour >= 6 && hour < 12) return 'Hello, early bird';
+                        if (hour >= 12 && hour < 18) return 'Hello, sunshine';
+                        if (hour >= 18 && hour < 22) return 'Hello, evening star';
+                        return 'Hello, night owl';
                     };
                     document.getElementById('greeting').textContent =
                         window.portalGreeting(new Date().getHours()) + ', Admin!';

@@ -744,6 +744,31 @@ a { color: inherit; text-decoration: none; }
   margin-top: 2px;
   line-height: 1.45;
 }
+/* Narrative report under each recommended action, closed until asked for. */
+.action-report { margin-top: 6px; }
+.action-report summary {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  width: fit-content;
+}
+.action-report summary:hover { text-decoration: underline; }
+.action-report-body {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--border);
+  border-radius: 4px;
+  background: var(--page-bg);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.action-report-body p { margin: 0 0 6px; }
+.action-report-body p:last-child { margin-bottom: 0; }
+.action-report-body strong { color: var(--text-primary); font-weight: 600; }
+.action-report-body ol { margin: 0 0 6px; padding-left: 18px; }
+.action-report-body li { margin-bottom: 2px; }
 .small-card .row span.val-muted,
 .sub-card .row span.val-muted {
   color: var(--text-muted);
@@ -1809,6 +1834,113 @@ a { color: inherit; text-decoration: none; }
     map: 'fa-map-location-dot'
   };
 
+  /* The narrative report behind each kind of action: why it matters, what to
+     do, and what doing it should achieve. The finding itself comes from the
+     action's own meta line, so the report always quotes the numbers that
+     triggered it. */
+  const ACTION_NARRATIVES = {
+    advisory: {
+      why: 'Heavy or sustained rain loosens soil on Mount Makiling’s slopes, turns trail surfaces slick and raises the chance of landslides and swollen stream crossings.',
+      steps: ['Publish the advisory on the Advisories page so it reaches every hiker account.', 'Brief rangers at the jump-off points to relay it in person.', 'Consider temporarily closing exposed or steep segments until the rain passes.'],
+      outcome: 'Hikers can postpone or prepare before they set out, which lowers the number of slips, rescues and new hazard reports during the wet spell.'
+    },
+    notice: {
+      why: 'Moderate rain rarely closes a trail, but it muddies paths and hides roots and loose rock, which is where most minor injuries happen.',
+      steps: ['Draft a trail-condition notice describing expected mud and slippery sections.', 'Remind hikers about proper footwear and extra time on descents.', 'Have it ready to publish the day before the wet weather arrives.'],
+      outcome: 'Hikers arrive better equipped, and a full advisory stays in reserve should the forecast worsen.'
+    },
+    emergency: {
+      why: 'An unresolved emergency alert may mean a hiker is still waiting for help; every hour open raises the risk to that person and to the responders.',
+      steps: ['Open Emergency Monitoring and confirm the status and location of each alert.', 'Dispatch or check in with the nearest ranger team and coordinate with local rescue units.', 'Mark each alert resolved once the hiker is safe so the record stays accurate.'],
+      outcome: 'Every person in distress is accounted for, and the risk score drops as alerts are closed.'
+    },
+    inspect: {
+      why: 'Several active hazards on one trail compound each other — a hiker who avoids one obstacle can walk straight into the next — which makes this the most exposed trail on the network.',
+      steps: ['Send a ranger team to walk the trail and confirm each reported hazard.', 'Mark, barricade or clear what can be handled on site.', 'Close the trail on Trail Management if conditions are unsafe, and resolve reports as they are fixed.'],
+      outcome: 'The trail’s hazard count and the overall risk score come down, and hikers are kept off anything still unsafe.'
+    },
+    survey: {
+      why: 'A single hazard report is easy to overlook, but left unchecked it can worsen or be joined by others.',
+      steps: ['Add an inspection of the trail to the next ranger patrol.', 'Confirm whether the reported hazard is still present.', 'Resolve the report or escalate it depending on what the patrol finds.'],
+      outcome: 'The report is settled early, before it grows into a larger problem.'
+    },
+    review: {
+      why: 'Pending reports stay hidden from the map and from hiker notifications, so a real hazard waiting for review is a hazard no one is being warned about.',
+      steps: ['Open Hazard Reports and start with the oldest pending report.', 'Check the photo, location and description, then set a risk level.', 'Verify genuine reports so hikers are alerted, and reject duplicates or false ones.'],
+      outcome: 'Hikers receive timely warnings, and reporters see that their submissions are acted on.'
+    },
+    recheck: {
+      why: 'A verified hazard that has stayed open for weeks is either still out on the trail or was cleared without anyone closing the record; either way the data no longer reflects the mountain.',
+      steps: ['Assign rangers to revisit each long-open verified hazard.', 'Resolve those that have been cleared.', 'Escalate the ones still present for repair or trail closure.'],
+      outcome: 'The risk score becomes accurate again, and hazards that are still real get the attention they need.'
+    },
+    maintenance: {
+      why: 'A trail that keeps producing reports has an underlying problem — erosion, drainage or overgrowth — that one-off inspections will not fix.',
+      steps: ['Review the trail’s report history for repeated hazard types and locations.', 'Plan preventive work such as drainage, steps or vegetation clearing.', 'Schedule it in a dry, low-traffic period.'],
+      outcome: 'Fewer recurring reports on this trail, and less ranger time spent on repeat inspections.'
+    },
+    crews: {
+      why: 'The report history shows this hazard type appears often enough that another report in the coming week is more likely than not.',
+      steps: ['Put a crew on standby for this hazard type.', 'Stage the tools and materials it usually requires.', 'Brief patrols to watch for early signs of it.'],
+      outcome: 'When the next report arrives, the response starts in hours instead of days.'
+    },
+    closure: {
+      why: 'A closed trail only protects hikers who know it is closed; without a notice some will still arrive at the jump-off point or attempt the route.',
+      steps: ['Publish a closure notice naming each closed trail.', 'Suggest open alternatives where there are any.', 'Post signage at the trailheads and set an expected reopening date if known.'],
+      outcome: 'Hikers plan around the closures, and fewer attempt a closed route.'
+    },
+    visitors: {
+      why: 'Crowded days mean more people on narrow paths, longer waits at bottlenecks and more demand on rangers if something goes wrong.',
+      steps: ['Add rangers or volunteers at the busiest trailheads that day.', 'Consider staggered entry times or a visitor cap.', 'Remind registered hikers to start early.'],
+      outcome: 'Foot traffic is spread out, and rangers are already in place if an incident occurs.'
+    },
+    weather: {
+      why: 'Rain can worsen existing hazards — loosening a fallen tree, widening a washout or turning a slip into a slide.',
+      steps: ['After the next heavy rain, send patrols to every active hazard location.', 'Update each report’s risk level to match what they find.', 'Close any trail where a hazard has become dangerous.'],
+      outcome: 'Hazard records keep pace with the weather, and hikers are warned about conditions as they are now.'
+    },
+    expiry: {
+      why: 'When an advisory lapses while the mountain is still risky, hikers are left with no warning at exactly the moment they still need one.',
+      steps: ['Review each advisory that is about to expire.', 'Extend it, or replace it with an updated one that reflects current conditions.', 'Let it lapse only once the risk has actually dropped.'],
+      outcome: 'Hikers stay informed without a gap in coverage.'
+    },
+    risk: {
+      why: 'A report cannot be verified or rejected without a risk level, so it sits in the queue and never reaches hikers.',
+      steps: ['Open each of these pending reports.', 'Assess the hazard and assign Low, Moderate or High.', 'Then verify or reject it as usual.'],
+      outcome: 'The review queue can move again, and the risk score weights these hazards correctly.'
+    },
+    map: {
+      why: 'Without coordinates a hazard cannot be plotted on Geomap Monitoring, so responders have only a written description to find it by.',
+      steps: ['Contact the reporters or send a patrol to pin the exact location.', 'Add latitude and longitude to each record.', 'Encourage hikers to allow location access when submitting future reports.'],
+      outcome: 'Every active hazard appears on the map, and responders reach it faster.'
+    }
+  };
+
+  const PRIORITY_NARRATIVE = {
+    high: 'This is a high-priority action and should be handled today.',
+    med: 'This is a medium-priority action and should be scheduled within the next few days.',
+    low: 'This is a low-priority action and can be handled in routine work this week.'
+  };
+
+  const actionNarrative = (action, record) => {
+    const story = ACTION_NARRATIVES[action.kind];
+    const finding = String(action.meta || '').trim();
+    const riskLine = record && Number.isFinite(record.riskScore)
+      ? ` At the time of this analysis the overall risk on the mountain was ${record.riskLevel} (${record.riskScore}/100).`
+      : '';
+    if (!story) {
+      return `<p><strong>Situation.</strong> ${escapeHtml(finding)}${escapeHtml(riskLine)}</p>`
+        + `<p><strong>Priority.</strong> ${escapeHtml(PRIORITY_NARRATIVE[action.priority] || '')}</p>`;
+    }
+    return `
+      <p><strong>Situation.</strong> ${escapeHtml(finding)}${escapeHtml(riskLine)}</p>
+      <p><strong>Why it matters.</strong> ${escapeHtml(story.why)}</p>
+      <p><strong>Recommended steps.</strong></p>
+      <ol>${story.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}</ol>
+      <p><strong>Expected outcome.</strong> ${escapeHtml(story.outcome)} ${escapeHtml(PRIORITY_NARRATIVE[action.priority] || '')}</p>
+    `;
+  };
+
   const barRows = (rows, { max, total, statusColors = false, icons = false } = {}) => rows.map((row) => {
     const widest = max || Math.max(...rows.map((item) => item.count), 1);
     const width = Math.max(3, Math.round((row.count / widest) * 100));
@@ -2615,6 +2747,10 @@ a { color: inherit; text-decoration: none; }
           <div>
             <strong>${escapeHtml(action.title)}</strong>
             <div class="meta">${escapeHtml(action.meta)}</div>
+            <details class="action-report">
+              <summary>Read report</summary>
+              <div class="action-report-body">${actionNarrative(action, published.record)}</div>
+            </details>
           </div>
           <span class="tag ${action.priority}">${action.priority === 'high' ? 'High' : action.priority === 'med' ? 'Medium' : 'Low'} Priority</span>
         </div>
