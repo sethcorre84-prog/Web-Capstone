@@ -1064,6 +1064,34 @@ button:hover{
   color: #c0392b;
 }
 
+/* The same on the dark glass card: the light pink box above would sit under
+   white text and hide it, so here the box stays dark with a red tint and
+   the text stays white. */
+.login-card .input-box.invalid {
+  background: rgba(220, 60, 50, 0.14);
+  border-color: #ff7a6e;
+  box-shadow: 0 0 0 4px rgba(255, 90, 80, 0.18);
+}
+.login-card .input-box.invalid:focus-within {
+  background: rgba(220, 60, 50, 0.18);
+  border-color: #ff8f84;
+}
+.login-card .input-box.invalid > i:first-child,
+.login-card .input-box.invalid:focus-within > i:first-child {
+  color: #ff8f84;
+}
+.login-card .input-box.invalid input {
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+}
+.login-card .input-box.invalid input::placeholder {
+  color: rgba(255, 220, 216, 0.6);
+}
+/* A saved (autofilled) value keeps its dark box too, now red-tinted. */
+.login-card .input-box.invalid input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #3a1c1a inset;
+}
+
 /* Sign-in button while the request is in flight. */
 #loginForm button[type="submit"]:disabled {
   opacity: 0.75;
