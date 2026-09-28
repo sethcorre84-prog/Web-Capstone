@@ -29,8 +29,8 @@
    ========================================================================== */
 :root {
     color-scheme: light;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        Helvetica, Arial, sans-serif;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
     /* Sidebar */
     --sidebar-bg: #132313;
@@ -67,9 +67,8 @@
 
     /* Elevation */
     --shadow-sm: 0 1px 2px rgba(20, 40, 25, 0.05);
-    --shadow-card: 0 1px 3px rgba(20, 40, 25, 0.06),
-        0 1px 2px rgba(20, 40, 25, 0.04);
-    --shadow-hover: 0 6px 18px rgba(20, 40, 25, 0.10);
+    --shadow-card: 0 1px 3px rgba(20, 40, 25, 0.06), 0 1px 2px rgba(20, 40, 25, 0.04);
+    --shadow-hover: 0 6px 18px rgba(20, 40, 25, 0.1);
 
     /* Icons — green shades aligned with the brand palette.
        See the icon rules below for
@@ -234,7 +233,8 @@
 /* Form controls the pages leave to the browser. Zero specificity (:where), so
    any page that styles its own inputs, e.g. a transparent field inside a
    search box, keeps its styling. */
-:where(:root[data-theme="dark"]) :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) {
+:where(:root[data-theme="dark"])
+    :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) {
     background-color: var(--dm-surface-2);
     color: var(--dm-text);
     border-color: var(--dm-border);
@@ -265,8 +265,8 @@
 body {
     background: var(--page-bg);
     color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        Helvetica, Arial, sans-serif;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* ==========================================================================
@@ -294,8 +294,7 @@ body {
     color: var(--icon);
 }
 
-:where(button:hover, button:focus-visible, a:hover, a:focus-visible)
-    :where(i[class*="fa-"], .fa) {
+:where(button:hover, button:focus-visible, a:hover, a:focus-visible) :where(i[class*="fa-"], .fa) {
     color: var(--icon-strong);
 }
 
@@ -419,7 +418,7 @@ body {
 .page-btn[disabled],
 .pagination button:disabled,
 .pagination button[disabled] {
-    opacity: .4;
+    opacity: 0.4;
     cursor: default;
 }
 
@@ -449,7 +448,9 @@ body {
     overflow: hidden;
     background: var(--sidebar-bg);
     color: #dfe8df;
-    transition: width .22s ease, padding .22s ease;
+    transition:
+        width 0.22s ease,
+        padding 0.22s ease;
 }
 
 .brand {
@@ -463,7 +464,11 @@ body {
     text-align: center;
     max-height: 160px;
     overflow: hidden;
-    transition: max-height .22s ease, padding .22s ease, opacity .15s ease, visibility .22s;
+    transition:
+        max-height 0.22s ease,
+        padding 0.22s ease,
+        opacity 0.15s ease,
+        visibility 0.22s;
 }
 .brand-icon {
     width: 52px;
@@ -506,13 +511,13 @@ body {
     padding: 0;
     list-style: none;
     overflow-y: auto;
-    scrollbar-width: none;      /* Firefox */
-    -ms-overflow-style: none;   /* old Edge/IE */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* old Edge/IE */
 }
 .nav::-webkit-scrollbar {
     width: 0;
     height: 0;
-    display: none;              /* Chrome, Edge, Safari */
+    display: none; /* Chrome, Edge, Safari */
 }
 .nav li a {
     display: flex;
@@ -524,7 +529,11 @@ body {
     font-weight: 500;
     color: #c4d1c4;
     text-decoration: none;
-    transition: background .15s ease, color .15s ease, padding .22s ease, gap .22s ease;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        padding 0.22s ease,
+        gap 0.22s ease;
 }
 .nav li a:hover {
     background: var(--sidebar-bg-light);
@@ -556,7 +565,9 @@ body {
     align-items: center;
     gap: 10px;
     padding: 6px 8px 14px 8px;
-    transition: padding .22s ease, gap .22s ease;
+    transition:
+        padding 0.22s ease,
+        gap 0.22s ease;
 }
 /* Deliberately not scoped to .sidebar: the top-bar and profile avatars reuse
    this base and only override the size. */
@@ -601,7 +612,7 @@ body .avatar.avatar-logo {
 /* Starts empty until admin-identity.js fills in the name; keep its line
    height so the chip doesn't jump when it does. */
 .user-chip .name:empty::before {
-    content: '\00a0';
+    content: "\00a0";
 }
 .user-chip .role {
     font-size: 11px;
@@ -620,7 +631,10 @@ body .avatar.avatar-logo {
     font-weight: 500;
     color: #c4d1c4;
     text-decoration: none;
-    transition: background .15s ease, padding .22s ease, gap .22s ease;
+    transition:
+        background 0.15s ease,
+        padding 0.22s ease,
+        gap 0.22s ease;
 }
 .logout-btn:hover {
     background: var(--sidebar-bg-light);
@@ -640,7 +654,9 @@ body .avatar.avatar-logo {
     cursor: pointer;
     margin: 0 auto 14px 0;
     flex-shrink: 0;
-    transition: background .15s, margin-left .22s ease;
+    transition:
+        background 0.15s,
+        margin-left 0.22s ease;
 }
 .sidebar-toggle:hover {
     background: var(--sidebar-bg-light);
@@ -659,7 +675,8 @@ body .avatar.avatar-logo {
     margin: 0 auto 14px 0;
     border: 1px solid #2a3d2a;
     border-radius: 8px;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23c4d1c4' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M3 6h18M3 12h18M3 18h18'/%3E%3C/svg%3E") center / 18px no-repeat;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23c4d1c4' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M3 6h18M3 12h18M3 18h18'/%3E%3C/svg%3E")
+        center / 18px no-repeat;
 }
 .sidebar-was-collapsed .sidebar:not(:has(> .sidebar-toggle))::before {
     margin-left: 11px;
@@ -686,7 +703,7 @@ body .avatar.avatar-logo {
 .user-chip > div:not(.avatar) {
     min-width: 0;
     overflow: hidden;
-    transition: opacity .15s ease;
+    transition: opacity 0.15s ease;
 }
 
 .sidebar.collapsed .sidebar-toggle {
@@ -747,7 +764,9 @@ body .avatar.avatar-logo {
    icons above it; it grows to 20px, and back when the sidebar opens. */
 .logout-btn svg {
     flex-shrink: 0;
-    transition: width .22s ease, height .22s ease;
+    transition:
+        width 0.22s ease,
+        height 0.22s ease;
 }
 .sidebar-was-collapsed .sidebar .logout-btn svg,
 .sidebar.collapsed .logout-btn svg {
@@ -944,7 +963,7 @@ body :is(.topbar, .top-bar) .avatar.avatar-logo {
     background: var(--card-bg, #fff);
     border: 1px solid var(--border, #e4e7e1);
     border-radius: 10px;
-    box-shadow: 0 12px 30px rgba(20, 35, 20, .16);
+    box-shadow: 0 12px 30px rgba(20, 35, 20, 0.16);
     /* Above Leaflet's panes (400) and controls (800) on the map pages. */
     z-index: 1200;
 }
@@ -984,7 +1003,6 @@ body :is(.topbar, .top-bar) .avatar.avatar-logo {
     color: var(--dm-text, #000);
     text-decoration: none;
     border-bottom: 1px solid var(--border, #e4e7e1);
-
 }
 .notification-item:hover,
 .notification-item:focus,
@@ -1002,7 +1020,7 @@ body :is(.topbar, .top-bar) .avatar.avatar-logo {
 }
 .notification-item.unread:hover {
     background: var(--accent-light, #e7f5eb);
-    filter: brightness(.97);
+    filter: brightness(0.97);
 }
 .notification-item:last-child {
     border-bottom: 0;
@@ -1203,11 +1221,15 @@ input[type="password"]::-ms-clear {
    ========================================================================== */
 .profile-trigger {
     cursor: pointer;
-    transition: transform .15s ease, box-shadow .15s ease;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
 }
 .profile-trigger:hover {
     transform: translateY(-1px);
-    box-shadow: 0 0 0 3px var(--accent-light), 0 4px 12px rgba(31, 107, 57, .18);
+    box-shadow:
+        0 0 0 3px var(--accent-light),
+        0 4px 12px rgba(31, 107, 57, 0.18);
 }
 .profile-trigger:focus-visible {
     outline: 2px solid var(--accent);
@@ -1222,7 +1244,7 @@ input[type="password"]::-ms-clear {
     align-items: center;
     justify-content: center;
     padding: 20px;
-    background: rgba(12, 24, 18, .45);
+    background: rgba(12, 24, 18, 0.45);
 }
 .admin-profile-overlay.open {
     display: flex;
@@ -1236,21 +1258,34 @@ input[type="password"]::-ms-clear {
     border-radius: 18px;
     background: var(--dm-surface, #fff);
     border: 1px solid var(--dm-border, #dce6df);
-    box-shadow: 0 24px 60px rgba(12, 24, 18, .28);
+    box-shadow: 0 24px 60px rgba(12, 24, 18, 0.28);
     text-align: center;
-    animation: adminProfileIn .22s ease-out;
+    animation: adminProfileIn 0.22s ease-out;
 }
 @keyframes adminProfileIn {
-    from { transform: translateY(10px) scale(.97); opacity: 0; }
-    to   { transform: none; opacity: 1; }
+    from {
+        transform: translateY(10px) scale(0.97);
+        opacity: 0;
+    }
+    to {
+        transform: none;
+        opacity: 1;
+    }
 }
 @media (prefers-reduced-motion: reduce) {
-    .admin-profile-card { animation: none; }
+    .admin-profile-card {
+        animation: none;
+    }
 }
 .admin-profile-banner {
     height: 92px;
     margin: 0 -24px;
-    background: linear-gradient(135deg, var(--sidebar-bg-light, #1d3324) 0%, var(--accent-dark, #1f6b39) 55%, var(--accent, #2f8f4e) 100%);
+    background: linear-gradient(
+        135deg,
+        var(--sidebar-bg-light, #1d3324) 0%,
+        var(--accent-dark, #1f6b39) 55%,
+        var(--accent, #2f8f4e) 100%
+    );
 }
 .admin-profile-close {
     position: absolute;
@@ -1261,14 +1296,14 @@ input[type="password"]::-ms-clear {
     height: 32px;
     display: grid;
     place-items: center;
-    border: 1px solid rgba(255, 255, 255, .35);
+    border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: 9px;
-    background: rgba(255, 255, 255, .16);
+    background: rgba(255, 255, 255, 0.16);
     color: #fff;
     cursor: pointer;
 }
 .admin-profile-close:hover {
-    background: rgba(255, 255, 255, .28);
+    background: rgba(255, 255, 255, 0.28);
 }
 .admin-profile-close i {
     color: #fff;
@@ -1283,7 +1318,9 @@ input[type="password"]::-ms-clear {
     border-radius: 50%;
     background: #fff;
     border: 4px solid var(--dm-surface, #fff);
-    box-shadow: 0 0 0 3px var(--accent, #2f8f4e), 0 8px 20px rgba(12, 24, 18, .2);
+    box-shadow:
+        0 0 0 3px var(--accent, #2f8f4e),
+        0 8px 20px rgba(12, 24, 18, 0.2);
 }
 .admin-profile-avatar img {
     width: 76%;
@@ -1374,8 +1411,12 @@ input[type="password"]::-ms-clear {
     color: #fff;
 }
 @media (max-width: 420px) {
-    .admin-profile-row { grid-template-columns: 30px minmax(0, 1fr); }
-    .admin-profile-row-value { grid-column: 2; }
+    .admin-profile-row {
+        grid-template-columns: 30px minmax(0, 1fr);
+    }
+    .admin-profile-row-value {
+        grid-column: 2;
+    }
 }
 
 /* ==========================================================================
@@ -1406,8 +1447,14 @@ input[type="password"]::-ms-clear {
     animation: logoutModalIn 0.16s ease-out;
 }
 @keyframes logoutModalIn {
-    from { opacity: 0; transform: translateY(8px) scale(0.98); }
-    to { opacity: 1; transform: none; }
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 .logout-modal-icon {
     width: 48px;
@@ -1454,7 +1501,9 @@ input[type="password"]::-ms-clear {
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
 }
 .logout-modal-cancel {
     border: 1px solid var(--border);

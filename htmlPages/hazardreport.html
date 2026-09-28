@@ -25,1059 +25,1329 @@
 <script type="module" src="../jsPages/admin-identity.js"></script>
 <title>PeakPath Admin — Hazard Reports</title>
 <style>
-  /* Palette, radii and typography come from pages.css (:root). */
+    /* Palette, radii and typography come from pages.css (:root). */
 
-  *{box-sizing:border-box; margin:0; padding:0;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:var(--bg);
-    color:var(--text-900);
-    font-size:14px;
-    -webkit-font-smoothing:antialiased;
-  }
-
-
-  /* Main */
-  .main{
-    display:flex;
-    flex-direction:column;
-    min-width:0;
-    flex:1;
-    padding:26px 32px;
-  }
-
-  .topbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    margin-bottom:22px;
-  }
-  .topbar h1{
-    font-size:22px;
-    margin:0 0 4px 0;
-    font-weight:700;
-    color:var(--text-900);
-  }
-  .topbar p{
-    margin:0;
-    font-size:13px;
-    color:var(--text-600);
-  }
-  .topbar-right{
-    display:flex;
-    align-items:center;
-    gap:16px;
-  }
-  .bell-wrap{
-    position:relative;
-    width:38px;
-    height:38px;
-    border:1px solid var(--border);
-    border-radius:9px;
-    background:var(--card);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  .bell-icon{
-    font-size:20px;
-    line-height:1;
-  }
-  .profile-chip{
-    display:flex;
-    align-items:center;
-    gap:9px;
-    cursor:pointer;
-    position:relative;
-  }
-  .profile-chip .avatar{
-    width:34px;
-    height:34px;
-    font-size:12px;
-  }
-  .profile-menu{
-    position:absolute;
-    top:46px;
-    right:0;
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:8px;
-    box-shadow:0 8px 22px rgba(0,0,0,.12);
-    min-width:150px;
-    display:none;
-    overflow:hidden;
-    z-index:30;
-  }
-  .profile-menu.open{
-    display:block;
-  }
-  .profile-menu a{
-    display:block;
-    padding:10px 14px;
-    font-size:13px;
-    color:var(--text-900);
-  }
-  .profile-menu a:hover{
-    background:var(--accent-light);
-  }
-  .bell-badge{
-    position:absolute;
-    top:-5px;
-    right:-5px;
-    width:17px;
-    height:17px;
-    border-radius:50%;
-    background:var(--red-text);
-    color:#fff;
-    font-size:10px;
-    font-weight:700;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  .admin-mini{
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
-  .admin-mini .avatar{
-    width:34px;
-    height:34px;
-    background:var(--accent-dark);
-    font-size:12px;
-  }
-  .admin-mini .name{
-    font-size:13.5px;
-    font-weight:600;
-    color:var(--text-900);
-  }
-  .admin-mini .role{
-    font-size:11px;
-    color:var(--text-600);
-  }
-
-/* Dark theme overrides (adapted to this page's variable names) */
-:root[data-theme="dark"] .search-box,
-:root[data-theme="dark"] select.filter-select,
-:root[data-theme="dark"] .btn-outline,
-:root[data-theme="dark"] .bell-wrap,
-:root[data-theme="dark"] .card{
-    background:var(--card);
-    color:var(--text-900);
-}
-:root[data-theme="dark"] tbody tr:hover{
-    background:#232922;
-}
-:root[data-theme="dark"] tbody tr.selected{
-    background:#1d3324;
-}
-
-  .content{
-    padding:0 0 28px 0;
-    display:flex;
-    flex-direction:column;
-    gap:18px;
-  }
-
-  /* Stat cards */
-    .stats{
-    display:grid;
-    grid-template-columns:repeat(6,minmax(0,1fr));
-    gap:14px;
-  }
-  .stat-card{
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:var(--radius-lg);
-    padding:16px 18px;
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-    /* Summary cards are 128px tall on every page in the portal, so the top
-       row lines up when you move between pages. Whatever slack a shorter
-       card has falls between the figure and its label. */
-    min-height:128px;
-    justify-content:space-between;
-    box-shadow:0 18px 36px rgba(15,23,42,0.06);
-    transition:transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  .stat-card:hover{
-    transform:translateY(-2px);
-    box-shadow:0 24px 48px rgba(15,23,42,0.08);
-  }
-  .stat-top{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-  }
-    .stat-icon{
-    width:32px;height:32px;
-    border-radius:8px !important;
-    display:flex;align-items:center;justify-content:center;
-    flex-shrink:0;
-  }
-  .stat-icon svg{width:20px;height:16px;stroke-width:2;}
-  .stat-icon.total{background:var(--dm-surface-2, #eef2ee);}
-  .stat-icon.pending{background:var(--amber-bg);}
-  .stat-icon.verified{background:var(--green-bg);}
-  .stat-icon.rejected{background:var(--red-bg);}
-  .stat-icon.resolved{background:var(--resolved-bg);}
-  .stat-value{
-    font-size:24px;
-    font-weight:700;
-    color:var(--text-900);
-  }
-  .stat-label{
-    font-size:12px;
-    color:var(--text-600);
-    font-weight:600;
-  }
-  .stat-label .meta-line{
-    font-size:11px;
-    color:var(--text-400);
-    margin-top:2px;
-    font-weight:400;
-  }
-
-  /* Panels */
-  /* The list and details cards stretch to the taller of the two, so their
-     bottom edges line up; neither card scrolls on its own. */
-  .panels{
-    display:grid;
-    grid-template-columns:1.7fr 1fr;
-    gap:18px;
-    align-items:stretch;
-  }
-  .list-card{
-    display:flex;
-    flex-direction:column;
-  }
-  /* When the card is stretched, keep the count + pagination on its bottom edge. */
-  .list-card .table-footer{margin-top:auto;}
-
-  .card{
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-    box-shadow:none;
-  }
-
-  /* Reports list card */
-  .list-card-header{
-    padding:18px 20px 12px 20px;
-    border-bottom:1px solid var(--border);
-  }
-  .list-card-header h2{
-    margin:0 0 12px 0;
-    font-size:15px;
-    font-weight:700;
-    color:var(--accent-dark);
-  }
-  .list-header-top{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:12px;
-}
-.list-header-top h2{
-  margin:0;
-}
-  .filters-row{
-    display:grid;
-    grid-template-columns:minmax(140px,1.6fr) repeat(3,minmax(105px,1fr)) auto;
-    gap:10px;
-    align-items:center;
-  }
-  .search-box{
-  min-width:0;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:8px 12px;
-  background:var(--dm-surface-2, #fbfcfa);
-  }
-  .search-box input{
-    width:100%;
-    border:none;
-    outline:none;
-    background:transparent;
-    font-size:13px;
-    color:var(--text-900);
-  }
-  .search-box .ic{
-    display:flex;
-    color:var(--text-400);
-    flex-shrink:0;
-  }
-  select.filter-select{
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:8px 10px;
-  background:var(--dm-surface-2, #fbfcfa);
-  font-size:13px;
-  color:var(--text-600);
-  width:100%;
-  min-width:0;
-  }
-  .date-range-row{
-    display:flex;
-    gap:10px;
-    margin-top:10px;
-    align-items:center;
-  }
-  .btn-outline{
-    display:flex;align-items:center;gap:6px;
-    padding:8px 12px;
-    border:1px solid var(--border);
-    border-radius:8px;
-    background:var(--dm-surface, #fff);
-    font:inherit;
-    font-size:13px;
-    font-weight:400;
-    color:var(--text-600);
-    cursor:pointer;
-    min-width:0;
-    white-space:nowrap;
-    justify-content:center;
-  }
-
-  @media (max-width: 760px){
-    .filters-row{
-      grid-template-columns:1fr 1fr;
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
     }
-    .search-box{
-      grid-column:1 / -1;
+    html,
+    body {
+        margin: 0;
+        padding: 0;
     }
-    .btn-outline{
-      width:100%;
+    body {
+        background: var(--bg);
+        color: var(--text-900);
+        font-size: 14px;
+        -webkit-font-smoothing: antialiased;
     }
-  }
-  .btn-outline:hover{
-    background:var(--dm-surface-2, #f5f5f2);
-  }
 
-  table{
-    width:100%;
-    border-collapse:collapse;
-  }
-  thead tr{
-    background:var(--dm-surface-2, #fafbfa);
-  }
-  th{
-    text-align:left;
-    font-size:11.5px;
-    text-transform:uppercase;
-    letter-spacing:0.03em;
-    color:var(--text-600);
-    padding:11px 14px;
-    font-weight:600;
-    border-bottom:1px solid var(--border);
-  }
-  td{
-    padding:12px 14px;
-    font-size:12.8px;
-    border-bottom:1px solid var(--border);
-    color:var(--text-900);
-    vertical-align:middle;
-  }
-  tbody tr{cursor:pointer;transition:background .12s ease;}
-  tbody tr:hover{background:var(--dm-surface-2, #f7f9f7);}
-  tbody tr.selected{background:var(--dm-surface-2, #eef6ee);}
-
-  .hazard-cell{display:flex;align-items:center;gap:8px;}
-  .hazard-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0;}
-  .sub{display:block;font-size:11px;color:var(--text-400);margin-top:1px;}
-
-  .badge{
-    display:inline-flex;
-    align-items:center;
-    padding:4px 10px;
-    border-radius:20px;
-    font-size:11px;
-    font-weight:600;
-  }
-  .badge.pending{background:var(--pending-bg);color:var(--pending-text);}
-  .badge.verified{background:var(--verified-bg);color:var(--verified-text);}
-  .badge.rejected{background:var(--rejected-bg);color:var(--rejected-text);}
-  .badge.resolved{background:var(--resolved-bg);color:var(--resolved-text);}
-  .badge.high{background:#fde9e8;color:#c8402f;}
-  .badge.moderate{background:#fff5df;color:#b9791b;}
-  .badge.low{background:#eaf5ff;color:#2a63b5;}
-  .badge.unknown{background:var(--dm-surface-2, #eef2ee);color:var(--dm-text-2, #5b6b60);}
-
-  /* One text size across the whole Hazard Reports List — headers, cells,
-     badges, the time under each date, icons and footer text — matching the
-     13px search/filter controls above the table. The page buttons keep the
-     shared pages.css size, the same as A&A.html's list. */
-  .list-card th,
-  .list-card td,
-  .list-card td .sub,
-  .list-card .badge,
-  .list-card .hazard-icon,
-  .list-card .table-footer{font-size:13px;}
-
-  /* Every page of the list is exactly the same size: fixed column widths
-     (the <colgroup>), one row height, cell text cut to two lines (full text
-     on hover), and blank filler rows topping short pages up to a full page. */
-  .list-card table{table-layout:fixed;min-width:700px;}
-  .list-card tbody tr{height:80px;}
-  .list-card td{padding:14px 8px;line-height:1.35;overflow:hidden;}
-  .list-card th{padding:13px 8px;}
-  /* Risk Level and Status badges sit in the middle of their columns. */
-  .list-card th.center-cell,
-  .list-card td.center-cell{text-align:center;}
-  .list-card .clamp-2{
-    display:-webkit-box;
-    -webkit-box-orient:vertical;
-    -webkit-line-clamp:2;
-    line-clamp:2;
-    overflow:hidden;
-    overflow-wrap:anywhere;
-  }
-  .list-card .hazard-cell{min-width:0;}
-  .list-card td.date-cell,
-  .list-card td.date-cell .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .list-card tbody tr.filler-row,
-  .list-card tbody tr.filler-row:hover{cursor:default;background:transparent;}
-  .list-card tbody tr.filler-row td{border-bottom-color:transparent;}
-
-  .table-footer{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:14px 20px;
-    font-size:12px;
-    color:var(--text-600);
-  }
-  .pagination{
-    display:flex;
-    align-items:center;
-    gap:6px;
-  }
-  /* Pagination buttons are styled in pages.css so every table matches. */
-
-  /* Report details card */
-  /* Grows with its content (the page scrolls, not the card), so a long
-     description is always shown in full without an inner scrollbar. */
-  .details-card{
-    padding:18px 20px 22px 20px;
-    display:flex;
-    flex-direction:column;
-    gap:16px;
-  }
-  /* Same heading as trail.html's "Trail Details" panel: brand green, 15/700. */
-  .details-card-title{
-    margin:0 0 -2px 0;
-    font-size:15px;
-    font-weight:700;
-    color:var(--accent-dark);
-  }
-  /* Empty state: the heading stays pinned top-left, the prompt centres in
-     whatever height the card is stretched to. */
-  .details-card.empty{
-    justify-content:flex-start;
-  }
-  .details-card.empty p:not(.details-card-title){
-    margin:auto;
-    text-align:center;
-    color:var(--text-600);
-  }
-  .details-top{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-  }
-  .details-title{
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
-  .details-title .ic-circle{
-    width:38px;height:38px;
-    border-radius:10px;
-    background:var(--red-bg);
-    display:flex;align-items:center;justify-content:center;
-    font-size:17px;
-  }
-  .details-title h3{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em;}
-  .details-title .sub-id{font-size:11.5px;color:var(--text-400);}
-  .status-pill{
-    font-size:11px;
-    font-weight:600;
-    padding:5px 11px;
-    border-radius:20px;
-    white-space:nowrap;
-  }
-
-  .info-row{
-    display:flex;
-    gap:8px;
-    font-size:12.5px;
-  }
-  .info-row .ic{color:var(--text-400);margin-top:1px;}
-  .info-row div strong{display:block;font-size:13px;font-weight:600;color:var(--text-900);}
-  .info-row div span{font-size:12px;color:var(--text-600);}
-
-  /* Small uppercase caption, the same one trail.html uses above its
-     "Trail Specifications" rows, so the two detail panels read alike. */
-  .section-label{
-    font-size:10.5px;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:.06em;
-    color:var(--text-muted);
-    margin:0 0 8px 0;
-  }
-  .desc-text{
-    font-size:12.5px;
-    color:var(--text-600);
-    line-height:1.65;
-    margin:0;
-    /* Break long words/links instead of widening the card sideways. */
-    overflow-wrap:anywhere;
-  }
-
-  .reporter-block{
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-  }
-  .reporter-row{display:flex;gap:16px;}
-  .reporter-col{flex:1;}
-  .reporter-col .val{font-size:12.5px;font-weight:600;color:var(--text-900);}
-  .reporter-col .lbl{font-size:11px;color:var(--text-400);margin-bottom:2px;}
-
-  .attachments{
-    display:flex;
-    gap:8px;
-  }
-  .attach-thumb{
-    width:54px;height:54px;
-    border-radius:8px;
-    background:var(--dm-surface-3, #dfe6df);
-    display:flex;align-items:center;justify-content:center;
-    font-size:18px;
-    overflow:hidden;
-  }
-  .attach-more{
-    width:54px;height:54px;
-    border-radius:8px;
-    background:var(--dm-surface-2, #eef2ee);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    font-size:12px;font-weight:700;color:var(--text-600);
-  }
-
-  .admin-actions{
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-  }
-  .admin-actions .row{display:flex;gap:8px;}
-  .btn{
-    flex:1;
-    padding:10px 10px;
-    border-radius:9px;
-    border:none;
-    font-size:12.5px;
-    font-weight:600;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:6px;
-  }
-  .btn-verify{background:#2f8f4e;color:#fff;}
-  .btn-reject{background:#c8402f;color:#fff;}
-  .btn-info{background:#2a63b5;color:#fff;}
-  .btn-resolve{background:#2a63b5;color:#fff;}
-  .admin-actions .action-hint{font-size:11.5px;color:var(--text-400);line-height:1.45;}
-
-  .history-list{
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-    position:relative;
-    padding-left:6px;
-  }
-  .history-item{
-    display:flex;
-    gap:10px;
-    position:relative;
-  }
-  .history-dot{
-    width:8px;height:8px;
-    border-radius:50%;
-    background:#2f8f4e;
-    margin-top:5px;
-    flex-shrink:0;
-  }
-  .history-item.pending .history-dot{background:var(--amber-icon);}
-  .history-item.resolved .history-dot{background:var(--resolved-text);}
-  .history-text strong{font-size:12.5px;font-weight:600;display:block;color:var(--text-900);}
-  .history-text span{font-size:11px;color:var(--text-400);}
-
-  /* Rejected + Resolved panels, side by side in their own full-width row
-     under both the reports list and the details card. */
-  .closed-panels{
-    grid-column:1 / -1;
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:18px;
-    /* Both panels stand to the taller of the two, so their bottom edges line
-       up however many reports each is holding. `start` let each size to its
-       own content, which left one card short whenever the lists differed. */
-    align-items:stretch;
-  }
-  .closed-panels > .card{
-    display:flex;
-    flex-direction:column;
-  }
-  /* The list takes the slack, which parks both paginations on the bottom
-     edge rather than leaving one floating mid-card. */
-  #rejectedList,
-  #resolvedList{
-    flex:1;
-  }
-
-  /* Rejected/Resolved panel header + archive action */
-  .panel-header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom:12px;
-    /* Same height with or without the 36px archive button, so the two
-       panels' lists line up. */
-    min-height:36px;
-  }
-  .panel-header h2{
-    margin:0;
-    font-size:15px;
-    font-weight:700;
-    color:var(--accent-dark);
-  }
-  .archive-action-wrap{
-    position:relative;
-    display:flex;
-    align-items:center;
-  }
-  .archive-action{
-    position:relative;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    width:36px;height:36px;
-    border:1px solid var(--border);
-    border-radius:10px;
-    background:var(--dm-surface, #ffffff);
-    color:var(--text-900);
-    transition:all .15s ease;
-    cursor:pointer;
-  }
-  .archive-action:hover{
-    background:var(--green-bg);
-    border-color:rgba(47,143,78,.25);
-    color:var(--accent-dark);
-  }
-  .archive-action:disabled{
-    cursor:not-allowed;
-    opacity:.45;
-  }
-  .archive-action svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-  .archive-tooltip{
-    position:absolute;
-    top:calc(100% + 8px);
-    right:0;
-    white-space:nowrap;
-    padding:6px 8px;
-    border-radius:8px;
-    background:#1d2b1d;
-    color:#fff;
-    font-size:11px;
-    opacity:0;
-    transform:translateY(-4px);
-    pointer-events:none;
-    transition:all .15s ease;
-    box-shadow:0 8px 18px rgba(0,0,0,.12);
-  }
-  .archive-action:hover .archive-tooltip,
-  .archive-action:focus-visible .archive-tooltip{opacity:1;transform:translateY(0);}
-  /* One definition for both panels' rows, so an item in Rejected Reports is
-     the same height as an item in Resolved Reports. The three text lines are
-     what normally set that height; min-height is the floor for a row whose
-     fields are missing. */
-  .rejected-row,
-  .resolved-row{
-    display:flex;
-    gap:10px;
-    align-items:flex-start;
-    min-height:68px;
-    padding:10px 0;
-    border-bottom:1px solid var(--border);
-    cursor:pointer;
-    transition:transform .15s ease,box-shadow .15s ease,background .15s ease,padding .15s ease;
-  }
-  .rejected-row.archive-selected,
-  .resolved-row.is-selected{
-    background:var(--accent-light);
-    border-radius:8px;
-    padding-left:8px;
-    padding-right:8px;
-    transform:translateY(-3px);
-    box-shadow:0 10px 20px rgba(0,0,0,.12);
-    position:relative;
-    z-index:1;
-  }
-
-  /* Confirmation Modal */
-  .modal-overlay{
-    position:fixed;
-    inset:0;
-    background:rgba(15,28,18,.52);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:9999;
-    padding:20px;
-    /* Last resort. The dialog caps its own height below, so this only comes
-       into play if a browser's chrome leaves less room than 100vh reports --
-       better a scrollbar than a confirm button nobody can reach. */
-    overflow-y:auto;
-    overscroll-behavior:contain;
-  }
-  .modal-overlay.show{
-    display:flex;
-    animation:modalFadeIn .18s ease;
-  }
-  /* A column of three: a header and an action bar that stay put, and a body
-     that scrolls between them. Capping the height here rather than letting
-     the dialog grow is what keeps Cancel and Confirm on screen on a short
-     laptop display -- the resolve questionnaire is tall enough to run past
-     the bottom of a 768px-high screen otherwise. */
-  .confirm-modal{
-    width:min(460px,100%);
-    max-height:calc(100dvh - 40px);
-    display:flex;
-    flex-direction:column;
-    background:var(--dm-surface, #fff);
-    border-radius:16px;
-    box-shadow:0 20px 60px rgba(15,35,20,.22);
-    overflow:hidden;
-    transform:translateY(8px);
-    animation:modalSlideIn .2s ease forwards;
-  }
-  /* The resolve questionnaire lays its fields out two across; it needs more
-     room than a plain confirmation to avoid cramping them. */
-  .confirm-modal:has(#resolutionForm:not([hidden])){
-    width:min(560px,100%);
-  }
-  .modal-header{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:20px 22px 12px;
-    flex-shrink:0;
-  }
-  .modal-icon{
-    width:42px;
-    height:42px;
-    border-radius:12px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:19px;
-    flex-shrink:0;
-  }
-  .modal-icon.verify{background:var(--green-bg);color:var(--green-text);}
-  .modal-icon.reject{background:var(--red-bg);color:var(--red-text);}
-  .modal-icon.resolve{background:var(--resolved-bg);color:var(--resolved-text);}
-  .modal-header h3{
-    margin:0;
-    font-size:17px;
-    color:var(--text-900);
-  }
-  .modal-header p{
-    margin:3px 0 0;
-    font-size:12px;
-    color:var(--text-600);
-  }
-  .modal-body{
-    padding:4px 22px 20px;
-    /* Takes whatever height is left and scrolls inside it. min-height:0 is
-       what allows a flex child to shrink below its content -- without it the
-       body refuses to shrink and pushes the action bar off screen. */
-    flex:1 1 auto;
-    min-height:0;
-    overflow-y:auto;
-    overscroll-behavior:contain;
-    /* Slim, so a scrolling dialog does not gain a heavy grey gutter. */
-    scrollbar-width:thin;
-    scrollbar-color:var(--border) transparent;
-  }
-  .modal-body::-webkit-scrollbar{width:8px;}
-  .modal-body::-webkit-scrollbar-thumb{
-    background:var(--border);
-    border-radius:8px;
-  }
-  .modal-body::-webkit-scrollbar-track{background:transparent;}
-
-  /* Short screens: give the dialog the width back and trim the padding, so
-     more of the form is visible before anything has to scroll. */
-  @media (max-height: 720px){
-    .modal-header{padding:14px 18px 8px;}
-    .modal-body{padding:4px 18px 14px;}
-    .modal-actions{padding:10px 18px 14px;}
-    .resolution-intro{margin-bottom:10px;}
-  }
-  @media (max-width: 560px){
-    .modal-overlay{padding:10px;}
-    .confirm-modal{max-height:calc(100dvh - 20px);}
-  }
-  .modal-report-box{
-    background:var(--dm-surface-2, #f7f9f7);
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:12px 14px;
-    margin-bottom:14px;
-  }
-  .modal-report-box .modal-report-id{
-    font-size:11px;
-    color:var(--text-400);
-    margin-bottom:3px;
-  }
-  .modal-report-box strong{
-    display:block;
-    font-size:13px;
-    color:var(--text-900);
-  }
-  .modal-report-box span{
-    display:block;
-    font-size:11.5px;
-    color:var(--text-600);
-    margin-top:2px;
-  }
-  .modal-label{
-    display:block;
-    font-size:12px;
-    font-weight:600;
-    color:var(--text-900);
-    margin-bottom:6px;
-  }
-
-  /* Resolve questionnaire */
-  .resolution-intro{
-    margin:0 0 14px;
-    font-size:12px;
-    line-height:1.5;
-    color:var(--text-600);
-  }
-  .resolution-grid{
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:10px;
-  }
-  .resolution-field{min-width:0;}
-  .resolution-input{
-    width:100%;
-    margin-bottom:12px;
-    padding:9px 10px;
-    border:1px solid var(--border);
-    border-radius:9px;
-    background:var(--dm-surface, #ffffff);
-    font-family:inherit;
-    font-size:12.5px;
-    color:var(--text-900);
-    outline:none;
-  }
-  .resolution-input:focus{
-    border-color:var(--accent);
-    box-shadow:0 0 0 3px var(--accent-light);
-  }
-  /* The narrative the answers add up to, shown before it is sent so the
-     admin is never guessing what the hiker will see. */
-  .resolution-preview{
-    margin-top:6px;
-    padding:12px 14px;
-    border:1px solid var(--border);
-    border-left:3px solid var(--accent);
-    border-radius:0 10px 10px 0;
-    background:var(--dm-surface-2, #f7f9f7);
-  }
-  .resolution-preview-head{
-    font-size:10.5px;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:.06em;
-    color:var(--text-muted);
-    margin-bottom:6px;
-  }
-  .resolution-preview-text{
-    margin:0;
-    font-size:12.5px;
-    line-height:1.65;
-    color:var(--text-600);
-  }
-  @media (max-width:540px){
-    .resolution-grid{grid-template-columns:minmax(0,1fr);}
-  }
-  .modal-textarea{
-    width:100%;
-    min-height:78px;
-    resize:vertical;
-    border:1px solid var(--border);
-    border-radius:9px;
-    padding:9px 10px;
-    font-family:inherit;
-    font-size:12.5px;
-    color:var(--text-900);
-    outline:none;
-  }
-  .modal-textarea:focus{
-    border-color:var(--accent);
-    box-shadow:0 0 0 3px rgba(47,143,78,.10);
-  }
-  .modal-actions{
-    display:flex;
-    justify-content:flex-end;
-    gap:8px;
-    padding:14px 22px 20px;
-    border-top:1px solid var(--border);
-    background:var(--dm-surface-2, #fafbfa);
-    flex-shrink:0;
-  }
-  .modal-btn{
-    border:0;
-    border-radius:9px;
-    padding:9px 16px;
-    font-size:12.5px;
-    font-weight:600;
-    cursor:pointer;
-  }
-  .modal-btn.cancel{
-    background:var(--dm-surface, #fff);
-    border:1px solid var(--border);
-    color:var(--text-600);
-  }
-  .modal-btn.cancel:hover{background:var(--dm-surface-2, #f2f4f2);}
-  .modal-btn.confirm-verify{background:#2f8f4e;color:#fff;}
-  .modal-btn.confirm-reject{background:#c8402f;color:#fff;}
-  .modal-btn.confirm-resolve{background:#2a63b5;color:#fff;}
-  .modal-btn:disabled{
-    opacity:.65;
-    cursor:not-allowed;
-  }
-  .report-form{
-    display:grid;
-    gap:12px;
-  }
-  .report-form-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
-  }
-  .report-form label{
-    display:grid;
-    gap:5px;
-    font-size:12px;
-    font-weight:600;
-    color:var(--text-900);
-  }
-  .report-form input,
-  .report-form select,
-  .report-form textarea{
-    width:100%;
-    border:1px solid var(--border);
-    border-radius:9px;
-    padding:9px 10px;
-    font:inherit;
-    font-size:12.5px;
-    color:var(--text-900);
-    background:var(--dm-surface, #fff);
-  }
-  .report-form textarea{min-height:84px;resize:vertical;}
-  .report-form input:focus,
-  .report-form select:focus,
-  .report-form textarea:focus{
-    outline:none;
-    border-color:var(--accent);
-    box-shadow:0 0 0 3px rgba(47,143,78,.10);
-  }
-  .form-error{
-    color:var(--red-text);
-    font-size:12px;
-    min-height:16px;
-  }
-  @keyframes modalFadeIn{from{opacity:0}to{opacity:1}}
-  @keyframes modalSlideIn{to{transform:translateY(0)}}
-
-  .loading{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    min-height:200px;
-    color:var(--text-600);
-  }
-
-  .spinner{
-    border:2px solid var(--border);
-    border-top:2px solid var(--accent);
-    border-radius:50%;
-    width:24px;
-    height:24px;
-    animation:spin 0.8s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  /* ==========================================
-     RESPONSIVE
-     Shared chrome (sidebar rail, page padding, header stacking, table
-     scrolling) lives in pages.css; these are this page's own grids. The
-     five stat cards step down 5 → 3 → 2 → 1 rather than dropping straight
-     to one column, so mid-size tablets keep a usable row.
-  ========================================== */
-  @media (max-width: 1150px){
-    .panels{grid-template-columns:minmax(0,1fr);}
-  }
-  /* A resolved report's details (the "resolving is final" note and the
-     resolution in its history) run much taller than the list, which then
-     stretched to match and left a blank gap above its footer. While the two
-     cards sit side by side, the list sets the row height instead:
-     contain:size stops the details card sizing the row, and it scrolls
-     within the list's height. */
-  @media (min-width: 1151px){
-    .details-card.is-resolved{
-      contain:size;
-      overflow-y:auto;
-      scrollbar-width:thin;
-      scrollbar-color:var(--border) transparent;
+    /* Main */
+    .main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        flex: 1;
+        padding: 26px 32px;
     }
-  }
-  /* Six across needs the room; below this they read as two rows of three
-     rather than six squeezed columns. */
-  @media (max-width: 1320px){
-    .stats{grid-template-columns:repeat(3,minmax(0,1fr));}
-  }
-  @media (max-width: 980px){
-    .stats{grid-template-columns:repeat(3,minmax(0,1fr));}
-  }
-  @media (max-width: 760px){
-    .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
-    .closed-panels{grid-template-columns:minmax(0,1fr);}
-    .report-form-grid{grid-template-columns:1fr;}
-    .date-range-row{flex-wrap:wrap;}
-  }
-  @media (max-width: 560px){
-    .stats{grid-template-columns:minmax(0,1fr);}
-    .filters-row{grid-template-columns:1fr;}
-    /* Seven columns will not fit a phone legibly: hold the table at a
-       readable width and let its wrapper scroll sideways. */
-    .table-scroll table{min-width:760px;}
-  }
+
+    .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 22px;
+    }
+    .topbar h1 {
+        font-size: 22px;
+        margin: 0 0 4px 0;
+        font-weight: 700;
+        color: var(--text-900);
+    }
+    .topbar p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-600);
+    }
+    .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .bell-wrap {
+        position: relative;
+        width: 38px;
+        height: 38px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: var(--card);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .bell-icon {
+        font-size: 20px;
+        line-height: 1;
+    }
+    .profile-chip {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        cursor: pointer;
+        position: relative;
+    }
+    .profile-chip .avatar {
+        width: 34px;
+        height: 34px;
+        font-size: 12px;
+    }
+    .profile-menu {
+        position: absolute;
+        top: 46px;
+        right: 0;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+        min-width: 150px;
+        display: none;
+        overflow: hidden;
+        z-index: 30;
+    }
+    .profile-menu.open {
+        display: block;
+    }
+    .profile-menu a {
+        display: block;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: var(--text-900);
+    }
+    .profile-menu a:hover {
+        background: var(--accent-light);
+    }
+    .bell-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: var(--red-text);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .admin-mini {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .admin-mini .avatar {
+        width: 34px;
+        height: 34px;
+        background: var(--accent-dark);
+        font-size: 12px;
+    }
+    .admin-mini .name {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text-900);
+    }
+    .admin-mini .role {
+        font-size: 11px;
+        color: var(--text-600);
+    }
+
+    /* Dark theme overrides (adapted to this page's variable names) */
+    :root[data-theme="dark"] .search-box,
+    :root[data-theme="dark"] select.filter-select,
+    :root[data-theme="dark"] .btn-outline,
+    :root[data-theme="dark"] .bell-wrap,
+    :root[data-theme="dark"] .card {
+        background: var(--card);
+        color: var(--text-900);
+    }
+    :root[data-theme="dark"] tbody tr:hover {
+        background: #232922;
+    }
+    :root[data-theme="dark"] tbody tr.selected {
+        background: #1d3324;
+    }
+
+    .content {
+        padding: 0 0 28px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    /* Stat cards */
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 14px;
+    }
+    .stat-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 16px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        /* Summary cards are 128px tall on every page in the portal, so the top
+           row lines up when you move between pages. Whatever slack a shorter
+           card has falls between the figure and its label. */
+        min-height: 128px;
+        justify-content: space-between;
+        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+    }
+    .stat-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .stat-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .stat-icon svg {
+        width: 20px;
+        height: 16px;
+        stroke-width: 2;
+    }
+    .stat-icon.total {
+        background: var(--dm-surface-2, #eef2ee);
+    }
+    .stat-icon.pending {
+        background: var(--amber-bg);
+    }
+    .stat-icon.verified {
+        background: var(--green-bg);
+    }
+    .stat-icon.rejected {
+        background: var(--red-bg);
+    }
+    .stat-icon.resolved {
+        background: var(--resolved-bg);
+    }
+    .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-900);
+    }
+    .stat-label {
+        font-size: 12px;
+        color: var(--text-600);
+        font-weight: 600;
+    }
+    .stat-label .meta-line {
+        font-size: 11px;
+        color: var(--text-400);
+        margin-top: 2px;
+        font-weight: 400;
+    }
+
+    /* Panels */
+    /* The list and details cards stretch to the taller of the two, so their
+         bottom edges line up; neither card scrolls on its own. */
+    .panels {
+        display: grid;
+        grid-template-columns: 1.7fr 1fr;
+        gap: 18px;
+        align-items: stretch;
+    }
+    .list-card {
+        display: flex;
+        flex-direction: column;
+    }
+    /* When the card is stretched, keep the count + pagination on its bottom edge. */
+    .list-card .table-footer {
+        margin-top: auto;
+    }
+
+    .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: none;
+    }
+
+    /* Reports list card */
+    .list-card-header {
+        padding: 18px 20px 12px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+    .list-card-header h2 {
+        margin: 0 0 12px 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--accent-dark);
+    }
+    .list-header-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    .list-header-top h2 {
+        margin: 0;
+    }
+    .filters-row {
+        display: grid;
+        grid-template-columns: minmax(140px, 1.6fr) repeat(3, minmax(105px, 1fr)) auto;
+        gap: 10px;
+        align-items: center;
+    }
+    .search-box {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 12px;
+        background: var(--dm-surface-2, #fbfcfa);
+    }
+    .search-box input {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 13px;
+        color: var(--text-900);
+    }
+    .search-box .ic {
+        display: flex;
+        color: var(--text-400);
+        flex-shrink: 0;
+    }
+    select.filter-select {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: var(--dm-surface-2, #fbfcfa);
+        font-size: 13px;
+        color: var(--text-600);
+        width: 100%;
+        min-width: 0;
+    }
+    .date-range-row {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+        align-items: center;
+    }
+    .btn-outline {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--dm-surface, #fff);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--text-600);
+        cursor: pointer;
+        min-width: 0;
+        white-space: nowrap;
+        justify-content: center;
+    }
+
+    @media (max-width: 760px) {
+        .filters-row {
+            grid-template-columns: 1fr 1fr;
+        }
+        .search-box {
+            grid-column: 1 / -1;
+        }
+        .btn-outline {
+            width: 100%;
+        }
+    }
+    .btn-outline:hover {
+        background: var(--dm-surface-2, #f5f5f2);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    thead tr {
+        background: var(--dm-surface-2, #fafbfa);
+    }
+    th {
+        text-align: left;
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--text-600);
+        padding: 11px 14px;
+        font-weight: 600;
+        border-bottom: 1px solid var(--border);
+    }
+    td {
+        padding: 12px 14px;
+        font-size: 12.8px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-900);
+        vertical-align: middle;
+    }
+    tbody tr {
+        cursor: pointer;
+        transition: background 0.12s ease;
+    }
+    tbody tr:hover {
+        background: var(--dm-surface-2, #f7f9f7);
+    }
+    tbody tr.selected {
+        background: var(--dm-surface-2, #eef6ee);
+    }
+
+    .hazard-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .hazard-icon {
+        font-size: 15px;
+        width: 18px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .sub {
+        display: block;
+        font-size: 11px;
+        color: var(--text-400);
+        margin-top: 1px;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .badge.pending {
+        background: var(--pending-bg);
+        color: var(--pending-text);
+    }
+    .badge.verified {
+        background: var(--verified-bg);
+        color: var(--verified-text);
+    }
+    .badge.rejected {
+        background: var(--rejected-bg);
+        color: var(--rejected-text);
+    }
+    .badge.resolved {
+        background: var(--resolved-bg);
+        color: var(--resolved-text);
+    }
+    .badge.high {
+        background: #fde9e8;
+        color: #c8402f;
+    }
+    .badge.moderate {
+        background: #fff5df;
+        color: #b9791b;
+    }
+    .badge.low {
+        background: #eaf5ff;
+        color: #2a63b5;
+    }
+    .badge.unknown {
+        background: var(--dm-surface-2, #eef2ee);
+        color: var(--dm-text-2, #5b6b60);
+    }
+
+    /* One text size across the whole Hazard Reports List — headers, cells,
+         badges, the time under each date, icons and footer text — matching the
+         13px search/filter controls above the table. The page buttons keep the
+         shared pages.css size, the same as A&A.html's list. */
+    .list-card th,
+    .list-card td,
+    .list-card td .sub,
+    .list-card .badge,
+    .list-card .hazard-icon,
+    .list-card .table-footer {
+        font-size: 13px;
+    }
+
+    /* Every page of the list is exactly the same size: fixed column widths
+         (the <colgroup>), one row height, cell text cut to two lines (full text
+         on hover), and blank filler rows topping short pages up to a full page. */
+    .list-card table {
+        table-layout: fixed;
+        min-width: 700px;
+    }
+    .list-card tbody tr {
+        height: 80px;
+    }
+    .list-card td {
+        padding: 14px 8px;
+        line-height: 1.35;
+        overflow: hidden;
+    }
+    .list-card th {
+        padding: 13px 8px;
+    }
+    /* Risk Level and Status badges sit in the middle of their columns. */
+    .list-card th.center-cell,
+    .list-card td.center-cell {
+        text-align: center;
+    }
+    .list-card .clamp-2 {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+    }
+    .list-card .hazard-cell {
+        min-width: 0;
+    }
+    .list-card td.date-cell,
+    .list-card td.date-cell .sub {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .list-card tbody tr.filler-row,
+    .list-card tbody tr.filler-row:hover {
+        cursor: default;
+        background: transparent;
+    }
+    .list-card tbody tr.filler-row td {
+        border-bottom-color: transparent;
+    }
+
+    .table-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 20px;
+        font-size: 12px;
+        color: var(--text-600);
+    }
+    .pagination {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    /* Pagination buttons are styled in pages.css so every table matches. */
+
+    /* Report details card */
+    /* Grows with its content (the page scrolls, not the card), so a long
+         description is always shown in full without an inner scrollbar. */
+    .details-card {
+        padding: 18px 20px 22px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    /* Same heading as trail.html's "Trail Details" panel: brand green, 15/700. */
+    .details-card-title {
+        margin: 0 0 -2px 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--accent-dark);
+    }
+    /* Empty state: the heading stays pinned top-left, the prompt centres in
+         whatever height the card is stretched to. */
+    .details-card.empty {
+        justify-content: flex-start;
+    }
+    .details-card.empty p:not(.details-card-title) {
+        margin: auto;
+        text-align: center;
+        color: var(--text-600);
+    }
+    .details-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+    }
+    .details-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .details-title .ic-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: var(--red-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+    }
+    .details-title h3 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }
+    .details-title .sub-id {
+        font-size: 11.5px;
+        color: var(--text-400);
+    }
+    .status-pill {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 5px 11px;
+        border-radius: 20px;
+        white-space: nowrap;
+    }
+
+    .info-row {
+        display: flex;
+        gap: 8px;
+        font-size: 12.5px;
+    }
+    .info-row .ic {
+        color: var(--text-400);
+        margin-top: 1px;
+    }
+    .info-row div strong {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-900);
+    }
+    .info-row div span {
+        font-size: 12px;
+        color: var(--text-600);
+    }
+
+    /* Small uppercase caption, the same one trail.html uses above its
+         "Trail Specifications" rows, so the two detail panels read alike. */
+    .section-label {
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin: 0 0 8px 0;
+    }
+    .desc-text {
+        font-size: 12.5px;
+        color: var(--text-600);
+        line-height: 1.65;
+        margin: 0;
+        /* Break long words/links instead of widening the card sideways. */
+        overflow-wrap: anywhere;
+    }
+
+    .reporter-block {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .reporter-row {
+        display: flex;
+        gap: 16px;
+    }
+    .reporter-col {
+        flex: 1;
+    }
+    .reporter-col .val {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-900);
+    }
+    .reporter-col .lbl {
+        font-size: 11px;
+        color: var(--text-400);
+        margin-bottom: 2px;
+    }
+
+    .attachments {
+        display: flex;
+        gap: 8px;
+    }
+    .attach-thumb {
+        width: 54px;
+        height: 54px;
+        border-radius: 8px;
+        background: var(--dm-surface-3, #dfe6df);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        overflow: hidden;
+    }
+    .attach-more {
+        width: 54px;
+        height: 54px;
+        border-radius: 8px;
+        background: var(--dm-surface-2, #eef2ee);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-600);
+    }
+
+    .admin-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .admin-actions .row {
+        display: flex;
+        gap: 8px;
+    }
+    .btn {
+        flex: 1;
+        padding: 10px 10px;
+        border-radius: 9px;
+        border: none;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    .btn-verify {
+        background: #2f8f4e;
+        color: #fff;
+    }
+    .btn-reject {
+        background: #c8402f;
+        color: #fff;
+    }
+    .btn-info {
+        background: #2a63b5;
+        color: #fff;
+    }
+    .btn-resolve {
+        background: #2a63b5;
+        color: #fff;
+    }
+    .admin-actions .action-hint {
+        font-size: 11.5px;
+        color: var(--text-400);
+        line-height: 1.45;
+    }
+
+    .history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        position: relative;
+        padding-left: 6px;
+    }
+    .history-item {
+        display: flex;
+        gap: 10px;
+        position: relative;
+    }
+    .history-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #2f8f4e;
+        margin-top: 5px;
+        flex-shrink: 0;
+    }
+    .history-item.pending .history-dot {
+        background: var(--amber-icon);
+    }
+    .history-item.resolved .history-dot {
+        background: var(--resolved-text);
+    }
+    .history-text strong {
+        font-size: 12.5px;
+        font-weight: 600;
+        display: block;
+        color: var(--text-900);
+    }
+    .history-text span {
+        font-size: 11px;
+        color: var(--text-400);
+    }
+
+    /* Rejected + Resolved panels, side by side in their own full-width row
+         under both the reports list and the details card. */
+    .closed-panels {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        /* Both panels stand to the taller of the two, so their bottom edges line
+           up however many reports each is holding. `start` let each size to its
+           own content, which left one card short whenever the lists differed. */
+        align-items: stretch;
+    }
+    .closed-panels > .card {
+        display: flex;
+        flex-direction: column;
+    }
+    /* The list takes the slack, which parks both paginations on the bottom
+         edge rather than leaving one floating mid-card. */
+    #rejectedList,
+    #resolvedList {
+        flex: 1;
+    }
+
+    /* Rejected/Resolved panel header + archive action */
+    .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+        /* Same height with or without the 36px archive button, so the two
+           panels' lists line up. */
+        min-height: 36px;
+    }
+    .panel-header h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--accent-dark);
+    }
+    .archive-action-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    .archive-action {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--dm-surface, #ffffff);
+        color: var(--text-900);
+        transition: all 0.15s ease;
+        cursor: pointer;
+    }
+    .archive-action:hover {
+        background: var(--green-bg);
+        border-color: rgba(47, 143, 78, 0.25);
+        color: var(--accent-dark);
+    }
+    .archive-action:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+    }
+    .archive-action svg {
+        width: 16px;
+        height: 16px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    .archive-tooltip {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        white-space: nowrap;
+        padding: 6px 8px;
+        border-radius: 8px;
+        background: #1d2b1d;
+        color: #fff;
+        font-size: 11px;
+        opacity: 0;
+        transform: translateY(-4px);
+        pointer-events: none;
+        transition: all 0.15s ease;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    }
+    .archive-action:hover .archive-tooltip,
+    .archive-action:focus-visible .archive-tooltip {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    /* One definition for both panels' rows, so an item in Rejected Reports is
+         the same height as an item in Resolved Reports. The three text lines are
+         what normally set that height; min-height is the floor for a row whose
+         fields are missing. */
+    .rejected-row,
+    .resolved-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        min-height: 68px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition:
+            transform 0.15s ease,
+            box-shadow 0.15s ease,
+            background 0.15s ease,
+            padding 0.15s ease;
+    }
+    .rejected-row.archive-selected,
+    .resolved-row.is-selected {
+        background: var(--accent-light);
+        border-radius: 8px;
+        padding-left: 8px;
+        padding-right: 8px;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Confirmation Modal */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 28, 18, 0.52);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 20px;
+        /* Last resort. The dialog caps its own height below, so this only comes
+           into play if a browser's chrome leaves less room than 100vh reports --
+           better a scrollbar than a confirm button nobody can reach. */
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    .modal-overlay.show {
+        display: flex;
+        animation: modalFadeIn 0.18s ease;
+    }
+    /* A column of three: a header and an action bar that stay put, and a body
+         that scrolls between them. Capping the height here rather than letting
+         the dialog grow is what keeps Cancel and Confirm on screen on a short
+         laptop display -- the resolve questionnaire is tall enough to run past
+         the bottom of a 768px-high screen otherwise. */
+    .confirm-modal {
+        width: min(460px, 100%);
+        max-height: calc(100dvh - 40px);
+        display: flex;
+        flex-direction: column;
+        background: var(--dm-surface, #fff);
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(15, 35, 20, 0.22);
+        overflow: hidden;
+        transform: translateY(8px);
+        animation: modalSlideIn 0.2s ease forwards;
+    }
+    /* The resolve questionnaire lays its fields out two across; it needs more
+         room than a plain confirmation to avoid cramping them. */
+    .confirm-modal:has(#resolutionForm:not([hidden])) {
+        width: min(560px, 100%);
+    }
+    .modal-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 20px 22px 12px;
+        flex-shrink: 0;
+    }
+    .modal-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 19px;
+        flex-shrink: 0;
+    }
+    .modal-icon.verify {
+        background: var(--green-bg);
+        color: var(--green-text);
+    }
+    .modal-icon.reject {
+        background: var(--red-bg);
+        color: var(--red-text);
+    }
+    .modal-icon.resolve {
+        background: var(--resolved-bg);
+        color: var(--resolved-text);
+    }
+    .modal-header h3 {
+        margin: 0;
+        font-size: 17px;
+        color: var(--text-900);
+    }
+    .modal-header p {
+        margin: 3px 0 0;
+        font-size: 12px;
+        color: var(--text-600);
+    }
+    .modal-body {
+        padding: 4px 22px 20px;
+        /* Takes whatever height is left and scrolls inside it. min-height:0 is
+           what allows a flex child to shrink below its content -- without it the
+           body refuses to shrink and pushes the action bar off screen. */
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        /* Slim, so a scrolling dialog does not gain a heavy grey gutter. */
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+    }
+    .modal-body::-webkit-scrollbar {
+        width: 8px;
+    }
+    .modal-body::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 8px;
+    }
+    .modal-body::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    /* Short screens: give the dialog the width back and trim the padding, so
+         more of the form is visible before anything has to scroll. */
+    @media (max-height: 720px) {
+        .modal-header {
+            padding: 14px 18px 8px;
+        }
+        .modal-body {
+            padding: 4px 18px 14px;
+        }
+        .modal-actions {
+            padding: 10px 18px 14px;
+        }
+        .resolution-intro {
+            margin-bottom: 10px;
+        }
+    }
+    @media (max-width: 560px) {
+        .modal-overlay {
+            padding: 10px;
+        }
+        .confirm-modal {
+            max-height: calc(100dvh - 20px);
+        }
+    }
+    .modal-report-box {
+        background: var(--dm-surface-2, #f7f9f7);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+    }
+    .modal-report-box .modal-report-id {
+        font-size: 11px;
+        color: var(--text-400);
+        margin-bottom: 3px;
+    }
+    .modal-report-box strong {
+        display: block;
+        font-size: 13px;
+        color: var(--text-900);
+    }
+    .modal-report-box span {
+        display: block;
+        font-size: 11.5px;
+        color: var(--text-600);
+        margin-top: 2px;
+    }
+    .modal-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-900);
+        margin-bottom: 6px;
+    }
+
+    /* Resolve questionnaire */
+    .resolution-intro {
+        margin: 0 0 14px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--text-600);
+    }
+    .resolution-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .resolution-field {
+        min-width: 0;
+    }
+    .resolution-input {
+        width: 100%;
+        margin-bottom: 12px;
+        padding: 9px 10px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: var(--dm-surface, #ffffff);
+        font-family: inherit;
+        font-size: 12.5px;
+        color: var(--text-900);
+        outline: none;
+    }
+    .resolution-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-light);
+    }
+    /* The narrative the answers add up to, shown before it is sent so the
+         admin is never guessing what the hiker will see. */
+    .resolution-preview {
+        margin-top: 6px;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 10px 10px 0;
+        background: var(--dm-surface-2, #f7f9f7);
+    }
+    .resolution-preview-head {
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+    }
+    .resolution-preview-text {
+        margin: 0;
+        font-size: 12.5px;
+        line-height: 1.65;
+        color: var(--text-600);
+    }
+    @media (max-width: 540px) {
+        .resolution-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+    .modal-textarea {
+        width: 100%;
+        min-height: 78px;
+        resize: vertical;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        padding: 9px 10px;
+        font-family: inherit;
+        font-size: 12.5px;
+        color: var(--text-900);
+        outline: none;
+    }
+    .modal-textarea:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(47, 143, 78, 0.1);
+    }
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 14px 22px 20px;
+        border-top: 1px solid var(--border);
+        background: var(--dm-surface-2, #fafbfa);
+        flex-shrink: 0;
+    }
+    .modal-btn {
+        border: 0;
+        border-radius: 9px;
+        padding: 9px 16px;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .modal-btn.cancel {
+        background: var(--dm-surface, #fff);
+        border: 1px solid var(--border);
+        color: var(--text-600);
+    }
+    .modal-btn.cancel:hover {
+        background: var(--dm-surface-2, #f2f4f2);
+    }
+    .modal-btn.confirm-verify {
+        background: #2f8f4e;
+        color: #fff;
+    }
+    .modal-btn.confirm-reject {
+        background: #c8402f;
+        color: #fff;
+    }
+    .modal-btn.confirm-resolve {
+        background: #2a63b5;
+        color: #fff;
+    }
+    .modal-btn:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+    .report-form {
+        display: grid;
+        gap: 12px;
+    }
+    .report-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    .report-form label {
+        display: grid;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-900);
+    }
+    .report-form input,
+    .report-form select,
+    .report-form textarea {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        padding: 9px 10px;
+        font: inherit;
+        font-size: 12.5px;
+        color: var(--text-900);
+        background: var(--dm-surface, #fff);
+    }
+    .report-form textarea {
+        min-height: 84px;
+        resize: vertical;
+    }
+    .report-form input:focus,
+    .report-form select:focus,
+    .report-form textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(47, 143, 78, 0.1);
+    }
+    .form-error {
+        color: var(--red-text);
+        font-size: 12px;
+        min-height: 16px;
+    }
+    @keyframes modalFadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @keyframes modalSlideIn {
+        to {
+            transform: translateY(0);
+        }
+    }
+
+    .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+        color: var(--text-600);
+    }
+
+    .spinner {
+        border: 2px solid var(--border);
+        border-top: 2px solid var(--accent);
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* ==========================================
+         RESPONSIVE
+         Shared chrome (sidebar rail, page padding, header stacking, table
+         scrolling) lives in pages.css; these are this page's own grids. The
+         five stat cards step down 5 → 3 → 2 → 1 rather than dropping straight
+         to one column, so mid-size tablets keep a usable row.
+      ========================================== */
+    @media (max-width: 1150px) {
+        .panels {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+    /* A resolved report's details (the "resolving is final" note and the
+         resolution in its history) run much taller than the list, which then
+         stretched to match and left a blank gap above its footer. While the two
+         cards sit side by side, the list sets the row height instead:
+         contain:size stops the details card sizing the row, and it scrolls
+         within the list's height. */
+    @media (min-width: 1151px) {
+        .details-card.is-resolved {
+            contain: size;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+    }
+    /* Six across needs the room; below this they read as two rows of three
+         rather than six squeezed columns. */
+    @media (max-width: 1320px) {
+        .stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 980px) {
+        .stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 760px) {
+        .stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .closed-panels {
+            grid-template-columns: minmax(0, 1fr);
+        }
+        .report-form-grid {
+            grid-template-columns: 1fr;
+        }
+        .date-range-row {
+            flex-wrap: wrap;
+        }
+    }
+    @media (max-width: 560px) {
+        .stats {
+            grid-template-columns: minmax(0, 1fr);
+        }
+        .filters-row {
+            grid-template-columns: 1fr;
+        }
+        /* Seven columns will not fit a phone legibly: hold the table at a
+           readable width and let its wrapper scroll sideways. */
+        .table-scroll table {
+            min-width: 760px;
+        }
+    }
 </style>
 </head>
 <body>

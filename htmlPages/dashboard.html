@@ -32,22 +32,25 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
     <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <style>
-        html, body {
-          visibility: visible;
-          opacity: 1;
-          background: #132313;  /* Match sidebar color */
+        html,
+        body {
+            visibility: visible;
+            opacity: 1;
+            background: #132313; /* Match sidebar color */
         }
 
         /* ==========================================
-           DASHBOARD
-           Built on the portal's shared tokens in pages.css (--page-bg,
-           --card-bg, --border, --accent, the status pill pairs), so this page
-           reads as part of the same product as every other page rather than
-           carrying its own slate palette. One card style, one list style and
-           one button style throughout; colour is kept for meaning (status,
-           hazards, weather) instead of decoration.
-        ========================================== */
-        * { box-sizing: border-box; }
+                   DASHBOARD
+                   Built on the portal's shared tokens in pages.css (--page-bg,
+                   --card-bg, --border, --accent, the status pill pairs), so this page
+                   reads as part of the same product as every other page rather than
+                   carrying its own slate palette. One card style, one list style and
+                   one button style throughout; colour is kept for meaning (status,
+                   hazards, weather) instead of decoration.
+                ========================================== */
+        * {
+            box-sizing: border-box;
+        }
         body {
             margin: 0;
             min-height: 100vh;
@@ -55,7 +58,10 @@
             color: var(--text-primary);
             font-size: calc(14px * var(--ui-scale, 1));
         }
-        a { color: inherit; text-decoration: none; }
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
         .main-panel {
             display: flex;
             flex-direction: column;
@@ -65,9 +71,13 @@
         }
 
         /* ---- Page header: layout, sizes and the clock pill are shared in
-           pages.css, so this header matches every other page. ---- */
-        .top-copy h1 { color: var(--text-primary); }
-        .top-copy p { color: var(--text-secondary); }
+                   pages.css, so this header matches every other page. ---- */
+        .top-copy h1 {
+            color: var(--text-primary);
+        }
+        .top-copy p {
+            color: var(--text-secondary);
+        }
 
         /* ---- Stat row ---- */
         .hero-grid {
@@ -82,8 +92,8 @@
             gap: 4px;
             min-width: 0;
             /* 128px, the portal-wide summary card height (see trail.html).
-               This card has the tallest content of the set -- title row,
-               figure and caption -- so it sets that number. */
+                       This card has the tallest content of the set -- title row,
+                       figure and caption -- so it sets that number. */
             min-height: calc(128px * var(--ui-scale, 1));
             padding: 16px 18px;
             background: var(--card-bg);
@@ -109,22 +119,50 @@
             font-size: calc(14px * var(--ui-scale, 1));
         }
         /* Only the icon carries the colour; the card itself stays white. */
-        .hero-card.alert-card .hero-card-title i { background: var(--red-bg); color: var(--red-text); }
-        .hero-card.weather-card .hero-card-title i { background: var(--blue-bg); color: var(--blue-text); }
-        .hero-card h3 { margin: 0; font-size: calc(12px * var(--ui-scale, 1)); font-weight: 600; line-height: 1.3; color: var(--text-secondary); }
-        .hero-card p { margin: 0; font-size: calc(24px * var(--ui-scale, 1)); font-weight: 700; line-height: 1.15; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-        .hero-card span { display: block; font-size: calc(12px * var(--ui-scale, 1)); line-height: 1.4; color: var(--text-muted); }
-        .hero-card .weather-updated { white-space: nowrap; }
+        .hero-card.alert-card .hero-card-title i {
+            background: var(--red-bg);
+            color: var(--red-text);
+        }
+        .hero-card.weather-card .hero-card-title i {
+            background: var(--blue-bg);
+            color: var(--blue-text);
+        }
+        .hero-card h3 {
+            margin: 0;
+            font-size: calc(12px * var(--ui-scale, 1));
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--text-secondary);
+        }
+        .hero-card p {
+            margin: 0;
+            font-size: calc(24px * var(--ui-scale, 1));
+            font-weight: 700;
+            line-height: 1.15;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+        }
+        .hero-card span {
+            display: block;
+            font-size: calc(12px * var(--ui-scale, 1));
+            line-height: 1.4;
+            color: var(--text-muted);
+        }
+        .hero-card .weather-updated {
+            white-space: nowrap;
+        }
         /* Captions sit at the bottom of their card. The cards in a row share
-           one height, so a one-line caption ("75% of trails") lines up with
-           the last line of the weather card's two ("Updated 2:30 PM"). */
-        .hero-card > span { margin-top: auto; }
+                   one height, so a one-line caption ("75% of trails") lines up with
+                   the last line of the weather card's two ("Updated 2:30 PM"). */
+        .hero-card > span {
+            margin-top: auto;
+        }
 
         /* ---- Content: three rows of three cards ----
-             1  Visitor Trends | Visitors per Trail | Trail Status Overview
-             2  Map            | Recent Hazards     | Announcements + Emergencies
-             3  Trail Summary  | Hazard Trends      | Quick Actions
-           Cards in a row share one height so their edges line up. */
+                     1  Visitor Trends | Visitors per Trail | Trail Status Overview
+                     2  Map            | Recent Hazards     | Announcements + Emergencies
+                     3  Trail Summary  | Hazard Trends      | Quick Actions
+                   Cards in a row share one height so their edges line up. */
         .dash-row {
             display: grid;
             grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.2fr) minmax(0, 1fr);
@@ -138,7 +176,9 @@
             gap: 18px;
             min-width: 0;
         }
-        .dash-stack > .card { flex: 1; }
+        .dash-stack > .card {
+            flex: 1;
+        }
         .card {
             display: flex;
             flex-direction: column;
@@ -156,8 +196,17 @@
             gap: 12px;
             margin-bottom: 14px;
         }
-        .card h2 { margin: 0; font-size: calc(15px * var(--ui-scale, 1)); font-weight: 700; color: var(--accent-dark); }
-        .card h2 small { font-size: calc(12px * var(--ui-scale, 1)); font-weight: 500; color: var(--text-muted); }
+        .card h2 {
+            margin: 0;
+            font-size: calc(15px * var(--ui-scale, 1));
+            font-weight: 700;
+            color: var(--accent-dark);
+        }
+        .card h2 small {
+            font-size: calc(12px * var(--ui-scale, 1));
+            font-weight: 500;
+            color: var(--text-muted);
+        }
         .card-link {
             flex-shrink: 0;
             font-size: calc(12.5px * var(--ui-scale, 1));
@@ -167,7 +216,9 @@
             text-decoration: none;
         }
 
-        .card > .empty-state { flex: 1; }
+        .card > .empty-state {
+            flex: 1;
+        }
 
         #dashboardMap {
             flex: 1;
@@ -178,7 +229,7 @@
         }
 
         /* Where a chart will go once visitor data exists: an intentional
-           empty state instead of a grey "placeholder" box. */
+                   empty state instead of a grey "placeholder" box. */
         .empty-state {
             display: flex;
             flex-direction: column;
@@ -194,8 +245,15 @@
             font-size: calc(12.5px * var(--ui-scale, 1));
             color: var(--text-secondary);
         }
-        .empty-state i { margin-bottom: 4px; font-size: calc(20px * var(--ui-scale, 1)); color: var(--icon-muted); }
-        .empty-state strong { font-size: calc(13.5px * var(--ui-scale, 1)); color: var(--text-primary); }
+        .empty-state i {
+            margin-bottom: 4px;
+            font-size: calc(20px * var(--ui-scale, 1));
+            color: var(--icon-muted);
+        }
+        .empty-state strong {
+            font-size: calc(13.5px * var(--ui-scale, 1));
+            color: var(--text-primary);
+        }
 
         /* ---- Lists: divided rows, no box around every item ---- */
         .pill-list {
@@ -213,11 +271,30 @@
             font-size: calc(13px * var(--ui-scale, 1));
             color: var(--text-secondary);
         }
-        .pill-item:first-child { padding-top: 0; }
-        .pill-item:last-child { padding-bottom: 0; border-bottom: none; }
-        .pill-item strong { min-width: 0; font-size: calc(13px * var(--ui-scale, 1)); font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere; }
-        .item-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-        .item-meta { font-size: calc(12px * var(--ui-scale, 1)); color: var(--text-muted); }
+        .pill-item:first-child {
+            padding-top: 0;
+        }
+        .pill-item:last-child {
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .pill-item strong {
+            min-width: 0;
+            font-size: calc(13px * var(--ui-scale, 1));
+            font-weight: 600;
+            color: var(--text-primary);
+            overflow-wrap: anywhere;
+        }
+        .item-main {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        .item-meta {
+            font-size: calc(12px * var(--ui-scale, 1));
+            color: var(--text-muted);
+        }
         /* Soft status pills, the same pairs the other pages use. */
         .pill-chip {
             flex-shrink: 0;
@@ -228,12 +305,23 @@
             text-transform: capitalize;
             white-space: nowrap;
         }
-        .pill-green { background: var(--green-bg); color: var(--green-text); }
-        .pill-red { background: var(--red-bg); color: var(--red-text); }
-        .pill-yellow { background: var(--amber-bg); color: var(--amber-text); }
+        .pill-green {
+            background: var(--green-bg);
+            color: var(--green-text);
+        }
+        .pill-red {
+            background: var(--red-bg);
+            color: var(--red-text);
+        }
+        .pill-yellow {
+            background: var(--amber-bg);
+            color: var(--amber-text);
+        }
 
         /* ---- Trail Status Overview: photo, name, distance, status ---- */
-        .trail-row { gap: 10px; }
+        .trail-row {
+            gap: 10px;
+        }
         .trail-thumb {
             width: calc(38px * var(--ui-scale, 1));
             height: calc(38px * var(--ui-scale, 1));
@@ -242,19 +330,42 @@
             background: var(--dm-surface-2, #eef2ed) center / cover no-repeat;
             border: 1px solid var(--border);
         }
-        .trail-row .item-main { flex: 1; }
+        .trail-row .item-main {
+            flex: 1;
+        }
         /* Under the name rather than in its own column: a long value such as
-           "≈ 8 km one way (≈ 16 km round trip)" then wraps with the name's
-           width instead of squeezing the name to one letter per line. */
-        .trail-row .item-main strong { overflow-wrap: break-word; }
-        .trail-dist { display: flex; align-items: baseline; gap: 5px; margin-top: 1px; font-size: calc(12px * var(--ui-scale, 1)); color: var(--text-secondary); }
-        .trail-dist i { flex-shrink: 0; font-size: calc(10.5px * var(--ui-scale, 1)); color: var(--icon-muted); }
+                   "≈ 8 km one way (≈ 16 km round trip)" then wraps with the name's
+                   width instead of squeezing the name to one letter per line. */
+        .trail-row .item-main strong {
+            overflow-wrap: break-word;
+        }
+        .trail-dist {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+            margin-top: 1px;
+            font-size: calc(12px * var(--ui-scale, 1));
+            color: var(--text-secondary);
+        }
+        .trail-dist i {
+            flex-shrink: 0;
+            font-size: calc(10.5px * var(--ui-scale, 1));
+            color: var(--icon-muted);
+        }
 
         /* ---- Compact tables (hazard reports, emergency alerts) ---- */
         /* A table that is still too wide scrolls inside its card instead of
-           spilling into the card beside it. */
-        .table-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
-        .mini-table { width: 100%; border-collapse: collapse; font-size: calc(12px * var(--ui-scale, 1)); }
+                   spilling into the card beside it. */
+        .table-wrap {
+            overflow-x: auto;
+            margin: 0 -4px;
+            padding: 0 4px;
+        }
+        .mini-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: calc(12px * var(--ui-scale, 1));
+        }
         .mini-table th {
             padding: 0 4px 8px;
             border-bottom: 1px solid var(--border);
@@ -262,25 +373,54 @@
             font-size: calc(11px * var(--ui-scale, 1));
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: .02em;
+            letter-spacing: 0.02em;
             color: var(--text-muted);
             white-space: nowrap;
         }
-        .mini-table .pill-chip { padding: 2px 8px; font-size: calc(11px * var(--ui-scale, 1)); }
+        .mini-table .pill-chip {
+            padding: 2px 8px;
+            font-size: calc(11px * var(--ui-scale, 1));
+        }
         .mini-table td {
             padding: 9px 4px;
             border-bottom: 1px solid var(--border);
             vertical-align: middle;
             color: var(--text-secondary);
         }
-        .mini-table tr:last-child td { border-bottom: none; }
-        .mini-table tbody tr[data-href] { cursor: pointer; }
-        .mini-table tbody tr[data-href]:hover td { background: var(--dm-surface-2, #f6f9f6); }
-        .mini-table strong { display: block; font-size: calc(12px * var(--ui-scale, 1)); font-weight: 600; color: var(--text-primary); }
-        .mini-table td:last-child { white-space: nowrap; }
-        .mini-table .sub { display: block; margin-top: 2px; font-size: calc(11.5px * var(--ui-scale, 1)); color: var(--text-muted); }
-        .mini-table .empty-cell { padding: 18px 6px; text-align: center; color: var(--text-muted); }
-        .type-cell { display: flex; align-items: center; gap: 6px; }
+        .mini-table tr:last-child td {
+            border-bottom: none;
+        }
+        .mini-table tbody tr[data-href] {
+            cursor: pointer;
+        }
+        .mini-table tbody tr[data-href]:hover td {
+            background: var(--dm-surface-2, #f6f9f6);
+        }
+        .mini-table strong {
+            display: block;
+            font-size: calc(12px * var(--ui-scale, 1));
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .mini-table td:last-child {
+            white-space: nowrap;
+        }
+        .mini-table .sub {
+            display: block;
+            margin-top: 2px;
+            font-size: calc(11.5px * var(--ui-scale, 1));
+            color: var(--text-muted);
+        }
+        .mini-table .empty-cell {
+            padding: 18px 6px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+        .type-cell {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
         .type-icon {
             width: 24px;
             height: 24px;
@@ -292,14 +432,27 @@
             color: var(--red-text);
             font-size: calc(11px * var(--ui-scale, 1));
         }
-        .type-icon i { color: inherit; }
+        .type-icon i {
+            color: inherit;
+        }
 
         /* ---- Recent Announcements: a timeline ---- */
-        .timeline { list-style: none; margin: 0; padding: 0 0 0 4px; }
-        .timeline li { position: relative; padding: 0 0 14px 18px; border-left: 2px solid var(--border); }
-        .timeline li:last-child { padding-bottom: 0; border-left-color: transparent; }
+        .timeline {
+            list-style: none;
+            margin: 0;
+            padding: 0 0 0 4px;
+        }
+        .timeline li {
+            position: relative;
+            padding: 0 0 14px 18px;
+            border-left: 2px solid var(--border);
+        }
+        .timeline li:last-child {
+            padding-bottom: 0;
+            border-left-color: transparent;
+        }
         .timeline li::before {
-            content: '';
+            content: "";
             position: absolute;
             left: -6px;
             top: 3px;
@@ -309,9 +462,18 @@
             background: var(--accent);
             box-shadow: 0 0 0 3px var(--accent-light);
         }
-        .timeline a { display: block; }
-        .timeline a:hover strong { color: var(--accent-dark); }
-        .timeline strong { display: block; font-size: calc(13px * var(--ui-scale, 1)); font-weight: 600; color: var(--text-primary); }
+        .timeline a {
+            display: block;
+        }
+        .timeline a:hover strong {
+            color: var(--accent-dark);
+        }
+        .timeline strong {
+            display: block;
+            font-size: calc(13px * var(--ui-scale, 1));
+            font-weight: 600;
+            color: var(--text-primary);
+        }
         .timeline p {
             margin: 3px 0;
             font-size: calc(12px * var(--ui-scale, 1));
@@ -319,19 +481,45 @@
             color: var(--text-secondary);
             display: -webkit-box;
             -webkit-box-orient: vertical;
+            line-clamp: 2;
             -webkit-line-clamp: 2;
             overflow: hidden;
         }
-        .timeline .item-meta { font-size: calc(11.5px * var(--ui-scale, 1)); }
-        .timeline-empty { padding-left: 18px; font-size: calc(13px * var(--ui-scale, 1)); color: var(--text-secondary); }
-        .timeline-empty::before { display: none; }
+        .timeline .item-meta {
+            font-size: calc(11.5px * var(--ui-scale, 1));
+        }
+        .timeline-empty {
+            padding-left: 18px;
+            font-size: calc(13px * var(--ui-scale, 1));
+            color: var(--text-secondary);
+        }
+        .timeline-empty::before {
+            display: none;
+        }
 
         /* ---- Active Emergency Alerts: red-tinted, like the Emergency page ---- */
-        .card.emergency-card { border-color: rgba(200, 64, 47, .28); background: linear-gradient(180deg, var(--red-bg) 0, var(--card-bg) 64px); }
-        .emergency-card h2 { display: flex; align-items: center; gap: 8px; color: var(--red-text); }
-        .emergency-card h2 i { color: var(--red-text); }
-        .emergency-card .card-link { color: var(--red-text); }
-        .emergency-total { margin-top: 10px; font-size: calc(12px * var(--ui-scale, 1)); font-weight: 600; color: var(--red-text); }
+        .card.emergency-card {
+            border-color: rgba(200, 64, 47, 0.28);
+            background: linear-gradient(180deg, var(--red-bg) 0, var(--card-bg) 64px);
+        }
+        .emergency-card h2 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--red-text);
+        }
+        .emergency-card h2 i {
+            color: var(--red-text);
+        }
+        .emergency-card .card-link {
+            color: var(--red-text);
+        }
+        .emergency-total {
+            margin-top: 10px;
+            font-size: calc(12px * var(--ui-scale, 1));
+            font-weight: 600;
+            color: var(--red-text);
+        }
         .call-btn {
             width: 28px;
             height: 28px;
@@ -341,13 +529,31 @@
             border: 1px solid var(--border);
             background: var(--card-bg);
         }
-        .call-btn i { color: var(--accent); font-size: calc(12px * var(--ui-scale, 1)); }
-        .call-btn.is-disabled { opacity: .4; pointer-events: none; }
-        .pill-sos { background: var(--red-bg); color: var(--red-text); text-transform: uppercase; }
-        .pill-blue { background: var(--blue-bg); color: var(--blue-text); }
+        .call-btn i {
+            color: var(--accent);
+            font-size: calc(12px * var(--ui-scale, 1));
+        }
+        .call-btn.is-disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        .pill-sos {
+            background: var(--red-bg);
+            color: var(--red-text);
+            text-transform: uppercase;
+        }
+        .pill-blue {
+            background: var(--blue-bg);
+            color: var(--blue-text);
+        }
 
         /* ---- Trail Summary: four tiles ---- */
-        .summary-tiles { flex: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+        .summary-tiles {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+        }
         .summary-tile {
             display: flex;
             flex-direction: column;
@@ -360,26 +566,107 @@
             border-radius: 12px;
             text-align: center;
         }
-        .summary-tile i { margin-bottom: 2px; font-size: calc(17px * var(--ui-scale, 1)); }
-        .summary-tile strong { font-size: calc(16px * var(--ui-scale, 1)); font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
-        .summary-tile span { font-size: calc(11.5px * var(--ui-scale, 1)); color: var(--text-secondary); }
-        .summary-tile small { font-size: calc(11px * var(--ui-scale, 1)); color: var(--text-muted); }
-        .summary-tile.tone-green i { color: var(--green-text); }
-        .summary-tile.tone-blue i { color: var(--blue-text); }
-        .summary-tile.tone-purple i { color: #6b4cc9; }
-        .summary-tile.tone-red i { color: var(--red-text); }
+        .summary-tile i {
+            margin-bottom: 2px;
+            font-size: calc(17px * var(--ui-scale, 1));
+        }
+        .summary-tile strong {
+            font-size: calc(16px * var(--ui-scale, 1));
+            font-weight: 700;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        .summary-tile span {
+            font-size: calc(11.5px * var(--ui-scale, 1));
+            color: var(--text-secondary);
+        }
+        .summary-tile small {
+            font-size: calc(11px * var(--ui-scale, 1));
+            color: var(--text-muted);
+        }
+        .summary-tile.tone-green i {
+            color: var(--green-text);
+        }
+        .summary-tile.tone-blue i {
+            color: var(--blue-text);
+        }
+        .summary-tile.tone-purple i {
+            color: #6b4cc9;
+        }
+        .summary-tile.tone-red i {
+            color: var(--red-text);
+        }
 
         /* ---- Hazard Trends: bars per hazard type this month ---- */
-        .bar-chart { flex: 1; display: flex; flex-direction: column; min-height: 110px; }
-        .bar-legend { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: calc(11.5px * var(--ui-scale, 1)); color: var(--text-secondary); }
-        .bar-legend::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
-        .bars { flex: 1; display: flex; align-items: flex-end; gap: 12px; padding: 0 4px; border-bottom: 1px solid var(--border); }
-        .bar-col { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
-        .bar-value { font-size: calc(11.5px * var(--ui-scale, 1)); font-weight: 700; color: var(--text-primary); }
-        .bar { width: 100%; max-width: 38px; min-height: 3px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%); }
-        .bar-labels { display: flex; gap: 12px; padding: 6px 4px 0; }
-        .bar-labels span { flex: 1; min-width: 0; font-size: calc(11px * var(--ui-scale, 1)); line-height: 1.3; text-align: center; color: var(--text-secondary); overflow-wrap: anywhere; }
-        .bar-chart .empty-state { flex: 1; }
+        .bar-chart {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 110px;
+        }
+        .bar-legend {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+            font-size: calc(11.5px * var(--ui-scale, 1));
+            color: var(--text-secondary);
+        }
+        .bar-legend::before {
+            content: "";
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+        .bars {
+            flex: 1;
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            padding: 0 4px;
+            border-bottom: 1px solid var(--border);
+        }
+        .bar-col {
+            flex: 1;
+            min-width: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+        }
+        .bar-value {
+            font-size: calc(11.5px * var(--ui-scale, 1));
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .bar {
+            width: 100%;
+            max-width: 38px;
+            min-height: 3px;
+            border-radius: 6px 6px 0 0;
+            background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+        }
+        .bar-labels {
+            display: flex;
+            gap: 12px;
+            padding: 6px 4px 0;
+        }
+        .bar-labels span {
+            flex: 1;
+            min-width: 0;
+            font-size: calc(11px * var(--ui-scale, 1));
+            line-height: 1.3;
+            text-align: center;
+            color: var(--text-secondary);
+            overflow-wrap: anywhere;
+        }
+        .bar-chart .empty-state {
+            flex: 1;
+        }
 
         /* ---- Quick actions: coloured buttons in two columns ---- */
         .action-grid {
@@ -387,14 +674,39 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 10px;
         }
-        .action-grid .button { justify-content: center; }
-        .action-grid .button-wide { grid-column: 1 / -1; }
-        .action-grid .button { padding: 11px 8px; font-size: calc(12.5px * var(--ui-scale, 1)); white-space: nowrap; }
-        .action-grid .button-blue { background: #2a63b5; border-color: #2a63b5; color: #fff; }
-        .action-grid .button-purple { background: #6b4cc9; border-color: #6b4cc9; color: #fff; }
-        .action-grid .button-blue i, .action-grid .button-purple i { color: #fff; }
-        .action-grid .button-blue:hover { background: #22549b; border-color: #22549b; }
-        .action-grid .button-purple:hover { background: #5a3db3; border-color: #5a3db3; }
+        .action-grid .button {
+            justify-content: center;
+        }
+        .action-grid .button-wide {
+            grid-column: 1 / -1;
+        }
+        .action-grid .button {
+            padding: 11px 8px;
+            font-size: calc(12.5px * var(--ui-scale, 1));
+            white-space: nowrap;
+        }
+        .action-grid .button-blue {
+            background: #2a63b5;
+            border-color: #2a63b5;
+            color: #fff;
+        }
+        .action-grid .button-purple {
+            background: #6b4cc9;
+            border-color: #6b4cc9;
+            color: #fff;
+        }
+        .action-grid .button-blue i,
+        .action-grid .button-purple i {
+            color: #fff;
+        }
+        .action-grid .button-blue:hover {
+            background: #22549b;
+            border-color: #22549b;
+        }
+        .action-grid .button-purple:hover {
+            background: #5a3db3;
+            border-color: #5a3db3;
+        }
         .button {
             display: flex;
             align-items: center;
@@ -406,72 +718,157 @@
             font-size: calc(13px * var(--ui-scale, 1));
             font-weight: 600;
             color: var(--text-primary);
-            transition: background .15s ease, border-color .15s ease;
+            transition:
+                background 0.15s ease,
+                border-color 0.15s ease;
         }
-        .button i { width: 16px; text-align: center; color: var(--icon); }
-        .button:hover { background: var(--accent-light); border-color: rgba(47, 143, 78, .3); }
-        .button-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-        .button-primary i { color: #fff; }
-        .button-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+        .button i {
+            width: 16px;
+            text-align: center;
+            color: var(--icon);
+        }
+        .button:hover {
+            background: var(--accent-light);
+            border-color: rgba(47, 143, 78, 0.3);
+        }
+        .button-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+        .button-primary i {
+            color: #fff;
+        }
+        .button-primary:hover {
+            background: var(--accent-dark);
+            border-color: var(--accent-dark);
+        }
 
         /* ==========================================
-           RESPONSIVE
-           Shared chrome (sidebar rail, page padding, header stacking) lives
-           in pages.css; these are this page's own grids.
-        ========================================== */
+                   RESPONSIVE
+                   Shared chrome (sidebar rail, page padding, header stacking) lives
+                   in pages.css; these are this page's own grids.
+                ========================================== */
         /* Text scale. Every font size above is "N px x --ui-scale", so one
-           number per screen width resizes the whole page together: larger
-           on wide monitors (where fixed 12px text looks tiny across a
-           2560px screen) and a touch smaller on phones. The sidebar and
-           other pages are shared and keep their own sizes. */
-        .main-panel { --ui-scale: 1; }
-        @media (min-width: 1680px) { .main-panel { --ui-scale: 1.08; } }
-        @media (min-width: 1920px) { .main-panel { --ui-scale: 1.16; } }
-        @media (min-width: 2240px) { .main-panel { --ui-scale: 1.26; } }
-        @media (min-width: 2560px) { .main-panel { --ui-scale: 1.36; } }
-        @media (min-width: 3200px) { .main-panel { --ui-scale: 1.6; } }
-        @media (max-width: 480px)  { .main-panel { --ui-scale: .94; } }
-        /* The greeting and clock (shared header from pages.css) grow along
-           with the cards on wide screens; below that pages.css sizes them. */
+                   number per screen width resizes the whole page together: larger
+                   on wide monitors (where fixed 12px text looks tiny across a
+                   2560px screen) and a touch smaller on phones. The sidebar and
+                   other pages are shared and keep their own sizes. */
+        .main-panel {
+            --ui-scale: 1;
+        }
         @media (min-width: 1680px) {
-            .main-panel { padding: calc(26px * var(--ui-scale)) calc(32px * var(--ui-scale)); }
-            .main-panel .top-copy h1 { font-size: calc(22px * var(--ui-scale)); }
-            .main-panel .top-copy p { font-size: calc(13.5px * var(--ui-scale)); }
-            .main-panel .top-meta { height: calc(38px * var(--ui-scale)); font-size: calc(13px * var(--ui-scale)); }
-            .hero-grid, .dash-row { gap: calc(16px * var(--ui-scale)); }
-            .hero-card { padding: calc(16px * var(--ui-scale)) calc(18px * var(--ui-scale)); }
-            .card { padding: calc(18px * var(--ui-scale)) calc(20px * var(--ui-scale)); }
+            .main-panel {
+                --ui-scale: 1.08;
+            }
+        }
+        @media (min-width: 1920px) {
+            .main-panel {
+                --ui-scale: 1.16;
+            }
+        }
+        @media (min-width: 2240px) {
+            .main-panel {
+                --ui-scale: 1.26;
+            }
+        }
+        @media (min-width: 2560px) {
+            .main-panel {
+                --ui-scale: 1.36;
+            }
+        }
+        @media (min-width: 3200px) {
+            .main-panel {
+                --ui-scale: 1.6;
+            }
+        }
+        @media (max-width: 480px) {
+            .main-panel {
+                --ui-scale: 0.94;
+            }
+        }
+        /* The greeting and clock (shared header from pages.css) grow along
+                   with the cards on wide screens; below that pages.css sizes them. */
+        @media (min-width: 1680px) {
+            .main-panel {
+                padding: calc(26px * var(--ui-scale)) calc(32px * var(--ui-scale));
+            }
+            .main-panel .top-copy h1 {
+                font-size: calc(22px * var(--ui-scale));
+            }
+            .main-panel .top-copy p {
+                font-size: calc(13.5px * var(--ui-scale));
+            }
+            .main-panel .top-meta {
+                height: calc(38px * var(--ui-scale));
+                font-size: calc(13px * var(--ui-scale));
+            }
+            .hero-grid,
+            .dash-row {
+                gap: calc(16px * var(--ui-scale));
+            }
+            .hero-card {
+                padding: calc(16px * var(--ui-scale)) calc(18px * var(--ui-scale));
+            }
+            .card {
+                padding: calc(18px * var(--ui-scale)) calc(20px * var(--ui-scale));
+            }
         }
 
         /* Below this the tables no longer fit three across: two across, the
-           first card of each row spanning both. */
+                   first card of each row spanning both. */
         @media (max-width: 1360px) {
-            .dash-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .dash-row > :first-child { grid-column: 1 / -1; }
+            .dash-row {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .dash-row > :first-child {
+                grid-column: 1 / -1;
+            }
         }
         @media (max-width: 1240px) {
-            .hero-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .hero-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
         }
         @media (max-width: 1100px) {
-            .dash-row { grid-template-columns: minmax(0, 1fr); }
+            .dash-row {
+                grid-template-columns: minmax(0, 1fr);
+            }
         }
         /* Tablets: three stat cards across leaves each too narrow, and titles
-           like "Weather (Mt. Makiling Summit)" wrap to four lines. */
+                   like "Weather (Mt. Makiling Summit)" wrap to four lines. */
         @media (max-width: 960px) {
-            .hero-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .hero-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
         @media (max-width: 560px) {
-            .summary-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .summary-tiles {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
         @media (max-width: 760px) {
-            .hero-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-            .hero-card p { font-size: calc(22px * var(--ui-scale, 1)); }
-            .card { padding: 16px; }
-            #dashboardMap { height: 280px; }
-            .top-meta { align-self: flex-start; }
+            .hero-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+            }
+            .hero-card p {
+                font-size: calc(22px * var(--ui-scale, 1));
+            }
+            .card {
+                padding: 16px;
+            }
+            #dashboardMap {
+                height: 280px;
+            }
+            .top-meta {
+                align-self: flex-start;
+            }
         }
         @media (max-width: 560px) {
-            .hero-grid { grid-template-columns: minmax(0, 1fr); }
+            .hero-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
         }
     </style>
 </head>

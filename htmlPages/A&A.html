@@ -25,242 +25,1093 @@
 	<script type="module" src="../jsPages/admin-identity.js"></script>
 	<title>PeakPath — Advisories & Announcements</title>
 <style>
-		html, body {
-			visibility: visible;
-			opacity: 1;
-		}
+	html,
+	body {
+		visibility: visible;
+		opacity: 1;
+	}
 
-		/* Palette, radii and typography come from pages.css (:root). */
-		*{box-sizing:border-box;margin:0;padding:0}
-		body{background:var(--page-bg);color:var(--text-primary);font-size:14px}
-		a{text-decoration:none;color:inherit}
-		button{font-family:inherit;cursor:pointer}
-		.main{flex:1;padding:26px 32px;min-width:0}
-		.topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px}
-		.topbar h1{font-size:22px;font-weight:700;margin-bottom:4px}
-		.topbar p{color:var(--text-secondary);font-size:13.5px}
-		.topbar-right{display:flex;align-items:center;gap:16px}
-		.bell-wrap{position:relative;width:38px;height:38px;border-radius:9px;background:var(--card-bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
-		.bell-badge{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:var(--danger);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
-		.bell-icon{font-size:20px;line-height:1}
-		.profile-chip{display:flex;align-items:center;gap:9px;cursor:pointer;position:relative}
-		.profile-chip .avatar{width:34px;height:34px;font-size:12px}
-		.profile-chip .name{font-size:13px;font-weight:700}
-		.profile-chip .role{font-size:11px;color:var(--text-secondary)}
-		.profile-menu{position:absolute;top:46px;right:0;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 22px rgba(0,0,0,.12);min-width:150px;display:none;overflow:hidden;z-index:30}
-		.profile-menu.open{display:block}
-		.profile-menu a{display:block;padding:10px 14px;font-size:13px;color:var(--text-primary)}
-		.profile-menu a:hover{background:var(--accent-light)}
-		.button{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;border-radius:8px;border:none;font-weight:700;font-size:13px}
-		.button-green{background:var(--accent);color:#fff}
-		.content-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:18px;align-items:stretch}
-		/* The right column stacks the details card over the Expired panel. With
-		   nothing selected, the details card grows to the list's height (like
-		   Hazard Reports' "Hazard Details") instead of collapsing to a sliver. */
-		.detail-column{display:flex;flex-direction:column;min-width:0}
-		.detail-card-title{margin:0 0 14px;font-size:15px;font-weight:700;color:var(--accent-dark)}
-		.detail-empty{display:none;margin:auto;padding:24px 0;text-align:center;font-size:13px;color:var(--text-secondary)}
-		.detail.is-empty{flex:1;display:flex;flex-direction:column;min-height:420px}
-		.detail.is-empty .detail-top,
-		.detail.is-empty #detailBody{display:none !important}
-		.detail.is-empty .detail-empty{display:block}
-		.panel{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px}
-		.panel-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--accent-dark)}
-		.panel-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
-		.archive-action-wrap{position:relative;display:flex;align-items:center}
-		.archive-action{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--border);border-radius:10px;background:var(--dm-surface, #ffffff);color:var(--icon);transition:all .15s ease;cursor:pointer}
-		.archive-action:hover{background:var(--accent-light);border-color:rgba(47,143,78,.25);color:var(--icon-strong)}
-		.archive-action:disabled{cursor:not-allowed;opacity:.45}
-		.archive-action svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-		.archive-tooltip{position:absolute;top:calc(100% + 8px);right:0;white-space:nowrap;padding:6px 8px;border-radius:8px;background:#1d2b1d;color:#fff;font-size:11px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:all .15s ease;box-shadow:0 8px 18px rgba(0,0,0,.12)}
-		.archive-action:hover .archive-tooltip,
-		.archive-action:focus-visible .archive-tooltip{opacity:1;transform:translateY(0)}
-		.toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-		.search-box{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--dm-surface-2, #fbfcfa)}
-		.search-box input{border:none;background:transparent;outline:none;font-size:13px;width:100%;color:var(--text-primary)}
-		select.filter{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;background:var(--dm-surface-2, #fbfcfa);color:var(--text-secondary)}
-		.clear-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--dm-surface, #fff);font:inherit;font-size:13px;font-weight:400;color:var(--text-secondary)}
-		.clear-btn:hover{background:var(--dm-surface-2, #f5f5f2)}
-		table{width:100%;border-collapse:collapse}
-		thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);padding:8px 6px;border-bottom:1px solid var(--border);font-weight:600}
-		tbody td{padding:10px 6px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
-		/* Type, Target and Status sit in the middle of their columns. */
-		thead th.center-cell,tbody td.center-cell{text-align:center}
-		tbody tr{cursor:pointer;transition:background .12s}
-		tbody tr:hover{background:var(--dm-surface-2, #f6f8f4)}
-		tbody tr.selected{background:var(--accent-light)}
-		@keyframes flashHighlight{0%,100%{background:var(--accent-light)}50%{background:#bfe8cc}}
-		.flash-highlight{animation:flashHighlight .8s ease-in-out 2}
-		.expired-row{transition:transform .15s ease,box-shadow .15s ease,background .15s ease,padding .15s ease}
-		.expired-row.selected-float{
-			background:var(--accent-light);
-			border-radius:8px;
-			padding-left:8px;
-			padding-right:8px;
-			transform:translateY(-3px);
-			box-shadow:0 10px 20px rgba(0,0,0,.12);
-			position:relative;
-			z-index:1;
+	/* Palette, radii and typography come from pages.css (:root). */
+	* {
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
+	body {
+		background: var(--page-bg);
+		color: var(--text-primary);
+		font-size: 14px;
+	}
+	a {
+		text-decoration: none;
+		color: inherit;
+	}
+	button {
+		font-family: inherit;
+		cursor: pointer;
+	}
+	.main {
+		flex: 1;
+		padding: 26px 32px;
+		min-width: 0;
+	}
+	.topbar {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		margin-bottom: 22px;
+	}
+	.topbar h1 {
+		font-size: 22px;
+		font-weight: 700;
+		margin-bottom: 4px;
+	}
+	.topbar p {
+		color: var(--text-secondary);
+		font-size: 13.5px;
+	}
+	.topbar-right {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+	}
+	.bell-wrap {
+		position: relative;
+		width: 38px;
+		height: 38px;
+		border-radius: 9px;
+		background: var(--card-bg);
+		border: 1px solid var(--border);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.bell-badge {
+		position: absolute;
+		top: -5px;
+		right: -5px;
+		width: 17px;
+		height: 17px;
+		border-radius: 50%;
+		background: var(--danger);
+		color: #fff;
+		font-size: 10px;
+		font-weight: 700;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.bell-icon {
+		font-size: 20px;
+		line-height: 1;
+	}
+	.profile-chip {
+		display: flex;
+		align-items: center;
+		gap: 9px;
+		cursor: pointer;
+		position: relative;
+	}
+	.profile-chip .avatar {
+		width: 34px;
+		height: 34px;
+		font-size: 12px;
+	}
+	.profile-chip .name {
+		font-size: 13px;
+		font-weight: 700;
+	}
+	.profile-chip .role {
+		font-size: 11px;
+		color: var(--text-secondary);
+	}
+	.profile-menu {
+		position: absolute;
+		top: 46px;
+		right: 0;
+		background: var(--card-bg);
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+		min-width: 150px;
+		display: none;
+		overflow: hidden;
+		z-index: 30;
+	}
+	.profile-menu.open {
+		display: block;
+	}
+	.profile-menu a {
+		display: block;
+		padding: 10px 14px;
+		font-size: 13px;
+		color: var(--text-primary);
+	}
+	.profile-menu a:hover {
+		background: var(--accent-light);
+	}
+	.button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 9px 14px;
+		border-radius: 8px;
+		border: none;
+		font-weight: 700;
+		font-size: 13px;
+	}
+	.button-green {
+		background: var(--accent);
+		color: #fff;
+	}
+	.content-grid {
+		display: grid;
+		grid-template-columns: 1.7fr 1fr;
+		gap: 18px;
+		align-items: stretch;
+	}
+	/* The right column stacks the details card over the Expired panel. With
+			   nothing selected, the details card grows to the list's height (like
+			   Hazard Reports' "Hazard Details") instead of collapsing to a sliver. */
+	.detail-column {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+	.detail-card-title {
+		margin: 0 0 14px;
+		font-size: 15px;
+		font-weight: 700;
+		color: var(--accent-dark);
+	}
+	.detail-empty {
+		display: none;
+		margin: auto;
+		padding: 24px 0;
+		text-align: center;
+		font-size: 13px;
+		color: var(--text-secondary);
+	}
+	.detail.is-empty {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-height: 420px;
+	}
+	.detail.is-empty .detail-top,
+	.detail.is-empty #detailBody {
+		display: none !important;
+	}
+	.detail.is-empty .detail-empty {
+		display: block;
+	}
+	.panel {
+		background: var(--card-bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 18px 20px;
+		margin-bottom: 18px;
+	}
+	.panel-title {
+		font-size: 15px;
+		font-weight: 700;
+		margin-bottom: 14px;
+		color: var(--accent-dark);
+	}
+	.panel-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+	}
+	.archive-action-wrap {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+	.archive-action {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		background: var(--dm-surface, #ffffff);
+		color: var(--icon);
+		transition: all 0.15s ease;
+		cursor: pointer;
+	}
+	.archive-action:hover {
+		background: var(--accent-light);
+		border-color: rgba(47, 143, 78, 0.25);
+		color: var(--icon-strong);
+	}
+	.archive-action:disabled {
+		cursor: not-allowed;
+		opacity: 0.45;
+	}
+	.archive-action svg {
+		width: 16px;
+		height: 16px;
+		stroke: currentColor;
+		fill: none;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	.archive-tooltip {
+		position: absolute;
+		top: calc(100% + 8px);
+		right: 0;
+		white-space: nowrap;
+		padding: 6px 8px;
+		border-radius: 8px;
+		background: #1d2b1d;
+		color: #fff;
+		font-size: 11px;
+		opacity: 0;
+		transform: translateY(-4px);
+		pointer-events: none;
+		transition: all 0.15s ease;
+		box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+	}
+	.archive-action:hover .archive-tooltip,
+	.archive-action:focus-visible .archive-tooltip {
+		opacity: 1;
+		transform: translateY(0);
+	}
+	.toolbar {
+		display: flex;
+		gap: 10px;
+		margin-bottom: 14px;
+		flex-wrap: wrap;
+	}
+	.search-box {
+		flex: 1;
+		min-width: 160px;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		padding: 8px 12px;
+		background: var(--dm-surface-2, #fbfcfa);
+	}
+	.search-box input {
+		border: none;
+		background: transparent;
+		outline: none;
+		font-size: 13px;
+		width: 100%;
+		color: var(--text-primary);
+	}
+	select.filter {
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		padding: 8px 10px;
+		font-size: 13px;
+		background: var(--dm-surface-2, #fbfcfa);
+		color: var(--text-secondary);
+	}
+	.clear-btn {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 8px 12px;
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		background: var(--dm-surface, #fff);
+		font: inherit;
+		font-size: 13px;
+		font-weight: 400;
+		color: var(--text-secondary);
+	}
+	.clear-btn:hover {
+		background: var(--dm-surface-2, #f5f5f2);
+	}
+	table {
+		width: 100%;
+		border-collapse: collapse;
+	}
+	thead th {
+		text-align: left;
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		color: var(--text-muted);
+		padding: 8px 6px;
+		border-bottom: 1px solid var(--border);
+		font-weight: 600;
+	}
+	tbody td {
+		padding: 10px 6px;
+		border-bottom: 1px solid var(--border);
+		font-size: 13px;
+		vertical-align: middle;
+	}
+	/* Type, Target and Status sit in the middle of their columns. */
+	thead th.center-cell,
+	tbody td.center-cell {
+		text-align: center;
+	}
+	tbody tr {
+		cursor: pointer;
+		transition: background 0.12s;
+	}
+	tbody tr:hover {
+		background: var(--dm-surface-2, #f6f8f4);
+	}
+	tbody tr.selected {
+		background: var(--accent-light);
+	}
+	@keyframes flashHighlight {
+		0%,
+		100% {
+			background: var(--accent-light);
 		}
-		.thumb{width:40px;height:40px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-		.thumb svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-		.trail-name{font-weight:600}
-		.trail-loc{font-size:12px;color:var(--text-muted);margin-top:1px}
-		.badge{display:inline-block;padding:6px 10px;border-radius:16px;font-size:12px;font-weight:700}
-		.badge.advisory{background:var(--danger-light);color:var(--danger)}
-		.badge.weather{background:var(--blue-light);color:var(--blue)}
-		.badge.update{background:var(--warning-light);color:var(--warning)}
-		.badge.announcement{background:var(--accent-light);color:var(--accent)}
-		.badge.alert{background:#fbeae7;color:#a33}
-		.status-badge{display:inline-block;padding:5px 10px;border-radius:16px;font-size:12px;font-weight:700}
-		.status-badge.active{background:var(--accent-light);color:var(--accent)}
-		.status-badge.scheduled{background:var(--warning-light);color:var(--warning)}
-		.status-badge.expired{background:var(--dm-surface-2, #f1f1ee);color:var(--text-muted)}
-		.detail{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
-		.detail-top{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}
-		.detail-icon{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-		.detail-icon svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-		.detail-head{flex:1}
-		.detail-head h3{margin:0 0 4px;font-size:17px}
-		.detail-head .sub{font-size:12.5px;color:var(--text-secondary)}
-		.pill{display:inline-block;padding:5px 10px;border-radius:8px;font-weight:700;font-size:11px}
-		.pill.active{background:var(--accent-light);color:var(--accent)}
-		.pill.scheduled{background:var(--warning-light);color:var(--warning)}
-		.pill.expired{background:var(--dm-surface-2, #f1f1ee);color:var(--text-muted)}
-		.detail-row{display:flex;justify-content:space-between;padding:7px 0;font-size:13px;border-bottom:1px solid var(--border)}
-		.detail-row .k{color:var(--text-muted)}
-		.detail-row .v{font-weight:600;text-align:right}
-		.detail-section{margin-top:14px}
-		.detail-section .label{font-weight:700;margin-bottom:6px;font-size:13px}
-		.detail-desc{line-height:1.6;color:var(--text-secondary);font-size:13px}
-		.chan-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:4px}
-		.chan-item{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-secondary)}
-		.chan-dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
-		.actions-row{display:flex;gap:10px;margin-top:16px}
-		/* Built to match the Verify Hazard / Reject Report pair on the Hazard
-		   Reports page — the .btn, .btn-verify and .btn-reject rules there: a
-		   solid fill, white label, 9px corners, 12.5px/600 text and a centred
-		   icon. --accent and --danger carry the same values that page writes as
-		   raw hex, with the bonus that they also follow dark mode. */
-		.btn-edit,.btn-end{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:none;border-radius:9px;font-size:12.5px;font-weight:600;color:#fff;cursor:pointer;transition:background .15s ease}
-		.btn-edit{background:var(--accent)}
-		.btn-end{background:var(--danger)}
-		/* Hover and focus go beyond what Hazard Reports does, but they leave the
-		   resting look — the part being matched — untouched. */
-		.btn-edit:hover:not([disabled]){background:var(--accent-dark)}
-		.btn-end:hover:not([disabled]){background:var(--danger-dark)}
-		.btn-edit:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-		.btn-end:focus-visible{outline:2px solid var(--danger);outline-offset:2px}
-		/* The icon takes the white label colour, not the portal's warm icon tone
-		   (see the icon rules in pages.css). */
-		.btn-edit i,.btn-end i{color:inherit;font-size:12px}
-		/* Disabled is styled here rather than patched with inline styles from
-		   renderDetail(), so the two states cannot drift apart. .6 is the same
-		   fade the Hazard Reports buttons use. */
-		.btn-edit[disabled],.btn-end[disabled]{opacity:.6;cursor:not-allowed}
-		.empty-state{padding:24px;text-align:center;color:var(--text-muted);font-size:13px}
-		.row-actions{display:flex;align-items:center;gap:2px}
-		/* This page draws its icons as inline SVG rather than Font Awesome, so
-		   the warm icon tokens are applied here by hand; the shared rule in
-		   pages.css only reaches <i> glyphs. */
-		.icon-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:none;background:transparent;border-radius:7px;color:var(--icon-muted)}
-		.icon-btn:hover{background:var(--accent-light);color:var(--icon-strong)}
-		.icon-btn.danger:hover{background:var(--danger-light);color:var(--danger)}
-		.icon-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-		.icon-btn[disabled]{opacity:.35;cursor:not-allowed}
-		.icon-btn[disabled]:hover{background:transparent;color:var(--icon-muted)}
-		.pagination{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
-		.page-controls{display:flex;align-items:center;gap:6px}
-		/* Pagination buttons are styled in pages.css so every table matches. */
-		.stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
-		.stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-height:128px;justify-content:space-between;box-shadow:0 18px 36px rgba(15,23,42,0.06);transition:transform 0.2s ease, box-shadow 0.2s ease}
-		.stat-card:hover{transform:translateY(-2px);box-shadow:0 24px 48px rgba(15,23,42,0.08)}
-		.stat-top{display:flex;justify-content:space-between;align-items:center}
-		.stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-		.stat-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-		.stat-num{font-size:24px;font-weight:700;color:var(--text-primary);line-height:1.1}
-		.stat-label{font-size:12px;font-weight:600;color:var(--text-secondary)}
-		.stat-label .meta-line{font-size:11px;color:var(--text-muted);margin-top:2px;font-weight:400}
-		/* Modal */
-		/* One scrollbar only: the page behind is locked while a dialog is open,
-		   and a tall dialog (Create New Advisory) scrolls inside itself, with
-		   its scrollbar on the dialog's own edge. */
-		.modal-overlay{position:fixed;inset:0;background:rgba(15,25,15,.45);display:none;align-items:center;justify-content:center;padding:40px 16px;overflow:hidden;z-index:100}
-		.modal-overlay.open{display:flex}
-		html:has(.modal-overlay.open){overflow:hidden}
-		.modal{background:var(--card-bg);border-radius:12px;width:100%;max-width:560px;max-height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--border) transparent;padding:22px 24px 24px}
-		.modal h2{font-size:17px;margin-bottom:16px}
-		.field{margin-bottom:13px}
-		.field label{display:block;font-size:12.5px;font-weight:600;color:var(--text-secondary);margin-bottom:5px}
-		.field input,.field select,.field textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:13px;font-family:inherit;background:var(--dm-surface-2, #fbfcfa);color:var(--text-primary)}
-		.field textarea{resize:vertical;min-height:60px}
-		.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-		.checks{display:flex;gap:16px;flex-wrap:wrap;padding-top:2px}
-		.checks label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--text-primary)}
-		/* .field input makes every input full width; a checkbox must stay its own size. */
-		.checks input[type="checkbox"]{width:auto;margin:0;accent-color:var(--accent)}
-		.checks label{white-space:nowrap}
-		.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
-		.btn-secondary{background:var(--dm-surface-2, #f1f3ef);color:var(--text-primary);border:none;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13px}
-		.btn-primary{background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13px}
-		.btn-primary:disabled,.btn-secondary:disabled{opacity:.6;cursor:not-allowed}
-		/* Photos & videos — upload area in the create/edit modal */
-		.media-drop{border:1.5px dashed var(--border);border-radius:10px;padding:14px;display:flex;align-items:center;gap:14px;cursor:pointer;background:var(--dm-surface-2, #fbfcfa);transition:border-color .15s,background .15s}
-		.media-drop:hover,.media-drop:focus-visible,.media-drop.dragover{border-color:var(--accent);background:var(--accent-light);outline:none}
-		.media-drop.disabled{pointer-events:none;opacity:.55}
-		.media-drop-icon{width:40px;height:40px;border-radius:9px;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-		.media-drop-icon svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-		.media-drop-title{font-size:13px;font-weight:600;color:var(--text-primary)}
-		.media-drop-hint{font-size:11.5px;color:var(--text-muted);margin-top:2px}
-		.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:10px}
-		.media-grid:empty{display:none}
-		.media-item{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--dm-surface-2, #f1f3ef);border:1px solid var(--border)}
-		.media-item img,.media-item video{width:100%;height:100%;object-fit:cover;display:block}
-		.media-kind{position:absolute;left:5px;bottom:7px;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;letter-spacing:.02em}
-		.media-remove{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center}
-		.media-remove:hover{background:var(--danger)}
-		.media-remove:disabled{display:none}
-		.media-progress{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(0,0,0,.18);display:none}
-		.media-progress span{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
-		.media-item.uploading .media-progress{display:block}
-		.media-error{font-size:12px;color:var(--danger);margin-top:6px}
-		.media-error:empty{display:none}
-		/* Photos & videos — shown in the detail panel */
-		.detail-media{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
-		.detail-media a,.detail-media video{display:block;width:100%;aspect-ratio:4/3;border-radius:8px;overflow:hidden;background:var(--dm-surface-2, #f1f3ef);border:1px solid var(--border)}
-		.detail-media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s}
-		.detail-media a:hover img{transform:scale(1.04)}
-		.detail-media video{object-fit:contain;background:#000}
-		/* ==========================================
-		   RESPONSIVE
-		   Shared chrome (sidebar rail, page padding, header stacking, table
-		   scrolling) lives in pages.css; these are this page's own grids.
-		========================================== */
-		@media(max-width:1150px){
-			.content-grid{grid-template-columns:minmax(0,1fr)}
+		50% {
+			background: #bfe8cc;
 		}
-		@media(max-width:980px){
-			.content-grid{grid-template-columns:minmax(0,1fr)}
-			.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+	}
+	.flash-highlight {
+		animation: flashHighlight 0.8s ease-in-out 2;
+	}
+	.expired-row {
+		transition:
+			transform 0.15s ease,
+			box-shadow 0.15s ease,
+			background 0.15s ease,
+			padding 0.15s ease;
+	}
+	.expired-row.selected-float {
+		background: var(--accent-light);
+		border-radius: 8px;
+		padding-left: 8px;
+		padding-right: 8px;
+		transform: translateY(-3px);
+		box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+		position: relative;
+		z-index: 1;
+	}
+	.thumb {
+		width: 40px;
+		height: 40px;
+		border-radius: 9px;
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.thumb svg {
+		width: 19px;
+		height: 19px;
+		stroke: currentColor;
+		fill: none;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	.trail-name {
+		font-weight: 600;
+	}
+	.trail-loc {
+		font-size: 12px;
+		color: var(--text-muted);
+		margin-top: 1px;
+	}
+	.badge {
+		display: inline-block;
+		padding: 6px 10px;
+		border-radius: 16px;
+		font-size: 12px;
+		font-weight: 700;
+	}
+	.badge.advisory {
+		background: var(--danger-light);
+		color: var(--danger);
+	}
+	.badge.weather {
+		background: var(--blue-light);
+		color: var(--blue);
+	}
+	.badge.update {
+		background: var(--warning-light);
+		color: var(--warning);
+	}
+	.badge.announcement {
+		background: var(--accent-light);
+		color: var(--accent);
+	}
+	.badge.alert {
+		background: #fbeae7;
+		color: #a33;
+	}
+	.status-badge {
+		display: inline-block;
+		padding: 5px 10px;
+		border-radius: 16px;
+		font-size: 12px;
+		font-weight: 700;
+	}
+	.status-badge.active {
+		background: var(--accent-light);
+		color: var(--accent);
+	}
+	.status-badge.scheduled {
+		background: var(--warning-light);
+		color: var(--warning);
+	}
+	.status-badge.expired {
+		background: var(--dm-surface-2, #f1f1ee);
+		color: var(--text-muted);
+	}
+	.detail {
+		background: var(--card-bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 18px;
+	}
+	.detail-top {
+		display: flex;
+		gap: 14px;
+		align-items: flex-start;
+		margin-bottom: 14px;
+	}
+	.detail-icon {
+		width: 56px;
+		height: 56px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+	.detail-icon svg {
+		width: 24px;
+		height: 24px;
+		stroke: currentColor;
+		fill: none;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	.detail-head {
+		flex: 1;
+	}
+	.detail-head h3 {
+		margin: 0 0 4px;
+		font-size: 17px;
+	}
+	.detail-head .sub {
+		font-size: 12.5px;
+		color: var(--text-secondary);
+	}
+	.pill {
+		display: inline-block;
+		padding: 5px 10px;
+		border-radius: 8px;
+		font-weight: 700;
+		font-size: 11px;
+	}
+	.pill.active {
+		background: var(--accent-light);
+		color: var(--accent);
+	}
+	.pill.scheduled {
+		background: var(--warning-light);
+		color: var(--warning);
+	}
+	.pill.expired {
+		background: var(--dm-surface-2, #f1f1ee);
+		color: var(--text-muted);
+	}
+	.detail-row {
+		display: flex;
+		justify-content: space-between;
+		padding: 7px 0;
+		font-size: 13px;
+		border-bottom: 1px solid var(--border);
+	}
+	.detail-row .k {
+		color: var(--text-muted);
+	}
+	.detail-row .v {
+		font-weight: 600;
+		text-align: right;
+	}
+	.detail-section {
+		margin-top: 14px;
+	}
+	.detail-section .label {
+		font-weight: 700;
+		margin-bottom: 6px;
+		font-size: 13px;
+	}
+	.detail-desc {
+		line-height: 1.6;
+		color: var(--text-secondary);
+		font-size: 13px;
+	}
+	.chan-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+		margin-top: 4px;
+	}
+	.chan-item {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 12.5px;
+		color: var(--text-secondary);
+	}
+	.chan-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: var(--accent);
+	}
+	.actions-row {
+		display: flex;
+		gap: 10px;
+		margin-top: 16px;
+	}
+	/* Built to match the Verify Hazard / Reject Report pair on the Hazard
+			   Reports page — the .btn, .btn-verify and .btn-reject rules there: a
+			   solid fill, white label, 9px corners, 12.5px/600 text and a centred
+			   icon. --accent and --danger carry the same values that page writes as
+			   raw hex, with the bonus that they also follow dark mode. */
+	.btn-edit,
+	.btn-end {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 10px;
+		border: none;
+		border-radius: 9px;
+		font-size: 12.5px;
+		font-weight: 600;
+		color: #fff;
+		cursor: pointer;
+		transition: background 0.15s ease;
+	}
+	.btn-edit {
+		background: var(--accent);
+	}
+	.btn-end {
+		background: var(--danger);
+	}
+	/* Hover and focus go beyond what Hazard Reports does, but they leave the
+			   resting look — the part being matched — untouched. */
+	.btn-edit:hover:not([disabled]) {
+		background: var(--accent-dark);
+	}
+	.btn-end:hover:not([disabled]) {
+		background: var(--danger-dark);
+	}
+	.btn-edit:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+	.btn-end:focus-visible {
+		outline: 2px solid var(--danger);
+		outline-offset: 2px;
+	}
+	/* The icon takes the white label colour, not the portal's warm icon tone
+			   (see the icon rules in pages.css). */
+	.btn-edit i,
+	.btn-end i {
+		color: inherit;
+		font-size: 12px;
+	}
+	/* Disabled is styled here rather than patched with inline styles from
+			   renderDetail(), so the two states cannot drift apart. .6 is the same
+			   fade the Hazard Reports buttons use. */
+	.btn-edit[disabled],
+	.btn-end[disabled] {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+	.empty-state {
+		padding: 24px;
+		text-align: center;
+		color: var(--text-muted);
+		font-size: 13px;
+	}
+	.row-actions {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+	}
+	/* This page draws its icons as inline SVG rather than Font Awesome, so
+			   the warm icon tokens are applied here by hand; the shared rule in
+			   pages.css only reaches <i> glyphs. */
+	.icon-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 28px;
+		height: 28px;
+		border: none;
+		background: transparent;
+		border-radius: 7px;
+		color: var(--icon-muted);
+	}
+	.icon-btn:hover {
+		background: var(--accent-light);
+		color: var(--icon-strong);
+	}
+	.icon-btn.danger:hover {
+		background: var(--danger-light);
+		color: var(--danger);
+	}
+	.icon-btn svg {
+		width: 15px;
+		height: 15px;
+		stroke: currentColor;
+		fill: none;
+		stroke-width: 1.8;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	.icon-btn[disabled] {
+		opacity: 0.35;
+		cursor: not-allowed;
+	}
+	.icon-btn[disabled]:hover {
+		background: transparent;
+		color: var(--icon-muted);
+	}
+	.pagination {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-top: 12px;
+	}
+	.page-controls {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+	/* Pagination buttons are styled in pages.css so every table matches. */
+	.stats-grid {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 14px;
+		margin-bottom: 18px;
+	}
+	.stat-card {
+		background: var(--card-bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 16px 18px;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		min-height: 128px;
+		justify-content: space-between;
+		box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
+	}
+	.stat-card:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+	}
+	.stat-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+	.stat-icon {
+		width: 32px;
+		height: 32px;
+		border-radius: 8px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+	.stat-icon svg {
+		width: 16px;
+		height: 16px;
+		stroke: currentColor;
+		fill: none;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	.stat-num {
+		font-size: 24px;
+		font-weight: 700;
+		color: var(--text-primary);
+		line-height: 1.1;
+	}
+	.stat-label {
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--text-secondary);
+	}
+	.stat-label .meta-line {
+		font-size: 11px;
+		color: var(--text-muted);
+		margin-top: 2px;
+		font-weight: 400;
+	}
+	/* Modal */
+	/* One scrollbar only: the page behind is locked while a dialog is open,
+			   and a tall dialog (Create New Advisory) scrolls inside itself, with
+			   its scrollbar on the dialog's own edge. */
+	.modal-overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(15, 25, 15, 0.45);
+		display: none;
+		align-items: center;
+		justify-content: center;
+		padding: 40px 16px;
+		overflow: hidden;
+		z-index: 100;
+	}
+	.modal-overlay.open {
+		display: flex;
+	}
+	html:has(.modal-overlay.open) {
+		overflow: hidden;
+	}
+	.modal {
+		background: var(--card-bg);
+		border-radius: 12px;
+		width: 100%;
+		max-width: 560px;
+		max-height: 100%;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		scrollbar-width: thin;
+		scrollbar-color: var(--border) transparent;
+		padding: 22px 24px 24px;
+	}
+	.modal h2 {
+		font-size: 17px;
+		margin-bottom: 16px;
+	}
+	.field {
+		margin-bottom: 13px;
+	}
+	.field label {
+		display: block;
+		font-size: 12.5px;
+		font-weight: 600;
+		color: var(--text-secondary);
+		margin-bottom: 5px;
+	}
+	.field input,
+	.field select,
+	.field textarea {
+		width: 100%;
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		padding: 9px 11px;
+		font-size: 13px;
+		font-family: inherit;
+		background: var(--dm-surface-2, #fbfcfa);
+		color: var(--text-primary);
+	}
+	.field textarea {
+		resize: vertical;
+		min-height: 60px;
+	}
+	.field-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 12px;
+	}
+	.checks {
+		display: flex;
+		gap: 16px;
+		flex-wrap: wrap;
+		padding-top: 2px;
+	}
+	.checks label {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--text-primary);
+	}
+	/* .field input makes every input full width; a checkbox must stay its own size. */
+	.checks input[type="checkbox"] {
+		width: auto;
+		margin: 0;
+		accent-color: var(--accent);
+	}
+	.checks label {
+		white-space: nowrap;
+	}
+	.modal-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 10px;
+		margin-top: 18px;
+	}
+	.btn-secondary {
+		background: var(--dm-surface-2, #f1f3ef);
+		color: var(--text-primary);
+		border: none;
+		padding: 9px 16px;
+		border-radius: 8px;
+		font-weight: 700;
+		font-size: 13px;
+	}
+	.btn-primary {
+		background: var(--accent);
+		color: #fff;
+		border: none;
+		padding: 9px 16px;
+		border-radius: 8px;
+		font-weight: 700;
+		font-size: 13px;
+	}
+	.btn-primary:disabled,
+	.btn-secondary:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+	/* Photos & videos — upload area in the create/edit modal */
+	.media-drop {
+		border: 1.5px dashed var(--border);
+		border-radius: 10px;
+		padding: 14px;
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		cursor: pointer;
+		background: var(--dm-surface-2, #fbfcfa);
+		transition:
+			border-color 0.15s,
+			background 0.15s;
+	}
+	.media-drop:hover,
+	.media-drop:focus-visible,
+	.media-drop.dragover {
+		border-color: var(--accent);
+		background: var(--accent-light);
+		outline: none;
+	}
+	.media-drop.disabled {
+		pointer-events: none;
+		opacity: 0.55;
+	}
+	.media-drop-icon {
+		width: 40px;
+		height: 40px;
+		border-radius: 9px;
+		background: var(--accent-light);
+		color: var(--accent);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+	.media-drop-icon svg {
+		width: 19px;
+		height: 19px;
+		stroke: currentColor;
+		fill: none;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	.media-drop-title {
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+	.media-drop-hint {
+		font-size: 11.5px;
+		color: var(--text-muted);
+		margin-top: 2px;
+	}
+	.media-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+		gap: 8px;
+		margin-top: 10px;
+	}
+	.media-grid:empty {
+		display: none;
+	}
+	.media-item {
+		position: relative;
+		aspect-ratio: 1;
+		border-radius: 8px;
+		overflow: hidden;
+		background: var(--dm-surface-2, #f1f3ef);
+		border: 1px solid var(--border);
+	}
+	.media-item img,
+	.media-item video {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+	}
+	.media-kind {
+		position: absolute;
+		left: 5px;
+		bottom: 7px;
+		padding: 2px 6px;
+		border-radius: 6px;
+		background: rgba(0, 0, 0, 0.6);
+		color: #fff;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+	}
+	.media-remove {
+		position: absolute;
+		top: 5px;
+		right: 5px;
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		border: none;
+		background: rgba(0, 0, 0, 0.6);
+		color: #fff;
+		font-size: 15px;
+		line-height: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.media-remove:hover {
+		background: var(--danger);
+	}
+	.media-remove:disabled {
+		display: none;
+	}
+	.media-progress {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		height: 4px;
+		background: rgba(0, 0, 0, 0.18);
+		display: none;
+	}
+	.media-progress span {
+		display: block;
+		height: 100%;
+		width: 0;
+		background: var(--accent);
+		transition: width 0.15s;
+	}
+	.media-item.uploading .media-progress {
+		display: block;
+	}
+	.media-error {
+		font-size: 12px;
+		color: var(--danger);
+		margin-top: 6px;
+	}
+	.media-error:empty {
+		display: none;
+	}
+	/* Photos & videos — shown in the detail panel */
+	.detail-media {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+		gap: 8px;
+	}
+	.detail-media a,
+	.detail-media video {
+		display: block;
+		width: 100%;
+		aspect-ratio: 4/3;
+		border-radius: 8px;
+		overflow: hidden;
+		background: var(--dm-surface-2, #f1f3ef);
+		border: 1px solid var(--border);
+	}
+	.detail-media img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+		transition: transform 0.2s;
+	}
+	.detail-media a:hover img {
+		transform: scale(1.04);
+	}
+	.detail-media video {
+		object-fit: contain;
+		background: #000;
+	}
+	/* ==========================================
+			   RESPONSIVE
+			   Shared chrome (sidebar rail, page padding, header stacking, table
+			   scrolling) lives in pages.css; these are this page's own grids.
+			========================================== */
+	@media (max-width: 1150px) {
+		.content-grid {
+			grid-template-columns: minmax(0, 1fr);
 		}
-		@media(max-width:760px){
-			.panel{padding:14px}
-			.stats-grid{gap:10px}
-			.modal{padding:18px 16px 20px}
-			.modal-overlay{padding:20px 12px}
+	}
+	@media (max-width: 980px) {
+		.content-grid {
+			grid-template-columns: minmax(0, 1fr);
 		}
-		@media(max-width:560px){
-			.stats-grid{grid-template-columns:minmax(0,1fr)}
-			.field-row{grid-template-columns:1fr}
-			.checks{gap:10px}
-			.modal-actions{flex-direction:column-reverse}
-			.modal-actions button{width:100%}
-			/* Six columns will not fit a phone legibly: hold the table at a
-			   readable width and let its wrapper scroll sideways. */
-			.table-scroll table{min-width:620px}
-			.media-grid{grid-template-columns:repeat(auto-fill,minmax(80px,1fr))}
+		.stats-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
-	</style>
+	}
+	@media (max-width: 760px) {
+		.panel {
+			padding: 14px;
+		}
+		.stats-grid {
+			gap: 10px;
+		}
+		.modal {
+			padding: 18px 16px 20px;
+		}
+		.modal-overlay {
+			padding: 20px 12px;
+		}
+	}
+	@media (max-width: 560px) {
+		.stats-grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.field-row {
+			grid-template-columns: 1fr;
+		}
+		.checks {
+			gap: 10px;
+		}
+		.modal-actions {
+			flex-direction: column-reverse;
+		}
+		.modal-actions button {
+			width: 100%;
+		}
+		/* Six columns will not fit a phone legibly: hold the table at a
+				   readable width and let its wrapper scroll sideways. */
+		.table-scroll table {
+			min-width: 620px;
+		}
+		.media-grid {
+			grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+		}
+	}
+</style>
 </head>
 <body>
 	<div class="app">
