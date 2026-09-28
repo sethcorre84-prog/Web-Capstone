@@ -24,44 +24,64 @@
 
 body{
     min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    padding:24px;
-    background:#c1bdbd;
+    /* Dark behind the photo, so nothing light flashes while it loads. */
+    background:#0b140e;
 }
 
+/* Full screen: the photo covers the whole window. One column inside it --
+   brand on top, the login card centred in the space left over, and the
+   features card along the bottom. .left-panel steps out of the way
+   (display: contents) so its logo and features card can take their own
+   rows either side of the login card. */
 .container{
-    width:1140px;
-    max-width:100%;
-    min-height:760px;
-    display:flex;
+    width:100%;
+    min-height:100vh;
+    min-height:100dvh;
+    display:grid;
+    grid-template-columns:minmax(0, 1fr);
+    grid-template-rows:auto 1fr auto;
+    row-gap:28px;
+    padding:28px clamp(16px, 4vw, 56px) 32px;
     overflow:hidden;
-    border-radius:32px;
 
-    background-image: url("../assets/images/bg.png");
+    background-image: url("../assets/images/bgimage.png");
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
     position:relative;
+    isolation:isolate;
+}
+
+.container > .right-panel,
+.container .logo,
+.container .overlay-box{
+    position:relative;
+    z-index:1;
+}
+
+/* Two columns, as the page was originally: brand top-left, the features
+   card along the bottom-left, and the login card on the right, centred
+   top to bottom. Below 1024px it stacks (see the media query further down). */
+.container{
+    grid-template-columns:minmax(0, 1.25fr) minmax(360px, 1fr);
+    column-gap:clamp(24px, 4vw, 64px);
+}
+.container .logo{ grid-column:1; grid-row:1; }
+.container .overlay-box{
+    grid-column:1;
+    grid-row:3;
+    align-self:end;
+    max-width:760px;
+    /* Sits a little lower than the page padding, closer to the bottom edge. */
+    margin-bottom:-18px;
+}
+.container > .right-panel{
+    grid-column:2;
+    grid-row:1 / -1;
 }
 
 .left-panel{
-    width:55%;
-    position:relative;
-    display:flex;
-    flex-direction:column;
-    justify-content:space-between;
-    padding:40px;
-
-    background:transparent;
-}
-
-.left-panel::before{
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: transparent;
+    display:contents;
 }
 
 .logo{
@@ -70,7 +90,6 @@ body{
     align-items: center;
     gap: 14px;
     z-index: 1;
-    margin-bottom: 350px;
 }
 
 .logo img{
@@ -205,12 +224,10 @@ body{
 }
 
 .right-panel{
-    width:45%;
     background:transparent;
     display:flex;
     justify-content:center;
     align-items:center;
-    padding:46px 40px;
 }
 
 .login-card{
@@ -404,35 +421,314 @@ button:hover{
     margin-right: 8px;
 }
 
+/* ==========================================================================
+   Login card as dark frosted glass: the photo behind it shows through,
+   blurred and darkened, and the text inside flips to light colours.
+   Scoped to .login-card so the modals keep their light styling.
+   ========================================================================== */
+.login-card{
+    background: rgba(8, 14, 10, 0.55);
+    backdrop-filter: blur(18px) saturate(1.2);
+    -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.12) inset,
+        0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+/* Browsers without backdrop blur get a solid dark card, still readable. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
+    .login-card{ background: rgba(8, 14, 10, 0.88); }
+}
+
+.login-card .shield{
+    background: rgba(79, 157, 92, 0.18);
+    color: #6fcf86;
+}
+.login-card h1{ color: #ffffff; }
+.login-card p{ color: rgba(255, 255, 255, 0.72); }
+.login-card .card-divider span{ background: rgba(255, 255, 255, 0.16); }
+.login-card .card-divider .divider-icon{ color: #6fcf86; }
+
+.login-card label{ color: rgba(255, 255, 255, 0.9); }
+
+.login-card .input-box{
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.18);
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.login-card .input-box:focus-within{
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #4fbf6a;
+}
+.login-card .input-box i,
+.login-card .password-toggle{ color: rgba(255, 255, 255, 0.65); }
+.login-card .input-box input{ color: #ffffff; }
+.login-card .input-box input::placeholder{ color: rgba(255, 255, 255, 0.45); }
+/* Chrome's autofill paints its own light box; keep it dark. */
+.login-card .input-box input:-webkit-autofill{
+    -webkit-text-fill-color: #ffffff;
+    -webkit-box-shadow: 0 0 0 1000px rgba(20, 30, 24, 1) inset;
+    caret-color: #ffffff;
+    transition: background-color 9999s ease-out;
+}
+
+.login-card .options,
+.login-card .options label{ color: rgba(255, 255, 255, 0.75); }
+.login-card .options input[type="checkbox"]{ accent-color: #2f9e55; }
+.login-card .options a{ color: #6fcf86; }
+.login-card .options a:hover{ text-decoration: underline; }
+
+.login-card .footer{ color: rgba(255, 255, 255, 0.55); }
+.login-card .footer i{ color: #6fcf86; }
+
+/* ==========================================================================
+   Design polish
+   ========================================================================== */
+
+/* A shade over the photo: darker at the top (behind the brand) and the
+   bottom (behind the features card), clear in the middle so the forest
+   still shows around the login card. ::after paints above the photo but
+   below the content, which sits at z-index 1. */
+.container::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    background:
+        linear-gradient(180deg,
+            rgba(4, 12, 6, 0.62) 0%,
+            rgba(4, 12, 6, 0.18) 22%,
+            rgba(4, 12, 6, 0.10) 50%,
+            rgba(4, 12, 6, 0.30) 72%,
+            rgba(4, 12, 6, 0.72) 100%),
+        radial-gradient(ellipse 60% 55% at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.25) 100%);
+}
+
+/* Brand: white on the shaded top edge, readable over any part of the photo. */
+.logo img{
+    width: 52px;
+    height: 52px;
+    padding: 4px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    object-fit: contain;
+}
+.logo h1{
+    color: #ffffff;
+    font-size: 28px;
+    letter-spacing: -0.01em;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+.logo span{ color: #7ddc96; }
+.logo p{
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Login card: a touch narrower and tighter, with a lit top edge. */
+.login-card{
+    max-width: 440px;
+    padding: 38px 38px 30px;
+    border-radius: 26px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 40%),
+        rgba(8, 14, 10, 0.58);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.16) inset,
+        0 30px 70px -10px rgba(0, 0, 0, 0.55);
+}
+.login-card .shield{
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    border-radius: 18px;
+    font-size: 26px;
+    background: linear-gradient(145deg, rgba(111, 207, 134, 0.28), rgba(47, 143, 78, 0.14));
+    border: 1px solid rgba(111, 207, 134, 0.3);
+    box-shadow: 0 8px 24px -6px rgba(47, 143, 78, 0.5);
+}
+.login-card h1{
+    font-size: 28px;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+}
+.login-card > p{
+    font-size: 14px;
+    margin-bottom: 22px;
+}
+.login-card .card-divider{ margin-bottom: 24px; gap: 14px; }
+.login-card .card-divider .divider-icon{ font-size: 15px; opacity: 0.85; }
+
+.login-card label{
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+}
+
+/* Inputs: a hover hint and a soft green ring on focus. */
+.login-card .input-box{
+    border-radius: 14px;
+    padding: 13px 15px;
+    margin-bottom: 18px;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.login-card .input-box:hover{ border-color: rgba(255, 255, 255, 0.3); }
+.login-card .input-box:focus-within{
+    box-shadow: 0 0 0 4px rgba(79, 191, 106, 0.18);
+}
+.login-card .input-box:focus-within i{ color: #7ddc96; }
+.login-card .password-toggle{
+    border-radius: 8px;
+    padding: 4px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+.login-card .password-toggle:hover{ color: #ffffff; background: rgba(255, 255, 255, 0.08); }
+
+.login-card .options{ margin: 4px 0 24px; font-size: 13px; }
+.login-card .options label{ font-size: 13px; letter-spacing: 0; margin: 0; cursor: pointer; }
+
+/* Sign in: brighter gradient, a green glow, a small lift on hover and a
+   press on click. Scoped to the submit button so the eye toggle and the
+   modal buttons are untouched. */
+.login-card button[type="submit"]{
+    padding: 15px 0;
+    border-radius: 14px;
+    font-size: 16px;
+    letter-spacing: 0.01em;
+    background: linear-gradient(135deg, #25a357 0%, #178a45 55%, #0f7a3c 100%);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.25) inset,
+        0 12px 28px -10px rgba(37, 163, 87, 0.75);
+    transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.login-card button[type="submit"]:hover{
+    background: linear-gradient(135deg, #25a357 0%, #178a45 55%, #0f7a3c 100%);
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.25) inset,
+        0 16px 34px -10px rgba(37, 163, 87, 0.85);
+}
+.login-card button[type="submit"]:active{
+    transform: translateY(0);
+    filter: brightness(0.96);
+}
+.login-card button[type="submit"]:disabled{
+    cursor: default;
+    filter: saturate(0.6) brightness(0.9);
+    transform: none;
+}
+
+/* Keyboard focus is always visible. */
+.login-card a:focus-visible,
+.login-card button:focus-visible,
+.login-card input[type="checkbox"]:focus-visible{
+    outline: 2px solid #7ddc96;
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+.login-card .footer{
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 12px;
+    line-height: 1.7;
+}
+.login-card .footer br + br{ display: none; }
+
+/* Features card: matching glass, with each feature lifting on hover. */
+.overlay-box{
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 50%),
+        rgba(6, 12, 8, 0.5);
+    /* Heavier frost, so the photo behind reads only as colour and light. */
+    backdrop-filter: blur(34px) saturate(1.15);
+    -webkit-backdrop-filter: blur(34px) saturate(1.15);
+    border-radius: 24px;
+    padding: 26px 30px;
+    column-gap: 30px;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.12) inset,
+        0 24px 60px -16px rgba(0, 0, 0, 0.5);
+}
+.feature{
+    align-items: flex-start;
+    margin-bottom: 18px;
+    padding: 8px 10px;
+    margin-left: -10px;
+    border-radius: 14px;
+    transition: background 0.2s ease;
+}
+.feature:hover{ background: rgba(255, 255, 255, 0.05); }
+.feature i{
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    font-size: 16px;
+    border: 1px solid rgba(111, 207, 142, 0.22);
+}
+.feature h3{ font-size: 14.5px; margin-bottom: 3px; }
+.feature p{ font-size: 13px; line-height: 1.55; }
+
+.empower img{ width: 84px; margin-bottom: 10px; }
+.empower h1{
+    color: #7ddc96;
+    font-size: 34px;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+.empower h4{ font-size: 19px; margin: 2px 0 10px; }
+.empower p{ font-size: 13.5px; line-height: 1.75; }
+
+/* A gentle entrance: brand, then the login card, then the features. */
+@keyframes loginRise{
+    from{ opacity: 0; transform: translateY(14px); }
+    to{ opacity: 1; transform: none; }
+}
+.container .logo{ animation: loginRise 0.6s ease-out both; }
+.container > .right-panel{ animation: loginRise 0.6s 0.08s ease-out both; }
+.container .overlay-box{ animation: loginRise 0.6s 0.18s ease-out both; }
+
+@media (prefers-reduced-motion: reduce){
+    .container .logo,
+    .container > .right-panel,
+    .container .overlay-box{ animation: none; }
+    .login-card button[type="submit"],
+    .login-card button[type="submit"]:hover{ transform: none; transition: none; }
+}
+
+/* Tablets and phones: one column -- brand, login card, then features. */
 @media (max-width: 1024px) {
-    .container{
-        flex-direction: column;
-        min-height: auto;
-    }
+    .container{ grid-template-columns: minmax(0, 1fr); }
+    .container .logo{ grid-column: 1; grid-row: 1; }
+    .container > .right-panel{ grid-column: 1; grid-row: 2; }
+    .container .overlay-box{ grid-column: 1; grid-row: 3; max-width: none; margin-bottom: 0; }
+}
 
-    .left-panel,
-    .right-panel{
-        width: 100%;
-    }
-
-    .right-panel{
-        padding: 30px 24px;
-    }
-
-    .login-card{
-        margin-top: 20px;
-    }
+/* Narrower screens: the features card stacks its two halves, with the
+   divider turned sideways between them. */
+@media (max-width: 860px) {
+    .container{ padding: 28px 24px 28px; row-gap: 22px; }
 
     .overlay-box{
         grid-template-columns: 1fr;
         min-height: auto;
     }
+    .overlay-box .divider{ width: 100%; height: 1px; }
 }
 
 @media (max-width: 680px) {
-    body{padding: 18px;}
-    .container{border-radius: 24px;}
-    .left-panel{padding: 24px 20px 20px;}
+    .container{padding: 22px 16px 18px;}
     .overlay-box{padding: 22px;}
     .login-card{padding: 28px 24px;}
     .input-box{padding: 12px 14px;}
