@@ -881,6 +881,42 @@ a { color: inherit; text-decoration: none; }
   min-height: 2px;
 }
 .day-bars .day-bar.empty { background: var(--border); }
+/* Hover cards on the Descriptive panel: the mark under the pointer lifts
+   slightly so it is clear which one the card describes. */
+.day-bars .day-bar[data-tip] { cursor: default; transition: opacity 0.12s; }
+.day-bars:hover .day-bar[data-tip] { opacity: 0.55; }
+.day-bars:hover .day-bar[data-tip]:hover { opacity: 1; }
+.kpi[data-tip],
+.bar-row[data-tip],
+.small-card .row[data-tip] { cursor: default; border-radius: 6px; transition: background 0.12s; }
+.kpi[data-tip]:hover { border-color: var(--accent); }
+.bar-row[data-tip]:hover,
+.small-card .row[data-tip]:hover { background: var(--page-bg); }
+.hover-card {
+  position: fixed;
+  z-index: 1000;
+  max-width: 280px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  font-size: 11.5px;
+  line-height: 1.5;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 0.1s, transform 0.1s;
+}
+.hover-card.is-visible { opacity: 1; transform: none; }
+.hover-card strong {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+.hover-card span { display: block; overflow-wrap: anywhere; }
 .axis-row {
   display: flex;
   justify-content: space-between;
@@ -1941,6 +1977,23 @@ a { color: inherit; text-decoration: none; }
     `;
   };
 
+  /* Hover cards: any element carrying data-tip shows a small floating card
+     while the pointer is over it. The first line is the heading; the rest
+     are the figures behind that mark. */
+  const tipAttr = (tip) => {
+    if (!tip) return '';
+    const lines = (tip.lines || []).filter(Boolean);
+    return ` data-tip-title="${escapeHtml(tip.title)}" data-tip="${escapeHtml(lines.join('\n'))}"`;
+  };
+
+  /* "Fallen tree 3 · Mudslide 2 · Rockfall 1" -- the top few of a sub-list. */
+  const topOf = (items, keyOf, count = 3) => countBy(items, keyOf)
+    .slice(0, count)
+    .map((row) => `${row.label} ${row.count}`)
+    .join(' · ');
+  const typeOf = (report) => normalizeText(report.hazardType || report.type) || 'Unspecified';
+  const capitalise = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+
   const barRows = (rows, { max, total, statusColors = false, icons = false } = {}) => rows.map((row) => {
     const widest = max || Math.max(...rows.map((item) => item.count), 1);
     const width = Math.max(3, Math.round((row.count / widest) * 100));
@@ -1950,7 +2003,7 @@ a { color: inherit; text-decoration: none; }
       ? ` status-${row.label.toLowerCase()}`
       : tone ? ` tone-${tone}` : '';
     return `
-      <div class="bar-row">
+      <div class="bar-row"${tipAttr(row.tip)}>
         <div class="bar-head">
           <span class="bar-label">${icons ? hazardChip(row.label) : ''}${escapeHtml(row.display || row.label)}</span>
           <span>${row.count}${share}</span>
@@ -1996,30 +2049,68 @@ a { color: inherit; text-decoration: none; }
 
     const data = describe();
 
+    const statusCount = (status) => data.submitted.filter((report) => reportStatusOf(report) === status).length;
+    const acceptedCount = data.submitted.filter((report) => ['verified', 'resolved', 'archived'].includes(reportStatusOf(report))).length;
+    const previousLabel = `Previous ${periodDays} days`;
+
     const cards = [
       {
         label: `Reports submitted (${periodDays} days)`,
         value: String(data.submitted.length),
-        delta: deltaText(data.submitted.length, data.previous.length)
+        delta: deltaText(data.submitted.length, data.previous.length),
+        tip: {
+          title: `Reports submitted · last ${periodDays} days`,
+          lines: [
+            `This period: ${data.submitted.length}`,
+            `${previousLabel}: ${data.previous.length}`,
+            data.submitted.length ? `Pending ${statusCount('pending')} · Verified ${statusCount('verified')} · Resolved ${statusCount('resolved')} · Rejected ${statusCount('rejected')}` : '',
+            data.byType.length ? `Top types: ${topOf(data.submitted, typeOf)}` : ''
+          ]
+        }
       },
       {
         label: 'Verified or resolved',
         value: data.acceptedShare === null ? '—' : `${Math.round(data.acceptedShare)}%`,
         delta: data.acceptedShare === null
           ? { text: 'No reports submitted in this period', tone: '' }
-          : deltaText(data.acceptedShare, data.acceptedSharePrevious, { unit: ' pts', betterWhen: 'up' })
+          : deltaText(data.acceptedShare, data.acceptedSharePrevious, { unit: ' pts', betterWhen: 'up' }),
+        tip: {
+          title: 'Reports accepted as genuine',
+          lines: [
+            `${acceptedCount} of ${data.submitted.length} report${data.submitted.length === 1 ? '' : 's'} verified, resolved or archived`,
+            `Rejected: ${statusCount('rejected')} · Still pending: ${statusCount('pending')}`,
+            data.acceptedSharePrevious === null ? '' : `${previousLabel}: ${Math.round(data.acceptedSharePrevious)}%`
+          ]
+        }
       },
       {
         label: 'Hazards resolved',
         value: String(data.resolved.length),
-        delta: deltaText(data.resolved.length, data.resolvedPrevious.length, { betterWhen: 'up' })
+        delta: deltaText(data.resolved.length, data.resolvedPrevious.length, { betterWhen: 'up' }),
+        tip: {
+          title: `Hazards resolved · last ${periodDays} days`,
+          lines: [
+            `This period: ${data.resolved.length}`,
+            `${previousLabel}: ${data.resolvedPrevious.length}`,
+            data.medianResolutionHours === null ? '' : `Median time to resolve: ${formatDuration(data.medianResolutionHours)}`,
+            data.resolved.length ? `Types: ${topOf(data.resolved, typeOf)}` : ''
+          ]
+        }
       },
       {
         label: 'Median review time',
         value: formatDuration(data.medianReviewHours),
         delta: data.medianReviewHours === null
           ? { text: 'No reviewed reports in this period', tone: '' }
-          : deltaText(data.medianReviewHours, data.medianReviewHoursPrevious, { unit: ' h', betterWhen: 'down', decimals: 1 })
+          : deltaText(data.medianReviewHours, data.medianReviewHoursPrevious, { unit: ' h', betterWhen: 'down', decimals: 1 }),
+        tip: {
+          title: 'Time from submission to admin decision',
+          lines: [
+            `This period: ${formatDuration(data.medianReviewHours)}`,
+            `${previousLabel}: ${formatDuration(data.medianReviewHoursPrevious)}`,
+            `Reviewed: ${data.submitted.length - data.pendingNow} · Waiting: ${data.pendingNow}`
+          ]
+        }
       }
     ];
 
@@ -2035,7 +2126,7 @@ a { color: inherit; text-decoration: none; }
     kpis.innerHTML = cards.map((card, index) => {
       const mark = kpiMarks[index] || { icon: 'fa-chart-simple', tone: 'slate' };
       return `
-      <div class="kpi">
+      <div class="kpi"${tipAttr(card.tip)}>
         <div class="kpi-top">
           <span class="type-icon ${mark.tone}" aria-hidden="true"><i class="fa-solid ${mark.icon}"></i></span>
           <div class="kpi-label">${escapeHtml(card.label)}</div>
@@ -2054,9 +2145,23 @@ a { color: inherit; text-decoration: none; }
     chart.innerHTML = data.series.map((bucket) => {
       const height = bucket.count ? Math.max(6, Math.round((bucket.count / maxCount) * 100)) : 2;
       const period = data.bucketDays === 1
-        ? formatDate(bucket.end)
+        ? `${formatDay(bucket.end)}, ${formatDate(bucket.end)}`
         : `${formatDate(bucket.start)}–${formatDate(bucket.end)}`;
-      return `<div class="day-bar${bucket.count ? '' : ' empty'}" style="height:${height}%" title="${escapeHtml(period)}: ${bucket.count} report${bucket.count === 1 ? '' : 's'}"></div>`;
+      const endExclusive = new Date(bucket.end.getTime() + DAY_MS);
+      const inBucket = data.submitted.filter((report) => {
+        const date = reportDate(report);
+        return date && date >= bucket.start && date < endExclusive;
+      });
+      const tip = {
+        title: period,
+        lines: [
+          `${bucket.count} report${bucket.count === 1 ? '' : 's'} submitted`,
+          inBucket.length ? `Types: ${topOf(inBucket, typeOf)}` : '',
+          inBucket.length ? `Status: ${topOf(inBucket, (report) => capitalise(reportStatusOf(report)), 5)}` : '',
+          inBucket.length ? `Trails: ${topOf(inBucket, reportTrailLabel)}` : ''
+        ]
+      };
+      return `<div class="day-bar${bucket.count ? '' : ' empty'}" style="height:${height}%"${tipAttr(tip)}></div>`;
     }).join('');
     /* Start, scale and end — the bars carry no y-axis, so the peak names it. */
     const peakCount = Math.max(...data.series.map((bucket) => bucket.count), 0);
@@ -2078,7 +2183,24 @@ a { color: inherit; text-decoration: none; }
     const typeList = document.getElementById('typeBreakdown');
     const topTypes = data.byType.slice(0, 6);
     const otherCount = data.byType.slice(6).reduce((sum, row) => sum + row.count, 0);
+    const otherTypes = data.byType.slice(6).map((row) => row.label);
     if (otherCount) topTypes.push({ label: 'Other types', count: otherCount });
+    const share = (count) => (data.submitted.length ? `${Math.round((count / data.submitted.length) * 100)}% of reports` : '');
+    topTypes.forEach((row) => {
+      const reports = row.label === 'Other types'
+        ? data.submitted.filter((report) => otherTypes.includes(typeOf(report)))
+        : data.submitted.filter((report) => typeOf(report) === row.label);
+      row.tip = {
+        title: row.label,
+        lines: [
+          `${row.count} report${row.count === 1 ? '' : 's'} · ${share(row.count)}`,
+          row.label === 'Other types' ? `Includes: ${otherTypes.join(', ')}` : '',
+          `Status: ${topOf(reports, (report) => capitalise(reportStatusOf(report)), 5)}`,
+          `Risk: ${topOf(reports, (report) => capitalise(riskLevelKey(report)), 4)}`,
+          `Trails: ${topOf(reports, reportTrailLabel)}`
+        ]
+      };
+    });
     typeList.innerHTML = topTypes.length
       ? barRows(topTypes, { total: data.submitted.length, icons: true })
       : '<div class="empty-state">No hazard reports in this period.</div>';
@@ -2089,7 +2211,21 @@ a { color: inherit; text-decoration: none; }
     const statusRows = data.byStatus
       .slice()
       .sort((a, b) => statusOrder.indexOf(a.label) - statusOrder.indexOf(b.label))
-      .map((row) => ({ ...row, display: row.label.charAt(0).toUpperCase() + row.label.slice(1) }));
+      .map((row) => {
+        const reports = data.submitted.filter((report) => reportStatusOf(report) === row.label);
+        return {
+          ...row,
+          display: capitalise(row.label),
+          tip: {
+            title: `${capitalise(row.label)} reports`,
+            lines: [
+              `${row.count} report${row.count === 1 ? '' : 's'} · ${share(row.count)}`,
+              `Types: ${topOf(reports, typeOf)}`,
+              `Trails: ${topOf(reports, reportTrailLabel)}`
+            ]
+          }
+        };
+      });
     statusList.innerHTML = statusRows.length
       ? barRows(statusRows, { total: data.submitted.length, statusColors: true })
       : '<div class="empty-state">No hazard reports in this period.</div>';
@@ -2097,22 +2233,87 @@ a { color: inherit; text-decoration: none; }
     // Trails
     const trailList = document.getElementById('trailBreakdown');
     trailList.innerHTML = data.byTrail.length
-      ? barRows(data.byTrail.slice(0, 5), { total: data.submitted.length })
+      ? barRows(data.byTrail.slice(0, 5).map((row) => {
+        const reports = data.submitted.filter((report) => reportTrailLabel(report) === row.label);
+        const trail = (state.trails || []).find((item) => trailName(item) === row.label);
+        return {
+          ...row,
+          tip: {
+            title: row.label,
+            lines: [
+              `${row.count} report${row.count === 1 ? '' : 's'} · ${share(row.count)}`,
+              `Types: ${topOf(reports, typeOf)}`,
+              `Status: ${topOf(reports, (report) => capitalise(reportStatusOf(report)), 5)}`,
+              trail ? `Trail is currently ${closedTrails().includes(trail) ? 'closed' : 'open'}` : ''
+            ]
+          }
+        };
+      }), { total: data.submitted.length })
       : '<div class="empty-state">No reports in this period name a trail.</div>';
 
     // Activity rows
-    const setRow = (id, value, muted) => {
+    const setRow = (id, value, muted, tip) => {
       const element = document.getElementById(id);
       if (!element) return;
       element.textContent = value;
       element.classList.toggle('val-muted', Boolean(muted));
+      // The whole row is the hover target, not just the number.
+      const row = element.closest('.row');
+      if (!row) return;
+      const lines = tip && !muted ? (tip.lines || []).filter(Boolean) : [];
+      if (lines.length) {
+        row.dataset.tipTitle = tip.title;
+        row.dataset.tip = lines.join('\n');
+      } else {
+        delete row.dataset.tipTitle;
+        delete row.dataset.tip;
+      }
     };
-    setRow('descAdvisories', state.advisories === null ? '—' : String(data.advisories), state.advisories === null);
-    setRow('descEmergencies', state.errors.emergencies ? 'Unavailable' : state.emergencies === null ? '—' : String(data.emergencies), state.errors.emergencies || state.emergencies === null);
-    setRow('descNewUsers', state.users === null ? '—' : String(data.newAccounts), state.users === null);
+    /* Up to `count` names, then "+N more", so a long list stays one card. */
+    const listOf = (names, count = 4) => {
+      const shown = names.slice(0, count).join(', ');
+      return names.length > count ? `${shown} +${names.length - count} more` : shown;
+    };
+    const periodAdvisories = (state.advisories || []).filter((item) => inWindow(advisoryDate(item), periodDays));
+    const periodEmergencies = (state.emergencies || []).filter((item) => inWindow(emergencyDate(item), periodDays));
+    const closedList = closedTrails();
+    const activityTips = {
+      advisories: {
+        title: `Advisories · last ${periodDays} days`,
+        lines: [
+          `${periodAdvisories.length} published · ${activeAdvisories().length} active now`,
+          periodAdvisories.length ? listOf(periodAdvisories.map((item) => normalizeText(item.title || item.subject) || 'Untitled advisory'), 3) : ''
+        ]
+      },
+      emergencies: {
+        title: `Emergency alerts · last ${periodDays} days`,
+        lines: [
+          `${periodEmergencies.length} logged · ${activeEmergencies().length} still open`,
+          periodEmergencies.length ? `Status: ${topOf(periodEmergencies, (item) => capitalise(normalizeText(item.status) || 'unknown'), 4)}` : ''
+        ]
+      },
+      users: {
+        title: `New hiker accounts · last ${periodDays} days`,
+        lines: [`${data.newAccounts} new of ${(state.users || []).length} total accounts`]
+      },
+      rain: {
+        title: 'Rainfall, last 3 days',
+        lines: (state.pastRain || []).map((day) => `${formatDay(day.date)}, ${formatDate(day.date)}: ${day.rainfall.toFixed(1)} mm`)
+      },
+      closed: {
+        title: 'Trail status',
+        lines: [
+          `${closedList.length} closed · ${(state.trails || []).length - closedList.length} open`,
+          closedList.length ? `Closed: ${listOf(closedList.map(trailName))}` : ''
+        ]
+      }
+    };
+    setRow('descAdvisories', state.advisories === null ? '—' : String(data.advisories), state.advisories === null, activityTips.advisories);
+    setRow('descEmergencies', state.errors.emergencies ? 'Unavailable' : state.emergencies === null ? '—' : String(data.emergencies), state.errors.emergencies || state.emergencies === null, activityTips.emergencies);
+    setRow('descNewUsers', state.users === null ? '—' : String(data.newAccounts), state.users === null, activityTips.users);
     const recentRain = (state.pastRain || []).reduce((sum, day) => sum + day.rainfall, 0);
-    setRow('descRecentRain', state.pastRain === null ? '—' : `${recentRain.toFixed(0)} mm`, state.pastRain === null);
-    setRow('descClosedTrails', state.trails === null ? '—' : `${closedTrails().length} of ${(state.trails || []).length}`, state.trails === null);
+    setRow('descRecentRain', state.pastRain === null ? '—' : `${recentRain.toFixed(0)} mm`, state.pastRain === null, activityTips.rain);
+    setRow('descClosedTrails', state.trails === null ? '—' : `${closedTrails().length} of ${(state.trails || []).length}`, state.trails === null, activityTips.closed);
 
     // Plain-language summary
     const summary = [];
@@ -2948,6 +3149,58 @@ a { color: inherit; text-decoration: none; }
     published.loaded = true;
     renderRecommendations();
   });
+
+  /* One floating card for the whole page, moved to whichever [data-tip]
+     element the pointer is over. Delegated, so marks redrawn by a period
+     change or a live update need no rebinding. */
+  const hoverCard = document.createElement('div');
+  hoverCard.className = 'hover-card';
+  hoverCard.setAttribute('role', 'tooltip');
+  document.body.appendChild(hoverCard);
+  let hoverTarget = null;
+
+  const placeHoverCard = (event) => {
+    const gap = 14;
+    const { offsetWidth: width, offsetHeight: height } = hoverCard;
+    let left = event.clientX + gap;
+    let top = event.clientY + gap;
+    // Flip to the other side of the pointer rather than run off the screen.
+    if (left + width > window.innerWidth - 8) left = event.clientX - gap - width;
+    if (top + height > window.innerHeight - 8) top = event.clientY - gap - height;
+    hoverCard.style.left = `${Math.max(8, left)}px`;
+    hoverCard.style.top = `${Math.max(8, top)}px`;
+  };
+
+  document.addEventListener('pointerover', (event) => {
+    const target = event.target.closest?.('[data-tip]');
+    if (target === hoverTarget) return;
+    hoverTarget = target;
+    if (!target) {
+      hoverCard.classList.remove('is-visible');
+      return;
+    }
+    const title = document.createElement('strong');
+    title.textContent = target.dataset.tipTitle || '';
+    const lines = target.dataset.tip.split('\n').map((line) => {
+      const row = document.createElement('span');
+      row.textContent = line;
+      return row;
+    });
+    hoverCard.replaceChildren(title, ...lines);
+    hoverCard.classList.add('is-visible');
+    placeHoverCard(event);
+  });
+  document.addEventListener('pointermove', (event) => {
+    if (hoverTarget) placeHoverCard(event);
+  });
+  document.documentElement.addEventListener('pointerleave', () => {
+    hoverTarget = null;
+    hoverCard.classList.remove('is-visible');
+  });
+  window.addEventListener('scroll', () => {
+    hoverTarget = null;
+    hoverCard.classList.remove('is-visible');
+  }, { passive: true, capture: true });
 
   const renderAll = () => {
     renderDescriptive();
