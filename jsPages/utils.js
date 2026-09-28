@@ -14,9 +14,9 @@ export const escapeHtml = (value) => String(value ?? '')
 // Any value -> trimmed string ('' for null/undefined).
 export const normalizeText = (value) => String(value ?? '').trim();
 
-// Hazard report lists in ID order, newest first: RES-2026-003, 002, 001 ...
+// Hazard report lists in ID order, newest first: RES-2026-0003, 0002, 0001 ...
 // (or AR-, A-, R-, HR-), by year then number, descending. report-ids.js
-// keeps the numbers gap-free, so every list ends at 001. Reports without an
+// keeps the numbers gap-free, so every list ends at 0001. Reports without an
 // ID of that form (older data) go after the numbered ones, newest first by
 // getDate(report).
 export function sortByReportId(reports, getDate = () => null) {

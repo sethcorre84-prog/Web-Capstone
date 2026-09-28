@@ -1772,7 +1772,7 @@
 <script type="module">
 import { auth, db } from "../jsPages/firebase-config.js";
 import { escapeHtml, sortByReportId } from "../jsPages/utils.js";
-import { planReportIds } from "../jsPages/report-ids.js";
+import { planReportIds, reportYear as yearOfReport } from "../jsPages/report-ids.js";
 import { formatPortalDate, formatPortalTime, toPortalDate as toJsDate } from "../jsPages/datetime-prefs.js";
 import { collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -1898,7 +1898,7 @@ function renderReportsTable(reports) {
     const globalIndex = startIndex + index;
     return `
       <tr class="${selectedReport?.id === report.id ? 'selected' : ''}" data-report-id="${report.id}" onclick="selectReport('${report.id}')">
-        <td>${clampCell(report.reportId || `HR-${globalIndex + 1}`)}</td>
+        <td>${clampCell(report.reportId || `HR-${String(globalIndex + 1).padStart(4, '0')}`)}</td>
         <td><div class="hazard-cell"><span class="hazard-icon">${getHazardIcon(report.hazardType)}</span>${clampCell(report.hazardType)}</div></td>
         <td>${clampCell(report.location || 'N/A')}</td>
         <td>${clampCell(report.reportedBy || 'Anonymous')}</td>
@@ -1984,7 +1984,7 @@ function updateResolvedArchiveButtonState() {
 
 function renderRejectedList() {
   const wrap = document.getElementById('rejectedList');
-  // In ID order, newest first (R-YYYY-003, 002, 001), like Resolved Reports
+  // In ID order, newest first (R-YYYY-0003, 0002, 0001), like Resolved Reports
   // and the Settings archives. The numbers have no gaps (report-ids.js).
   const rejected = sortByReportId(
     allReports.filter(r => r.status === 'rejected'),
@@ -2042,7 +2042,7 @@ function renderRejectedList() {
       <span class="hazard-icon" style="flex-shrink:0">${getHazardIcon(report.hazardType)}</span>
       <div style="flex:1;min-width:0">
         <div style="font-weight:600;font-size:12.5px">${escapeHtml(report.hazardType || 'Unknown')}</div>
-        <div style="font-size:11px;color:var(--text-400);margin-top:1px">${escapeHtml(report.location || 'N/A')} · ${escapeHtml(report.reportId || `HR-${start + index + 1}`)}</div>
+        <div style="font-size:11px;color:var(--text-400);margin-top:1px">${escapeHtml(report.location || 'N/A')} · ${escapeHtml(report.reportId || `HR-${String(start + index + 1).padStart(4, '0')}`)}</div>
         <div style="font-size:11px;color:var(--text-400);margin-top:1px">${rejectedOn
           ? `Rejected ${rejectedOn.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
           : 'Date not recorded'}</div>
@@ -2099,7 +2099,7 @@ function renderResolvedList() {
   // Resolving does not file a report away on its own. A resolved report
   // stays in this panel until an admin selects it and presses Archive, and
   // only then does it appear under Settings > Archived Resolved Reports.
-  // Always in ID order, newest first (RES-YYYY-003, 002, 001), like the
+  // Always in ID order, newest first (RES-YYYY-0003, 0002, 0001), like the
   // Settings archives. The numbers have no gaps (report-ids.js), so the list
   // ends at 001 and a report unarchived in Settings joins it at the top.
   const resolved = sortByReportId(
@@ -2232,7 +2232,7 @@ async function confirmArchiveReports() {
     if (archiveMode === 'resolved') {
       // A resolved report keeps its status; archiving adds the flag that
       // Settings > Archived Resolved Reports reads. It moves to the end of
-      // that list as AR-YYYY-###, and the Resolved list closes up behind it.
+      // that list as AR-YYYY-####, and the Resolved list closes up behind it.
       const resolvedBatch = writeBatch(db);
       const idPlan = planReportIds(allReports, new Map(ids.map(id => [id, { archived: true }])));
       ids.forEach(id => {
@@ -2899,7 +2899,7 @@ async function confirmStatusUpdate() {
     const batch = writeBatch(db);
 
     if (newStatus === 'rejected' || newStatus === 'resolved') {
-      // Its new R-YYYY-### or RES-YYYY-### comes from planReportIds() below.
+      // Its new R-YYYY-#### or RES-YYYY-#### comes from planReportIds() below.
 
       // This report is leaving the active HR list, so close the gap it
       // leaves behind there too: whoever was next in line moves up. (The
@@ -2915,7 +2915,7 @@ async function confirmStatusUpdate() {
         .sort((a, b) => a.num - b.num);
 
       remainingActive.forEach((r, index) => {
-        const newHrId = `HR-${reportYear}-${String(index + 1).padStart(3, '0')}`;
+        const newHrId = `HR-${reportYear}-${String(index + 1).padStart(4, '0')}`;
         if (r.reportId !== newHrId) {
           batch.update(doc(db, 'reports', r.id), { reportId: newHrId });
         }
@@ -2930,7 +2930,7 @@ async function confirmStatusUpdate() {
         if (!match || Number(match[1]) !== reportYear) return max;
         return Math.max(max, Number(match[2]));
       }, 0);
-      updateData.reportId = `HR-${reportYear}-${String(lastHrNumber + 1).padStart(3, '0')}`;
+      updateData.reportId = `HR-${reportYear}-${String(lastHrNumber + 1).padStart(4, '0')}`;
       // The Rejected list closes the gap it leaves (planReportIds below).
     }
 
@@ -3223,17 +3223,47 @@ function populateHazardFilter() {
   }
 }
 
-/* Brings the resolved, rejected and archived lists' IDs into line (report-ids.js):
-   each starts at 001 with no gaps, and archived resolved reports carry AR-
-   rather than the RES- they had before that list got its own numbers. Every
-   action that moves a report already keeps them in line, so after the first
-   load this finds nothing to do; it is here for reports saved before the
-   rule existed, or moved by an older copy of a page. Only IDs that differ
-   are written, so the snapshot this causes settles straight away. */
+/* The active hazard list (pending and verified reports) in HR-YYYY-0001
+   form: per year, gap-free, in the order of the current numbers, with
+   reports that have no HR- number after them by date. Returns a Map of
+   report id -> the reportId it should have, listing only ones that change. */
+function planActiveHrIds(reports) {
+  const byYear = new Map();
+  reports
+    .filter(r => !['rejected', 'archived', 'resolved'].includes(String(r.status || '').toLowerCase()))
+    .forEach(r => {
+      const match = /^HR-(\d{4})-(\d+)$/.exec(r.reportId || '');
+      const year = match ? Number(match[1]) : yearOfReport(r);
+      const time = r.timestamp?.toDate ? r.timestamp.toDate().getTime() : new Date(r.timestamp || 0).getTime() || 0;
+      const key = match ? [0, Number(match[2])] : [1, time];
+      if (!byYear.has(year)) byYear.set(year, []);
+      byYear.get(year).push({ r, key });
+    });
+
+  const changes = new Map();
+  byYear.forEach((entries, year) => {
+    entries
+      .sort((a, b) => a.key[0] - b.key[0] || a.key[1] - b.key[1])
+      .forEach(({ r }, index) => {
+        const wanted = `HR-${year}-${String(index + 1).padStart(4, '0')}`;
+        if (r.reportId !== wanted) changes.set(r.id, wanted);
+      });
+  });
+  return changes;
+}
+
+/* Brings every list's IDs into line: the active hazard list (above) and the
+   resolved, rejected and archived lists (report-ids.js). Each starts at 0001
+   with no gaps, and archived resolved reports carry AR- rather than the RES-
+   they had before that list got its own numbers. Every action that moves a
+   report already keeps them in line, so after the first load this finds
+   nothing to do; it is here for reports saved before the rule existed (or
+   with 3-digit numbers), or moved by an older copy of a page. Only IDs that
+   differ are written, so the snapshot this causes settles straight away. */
 let tidyingReportIds = false;
 async function tidyReportIds() {
   if (tidyingReportIds) return;
-  const changes = [...planReportIds(allReports)];
+  const changes = [...planActiveHrIds(allReports), ...planReportIds(allReports)];
   if (!changes.length) return;
 
   tidyingReportIds = true;
@@ -3247,7 +3277,7 @@ async function tidyReportIds() {
       await batch.commit();
     }
   } catch (error) {
-    console.warn('Could not renumber resolved/archived report IDs:', error.message);
+    console.warn('Could not renumber report IDs:', error.message);
   } finally {
     tidyingReportIds = false;
   }
@@ -3280,7 +3310,7 @@ function loadReports() {
       hazardTypes.add(data.hazardType || 'Unknown');
     });
 
-    // Sort by reportId (descending, e.g. HR-2026-010, HR-2026-009, ...)
+    // Sort by reportId (descending, e.g. HR-2026-0010, HR-2026-0009, ...)
     allReports.sort((a, b) => {
       const idA = String(a.reportId || '');
       const idB = String(b.reportId || '');

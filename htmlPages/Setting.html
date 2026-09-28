@@ -1854,7 +1854,7 @@
 
     try {
       const snapshot = await getDocs(query(collection(db, 'reports'), where('status', '==', 'resolved')));
-      // In ID order, newest first (AR-YYYY-003, 002, 001), like the Resolved panel on
+      // In ID order, newest first (AR-YYYY-0003, 0002, 0001), like the Resolved panel on
       // the Hazard Reports page.
       const resolved = sortByReportId(
         snapshot.docs
@@ -1907,7 +1907,7 @@
     try {
       const reportsQuery = query(collection(db, 'reports'), orderBy('timestamp', 'desc'));
       const snapshot = await getDocs(reportsQuery);
-      // In ID order, newest first (A-YYYY-003, 002, 001), like the resolved lists.
+      // In ID order, newest first (A-YYYY-0003, 0002, 0001), like the resolved lists.
       const archived = sortByReportId(
         snapshot.docs
           .map((doc) => ({ id: doc.id, ...doc.data() }))
