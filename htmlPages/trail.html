@@ -371,6 +371,12 @@ tbody td{
     vertical-align:middle;
 }
 
+/* Difficulty through Status: centred under their headings. */
+thead th:nth-child(n+2):nth-child(-n+7),
+tbody td:nth-child(n+2):nth-child(-n+7){
+    text-align:center;
+}
+
 tbody tr{
     cursor:pointer;
     transition:background .12s;
@@ -1251,7 +1257,7 @@ tbody tr:last-child td{
 
 <!-- Shared row actions dropdown -->
 <div id="rowActionsMenu" style="display:none;position:absolute;background:var(--dm-surface, #fff);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:900;min-width:150px;overflow:hidden;">
-  <button id="duplicateTrailBtn" style="width:100%;text-align:left;padding:10px 14px;border:none;background:var(--dm-surface, #fff);font-size:13px;cursor:pointer;">📄 Duplicate Trail</button>
+  <button id="editTrailMenuBtn" style="width:100%;text-align:left;padding:10px 14px;border:none;background:var(--dm-surface, #fff);color:var(--text-primary);font-size:13px;cursor:pointer;">✎ Edit Trail</button>
   <button id="deleteTrailBtn" style="width:100%;text-align:left;padding:10px 14px;border:none;background:var(--dm-surface, #fff);font-size:13px;cursor:pointer;color:var(--danger);">🗑 Delete Trail</button>
 </div>
 
@@ -1425,8 +1431,7 @@ tr.innerHTML = `
   <td><span class="badge ${status.toLowerCase()}">${status}</span></td>
   <td><div class="row-actions">
     <button class="icon-btn visibility-btn" title="${visible ? 'Visible — click to hide' : 'Hidden — click to show'}">${visible ? '👁' : '🚫'}</button>
-    <button class="icon-btn edit-btn" title="${visible ? 'Edit' : 'Unhide trail to edit'}" ${visible ? '' : 'disabled style="opacity:0.35;cursor:not-allowed;"'}>✎</button>
-    <button class="icon-btn more-btn" title="${visible ? 'More' : 'Unhide trail for more actions'}" ${visible ? '' : 'disabled style="opacity:0.35;cursor:not-allowed;"'}>⋮</button>
+    <button class="icon-btn more-btn" title="${visible ? 'Edit or delete' : 'Unhide trail to edit or delete'}" ${visible ? '' : 'disabled style="opacity:0.35;cursor:not-allowed;"'}>⋮</button>
   </div></td>
 `;
   tr.querySelector('.visibility-btn').addEventListener('click', async (e) => {
@@ -1440,15 +1445,9 @@ tr.innerHTML = `
   }
 });
 
-tr.querySelector('.edit-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  rowActionsMenu.style.display = 'none';   // add this line
-  if (!visible) return;
-  selectedId = t.id; renderDetail(); render(); openEditMode();
-});
 tr.querySelector('.more-btn').addEventListener('click', (e) => {
   e.stopPropagation();
-  if (!visible) return; // hidden trails: no duplicate/delete access
+  if (!visible) return; // hidden trails: no edit/delete access
   const isOpenForThisRow = rowActionsMenu.style.display === 'block'
     && menuTargetTrail && menuTargetTrail.id === t.id;
   if (isOpenForThisRow) {
@@ -1823,7 +1822,7 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
   }
 });
 
-// ---- ROW ACTIONS MENU (Duplicate / Delete) ----
+// ---- ROW ACTIONS MENU (Edit / Delete) ----
 const rowActionsMenu = document.getElementById('rowActionsMenu');
 let menuTargetTrail = null;
 
@@ -1841,20 +1840,12 @@ document.addEventListener('click', (e) => {
   }
 });
 
-document.getElementById('duplicateTrailBtn').addEventListener('click', async () => {
+document.getElementById('editTrailMenuBtn').addEventListener('click', () => {
   if (!menuTargetTrail) return;
-  const { id, ...data } = menuTargetTrail;
-  try {
-    await addDoc(collection(db, "trails"), {
-      ...data,
-      Trail: (data.Trail || "Untitled Trail") + " (Copy)",
-      UpdatedAt: serverTimestamp()
-    });
-    rowActionsMenu.style.display = 'none';
-  } catch (err) {
-    console.error(err);
-    alert("Failed to duplicate trail: " + err.message);
-  }
+  selectedId = menuTargetTrail.id;
+  rowActionsMenu.style.display = 'none';
+  menuTargetTrail = null;
+  renderDetail(); render(); openEditMode();
 });
 
 const deleteConfirmModal = document.getElementById('deleteConfirmModal');

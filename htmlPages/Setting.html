@@ -431,6 +431,41 @@
 .archive-item-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;}
 .archive-item-hint{font-size:11.5px;font-weight:600;color:var(--accent-dark);}
 
+/* Each archived item's ⋮ button (upper-right) opens one shared menu with
+   Unarchive and Delete. The title keeps clear of the button. */
+.archive-item{position:relative;}
+.archive-item .archive-item-title{padding-right:34px;}
+.archive-more{
+  position:absolute;top:8px;right:8px;
+  width:28px;height:28px;display:grid;place-items:center;
+  border:1px solid transparent;border-radius:8px;background:transparent;
+  color:var(--dm-text-2, #4f6e58);font-size:14px;cursor:pointer;
+}
+.archive-more:hover,.archive-more[aria-expanded="true"]{background:var(--accent-light);border-color:var(--dm-border, #cfe3d5);color:var(--accent-dark);}
+.archive-more:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.archive-menu{
+  position:fixed;z-index:60;display:none;min-width:160px;padding:5px;
+  background:var(--dm-surface, #fff);border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 12px 28px rgba(0,0,0,.16);
+}
+.archive-menu.open{display:block;}
+.archive-menu button{
+  display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;
+  border:none;border-radius:8px;background:none;text-align:left;cursor:pointer;
+  font:inherit;font-size:13px;font-weight:600;color:var(--text-900);
+}
+.archive-menu button + button{margin-top:2px;}
+.archive-menu button:hover,.archive-menu button:focus-visible{background:var(--accent-light);outline:none;}
+.archive-menu button i{width:16px;text-align:center;color:var(--accent-dark);}
+.archive-menu button.danger,.archive-menu button.danger i{color:var(--danger);}
+.archive-menu button.danger:hover,.archive-menu button.danger:focus-visible{background:var(--danger-light);}
+.danger-btn{
+  border:none;background:var(--danger);color:#fff;padding:9px 16px;border-radius:8px;
+  font-size:12.5px;font-weight:600;cursor:pointer;
+}
+.danger-btn:hover{background:var(--danger-dark);}
+.danger-btn:disabled{opacity:.65;cursor:not-allowed;}
+
 /* Details dialog: wider than the list, and scrolls on its own. */
 .archive-detail-card{width:min(620px, 100%);max-height:calc(100vh - 40px);display:flex;flex-direction:column;}
 .archive-detail-card .modal-body{overflow:auto;}
@@ -942,6 +977,42 @@
   </div>
 </div>
 
+<!-- Shared ⋮ menu for every item in the three archive lists -->
+<div class="archive-menu" id="archiveItemMenu" role="menu" aria-label="Archived item actions">
+  <button type="button" role="menuitem" data-archive-action="unarchive"><i class="fa-solid fa-box-open" aria-hidden="true"></i>Unarchive</button>
+  <button type="button" role="menuitem" class="danger" data-archive-action="delete"><i class="fa-solid fa-trash-can" aria-hidden="true"></i>Delete</button>
+</div>
+
+<!-- Delete confirmation modal (all three archive lists) -->
+<div id="deleteArchiveModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal-card archive-theme" role="dialog" aria-modal="true" aria-labelledby="deleteArchiveTitle">
+    <div class="modal-header">
+      <h3 id="deleteArchiveTitle">Delete Report</h3>
+      <button type="button" class="close-btn" id="deleteArchiveCloseBtn" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12.5px;color:var(--text-600);margin-bottom:14px;" id="deleteArchiveText">
+        This report will be permanently deleted. This cannot be undone.
+      </p>
+      <div class="archive-item">
+        <div class="archive-item-title" id="deleteArchiveItemTitle">Hazard Report</div>
+        <div class="archive-item-meta">
+          <span id="deleteArchiveItemA">Report</span>
+          <span>•</span>
+          <span id="deleteArchiveItemB">Location</span>
+        </div>
+      </div>
+      <div class="form-error" id="deleteArchiveError" role="alert"></div>
+      <div class="modal-actions">
+        <button type="button" class="ghost-btn" id="deleteArchiveCancelBtn">Cancel</button>
+        <button type="button" class="danger-btn" id="deleteArchiveConfirmBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Unarchive confirmation modal (for Archived Hazard and Archived Resolved Reports) -->
 <div id="unarchiveConfirmModal" class="modal-backdrop" aria-hidden="true">
   <div class="modal-card archive-theme" role="dialog" aria-modal="true" aria-labelledby="unarchiveConfirmTitle">
@@ -1005,9 +1076,10 @@
 <div id="settingsToast" class="toast" aria-live="polite"></div>
 
 <script type="module">
-  import { auth, db } from '../jsPages/firebase-config.js';
+  import { auth, db, storage } from '../jsPages/firebase-config.js';
   import { escapeHtml as escapeHTML, sortByReportId } from '../jsPages/utils.js';
-  import { collection, getDoc, getDocs, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { collection, deleteDoc, getDoc, getDocs, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { ref as storageRef, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
   import { planReportIds } from '../jsPages/report-ids.js';
   import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile, verifyBeforeUpdateEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import { DEFAULT_ADMIN_ROLE, renderAdminIdentity, updateAdminProfile } from '../jsPages/admin-identity.js';
@@ -1342,6 +1414,8 @@
       archiveList.innerHTML = resolved.map((item) => `
         <div class="archive-item is-clickable" role="button" tabindex="0" data-detail-resolved="${escapeHTML(item.id)}"
              aria-label="View details of ${escapeHTML(item.hazardType || 'hazard report')} ${escapeHTML(item.reportId || item.id)}">
+          <button type="button" class="archive-more" data-archive-menu="${escapeHTML(item.id)}" data-archive-kind="resolved"
+                  aria-label="More actions" title="More actions" aria-haspopup="menu" aria-expanded="false"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button>
           <div class="archive-item-title">${escapeHTML(item.hazardType || 'Unknown Hazard')}</div>
           <div class="archive-item-meta">
             <span>${escapeHTML(item.reportId || item.id)}</span>
@@ -1353,17 +1427,11 @@
           ${item.resolutionNote ? `<div class="archive-item-note">${escapeHTML(item.resolutionNote)}</div>` : ''}
           <div class="archive-item-foot">
             <span class="archive-item-hint">View details ›</span>
-            <button type="button" class="ghost-btn" data-unarchive-resolved="${escapeHTML(item.id)}">Unarchive</button>
           </div>
         </div>
       `).join('');
 
-      archiveList.querySelectorAll('[data-unarchive-resolved]').forEach((btn) => {
-        btn.addEventListener('click', (event) => {
-          event.stopPropagation(); // not a click on the row itself
-          openUnarchiveModal(btn.dataset.unarchiveResolved, 'resolved');
-        });
-      });
+      bindArchiveMenus(archiveList);
       bindArchiveRows(archiveList, '[data-detail-resolved]', (row) => openHazardDetail(row.dataset.detailResolved, 'resolved'));
     } catch (error) {
       console.error('Error loading archived resolved reports:', error);
@@ -1398,6 +1466,8 @@
       archiveList.innerHTML = archived.map((item) => `
         <div class="archive-item is-clickable" role="button" tabindex="0" data-detail-report="${escapeHTML(item.id)}"
              aria-label="View details of ${escapeHTML(item.hazardType || 'hazard report')} ${escapeHTML(item.reportId || item.id)}">
+          <button type="button" class="archive-more" data-archive-menu="${escapeHTML(item.id)}" data-archive-kind="archived"
+                  aria-label="More actions" title="More actions" aria-haspopup="menu" aria-expanded="false"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button>
           <div class="archive-item-title">${escapeHTML(item.hazardType || 'Unknown Hazard')}</div>
           <div class="archive-item-meta">
             <span>${escapeHTML(item.reportId || item.id)}</span>
@@ -1408,17 +1478,11 @@
           </div>
           <div class="archive-item-foot">
             <span class="archive-item-hint">View details ›</span>
-            <button type="button" class="ghost-btn" data-unarchive-report="${escapeHTML(item.id)}">Unarchive</button>
           </div>
         </div>
       `).join('');
 
-      archiveList.querySelectorAll('[data-unarchive-report]').forEach((btn) => {
-        btn.addEventListener('click', (event) => {
-          event.stopPropagation(); // not a click on the row itself
-          openUnarchiveModal(btn.dataset.unarchiveReport);
-        });
-      });
+      bindArchiveMenus(archiveList);
       bindArchiveRows(archiveList, '[data-detail-report]', (row) => openHazardDetail(row.dataset.detailReport));
     } catch (error) {
       console.error('Error loading archived hazard reports:', error);
@@ -1561,6 +1625,8 @@
       archiveList.innerHTML = expired.map((item) => `
         <div class="archive-item is-clickable" role="button" tabindex="0" data-detail-advisory="${escapeHTML(item.id)}"
              aria-label="View details of ${escapeHTML(item.title || 'advisory')}">
+          <button type="button" class="archive-more" data-archive-menu="${escapeHTML(item.id)}" data-archive-kind="advisory"
+                  aria-label="More actions" title="More actions" aria-haspopup="menu" aria-expanded="false"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button>
           <div class="archive-item-title">${escapeHTML(item.title || 'Untitled advisory')}</div>
           <div class="archive-item-meta">
             <span>${escapeHTML(item.type || 'Advisory')}</span>
@@ -1571,17 +1637,11 @@
           </div>
           <div class="archive-item-foot">
             <span class="archive-item-hint">View details ›</span>
-            <button type="button" class="ghost-btn" data-unarchive-advisory="${escapeHTML(item.id)}">Unarchive</button>
           </div>
         </div>
       `).join('');
 
-      archiveList.querySelectorAll('[data-unarchive-advisory]').forEach((btn) => {
-        btn.addEventListener('click', (event) => {
-          event.stopPropagation(); // not a click on the row itself
-          openUnarchiveAdvisoryModal(btn.dataset.unarchiveAdvisory);
-        });
-      });
+      bindArchiveMenus(archiveList);
       bindArchiveRows(archiveList, '[data-detail-advisory]', (row) => openAdvisoryDetail(row.dataset.detailAdvisory));
     } catch (error) {
       console.error('Error loading expired advisory archive:', error);
@@ -1659,6 +1719,193 @@
       closeUnarchiveAdvisoryModal();
     }
   });
+
+  // -----------------------------
+  // ⋮ menu on every archived item: Unarchive / Delete
+  // -----------------------------
+  // One menu, moved next to whichever item's button opened it. It lives
+  // outside the scrolling list, so the dialog never clips it.
+  const archiveMenuEl = document.getElementById('archiveItemMenu');
+  let archiveMenuTarget = null; // { id, kind: 'archived' | 'resolved' | 'advisory', button }
+
+  function closeArchiveMenu({ refocus = false } = {}) {
+    if (!archiveMenuTarget) return;
+    const { button } = archiveMenuTarget;
+    button.setAttribute('aria-expanded', 'false');
+    archiveMenuEl.classList.remove('open');
+    archiveMenuTarget = null;
+    if (refocus) button.focus();
+  }
+
+  function openArchiveMenu(button) {
+    closeArchiveMenu();
+    archiveMenuTarget = { id: button.dataset.archiveMenu, kind: button.dataset.archiveKind, button };
+    button.setAttribute('aria-expanded', 'true');
+    archiveMenuEl.classList.add('open');
+
+    // Below the button with the right edges lined up; above it if there is no room.
+    const rect = button.getBoundingClientRect();
+    const width = archiveMenuEl.offsetWidth;
+    const height = archiveMenuEl.offsetHeight;
+    let top = rect.bottom + 4;
+    if (top + height > window.innerHeight - 8) top = rect.top - 4 - height;
+    archiveMenuEl.style.top = `${Math.max(8, top)}px`;
+    archiveMenuEl.style.left = `${Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8))}px`;
+    archiveMenuEl.querySelector('button').focus();
+  }
+
+  function bindArchiveMenus(list) {
+    list.querySelectorAll('[data-archive-menu]').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation(); // not a click on the row itself
+        if (archiveMenuTarget?.button === button) closeArchiveMenu();
+        else openArchiveMenu(button);
+      });
+    });
+  }
+
+  archiveMenuEl.addEventListener('click', (event) => {
+    const action = event.target.closest('[data-archive-action]')?.dataset.archiveAction;
+    if (!action || !archiveMenuTarget) return;
+    const { id, kind } = archiveMenuTarget;
+    closeArchiveMenu();
+    if (action === 'delete') openDeleteArchiveModal(id, kind);
+    else if (kind === 'advisory') openUnarchiveAdvisoryModal(id);
+    else openUnarchiveModal(id, kind);
+  });
+
+  // Arrow keys move between the options; Tab leaves and closes the menu.
+  archiveMenuEl.addEventListener('keydown', (event) => {
+    const items = [...archiveMenuEl.querySelectorAll('button')];
+    const index = items.indexOf(document.activeElement);
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      items[(index + step + items.length) % items.length].focus();
+    } else if (event.key === 'Tab') {
+      event.preventDefault();
+      closeArchiveMenu({ refocus: true });
+    }
+  });
+  // Capture phase, so Escape closes only the menu, not the archive dialog.
+  window.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !archiveMenuTarget) return;
+    event.stopPropagation();
+    closeArchiveMenu({ refocus: true });
+  }, true);
+  document.addEventListener('click', (event) => {
+    if (archiveMenuTarget && !archiveMenuEl.contains(event.target)) closeArchiveMenu();
+  });
+  // The menu is pinned to the screen, so it closes rather than drift when
+  // the list scrolls or the window resizes.
+  document.addEventListener('scroll', () => closeArchiveMenu(), true);
+  window.addEventListener('resize', () => closeArchiveMenu());
+
+  // -----------------------------
+  // Delete confirmation modal (all three archive lists)
+  // -----------------------------
+  let pendingDelete = null; // { id, kind }
+
+  const deleteArchiveModalEl = document.getElementById('deleteArchiveModal');
+  const deleteArchiveConfirmBtn = document.getElementById('deleteArchiveConfirmBtn');
+  const deleteArchiveErrorEl = document.getElementById('deleteArchiveError');
+
+  const archivedItem = (id, kind) =>
+    (kind === 'advisory' ? lastExpiredAdvisories : reportArchive(kind)).find((item) => item.id === id);
+
+  function openDeleteArchiveModal(id, kind) {
+    const item = archivedItem(id, kind);
+    if (!item) return;
+    pendingDelete = { id, kind };
+
+    const advisory = kind === 'advisory';
+    document.getElementById('deleteArchiveTitle').textContent = advisory ? 'Delete Advisory' : 'Delete Report';
+    document.getElementById('deleteArchiveText').textContent = advisory
+      ? 'This advisory and its photos and videos will be permanently deleted. This cannot be undone.'
+      : 'This report will be permanently deleted, and the reports after it in this list move up one number. This cannot be undone.';
+    document.getElementById('deleteArchiveItemTitle').textContent = advisory
+      ? (item.title || 'Untitled advisory')
+      : (item.hazardType || 'Unknown Hazard');
+    document.getElementById('deleteArchiveItemA').textContent = advisory ? (item.type || 'Advisory') : (item.reportId || item.id);
+    document.getElementById('deleteArchiveItemB').textContent = advisory ? (item.target || 'All Trails') : (item.location || 'N/A');
+    deleteArchiveErrorEl.textContent = '';
+
+    deleteArchiveConfirmBtn.disabled = false;
+    deleteArchiveConfirmBtn.textContent = 'Delete';
+
+    deleteArchiveModalEl.classList.add('visible');
+    deleteArchiveModalEl.setAttribute('aria-hidden', 'false');
+    document.getElementById('deleteArchiveCancelBtn').focus();
+  }
+
+  function closeDeleteArchiveModal() {
+    deleteArchiveModalEl.classList.remove('visible');
+    deleteArchiveModalEl.setAttribute('aria-hidden', 'true');
+    pendingDelete = null;
+  }
+
+  async function confirmDeleteArchive() {
+    if (!pendingDelete) return;
+    const { id, kind } = pendingDelete;
+    const item = archivedItem(id, kind);
+
+    deleteArchiveConfirmBtn.disabled = true;
+    deleteArchiveConfirmBtn.textContent = 'Deleting...';
+    deleteArchiveErrorEl.textContent = '';
+
+    try {
+      if (kind === 'advisory') {
+        await deleteDoc(doc(db, 'Advisory', id));
+        // Best effort: the advisory is already gone if a file cannot be removed.
+        (Array.isArray(item?.media) ? item.media : []).forEach((media) => {
+          if (!media?.path) return;
+          deleteObject(storageRef(storage, media.path))
+            .catch((err) => console.warn('Could not delete advisory media', media.path, err.code || err.message));
+        });
+        closeDeleteArchiveModal();
+        showToast('Advisory deleted');
+        loadExpiredAdvisoryArchive(); // refresh this modal's list
+        return;
+      }
+
+      // The report goes and the rest of its list closes the gap
+      // (report-ids.js), in the same write.
+      const reportsSnapshot = await getDocs(collection(db, 'reports'));
+      const remaining = reportsSnapshot.docs
+        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+        .filter((report) => report.id !== id);
+      const batch = writeBatch(db);
+      batch.delete(doc(db, 'reports', id));
+      planReportIds(remaining).forEach((newId, reportId) => {
+        batch.update(doc(db, 'reports', reportId), { reportId: newId });
+      });
+      await batch.commit();
+      closeDeleteArchiveModal();
+      showToast('Report deleted');
+      if (kind === 'resolved') loadResolvedReports();
+      else loadArchivedHazardReports();
+    } catch (error) {
+      console.error('Error deleting archived item:', error);
+      deleteArchiveConfirmBtn.disabled = false;
+      deleteArchiveConfirmBtn.textContent = 'Delete';
+      deleteArchiveErrorEl.textContent = error?.code === 'permission-denied'
+        ? 'Firebase denied this delete. Check your Firestore security rules.'
+        : `Could not delete this item: ${error.message || 'Unknown error'}`;
+    }
+  }
+
+  document.getElementById('deleteArchiveCancelBtn').addEventListener('click', closeDeleteArchiveModal);
+  document.getElementById('deleteArchiveCloseBtn').addEventListener('click', closeDeleteArchiveModal);
+  deleteArchiveConfirmBtn.addEventListener('click', confirmDeleteArchive);
+  deleteArchiveModalEl.addEventListener('click', (event) => {
+    if (event.target === deleteArchiveModalEl) closeDeleteArchiveModal();
+  });
+  // Capture phase, so Escape closes only this confirmation.
+  window.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !deleteArchiveModalEl.classList.contains('visible')) return;
+    event.stopPropagation();
+    closeDeleteArchiveModal();
+  }, true);
 
   /* The three archive tables, as the Export menu (export-table.js) saves
      them to PDF or Excel. Same columns and file names the PDF-only export
