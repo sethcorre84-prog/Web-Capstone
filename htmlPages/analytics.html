@@ -631,6 +631,48 @@ a { color: inherit; text-decoration: none; }
   font-size: 11.5px;
   line-height: 1.55;
 }
+/* Key insights: one short point per line, headline first. */
+.insight-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.insight-list li { display: flex; gap: 10px; align-items: flex-start; font-size: 11.5px; line-height: 1.5; color: var(--text-secondary); }
+.insight-list li.insight-loading { display: block; }
+.insight-list .insight-icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.insight-list strong { display: block; color: var(--text-primary); font-size: 12.5px; }
+.insight-icon.blue { background: var(--blue-bg); color: #3b78c4; }
+.insight-icon.amber { background: var(--amber-bg); color: #c9821f; }
+.insight-icon.red { background: var(--red-bg); color: #c8402f; }
+.insight-icon.green { background: var(--green-bg); color: var(--accent); }
+/* "Why these recommendations": what goes in, how it is scored, what it means. */
+.explain { font-size: 11.5px; line-height: 1.5; color: var(--text-secondary); }
+.explain p { margin: 0 0 8px; }
+.explain h5 { margin: 10px 0 6px; font-size: 11.5px; font-weight: 700; color: var(--text-primary); }
+.explain h5:first-child { margin-top: 0; }
+.explain-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.explain-chips span {
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.explain-points { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 14px; }
+.explain-points li { display: flex; justify-content: space-between; gap: 8px; }
+.explain-points li span:last-child { font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+.explain-levels { display: flex; flex-wrap: wrap; gap: 6px; }
+.explain-levels span { padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.explain-levels .low { background: var(--green-bg); color: var(--accent); }
+.explain-levels .mod { background: var(--amber-bg); color: #c9821f; }
+.explain-levels .high { background: var(--red-bg); color: #c8402f; }
+.explain-note { margin-top: 10px !important; margin-bottom: 0 !important; color: var(--text-muted); font-size: 11px; }
+@media (max-width: 520px) { .explain-points { grid-template-columns: 1fr; } }
 /* Prescriptive analysis: when it was last run, and the button that runs it. */
 .analysis-bar {
   display: flex;
@@ -709,6 +751,142 @@ a { color: inherit; text-decoration: none; }
   font-weight: 700;
   font-size: 11.5px;
   background: var(--card-bg);
+}
+button.btn-outline { font-family: inherit; cursor: pointer; }
+button.btn-outline:hover { background: var(--accent-light); }
+
+/* ---- Action plan dialog ----
+   The recommended actions laid out as a work plan: grouped by when they are
+   due, each with who owns it, the steps, and a link to where it is done. */
+.plan-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 20, 12, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.plan-backdrop.open { display: flex; }
+.plan-modal {
+  width: 100%;
+  max-width: 760px;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.25);
+  animation: planIn 0.16s ease-out;
+}
+@keyframes planIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.plan-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.plan-head h3 { margin: 0 0 3px; font-size: 17px; font-weight: 700; }
+.plan-head p { margin: 0; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.plan-head-actions { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0; }
+.plan-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.plan-icon-btn:hover { background: var(--accent-light); color: var(--accent-dark); }
+.plan-progress { padding: 12px 20px; border-bottom: 1px solid var(--border); }
+.plan-progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.plan-progress-track { height: 6px; border-radius: 6px; background: var(--border); overflow: hidden; }
+.plan-progress-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.2s; }
+.plan-body { overflow-y: auto; padding: 6px 20px 20px; }
+.plan-group h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.plan-group h4 .plan-dot { width: 9px; height: 9px; border-radius: 50%; }
+.plan-group h4 small { font-weight: 500; color: var(--text-muted); font-size: 11px; }
+.plan-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+}
+.plan-item.done { opacity: 0.6; }
+.plan-item.done .plan-title { text-decoration: line-through; }
+.plan-item input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.plan-item-main { flex: 1; min-width: 0; }
+.plan-title { font-size: 13px; font-weight: 700; line-height: 1.4; }
+.plan-meta { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; line-height: 1.45; }
+.plan-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.plan-steps { margin: 8px 0 0; padding-left: 18px; font-size: 11.5px; line-height: 1.55; color: var(--text-secondary); }
+.plan-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+}
+.plan-go:hover { text-decoration: underline; }
+.plan-empty { padding: 24px 0; text-align: center; font-size: 12.5px; color: var(--text-muted); }
+@media (max-width: 600px) {
+  .plan-head { padding: 16px; }
+  .plan-progress, .plan-body { padding-left: 16px; padding-right: 16px; }
+}
+/* Print only the plan, as a clean checklist. */
+@media print {
+  body.printing-plan > *:not(.plan-backdrop) { display: none !important; }
+  body.printing-plan .plan-backdrop { position: static; display: block; padding: 0; background: none; backdrop-filter: none; }
+  body.printing-plan .plan-modal { max-width: none; max-height: none; box-shadow: none; border: none; animation: none; }
+  body.printing-plan .plan-body { overflow: visible; }
+  body.printing-plan .plan-head-actions, body.printing-plan .plan-go { display: none; }
+  body.printing-plan .plan-item { break-inside: avoid; }
 }
 /* ---- Live data states ---- */
 .empty-state {
@@ -892,6 +1070,25 @@ a { color: inherit; text-decoration: none; }
 .kpi[data-tip]:hover { border-color: var(--accent); }
 .bar-row[data-tip]:hover,
 .small-card .row[data-tip]:hover { background: var(--page-bg); }
+/* Predictive and prescriptive marks. */
+.sub-card .row[data-tip],
+.lk-row[data-tip],
+.usage-col[data-tip],
+.card-pill[data-tip],
+.tag[data-tip],
+.summary-circle[data-tip],
+.card-info[data-tip] { cursor: default; transition: background 0.12s, opacity 0.12s; }
+.sub-card .row[data-tip],
+.lk-row[data-tip] { border-radius: 6px; }
+.sub-card .row[data-tip]:hover,
+.lk-row[data-tip]:hover,
+.card-pill[data-tip]:hover { background: var(--page-bg); }
+.usage-grid:hover .usage-col[data-tip] { opacity: 0.55; }
+.usage-grid:hover .usage-col[data-tip]:hover { opacity: 1; }
+.card-info[data-tip] { cursor: help; }
+#riskForecastChart .risk-col circle { transition: r 0.12s; }
+#riskForecastChart .risk-col:hover circle { r: 7; }
+#riskForecastChart .risk-col:hover rect { fill: var(--accent); fill-opacity: 0.06; }
 .hover-card {
   position: fixed;
   z-index: 1000;
@@ -1304,7 +1501,7 @@ a { color: inherit; text-decoration: none; }
             <div class="card-pill"><span style="background:#c8402f"></span><span id="highPriorityCount">0 High Priority</span></div>
             <div class="card-pill"><span style="background:#c9821f"></span><span id="medPriorityCount">0 Medium Priority</span></div>
             <div class="card-pill"><span style="background:var(--accent)"></span><span id="lowPriorityCount">0 Low Priority</span></div>
-            <a class="btn-outline" href="A&amp;A.html">View Action Plan</a>
+            <button type="button" class="btn-outline" id="viewActionPlanBtn" aria-haspopup="dialog">View Action Plan</button>
           </div>
         </div>
       </section>
@@ -1315,14 +1512,14 @@ a { color: inherit; text-decoration: none; }
           <span class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 17l6-6 4 4 7-7"/><path d="M17 8h4v4"/></svg></span>
           <h4>Key Predictive Insights</h4>
         </div>
-        <p id="keyInsightsText">Loading insights…</p>
+        <ul class="insight-list" id="keyInsightsText"><li class="insight-loading">Loading insights…</li></ul>
       </div>
       <div class="info-block">
         <div class="info-head">
           <span class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3l2.1 4.6 4.9.6-3.6 3.4.9 4.9L12 14.9 7.7 16.5l.9-4.9L5 8.2l4.9-.6z"/></svg></span>
           <h4>Why these recommendations?</h4>
         </div>
-        <p id="modelInputsText">Loading model inputs…</p>
+        <div class="explain" id="modelInputsText"><p>Loading model inputs…</p></div>
       </div>
     </div>
   </main>
@@ -1952,6 +2149,15 @@ a { color: inherit; text-decoration: none; }
     }
   };
 
+  const PRIORITY_LABEL = { high: 'High', med: 'Medium', low: 'Low' };
+  const ACTION_KIND_LABEL = {
+    advisory: 'Advisory', notice: 'Trail notice', emergency: 'Emergency response',
+    inspect: 'Inspection', survey: 'Inspection', review: 'Report review',
+    recheck: 'Re-inspection', maintenance: 'Maintenance', crews: 'Crew readiness',
+    closure: 'Closure notice', visitors: 'Visitor control', weather: 'Weather follow-up',
+    expiry: 'Advisory renewal', risk: 'Data quality', map: 'Data quality'
+  };
+
   const PRIORITY_NARRATIVE = {
     high: 'This is a high-priority action and should be handled today.',
     med: 'This is a medium-priority action and should be scheduled within the next few days.',
@@ -1984,6 +2190,20 @@ a { color: inherit; text-decoration: none; }
     if (!tip) return '';
     const lines = (tip.lines || []).filter(Boolean);
     return ` data-tip-title="${escapeHtml(tip.title)}" data-tip="${escapeHtml(lines.join('\n'))}"`;
+  };
+
+  /* The same, for an element already on the page. An empty tip removes it,
+     so a card never outlives the data it described. */
+  const setTip = (element, tip) => {
+    if (!element) return;
+    const lines = tip ? (tip.lines || []).filter(Boolean) : [];
+    if (lines.length) {
+      element.dataset.tipTitle = tip.title;
+      element.dataset.tip = lines.join('\n');
+    } else {
+      delete element.dataset.tipTitle;
+      delete element.dataset.tip;
+    }
   };
 
   /* "Fallen tree 3 · Mudslide 2 · Rockfall 1" -- the top few of a sub-list. */
@@ -2258,16 +2478,7 @@ a { color: inherit; text-decoration: none; }
       element.textContent = value;
       element.classList.toggle('val-muted', Boolean(muted));
       // The whole row is the hover target, not just the number.
-      const row = element.closest('.row');
-      if (!row) return;
-      const lines = tip && !muted ? (tip.lines || []).filter(Boolean) : [];
-      if (lines.length) {
-        row.dataset.tipTitle = tip.title;
-        row.dataset.tip = lines.join('\n');
-      } else {
-        delete row.dataset.tipTitle;
-        delete row.dataset.tip;
-      }
+      setTip(element.closest('.row'), muted ? null : tip);
     };
     /* Up to `count` names, then "+N more", so a long list stays one card. */
     const listOf = (names, count = 4) => {
@@ -2452,17 +2663,35 @@ a { color: inherit; text-decoration: none; }
       <line x1="0" y1="${yFor(score)}" x2="${width}" y2="${yFor(score)}" stroke="${color}" stroke-width="1" stroke-dasharray="6 6" opacity="0.55"/>
     `;
 
-    /* A marker per day, each carrying what drove that day's score on hover. */
+    /* A marker per day, each carrying what drove that day's score on hover.
+       The hover target is the day's whole column, not just the dot, so the
+       card is easy to reach on a 600-wide chart squeezed into a small card. */
+    const baseline = baselinePoints();
+    const points1 = (value) => `${value.toFixed(value && value < 10 ? 1 : 0)} pts`;
     const markers = points.map((point) => {
       const day = point.day;
-      const drivers = [`${day.score}/100 (${bucketLabel(day.bucket)})`];
-      if (day.rainfall !== null && day.rainfall !== undefined) drivers.push(`${day.rainfall.toFixed(0)} mm rain`);
-      if (day.saturationPoints > 0) drivers.push(`${day.antecedent.toFixed(0)} mm in the 3 days before`);
-      if (day.busy) drivers.push('busier-than-average day');
+      const hasRain = day.rainfall !== null && day.rainfall !== undefined;
+      const tip = {
+        title: `${formatDay(day.date)}, ${formatDate(day.date)} · ${bucketLabel(day.bucket)} risk`,
+        lines: [
+          `Score: ${day.score}/100 (Moderate at ${RISK_MODEL.moderateThreshold}, High at ${RISK_MODEL.highThreshold})`,
+          hasRain
+            ? `Rain: ${day.rainfall.toFixed(1)} mm${day.probability ? ` · ${Math.round(day.probability)}% chance` : ''} → ${points1(day.rainfallPoints)}`
+            : 'Rain: no forecast available',
+          day.saturationPoints > 0 ? `Soaked ground: ${day.antecedent.toFixed(0)} mm in the 3 days before → ${points1(day.saturationPoints)}` : '',
+          baseline.hazardPoints > 0 ? `Active hazards: ${activeHazards().length} → ${points1(baseline.hazardPoints)}` : '',
+          baseline.emergencyPoints > 0 ? `Open emergencies: ${activeEmergencies().length} → ${points1(baseline.emergencyPoints)}` : '',
+          baseline.closurePoints > 0 ? `Closed trails: ${closedTrails().length} → ${points1(baseline.closurePoints)}` : '',
+          day.busy ? `Busier-than-average day → ${points1(day.exposurePoints)}` : ''
+        ]
+      };
+      const colLeft = Math.max(0, point.x - step / 2);
+      const colWidth = Math.min(width, point.x + step / 2) - colLeft;
       return `
-        <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="5" fill="var(--accent)" stroke="#fff" stroke-width="2">
-          <title>${escapeHtml(`${formatDay(day.date)}, ${formatDate(day.date)} — ${drivers.join(' · ')}`)}</title>
-        </circle>
+        <g class="risk-col"${tipAttr(tip)}>
+          <rect x="${colLeft.toFixed(1)}" y="0" width="${colWidth.toFixed(1)}" height="230" fill="transparent" pointer-events="all"/>
+          <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="5" fill="var(--accent)" stroke="#fff" stroke-width="2"/>
+        </g>
       `;
     }).join('');
 
@@ -2492,7 +2721,6 @@ a { color: inherit; text-decoration: none; }
     }
 
     const drivers = [];
-    const baseline = baselinePoints();
     if (peak.rainfallPoints > 0) drivers.push(`${peak.rainfall.toFixed(0)} mm of rain`);
     if (baseline.hazardPoints > 0) drivers.push(`${activeHazards().length} active hazard report(s)`);
     if (baseline.emergencyPoints > 0) drivers.push(`${activeEmergencies().length} active emergency alert(s)`);
@@ -2503,12 +2731,14 @@ a { color: inherit; text-decoration: none; }
 
   const renderWeatherImpact = () => {
     const forecast = state.forecast || [];
-    const setRow = (id, value, muted) => {
+    const setRow = (id, value, muted, tip) => {
       const element = document.getElementById(id);
       if (!element) return;
       element.textContent = value;
       element.classList.toggle('val-muted', Boolean(muted));
+      setTip(element.closest('.row'), muted ? null : tip);
     };
+    const dayLabel = (day) => `${formatDay(day.date)}, ${formatDate(day.date)}`;
 
     if (state.errors.forecast) {
       setRow('weatherProbability', 'Unavailable', true);
@@ -2523,9 +2753,26 @@ a { color: inherit; text-decoration: none; }
       const totalRain = forecast.reduce((sum, day) => sum + day.rainfall, 0);
       const peakRain = Math.max(...forecast.map((day) => day.rainfall));
       const impact = peakRain >= 50 ? 'High' : peakRain >= 15 ? 'Moderate' : 'Low';
-      setRow('weatherProbability', `${Math.round(peakProbability)}%`, false);
-      setRow('weatherRainfall', `${totalRain.toFixed(0)} mm`, false);
-      setRow('weatherImpact', impact, false);
+      const peakRainDay = forecast.find((day) => day.rainfall === peakRain);
+      setRow('weatherProbability', `${Math.round(peakProbability)}%`, false, {
+        title: 'Chance of rain, next 7 days',
+        lines: forecast.map((day) => `${dayLabel(day)}: ${Math.round(day.probability || 0)}%`)
+      });
+      setRow('weatherRainfall', `${totalRain.toFixed(0)} mm`, false, {
+        title: 'Forecast rainfall, next 7 days',
+        lines: [
+          ...forecast.map((day) => `${dayLabel(day)}: ${day.rainfall.toFixed(1)} mm`),
+          'Source: Open-Meteo forecast for Mount Makiling'
+        ]
+      });
+      setRow('weatherImpact', impact, false, {
+        title: `${impact} impact on trails`,
+        lines: [
+          `Wettest day: ${peakRainDay ? dayLabel(peakRainDay) : '—'} with ${peakRain.toFixed(1)} mm`,
+          'High at 50 mm or more in a day, Moderate at 15 mm or more',
+          `${forecast.filter((day) => day.rainfall >= 15).length} day(s) at 15 mm or more`
+        ]
+      });
     }
 
     const trails = state.trails || [];
@@ -2534,10 +2781,23 @@ a { color: inherit; text-decoration: none; }
     } else if (!trails.length) {
       setRow('weatherAffectedTrails', 'No trails yet', true);
     } else {
-      const affected = trails.filter((trail) =>
+      const affectedTrails = trails.filter((trail) =>
         trailStatus(trail).toLowerCase() !== 'open' || hazardsOnTrail(trailName(trail)).length > 0
-      ).length;
-      setRow('weatherAffectedTrails', `${affected} / ${trails.length}`, false);
+      );
+      const affected = affectedTrails.length;
+      setRow('weatherAffectedTrails', `${affected} / ${trails.length}`, false, {
+        title: 'Trails closed or carrying active hazards',
+        lines: affectedTrails.length
+          ? affectedTrails.slice(0, 6).map((trail) => {
+            const name = trailName(trail);
+            const count = hazardsOnTrail(name).length;
+            const reasons = [];
+            if (trailStatus(trail).toLowerCase() !== 'open') reasons.push(trailStatus(trail).toLowerCase());
+            if (count) reasons.push(`${count} active hazard${count === 1 ? '' : 's'}`);
+            return `${name}: ${reasons.join(', ')}`;
+          }).concat(affectedTrails.length > 6 ? [`+${affectedTrails.length - 6} more`] : [])
+          : ['Every trail is open with no active hazards']
+      });
     }
   };
 
@@ -2568,11 +2828,24 @@ a { color: inherit; text-decoration: none; }
     const maxCount = Math.max(...upcoming.map((day) => day.count), 1);
     const peak = upcoming.reduce((best, day) => (day.count > best.count ? day : best), upcoming[0]);
 
-    chart.innerHTML = upcoming.map((day) => {
+    const average = upcoming.reduce((sum, day) => sum + day.count, 0) / upcoming.length;
+    chart.innerHTML = upcoming.map((day, index) => {
       const height = Math.max(16, Math.round((day.count / maxCount) * 132));
       const isPeak = day.count === peak.count && peak.count > 0;
+      const versus = average
+        ? `${day.count >= average ? '+' : '−'}${Math.abs(Math.round(((day.count - average) / average) * 100))}% vs the week's average (${average.toFixed(1)})`
+        : '';
+      const tip = {
+        title: `${day.date.toLocaleDateString('en-US', { weekday: 'long' })}, ${formatDate(day.date)}${index === 0 ? ' (today)' : ''}`,
+        lines: [
+          `${day.count} record${day.count === 1 ? '' : 's'} on past ${day.date.toLocaleDateString('en-US', { weekday: 'long' })}s`,
+          versus,
+          isPeak ? 'Busiest day of the coming week' : '',
+          `Based on ${usage.sampled} ${usage.source}`
+        ]
+      };
       return `
-        <div class="usage-col">
+        <div class="usage-col"${tipAttr(tip)}>
           <div class="chart-bar${isPeak ? ' peak' : ''}" style="height:${height}px;">${day.count}</div>
           <div class="day">${escapeHtml(formatDay(day.date))}</div>
         </div>
@@ -2622,14 +2895,35 @@ a { color: inherit; text-decoration: none; }
        without scrolling. */
     const info = document.getElementById('hazardLikelihoodInfo');
     if (info) {
-      info.title =
-        `Chance of at least one report in the next 7 days, from ${history.length} report` +
-        `${history.length === 1 ? '' : 's'} over ${span} observed day${span === 1 ? '' : 's'}` +
-        `${rainFactor > 0 ? `, raised for rain-driven types by ${totalRain.toFixed(0)} mm of forecast rain` : ''}.`;
+      info.removeAttribute('title');
+      setTip(info, {
+        title: 'How these likelihoods are worked out',
+        lines: [
+          `Chance of at least one report in the next 7 days, from ${history.length} report${history.length === 1 ? '' : 's'} over ${span} observed day${span === 1 ? '' : 's'}.`,
+          rainFactor > 0 ? `Rain-driven types are raised for ${totalRain.toFixed(0)} mm of forecast rain.` : 'No rain is forecast, so no type is raised for weather.',
+          'Capped at 95%, since no forecast is certain.'
+        ]
+      });
     }
 
+    const likelihoodTip = (row) => {
+      const active = activeHazards().filter((hazard) => typeOf(hazard) === row.type).length;
+      const pastOfType = history.filter((hazard) => typeOf(hazard) === row.type);
+      return {
+        title: `${row.type} · ${row.likelihood}% in the next 7 days`,
+        lines: [
+          `${row.count} report${row.count === 1 ? '' : 's'} in ${span} observed day${span === 1 ? '' : 's'} (about 1 every ${(span / row.count).toFixed(1)} days)`,
+          row.rainDriven
+            ? (rainFactor > 0 ? `Rain-driven: raised ×${(1 + rainFactor).toFixed(2)} for ${totalRain.toFixed(0)} mm of forecast rain` : 'Rain-driven, but no rain is forecast')
+            : 'Not rain-driven, so the forecast does not change it',
+          `Active right now: ${active}`,
+          pastOfType.length ? `Trails: ${topOf(pastOfType, reportTrailLabel)}` : ''
+        ]
+      };
+    };
+
     list.innerHTML = rows.map((row) => `
-      <div class="lk-row" title="${escapeHtml(`${row.type} — ${basis(row)}`)}">
+      <div class="lk-row"${tipAttr(likelihoodTip(row))}>
         <span class="lk-icon ${hazardIcon(row.type).tone}" aria-hidden="true"><i class="fa-solid ${hazardIcon(row.type).icon}"></i></span>
         <span class="lk-name">${escapeHtml(row.type)}</span>
         <span class="lk-track"><span class="lk-fill ${likelihoodBand(row.likelihood)}" style="width:${Math.max(6, row.likelihood)}%"></span></span>
@@ -2684,7 +2978,10 @@ a { color: inherit; text-decoration: none; }
         hazardCount: active.length,
         historyCount: history.length,
         recurrence: Math.round(recurrence * 100),
-        closed
+        closed,
+        active,
+        points: { hazards: hazardPoints, recurrence: recurrencePoints, weather: weatherShare, closed: closed ? 20 : 0 },
+        rainShare
       };
     }).sort((a, b) => b.score - a.score);
 
@@ -2695,15 +2992,18 @@ a { color: inherit; text-decoration: none; }
       if (row.hazardCount) notes.push(`${row.hazardCount} active`);
       if (row.recurrence >= 10) notes.push(`${row.recurrence}% next 7d`);
       if (row.closed) notes.push('closed');
-      const tooltip = [
-        `Risk ${row.score}/100 (${bucketLabel(row.bucket)})`,
-        `${row.hazardCount} active hazard${row.hazardCount === 1 ? '' : 's'}`,
-        `${row.historyCount} report${row.historyCount === 1 ? '' : 's'} in ${span} days`,
-        `${row.recurrence}% chance of a new report in the next 7 days`,
-        row.closed ? 'trail closed' : 'trail open'
-      ].join(' · ');
+      const pts = (value) => `${Math.round(value)} pts`;
+      const tip = {
+        title: `${row.name} · ${bucketLabel(row.bucket)} risk (${row.score}/100)`,
+        lines: [
+          `Active hazards: ${row.hazardCount}${row.hazardCount ? ` (${topOf(row.active, typeOf)})` : ''} → ${pts(row.points.hazards)}`,
+          `History: ${row.historyCount} report${row.historyCount === 1 ? '' : 's'} in ${span} days, ${row.recurrence}% chance of another within 7 days → ${pts(row.points.recurrence)}`,
+          `Weather: ${peakRain.toFixed(0)} mm peak day, ${Math.round(row.rainShare * 100)}% of its history rain-driven → ${pts(row.points.weather)}`,
+          row.closed ? `Trail closed → ${pts(row.points.closed)}` : 'Trail open'
+        ]
+      };
       return `
-      <div class="row" title="${escapeHtml(tooltip)}">
+      <div class="row"${tipAttr(tip)}>
         <span>${escapeHtml(row.name)}${notes.length ? ` <span style="color:var(--text-muted)">(${escapeHtml(notes.join(' · '))})</span>` : ''}</span>
         <span class="tag ${bucketTag(row.bucket)}">${bucketLabel(row.bucket)}</span>
       </div>
@@ -2923,12 +3223,18 @@ a { color: inherit; text-decoration: none; }
   const renderRecommendations = () => {
     const list = document.getElementById('recommendationsList');
     renderAnalysisBar();
+    // An open action plan follows a newly published analysis.
+    if (planModal?.classList.contains('open')) renderPlan();
 
     // The list shows the last published analysis, not the live data, so it
     // (and its notification) only changes when the analysis is refreshed.
     if (!published.record) {
       list.innerHTML = `<div class="empty-state">${published.loaded ? 'No analysis yet. Click Refresh analysis to run the first one.' : 'Loading recommendations…'}</div>`;
       setText('actionsSummaryCircle', '0');
+      ['actionsSummaryCircle', 'highPriorityCount', 'medPriorityCount', 'lowPriorityCount'].forEach((id) => {
+        const element = document.getElementById(id);
+        setTip(element?.closest('.card-pill') || element, null);
+      });
       return;
     }
 
@@ -2953,7 +3259,14 @@ a { color: inherit; text-decoration: none; }
               <div class="action-report-body">${actionNarrative(action, published.record)}</div>
             </details>
           </div>
-          <span class="tag ${action.priority}">${action.priority === 'high' ? 'High' : action.priority === 'med' ? 'Medium' : 'Low'} Priority</span>
+          <span class="tag ${action.priority}"${tipAttr({
+            title: `${PRIORITY_LABEL[action.priority] || 'Unrated'} priority · ${ACTION_KIND_LABEL[action.kind] || 'Action'}`,
+            lines: [
+              PRIORITY_NARRATIVE[action.priority],
+              action.meta,
+              `From the analysis of ${formatPortalDateTime(publishedAt())}`
+            ]
+          })}>${PRIORITY_LABEL[action.priority] || 'Low'} Priority</span>
         </div>
       `).join('')
       : '<div class="empty-state">No actions recommended. No active hazards, emergency alerts, trail closures, or heavy rainfall were found in the current data.</div>';
@@ -2962,6 +3275,29 @@ a { color: inherit; text-decoration: none; }
     setText('highPriorityCount', `${counts.high} High Priority`);
     setText('medPriorityCount', `${counts.med} Medium Priority`);
     setText('lowPriorityCount', `${counts.low} Low Priority`);
+
+    /* Each pill lists the actions it counts; the circle recalls the analysis. */
+    const titlesOf = (priority) => actions.filter((action) => action.priority === priority).map((action) => `• ${action.title}`);
+    ['high', 'med', 'low'].forEach((priority) => {
+      const id = { high: 'highPriorityCount', med: 'medPriorityCount', low: 'lowPriorityCount' }[priority];
+      const titles = titlesOf(priority);
+      setTip(document.getElementById(id)?.closest('.card-pill'), {
+        title: `${PRIORITY_LABEL[priority]} priority · ${titles.length} action${titles.length === 1 ? '' : 's'}`,
+        lines: titles.length ? [...titles, PRIORITY_NARRATIVE[priority]] : [`No ${PRIORITY_LABEL[priority].toLowerCase()}-priority actions in this analysis`]
+      });
+    });
+    const record = published.record;
+    const inputs = record.inputs || {};
+    setTip(document.getElementById('actionsSummaryCircle'), {
+      title: `${actions.length} recommended action${actions.length === 1 ? '' : 's'}`,
+      lines: [
+        `High ${counts.high} · Medium ${counts.med} · Low ${counts.low}`,
+        Number.isFinite(record.riskScore) ? `Risk at the time: ${record.riskLevel} (${record.riskScore}/100)` : '',
+        `Analysed ${formatPortalDateTime(publishedAt())} (${record.trigger === 'auto' ? 'automatic' : 'manual'} run)`,
+        `Inputs: ${inputs.hazards ?? 0} hazards, ${inputs.trails ?? 0} trails, ${inputs.users ?? 0} hikers, ${inputs.advisories ?? 0} advisories, ${inputs.emergencies ?? 0} emergencies, ${inputs.forecast ?? 0} forecast days`,
+        (record.unavailableInputs || []).length ? `Unavailable then: ${record.unavailableInputs.join(', ')}` : ''
+      ]
+    });
 
     // Mirror the priority split in the donut instead of leaving a fixed gradient.
     const circle = document.getElementById('actionsSummaryCircle');
@@ -2978,6 +3314,190 @@ a { color: inherit; text-decoration: none; }
     }
   };
 
+  /* ---------------- Action plan ---------------- */
+
+  /* Who carries out each kind of action, and the portal page it is done on. */
+  const ACTION_OWNERS = {
+    advisory: { owner: 'Admin · Communications', page: 'A&A.html', pageLabel: 'Advisories & Announcements' },
+    notice: { owner: 'Admin · Communications', page: 'A&A.html', pageLabel: 'Advisories & Announcements' },
+    expiry: { owner: 'Admin · Communications', page: 'A&A.html', pageLabel: 'Advisories & Announcements' },
+    closure: { owner: 'Admin · Communications', page: 'A&A.html', pageLabel: 'Advisories & Announcements' },
+    emergency: { owner: 'Rangers · Rescue coordination', page: 'emergency.html', pageLabel: 'Emergency Monitoring' },
+    inspect: { owner: 'Ranger patrol', page: 'hazardreport.html', pageLabel: 'Hazard Reports' },
+    survey: { owner: 'Ranger patrol', page: 'hazardreport.html', pageLabel: 'Hazard Reports' },
+    recheck: { owner: 'Ranger patrol', page: 'hazardreport.html', pageLabel: 'Hazard Reports' },
+    weather: { owner: 'Ranger patrol', page: 'hazardreport.html', pageLabel: 'Hazard Reports' },
+    review: { owner: 'Admin · Report review', page: 'hazardreport.html', pageLabel: 'Hazard Reports' },
+    risk: { owner: 'Admin · Report review', page: 'hazardreport.html', pageLabel: 'Hazard Reports' },
+    maintenance: { owner: 'Trail maintenance crew', page: 'trail.html', pageLabel: 'Trail Management' },
+    crews: { owner: 'Trail maintenance crew', page: 'trail.html', pageLabel: 'Trail Management' },
+    visitors: { owner: 'Rangers · Visitor control', page: 'trail.html', pageLabel: 'Trail Management' },
+    map: { owner: 'Admin · Data quality', page: 'geomap.html', pageLabel: 'Geomap Monitoring' }
+  };
+
+  const PLAN_GROUPS = [
+    { priority: 'high', heading: 'Do today', note: 'High priority', color: '#c8402f' },
+    { priority: 'med', heading: 'Within the next few days', note: 'Medium priority', color: '#c9821f' },
+    { priority: 'low', heading: 'This week', note: 'Low priority', color: 'var(--accent)' }
+  ];
+
+  /* Ticks are remembered in this browser, one list per published analysis,
+     so a new analysis starts with a fresh checklist. */
+  const planKey = () => `analyticsActionPlan:${published.record?.date || 'none'}`;
+  const readPlanDone = () => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(planKey()) || '[]');
+      return new Set(Array.isArray(stored) ? stored : []);
+    } catch (error) {
+      return new Set();
+    }
+  };
+  const writePlanDone = (done) => {
+    try {
+      localStorage.setItem(planKey(), JSON.stringify([...done]));
+    } catch (error) {
+      // Private browsing or blocked storage: ticks just won't persist.
+    }
+  };
+  const planItemId = (action) => `${action.kind}|${action.title}`;
+
+  let planModal = null;
+  let planReturnFocus = null;
+
+  const buildPlanModal = () => {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'plan-backdrop';
+    backdrop.innerHTML = `
+      <div class="plan-modal" role="dialog" aria-modal="true" aria-labelledby="planTitle" aria-describedby="planSubtitle">
+        <div class="plan-head">
+          <div>
+            <h3 id="planTitle">Action Plan</h3>
+            <p id="planSubtitle"></p>
+          </div>
+          <div class="plan-head-actions">
+            <button type="button" class="plan-icon-btn" data-plan="print" aria-label="Print action plan" title="Print action plan"><i class="fa-solid fa-print" aria-hidden="true"></i></button>
+            <button type="button" class="plan-icon-btn" data-plan="close" aria-label="Close action plan" title="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+          </div>
+        </div>
+        <div class="plan-progress">
+          <div class="plan-progress-text"><span id="planProgressText">0 of 0 done</span><span id="planProgressPct">0%</span></div>
+          <div class="plan-progress-track"><div class="plan-progress-fill" id="planProgressFill"></div></div>
+        </div>
+        <div class="plan-body" id="planBody"></div>
+      </div>`;
+
+    backdrop.addEventListener('click', (event) => {
+      if (event.target === backdrop) closePlanModal();
+      const button = event.target.closest('[data-plan]');
+      if (!button) return;
+      if (button.dataset.plan === 'close') closePlanModal();
+      if (button.dataset.plan === 'print') {
+        document.body.classList.add('printing-plan');
+        window.print();
+        document.body.classList.remove('printing-plan');
+      }
+    });
+
+    backdrop.addEventListener('change', (event) => {
+      const box = event.target.closest('input[data-plan-item]');
+      if (!box) return;
+      const done = readPlanDone();
+      if (box.checked) done.add(box.dataset.planItem);
+      else done.delete(box.dataset.planItem);
+      writePlanDone(done);
+      box.closest('.plan-item').classList.toggle('done', box.checked);
+      updatePlanProgress();
+    });
+
+    backdrop.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closePlanModal();
+    });
+
+    document.body.appendChild(backdrop);
+    return backdrop;
+  };
+
+  const updatePlanProgress = () => {
+    const boxes = [...planModal.querySelectorAll('input[data-plan-item]')];
+    const doneCount = boxes.filter((box) => box.checked).length;
+    const pct = boxes.length ? Math.round((doneCount / boxes.length) * 100) : 0;
+    planModal.querySelector('#planProgressText').textContent = `${doneCount} of ${boxes.length} action${boxes.length === 1 ? '' : 's'} done`;
+    planModal.querySelector('#planProgressPct').textContent = `${pct}%`;
+    planModal.querySelector('#planProgressFill').style.width = `${pct}%`;
+  };
+
+  const renderPlan = () => {
+    const record = published.record;
+    const actions = record && Array.isArray(record.actions) ? record.actions : [];
+    const subtitle = planModal.querySelector('#planSubtitle');
+    const body = planModal.querySelector('#planBody');
+
+    if (!record) {
+      subtitle.textContent = 'No analysis has been published yet.';
+      body.innerHTML = '<div class="plan-empty">Run Refresh analysis to build the first action plan.</div>';
+      updatePlanProgress();
+      return;
+    }
+
+    subtitle.textContent = [
+      `From the analysis of ${formatPortalDateTime(publishedAt())}`,
+      Number.isFinite(record.riskScore) ? `risk was ${record.riskLevel} (${record.riskScore}/100)` : '',
+      `${actions.length} action${actions.length === 1 ? '' : 's'}`
+    ].filter(Boolean).join(' · ');
+
+    if (!actions.length) {
+      body.innerHTML = '<div class="plan-empty">Nothing to do. The last analysis found no active hazards, emergencies, closures or heavy rain.</div>';
+      updatePlanProgress();
+      return;
+    }
+
+    const done = readPlanDone();
+    body.innerHTML = PLAN_GROUPS.map((group) => {
+      const items = actions.filter((action) => action.priority === group.priority);
+      if (!items.length) return '';
+      return `
+        <section class="plan-group">
+          <h4><span class="plan-dot" style="background:${group.color}"></span>${group.heading} <small>${group.note} · ${items.length}</small></h4>
+          ${items.map((action) => {
+            const id = planItemId(action);
+            const isDone = done.has(id);
+            const where = ACTION_OWNERS[action.kind];
+            const steps = ACTION_NARRATIVES[action.kind]?.steps || [];
+            return `
+              <label class="plan-item${isDone ? ' done' : ''}">
+                <input type="checkbox" data-plan-item="${escapeHtml(id)}"${isDone ? ' checked' : ''} aria-label="Mark done: ${escapeHtml(action.title)}">
+                <div class="plan-item-main">
+                  <div class="plan-title">${escapeHtml(action.title)}</div>
+                  <div class="plan-meta">${escapeHtml(action.meta)}</div>
+                  ${where ? `<div class="plan-owner"><i class="fa-solid ${ACTION_ICONS[action.kind] || 'fa-user'}" aria-hidden="true"></i>Owner: ${escapeHtml(where.owner)}</div>` : ''}
+                  ${steps.length ? `<ol class="plan-steps">${steps.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}</ol>` : ''}
+                  ${where ? `<a class="plan-go" href="${escapeHtml(where.page)}">Open ${escapeHtml(where.pageLabel)} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>` : ''}
+                </div>
+              </label>
+            `;
+          }).join('')}
+        </section>
+      `;
+    }).join('');
+    updatePlanProgress();
+  };
+
+  function openPlanModal(trigger) {
+    if (!planModal) planModal = buildPlanModal();
+    planReturnFocus = trigger || null;
+    renderPlan();
+    planModal.classList.add('open');
+    planModal.querySelector('[data-plan="close"]').focus();
+  }
+
+  function closePlanModal() {
+    if (!planModal) return;
+    planModal.classList.remove('open');
+    planReturnFocus?.focus();
+  }
+
+  document.getElementById('viewActionPlanBtn').addEventListener('click', (event) => openPlanModal(event.currentTarget));
+
   const renderInsights = () => {
     const insights = document.getElementById('keyInsightsText');
     const inputsText = document.getElementById('modelInputsText');
@@ -2985,52 +3505,126 @@ a { color: inherit; text-decoration: none; }
     const hazards = activeHazards();
     const forecast = state.forecast || [];
     const days = dailyRisk();
-    const peak = days.reduce((best, day) => (day.score > best.score ? day : best), days[0]);
     const trails = state.trails || [];
+    const plural = (count, word, many = `${word}s`) => `${count} ${count === 1 ? word : many}`;
 
-    const lines = [];
+    /* Four short points, each a headline and one plain sentence on what it
+       means for hikers. */
+    const points = [];
 
     if (forecast.length) {
       const totalRain = forecast.reduce((sum, day) => sum + day.rainfall, 0);
-      lines.push(totalRain > 0
-        ? `${totalRain.toFixed(0)} mm of rain is forecast over the next 7 days, peaking on ${formatDay(peak.date)}.`
-        : 'No rainfall is forecast for Mount Makiling over the next 7 days.');
+      const wettest = forecast.reduce((best, day) => (day.rainfall > best.rainfall ? day : best), forecast[0]);
+      const meaning = wettest.rainfall >= 50
+        ? 'Heavy rain — trails may be slippery and landslides are possible.'
+        : wettest.rainfall >= 15
+          ? 'Some rain — expect muddy and slippery paths.'
+          : totalRain > 0
+            ? 'Light rain only — trails should stay mostly dry.'
+            : 'Dry week — good hiking weather.';
+      points.push({
+        icon: 'fa-cloud-rain',
+        tone: wettest.rainfall >= 50 ? 'red' : wettest.rainfall >= 15 ? 'amber' : 'blue',
+        headline: totalRain > 0
+          ? `${totalRain.toFixed(0)} mm of rain expected this week`
+          : 'No rain expected this week',
+        text: totalRain > 0
+          ? `Wettest day: ${formatDay(wettest.date)}, ${formatDate(wettest.date)} (${wettest.rainfall.toFixed(0)} mm). ${meaning}`
+          : meaning
+      });
     }
 
-    lines.push(hazards.length
-      ? `${hazards.length} hazard report(s) are still active across the network.`
-      : 'No active hazard reports are recorded.');
+    points.push({
+      icon: 'fa-triangle-exclamation',
+      tone: hazards.length ? 'amber' : 'green',
+      headline: hazards.length ? `${plural(hazards.length, 'hazard')} still open` : 'No open hazards',
+      text: hazards.length
+        ? 'These are reported problems on the trails that have not been fixed yet.'
+        : 'Every reported problem has been fixed or closed.'
+    });
 
     if (trails.length) {
       const riskiest = trails
         .map((trail) => ({ name: trailName(trail), count: hazardsOnTrail(trailName(trail)).length }))
         .sort((a, b) => b.count - a.count)[0];
-      lines.push(riskiest && riskiest.count
-        ? `${riskiest.name} carries the most active hazards (${riskiest.count}).`
-        : `${trails.length} trail(s) are being monitored, none with linked hazard reports.`);
+      points.push(riskiest && riskiest.count
+        ? {
+          icon: 'fa-location-dot',
+          tone: 'red',
+          headline: `Trail to watch: ${riskiest.name}`,
+          text: `It has ${plural(riskiest.count, 'open hazard')}, more than any other trail.`
+        }
+        : {
+          icon: 'fa-location-dot',
+          tone: 'green',
+          headline: 'All trails are clear',
+          text: `None of the ${plural(trails.length, 'trail')} has an open hazard.`
+        });
     } else {
-      lines.push('No trails have been added yet, so per-trail risk cannot be calculated.');
+      points.push({
+        icon: 'fa-location-dot',
+        tone: 'blue',
+        headline: 'No trails added yet',
+        text: 'Add trails in Trail Management to see which one needs attention.'
+      });
     }
 
-    lines.push(`Overall risk today is ${bucketLabel(days[0].bucket)} (${days[0].score}/100).`);
-    insights.textContent = lines.join(' ');
+    const today = days[0];
+    const levelMeaning = {
+      low: 'Safe for normal hiking.',
+      moderate: 'Hiking is fine, but take care and check advisories first.',
+      high: 'Dangerous — consider closing trails or warning hikers.'
+    };
+    const levelKey = today.score >= RISK_MODEL.highThreshold ? 'high' : today.score >= RISK_MODEL.moderateThreshold ? 'moderate' : 'low';
+    points.push({
+      icon: 'fa-shield-halved',
+      tone: levelKey === 'high' ? 'red' : levelKey === 'moderate' ? 'amber' : 'green',
+      headline: `Today's risk: ${bucketLabel(today.bucket)} (${today.score} out of 100)`,
+      text: levelMeaning[levelKey]
+    });
 
-    const counts = [
-      `${(state.hazards || []).length} hazard report(s)`,
-      `${trails.length} trail(s)`,
-      `${(state.users || []).length} hiker account(s)`,
-      `${(state.advisories || []).length} advisory record(s)`,
-      `${(state.emergencies || []).length} emergency alert(s)`
-    ].join(', ');
+    insights.innerHTML = points.map((point) => `
+      <li>
+        <span class="insight-icon ${point.tone}" aria-hidden="true"><i class="fa-solid ${point.icon}"></i></span>
+        <span><strong>${escapeHtml(point.headline)}</strong>${escapeHtml(point.text)}</span>
+      </li>
+    `).join('');
 
-    inputsText.textContent =
-      `The forecasts are computed live from ${counts}, plus the ${forecast.length}-day Open-Meteo rainfall forecast for Mount Makiling and the 3 days of rain before it; the recommended actions are the last published analysis (Refresh analysis runs a new one). ` +
-      `The daily risk score adds rainfall (up to ${RISK_MODEL.rainfallMaxPoints} pts), already-soaked ground from the previous 3 days (up to ${RISK_MODEL.saturationMaxPoints} pts), ` +
-      `active hazards weighted by risk level, review status and age (up to ${RISK_MODEL.hazardMaxPoints} pts), active emergencies (up to ${RISK_MODEL.emergencyMaxPoints} pts), ` +
-      `trail closures (up to ${RISK_MODEL.closedTrailMaxPoints} pts) and busier-than-average days (${RISK_MODEL.busyDayPoints} pts); ` +
-      `${RISK_MODEL.moderateThreshold}+ is Moderate and ${RISK_MODEL.highThreshold}+ is High. ` +
-      `Hazard and trail likelihoods are the chance of at least one new report in 7 days, from how often each has actually been reported over ${observedSpanDays()} observed day${observedSpanDays() === 1 ? '' : 's'}. ` +
-      'Each recommendation below states the number that triggered it. Empty sections mean that collection has no data yet.';
+    /* What went in, how the score is added up, and what the levels mean. */
+    const inputs = [
+      plural((state.hazards || []).length, 'hazard report'),
+      plural(trails.length, 'trail'),
+      plural((state.users || []).length, 'hiker'),
+      plural((state.advisories || []).length, 'advisory', 'advisories'),
+      plural((state.emergencies || []).length, 'emergency alert'),
+      forecast.length ? `${forecast.length}-day weather forecast` : 'weather forecast (unavailable)'
+    ];
+    const scoreParts = [
+      ['Rain forecast', RISK_MODEL.rainfallMaxPoints],
+      ['Open hazards', RISK_MODEL.hazardMaxPoints],
+      ['Emergencies', RISK_MODEL.emergencyMaxPoints],
+      ['Closed trails', RISK_MODEL.closedTrailMaxPoints],
+      ['Rain in past 3 days', RISK_MODEL.saturationMaxPoints],
+      ['Busy hiking day', RISK_MODEL.busyDayPoints]
+    ];
+    const span = observedSpanDays();
+
+    inputsText.innerHTML = `
+      <h5>1. What we looked at</h5>
+      <div class="explain-chips">${inputs.map((item) => `<span>${escapeHtml(item)}</span>`).join('')}</div>
+      <h5>2. How the risk score (0–100) is added up</h5>
+      <ul class="explain-points">${scoreParts.map(([label, max]) => `<li><span>${escapeHtml(label)}</span><span>up to ${max}</span></li>`).join('')}</ul>
+      <h5>3. What the score means</h5>
+      <div class="explain-levels">
+        <span class="low">0–${RISK_MODEL.moderateThreshold - 1} Low</span>
+        <span class="mod">${RISK_MODEL.moderateThreshold}–${RISK_MODEL.highThreshold - 1} Moderate</span>
+        <span class="high">${RISK_MODEL.highThreshold}+ High</span>
+      </div>
+      <p class="explain-note">
+        Hazard chances come from how often each problem was reported in the last ${plural(span, 'day')}.
+        Each recommendation shows the number that caused it. The list updates when you click Refresh analysis, or on its own every 7 days.
+      </p>
+    `;
   };
 
   /* ---------------- Published analysis ---------------- */
