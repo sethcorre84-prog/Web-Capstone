@@ -3054,9 +3054,12 @@ function loadReports() {
     if (selectedReport) {
       selectedReport = allReports.find(r => r.id === selectedReport.id) || null;
       renderReportDetails(selectedReport);
-    } else if (allReports.length > 0) {
-      selectedReport = allReports[0];
+    } else if (currentFilteredReports.length > 0) {
+      // Default to #1 in the reports table -- never a resolved, rejected
+      // or archived report, which live in their own panels.
+      selectedReport = currentFilteredReports[0];
       renderReportDetails(selectedReport);
+      renderReportsTable(currentFilteredReports); // highlight its row
     }
     // After the selection is settled, so its row is highlighted.
     renderResolvedList();

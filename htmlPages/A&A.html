@@ -565,6 +565,9 @@
 		const queryParams = new URLSearchParams(window.location.search);
 		let selectedId = queryParams.get('advisory');
 		let selectedArchiveIds = new Set();
+		// The advisory table's rows (filtered, without Expired/Archived), in
+		// display order; the first one is what the details card shows by default.
+		let currentListItems = [];
 		let editingId = null;
 		let currentPage = 1;
 		const PAGE_SIZE = 12;
@@ -659,6 +662,7 @@ async function syncExpiredAdvisories(){
 			if (typeVal) items = items.filter(d => d.type === typeVal);
 			if (statusVal) items = items.filter(d => getEffectiveStatus(d) === statusVal);
 			if (dateVal) items = items.filter(d => inDateRange(d, dateVal));
+			currentListItems = items;
 
 			if (pendingDeepLinkId) {
 				const deepLinkIndex = items.findIndex(d => d.id === pendingDeepLinkId);
@@ -1069,14 +1073,16 @@ onSnapshot(advisoryQuery, (snapshot) => {
         const still = allItems.find(d => d.id === selectedId);
         if (still) {
             selectAdvisory(selectedId);
-        } else if (allItems.length) {
-            selectAdvisory(allItems[0].id);
+        } else if (currentListItems.length) {
+            selectAdvisory(currentListItems[0].id);
+        } else {
+            selectedId = null;
+            showEmptyDetail();
         }
-    } else if (allItems.length) {
-        selectAdvisory(allItems[0].id);
-    }
-    if (!allItems.length) {
-        selectedId = null;
+    } else if (currentListItems.length) {
+        // Default to #1 in the table -- never an expired advisory.
+        selectAdvisory(currentListItems[0].id);
+    } else {
         showEmptyDetail();
     }
 }, (err) => {
