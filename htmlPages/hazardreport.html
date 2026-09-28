@@ -392,16 +392,14 @@
         width: 100%;
         border-collapse: collapse;
     }
-    thead tr {
-        background: var(--dm-surface-2, #fafbfa);
-    }
+    /* Column headers match A&A.html's list: small, muted, no header band. */
     th {
         text-align: left;
-        font-size: 11.5px;
+        font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.03em;
-        color: var(--text-600);
-        padding: 11px 14px;
+        color: var(--text-muted);
+        padding: 8px 6px;
         font-weight: 600;
         border-bottom: 1px solid var(--border);
     }
@@ -482,11 +480,11 @@
         color: var(--dm-text-2, #5b6b60);
     }
 
-    /* One text size across the whole Hazard Reports List — headers, cells,
-         badges, the time under each date, icons and footer text — matching the
-         13px search/filter controls above the table. The page buttons keep the
-         shared pages.css size, the same as A&A.html's list. */
-    .list-card th,
+    /* One text size across the Hazard Reports List — cells, badges, the time
+         under each date, icons and footer text — matching the 13px
+         search/filter controls above the table. Headers stay at the smaller
+         A&A.html size set on th above. The page buttons keep the shared
+         pages.css size, the same as A&A.html's list. */
     .list-card td,
     .list-card td .sub,
     .list-card .badge,
@@ -511,7 +509,7 @@
         overflow: hidden;
     }
     .list-card th {
-        padding: 13px 8px;
+        padding: 8px;
     }
     /* Risk Level and Status badges sit in the middle of their columns. */
     .list-card th.center-cell,
