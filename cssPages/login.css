@@ -957,6 +957,10 @@ button:hover {
     text-align: left;
 }
 
+.forgot-box input[readonly] {
+    cursor: default;
+}
+
 .forgot-box .forgot-status {
     min-height: 18px;
     margin: 0 0 16px;

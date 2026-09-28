@@ -110,16 +110,23 @@ const ALERTS = {
     icon: "fa-user-shield",
     eyebrow: "Password reset",
     title: "This account is not a registered admin",
-    message: "Please enter the admin Gmail. Password resets are only available for registered PeakPath administrators.",
-    fields: ["forgotEmail"]
+    message: "Please enter the admin Gmail on the login form. Password resets are only available for registered PeakPath administrators.",
+    fields: ["email"]
+  },
+  forgotNeedsEmail: {
+    variant: "warning",
+    icon: "fa-envelope",
+    eyebrow: "Password reset",
+    title: "Enter your admin email first",
+    message: "Type your admin email on the login form, then click Forgot Password. The reset link can only go to that email.",
+    fields: ["email"]
   },
   resetCheckFailed: {
     variant: "warning",
     icon: "fa-wifi",
     eyebrow: "Password reset",
     title: "Couldn't check that email",
-    message: "We couldn't confirm whether this is an admin email right now. Check your connection and try again.",
-    fields: ["forgotEmail"]
+    message: "We couldn't confirm whether this is an admin email right now. Check your connection and try again."
   },
   unknown: {
     variant: "danger",
@@ -285,13 +292,19 @@ function setForgotStatus(message, type = "") {
 }
 
 function openForgotModal() {
-  const forgotEmail = document.getElementById("forgotEmail");
-  // Carry over whatever the admin already typed on the login form.
-  forgotEmail.value = document.getElementById("email").value.trim();
+  // The reset link only goes to the email already typed on the login form;
+  // the field in the modal is read-only.
+  const email = document.getElementById("email").value.trim();
+  if (!email) {
+    showErrorModal("forgotNeedsEmail");
+    return;
+  }
+  document.getElementById("forgotEmail").value = email;
   setForgotStatus("");
-  document.getElementById("forgotSubmit").disabled = false;
+  const submitBtn = document.getElementById("forgotSubmit");
+  submitBtn.disabled = false;
   document.getElementById("forgotModal").classList.add("show");
-  forgotEmail.focus();
+  submitBtn.focus();
 }
 
 function closeForgotModal() {
@@ -303,7 +316,8 @@ async function sendResetLink() {
   const submitBtn = document.getElementById("forgotSubmit");
 
   if (!email) {
-    setForgotStatus("Please enter your email address.", "error");
+    closeForgotModal();
+    showErrorModal("forgotNeedsEmail");
     return;
   }
 
@@ -329,6 +343,8 @@ async function sendResetLink() {
   if (!isAdminEmail) {
     setForgotStatus("");
     submitBtn.disabled = false;
+    // The email can only be fixed on the login form, so send them back there.
+    closeForgotModal();
     showErrorModal("notAdminEmail");
     return;
   }
