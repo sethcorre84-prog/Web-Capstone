@@ -825,6 +825,27 @@
       <div class="panel">
         <div class="panel-title">System Settings</div>
 
+        <!-- Saved to this browser and applied instantly; no Save needed. -->
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">🌦️</div>
+            <div class="setting-text">
+              <div class="label" id="weatherLocationLabel">Dashboard Weather</div>
+              <div class="desc">Choose where the Dashboard's weather card reads the live temperature (°C).</div>
+            </div>
+          </div>
+          <div class="setting-right">
+            <div class="theme-picker">
+              <select id="weatherLocationPicker" aria-labelledby="weatherLocationLabel">
+                <option value="summit">Mt. Makiling Summit</option>
+                <option value="sipit">Sipit Trail</option>
+                <option value="losBanos">Los Baños</option>
+              </select>
+              <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+
         <div class="setting-row" data-action="dataBackup">
           <div class="setting-left">
             <div class="setting-icon">🗄️</div>
@@ -992,6 +1013,7 @@
   import { DEFAULT_ADMIN_ROLE, renderAdminIdentity, updateAdminProfile } from '../jsPages/admin-identity.js';
   import { DATE_FORMATS, TIME_FORMATS, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
   import { openExportMenu } from '../jsPages/export-table.js';
+  import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, setWeatherLocationKey } from '../jsPages/weather-locations.js';
 
   const STORAGE_KEY = 'peakpath-settings';
   const defaultSettings = {
@@ -2405,6 +2427,34 @@
     // Switched from another open tab.
     window.addEventListener('storage', (event) => {
       if (event.key === 'peakpath-theme') syncThemePicker();
+    });
+  }
+
+  /* Dashboard Weather. Like the theme, it is saved the moment it changes;
+     the dashboard's weather card reads it from weather-locations.js. */
+  const weatherLocationPicker = document.getElementById('weatherLocationPicker');
+  if (weatherLocationPicker) {
+    const syncWeatherPicker = () => {
+      weatherLocationPicker.value = getWeatherLocationKey();
+    };
+    syncWeatherPicker();
+
+    weatherLocationPicker.addEventListener('change', () => {
+      try {
+        setWeatherLocationKey(weatherLocationPicker.value);
+      } catch (error) {
+        console.error('Failed to save the weather location:', error);
+        syncWeatherPicker();
+        showToast('Your browser blocked saving this setting.');
+        return;
+      }
+      const name = WEATHER_LOCATIONS[weatherLocationPicker.value].name;
+      statusText.textContent = `Dashboard weather: ${name}`;
+      showToast(`Dashboard weather now shows ${name}`);
+    });
+
+    window.addEventListener('storage', (event) => {
+      if (event.key === WEATHER_STORAGE_KEY) syncWeatherPicker();
     });
   }
 

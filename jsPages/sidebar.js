@@ -17,6 +17,16 @@
      System) the same way: before paint, so a dark page never flashes white first.
    ========================================================================== */
 
+/* Rounded dropdown lists on every page (see rounded-select.js), loaded from
+   the same folder as this file. */
+(function () {
+    var self = document.currentScript;
+    if (!self) return;
+    var script = document.createElement('script');
+    script.src = new URL('rounded-select.js', self.src).href;
+    document.head.appendChild(script);
+})();
+
 /* Dark mode. Kept outside the sidebar code because it applies to the whole
    page, and exposed as window.PeakPathTheme so Settings can switch it. The
    choice is stored per browser, like the other Settings toggles. */
