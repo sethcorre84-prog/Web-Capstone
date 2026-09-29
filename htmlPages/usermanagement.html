@@ -2744,8 +2744,10 @@
       const credential = await createUserWithEmailAndPassword(accountAuth, email, password);
       createdUser = credential.user;
       // Mobile login resolves usernames/{username} before authenticating.
-      // Use the new user's isolated session to satisfy the lookup's owner rule.
-      const accountDb = getFirestore(accountApp);
+      // Saved as the signed-in administrator: the rules only let an account
+      // create its own profile as a hiker, so a Guide (or "Hiker" with a
+      // capital H) written from the new account's session would be refused.
+      const accountDb = db;
       const usernameRef = doc(accountDb, 'usernames', username);
       const phone = normalizeText(formData.get('phone'));
       const phoneE164 = phone.startsWith('0') ? '+63' + phone.slice(1) : phone;
@@ -2779,6 +2781,7 @@
       await applyTeamMembership(createdUser.uid, wantedTeamIds);
       setResetPasswordStatus(`New ${normalizeText(formData.get('role')) || 'Hiker'} added. Mobile username: ${username}. Sign in with the password entered here.`, 'success');
     } catch (error) {
+      console.error('Add user failed:', error.code || '', error);
       if (profileSaved) {
         setResetPasswordStatus('User account created, but some team assignments could not be saved. Check their team memberships.', 'error');
       } else {
@@ -2795,7 +2798,8 @@
           'auth/password-does-not-meet-requirements': 'Choose a stronger password that meets the password requirements.',
           'auth/operation-not-allowed': 'Email/password account creation is not enabled in Firebase.',
           'auth/network-request-failed': 'Network error. Check your connection and try again.',
-          'auth/too-many-requests': 'Too many attempts. Please try again later.'
+          'auth/too-many-requests': 'Too many attempts. Please try again later.',
+          'permission-denied': 'Firestore refused to save the profile. Check that the latest firestore.rules are deployed.'
         };
         addUserStatusMessage.textContent = rollbackFailed
           ? 'The sign-in account was created, but its profile could not be saved or the account removed. Resolve this account in Firebase before trying again.'

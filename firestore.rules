@@ -64,7 +64,22 @@ service cloud.firestore {
     // ===================================================================
     match /users/{userId} {
       allow read: if signedIn();
-      allow create: if signedIn() && (request.auth.uid == userId || isAdmin());
+
+      /* Sign-up writes role "hiker" (AuthService.signUp). Guides are made
+         by an admin promoting someone from the console, never by the
+         account itself, so a self-registration may only claim "hiker" --
+         otherwise a modified client could register straight as a guide and
+         the create/join split would mean nothing. Admins are unrestricted:
+         User Management creates accounts of either role. */
+      allow create: if isAdmin()
+        || (
+          signedIn()
+          && request.auth.uid == userId
+          && (
+            !('role' in request.resource.data)
+            || request.resource.data.role == 'hiker'
+          )
+        );
 
       /* CHANGED. A hiker may still edit their own profile, but no longer
          their own status, role or suspension. Writing status "Active" from
@@ -84,11 +99,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    /* CHANGED: an admin may also create the entry, for someone else. User
+       Management > Add User saves the new account's profile and username
+       as the signed-in admin (the users rule above only lets an account
+       create itself as a hiker), so without this Add User is refused. */
     match /usernames/{username} {
       allow get: if true;
       allow list: if false;
       allow create: if signedIn()
-                    && request.resource.data.uid == request.auth.uid;
+                    && (request.resource.data.uid == request.auth.uid || isAdmin());
       allow update: if signedIn()
                     && request.auth.uid == resource.data.uid
                     && request.resource.data.uid == resource.data.uid
@@ -223,6 +242,16 @@ service cloud.firestore {
     // Trails, teams, reviews
     // ===================================================================
     match /trails/{trailId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    /* Stations along a trail: the checkpoints listed on a trail's page and
+       opened for their own detail screen (lib/features/trails/
+       station_service.dart). Reference data like trails -- hikers read,
+       only the web console writes. Without this block the stations section
+       is permanently empty, since every read is denied. */
+    match /stations/{stationId} {
       allow read: if signedIn();
       allow write: if isAdmin();
     }
