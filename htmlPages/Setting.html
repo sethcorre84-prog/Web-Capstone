@@ -1540,7 +1540,7 @@
   import { collection, deleteDoc, getDoc, getDocs, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   import { ref as storageRef, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
   import { planReportIds } from '../jsPages/report-ids.js';
-  import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile, verifyBeforeUpdateEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+  import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import { DEFAULT_ADMIN_ROLE, renderAdminIdentity, updateAdminProfile } from '../jsPages/admin-identity.js';
   import { DATE_FORMATS, TIME_FORMATS, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
   import { openExportMenu } from '../jsPages/export-table.js';
@@ -2532,9 +2532,9 @@
   /* Profile Information. The name is saved to the admin's own admins/{uid}
      doc and mirrored to the Firebase Auth displayName; admin-identity.js
      shows it in the sidebar and top bar on every page. The email is the
-     sign-in address, so changing it re-authenticates first and then goes
-     through Firebase's verify-before-update flow: nothing changes until the
-     admin clicks the link sent to the new address. The role is shown but not
+     sign-in address, so changing it re-authenticates first and switches it
+     straight away. With Email enumeration protection on, Firebase refuses
+     that, and the whole save is refused with it. The role is shown but not
      editable — an admin must not be able to promote themselves. */
   function bindProfileForm() {
     const form = document.getElementById('profileForm');
@@ -2647,10 +2647,13 @@
       submitBtn.disabled = true;
       submitBtn.textContent = 'Saving…';
       try {
-        // Re-authenticate before writing anything, so a wrong password
+        // Re-authenticate and switch the sign-in email before writing
+        // anything else, so a wrong password or a refused email change
         // cannot leave the profile half saved.
         if (changingEmail) {
           await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, passwordInput.value));
+          await updateEmail(user, email);
+          saved.email = email;
         }
         if (detailsChanged) {
           await setDoc(doc(db, 'admins', user.uid), { name, username, phone, gender, updatedAt: serverTimestamp() }, { merge: true });
@@ -2659,31 +2662,23 @@
           renderAdminIdentity({ name });
           updateAdminProfile({ name, username, phone, gender });
         }
-        // Switch the sign-in email now. A project with email enumeration
-        // protection on refuses that, so fall back to a verification link.
-        let emailPending = false;
-        if (changingEmail) {
-          try {
-            await updateEmail(user, email);
-            saved.email = email;
-          } catch (error) {
-            if (error?.code !== 'auth/operation-not-allowed') throw error;
-            await verifyBeforeUpdateEmail(user, email);
-            emailPending = true;
-          }
-        }
-
         closeModal();
         statusText.textContent = 'Profile updated';
-        if (emailPending) {
-          showToast(`Verification link sent to ${email}. Your sign-in email changes once you open it.`, 6000);
-        } else if (changingEmail) {
+        if (changingEmail) {
           showToast(`Sign-in email changed to ${email}. Use it the next time you sign in.`, 6000);
         } else {
           showToast('Profile updated successfully');
         }
       } catch (error) {
         console.error('Failed to save profile:', error);
+        // Firebase refuses a direct email change while Email enumeration
+        // protection is on. Nothing has been saved by this point.
+        if (error?.code === 'auth/operation-not-allowed') {
+          return fail(
+            'Your email cannot be changed. Your profile was not saved.',
+            emailInput
+          );
+        }
         fail(
           accountErrorMessage(error, 'Unable to save your profile right now. Please try again.'),
           WRONG_PASSWORD_CODES.includes(error?.code) ? passwordInput : null
