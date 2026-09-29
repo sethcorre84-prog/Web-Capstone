@@ -150,22 +150,23 @@
         border-radius: 8px;
         display: grid;
         place-items: center;
-        background: var(--dm-surface-2, #f7faf7);
-        color: var(--accent);
+        background: var(--green-bg);
+        color: var(--green-text);
         font-size: 14px;
         flex-shrink: 0;
     }
+    /* The same soft status pairs the other pages' stat tiles use. */
     .card-icon.danger {
-        color: var(--danger);
-        background: rgba(200, 64, 47, 0.12);
+        color: var(--red-text);
+        background: var(--red-bg);
     }
     .card-icon.orange {
-        color: var(--orange);
-        background: rgba(201, 130, 31, 0.12);
+        color: var(--amber-text);
+        background: var(--amber-bg);
     }
     .card-icon.blue {
-        color: var(--blue);
-        background: rgba(37, 99, 235, 0.12);
+        color: var(--blue-text);
+        background: var(--blue-bg);
     }
     .card-content .value {
         font-size: 22px;
@@ -199,13 +200,17 @@
         align-items: center;
         margin-bottom: 16px;
     }
+    /* Panel titles and their links match every other page: brand green. */
     .panel-header h2 {
-        font-size: 16px;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--accent-dark);
         margin: 0;
     }
     .panel-header a {
-        font-size: 13px;
-        color: var(--blue);
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--accent);
     }
     .tabs {
         display: flex;
@@ -240,7 +245,11 @@
     }
     thead th {
         text-align: left;
-        font-size: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
         color: var(--text-muted);
         padding: 10px 8px;
         border-bottom: 1px solid var(--border);
@@ -388,9 +397,9 @@
         border: none;
         padding: 0;
         font: inherit;
-        font-size: 13px;
+        font-size: 12.5px;
         font-weight: 600;
-        color: var(--blue);
+        color: var(--accent);
         cursor: pointer;
     }
     .link-btn:hover {
@@ -834,35 +843,35 @@
       <div class="card">
         <div class="card-top">
           <span class="card-content"><div class="value" id="statActive">—</div></span>
-          <div class="card-icon danger">SOS</div>
+          <div class="card-icon danger"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></div>
         </div>
         <div class="card-content"><div class="label">Active Emergencies</div><div class="hint" id="statActiveHint">Loading…</div></div>
       </div>
       <div class="card">
         <div class="card-top">
           <span class="card-content"><div class="value" id="statResponding">—</div></span>
-          <div class="card-icon orange">⏳</div>
+          <div class="card-icon orange"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i></div>
         </div>
         <div class="card-content"><div class="label">Responding</div><div class="hint" id="statRespondingHint">Loading…</div></div>
       </div>
       <div class="card">
         <div class="card-top">
           <span class="card-content"><div class="value" id="statResolvedToday">—</div></span>
-          <div class="card-icon blue">✔</div>
+          <div class="card-icon blue"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
         </div>
         <div class="card-content"><div class="label">Resolved Today</div><div class="hint" id="statResolvedHint">Loading…</div></div>
       </div>
       <div class="card">
         <div class="card-top">
           <span class="card-content"><div class="value" id="statPeople">—</div></span>
-          <div class="card-icon">👥</div>
+          <div class="card-icon"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>
         </div>
         <div class="card-content"><div class="label">People Assisted</div><div class="hint" id="statPeopleHint">Loading…</div></div>
       </div>
       <div class="card">
         <div class="card-top">
           <span class="card-content"><div class="value" id="statResponseTime">—</div></span>
-          <div class="card-icon blue">⏱</div>
+          <div class="card-icon blue"><i class="fa-solid fa-stopwatch" aria-hidden="true"></i></div>
         </div>
         <div class="card-content"><div class="label">Avg. Response Time</div><div class="hint" id="statResponseHint">Loading…</div></div>
       </div>

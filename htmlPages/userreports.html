@@ -450,8 +450,10 @@
         background: var(--dm-surface, #fff);
         text-align: left;
         font-size: 11px;
-        font-weight: 600;
-        color: var(--text-900);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--text-muted);
         white-space: nowrap;
     }
     .reports-table tbody td {
@@ -1198,15 +1200,16 @@
     .action-btn.view {
         background: var(--accent-dark);
     }
+    /* The palette's status colours, not brighter one-off shades, so these
+       buttons sit at the same weight as the rest of the portal. */
     .action-btn.contact {
-        background: #2a63b5;
+        background: var(--blue);
     }
     .action-btn.warn {
-        background: #f2b01e;
-        color: var(--dm-text, #2a2105);
+        background: var(--warning);
     }
     .action-btn.suspend {
-        background: #e0342a;
+        background: var(--danger);
     }
     .action-btn.resolve {
         background: var(--dm-surface, #fff);

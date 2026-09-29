@@ -454,11 +454,10 @@
           }
       }
       .legend-title {
-          background: #1b211b;
-          /* The palette's on-dark green (its dark-mode --green-text). The brand
-               --accent-dark is too close to this near-black band to stay legible,
-               and the band keeps its colour in both themes. */
-          color: #ffff;
+          /* The sidebar's forest green rather than near-black, so the dark band
+               reads as part of the brand. Keeps its colour in both themes. */
+          background: var(--sidebar-bg);
+          color: #fff;
           text-align: center;
           font-weight: 700;
           font-size: 13px;
@@ -619,7 +618,7 @@
                design. 2px, not 1.5 — Chromium rounds sub-pixel border widths down
                to 1px. box-sizing:border-box keeps the outer width identical, so it
                stays aligned with the Alerts Overview card below it. */
-          border: 2px solid #20261f;
+          border: 2px solid var(--sidebar-bg-light);
           padding: 10px;
       }
       /* The four High/Moderate/Low/Total tiles inside Alerts Overview. */

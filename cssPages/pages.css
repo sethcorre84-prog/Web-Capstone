@@ -116,6 +116,10 @@
     --rejected-text: #c8402f;
     --resolved-bg: #e6f0ff;
     --resolved-text: #2a63b5;
+
+    /* Scrollbar thumb inside panels and lists (see "Finishing touches"). */
+    --scrollbar: #cdd6cc;
+    --scrollbar-hover: #aebbad;
 }
 
 /* ==========================================================================
@@ -222,6 +226,9 @@
     --rejected-text: #f08a7c;
     --resolved-bg: #17263d;
     --resolved-text: #86b6f5;
+
+    --scrollbar: #3a4436;
+    --scrollbar-hover: #4c5847;
 }
 
 /* The page background behind everything, including overscroll. */
@@ -1541,4 +1548,72 @@ input[type="password"]::-ms-clear {
 #deleteConfirmModal {
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
+}
+
+/* ==========================================================================
+   Finishing touches — small, portal-wide refinements that change no colour
+   and no layout: crisper text, themed scrollbars and selection, gentle
+   transitions on controls, and a little depth on the active sidebar link.
+   ========================================================================== */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+::selection {
+    background: var(--accent-light);
+    color: var(--accent-dark);
+}
+:root[data-theme="dark"] ::selection {
+    color: var(--text-primary);
+}
+
+/* Thin, palette-tinted scrollbars on the panels, lists and tables inside the
+   content area, instead of the chunky grey OS default. The page's own
+   scrollbar and the sidebar (which hides its own) are left alone. */
+:where(.main, .main-panel) * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar) transparent;
+}
+:where(.main, .main-panel) *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+:where(.main, .main-panel) *::-webkit-scrollbar-track {
+    background: transparent;
+}
+:where(.main, .main-panel) *::-webkit-scrollbar-thumb {
+    background: var(--scrollbar);
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+}
+:where(.main, .main-panel) *::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-hover);
+    background-clip: padding-box;
+}
+
+/* Hover colour changes ease in rather than snapping. Zero specificity, so a
+   page that sets its own transition keeps it. */
+:where(button, .btn, .button, select, a[class]) {
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+/* The current page's link stands slightly off the sidebar. */
+.nav li a.active {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 4px 12px rgba(0, 0, 0, 0.22);
+}
+
+/* The logo tile gets the same soft lift. */
+.brand-icon {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        0 6px 16px rgba(0, 0, 0, 0.28);
 }
