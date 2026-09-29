@@ -33,13 +33,20 @@ service cloud.firestore {
        stay visible on the map. Suspension is an account penalty, not a
        safety one.
        ------------------------------------------------------------------- */
+    /* Every field is read with get() and a default. Reading a field that
+       is not on the document -- record.status when the record has no
+       status at all -- is an ERROR in this language, not false, and an
+       error inside a condition denies the request. Accounts created by the
+       app have no status field (AuthService.signUp does not write one), so
+       the direct form denied every hiker who had never been suspended:
+       joining a team and filing a hazard report both failed with "Missing
+       or insufficient permissions". */
     function suspensionActive(record) {
-      return record.status is string
-        && record.status.lower() == 'suspended'
+      return record.get('status', '') is string
+        && record.get('status', '').lower() == 'suspended'
         && (
-          !('suspendedUntil' in record)
-          || record.suspendedUntil == null
-          || record.suspendedUntil > request.time
+          record.get('suspendedUntil', null) == null
+          || record.get('suspendedUntil', null) > request.time
         );
     }
 
@@ -77,7 +84,13 @@ service cloud.firestore {
           && request.auth.uid == userId
           && (
             !('role' in request.resource.data)
-            || request.resource.data.role == 'hiker'
+            || (
+              request.resource.data.role is string
+              // Case-insensitive: the app writes "hiker", the web console
+              // capitalises ("Hiker"), and getUserRole lowers before it
+              // compares. A casing difference must not reject a sign-up.
+              && request.resource.data.role.lower() == 'hiker'
+            )
           )
         );
 
@@ -151,11 +164,14 @@ service cloud.firestore {
     match /locations/{userId} {
       // Readable by the owner, their teammates, admins (web Geomap), and
       // anyone when the owner opted in with isPublic.
+      // get() with defaults for the same reason as suspensionActive: a doc
+      // left by an older build without isPublic would otherwise error and
+      // deny the read, quietly hiding that teammate from the map.
       allow read: if signedIn() &&
                      (request.auth.uid == userId ||
-                      request.auth.uid in resource.data.sharedWith ||
+                      request.auth.uid in resource.data.get('sharedWith', []) ||
                       isAdmin() ||
-                      resource.data.isPublic == true);
+                      resource.data.get('isPublic', false) == true);
       allow create, update: if signedIn()
                             && request.auth.uid == userId
                             && request.resource.data.sharedWith is list

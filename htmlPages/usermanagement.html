@@ -1934,9 +1934,8 @@
   // The same rule login.js and dashboard-guard.js enforce, and the one the
   // mobile app has to mirror. Suspensions end on their own date.
   import { suspensionState } from '../jsPages/account-status.js';
-  // The Dashboard and Geomap count active hikers from these too.
+  // The Dashboard and Geomap count active hikers from this too.
   import { watchActiveHikers } from '../jsPages/active-hikers.js';
-  import { MAKILING_BOUNDS } from '../jsPages/makiling-area.js';
   import { openExportMenu } from '../jsPages/export-table.js';
   import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
   import { initializeAuth, inMemoryPersistence, createUserWithEmailAndPassword, deleteUser, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
@@ -3101,12 +3100,11 @@
      hiking. */
   watchActiveHikers({
     db,
-    bounds: MAKILING_BOUNDS,
-    onUpdate: ({ hikedToday, onMountainNow }) => {
+    onUpdate: ({ hikedToday, onlineNow }) => {
       document.getElementById('activeUsersValue').textContent = hikedToday.toLocaleString();
       setTrend('activeUsersTrend', hikedToday
-        ? `${onMountainNow} on the mountain now`
-        : 'No hikers have signed in today');
+        ? `${onlineNow} online now`
+        : 'No hikers checked in');
     },
     onError: (message) => {
       document.getElementById('activeUsersValue').textContent = '—';

@@ -1050,7 +1050,7 @@
                 <div class="card">
                     <div class="card-top"><h2>Trail Summary <small>(Right Now)</small></h2></div>
                     <div class="summary-tiles">
-                        <div class="summary-tile tone-green"><i class="fa-solid fa-people-group" aria-hidden="true"></i><strong id="summaryOnMountain">—</strong><span>Hikers on the Mountain</span><small>Signed in now</small></div>
+                        <div class="summary-tile tone-green"><i class="fa-solid fa-people-group" aria-hidden="true"></i><strong id="summaryOnMountain">—</strong><span>Hikers Online</span><small>Signed in to the app now</small></div>
                         <div class="summary-tile tone-blue"><i class="fa-solid fa-ruler-horizontal" aria-hidden="true"></i><strong id="summaryDistance">—</strong><span>Total Trail Distance</span><small>Estimated, all trails</small></div>
                         <div class="summary-tile tone-red"><i class="fa-solid fa-ban" aria-hidden="true"></i><strong id="summaryClosed">—</strong><span>Closed Trails</span><small id="summaryClosedMeta">&nbsp;</small></div>
                         <div class="summary-tile tone-purple"><i class="fa-solid fa-route" aria-hidden="true"></i><strong id="summaryTrails">—</strong><span>Total Trails</span><small>In Trail Management</small></div>
@@ -1196,13 +1196,12 @@
         watchActiveHikers({
             db,
             live: true,
-            bounds: makilingBounds,
-            onUpdate: ({ hikedToday, onMountainNow }) => {
-                document.getElementById('summaryOnMountain').textContent = onMountainNow;
+            onUpdate: ({ hikedToday, onlineNow }) => {
+                document.getElementById('summaryOnMountain').textContent = onlineNow;
                 document.getElementById('activeHikersValue').textContent = hikedToday;
                 document.getElementById('activeHikersMeta').textContent = hikedToday
-                    ? `${onMountainNow} on the mountain now`
-                    : 'No hikers have signed in today';
+                    ? `${onlineNow} online now`
+                    : 'No hikers checked in';
             },
             onError: (message) => {
                 document.getElementById('activeHikersValue').textContent = '—';

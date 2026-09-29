@@ -1525,12 +1525,11 @@
        today and never matched the hiker pins on this page's own map. */
     watchActiveHikers({
       db,
-      bounds: makilingBounds,
-      onUpdate: ({ hikedToday, onMountainNow }) => {
+      onUpdate: ({ hikedToday, onlineNow }) => {
         setSummaryValue('activeHikersValue', hikedToday);
         setSummaryValue('activeHikersMeta', hikedToday
-          ? `${onMountainNow} on the mountain now`
-          : 'No hikers have signed in today');
+          ? `${onlineNow} online now`
+          : 'No hikers checked in');
       },
       onError: (message) => {
         setSummaryValue('activeHikersValue', '—');

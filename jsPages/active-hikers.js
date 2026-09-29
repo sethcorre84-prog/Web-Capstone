@@ -1,21 +1,19 @@
 // active-hikers.js
 // The one definition of "an active hiker" for the whole portal, in the spirit
-// of makiling-area.js: the Dashboard tile and the Geomap tile both count from
-// here, so the two pages can never disagree about how many hikers are out.
+// of makiling-area.js: the Dashboard, Geomap and User Management tiles all
+// count from here, so the pages can never disagree about how many hikers are out.
 //
-// A hiker counts as active today when the PeakPath app has written a position
-// for them (locations/{uid}) since midnight in the portal's time zone. Before
-// this, the two pages answered the question differently — Geomap counted hiker
-// *accounts* that were not suspended, which said nothing about today.
+//   hikedToday   hikers currently checked in: users/{uid} with
+//                checkIns == true. Setting it back to false takes the hiker
+//                off the count straight away.
+//   onlineNow    hikers whose users/{uid}.lastActive is within
+//                ACTIVE_ONLINE_MS. The PeakPath app stamps it when a hiker
+//                signs in and about once a minute while they stay signed in
+//                (ActivityService in the app).
 //
-// Polled rather than listened to: the app rewrites a hiker's position about
-// once a second while they are signed in, and a live listener is billed one
-// read per phone per second for as long as the page is open. A summary tile
-// does not need per-second figures, so it polls once a minute and pauses while
-// the tab is hidden.
-//
-// When the app's "Start Hiking" flag is confirmed, isActiveHiker() below is the
-// only thing that has to change, and both tiles follow it.
+// Polled rather than listened to by default: a summary tile does not need
+// per-second figures, so it polls once a minute and pauses while the tab is
+// hidden.
 
 import {
     collection,
@@ -27,11 +25,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { portalTimeZone, toPortalDate } from "./datetime-prefs.js";
 
-/* Thresholds shared with the Geomap hiker pins, so a hiker the map draws as
-   online is the same hiker this counts as on the mountain. */
+/* Thresholds shared with the Geomap hiker pins. */
 export const HIKER_POLL_MS = 60 * 1000;
 export const HIKER_ONLINE_MS = 2 * 60 * 1000;
 export const HIKER_EXPIRY_MS = 12 * 60 * 60 * 1000;
+
+/* The app checks in every minute, so three minutes allows for one missed
+   check-in (a slow network, a phone waking up) before a hiker drops offline. */
+export const ACTIVE_ONLINE_MS = 3 * 60 * 1000;
 
 /* Midnight today in the portal's time zone (Settings > Date & Time), so the
    count rolls over with the clock the admin is reading rather than with the
@@ -51,92 +52,106 @@ export function portalMidnight() {
     return new Date(now.getTime() - secondsIntoDay * 1000);
 }
 
-// Accepts a GeoPoint, {lat,lng} or {latitude,longitude}, like the pages' maps.
-const getCoordinates = (position) => {
-    const latitude = Number(position.latitude ?? position.lat);
-    const longitude = Number(position.longitude ?? position.lng);
-    return Number.isFinite(latitude) && Number.isFinite(longitude)
-        && latitude >= -90 && latitude <= 90
-        && longitude >= -180 && longitude <= 180
-        ? [latitude, longitude]
-        : null;
-};
+// Hikers checked in right now: users/{uid} with checkIns: true.
+const checkInsQuery = (db) => query(
+    collection(db, 'users'),
+    where('checkIns', '==', true)
+);
 
-/* Counts one poll's worth of location documents.
-     hikedToday      hikers the app reported a position for since midnight
-     onMountainNow   of those, the ones still reporting (within HIKER_ONLINE_MS)
-                     from inside the Mount Makiling bounds
+// Hikers who have used the app today; onlineNow narrows these down.
+const loginsQuery = (db, midnight) => query(
+    collection(db, 'users'),
+    where('lastActive', '>=', Timestamp.fromDate(midnight))
+);
 
-   A locations document holds a hiker's *latest* position, not their track, so
-   someone who hiked this morning and has since gone home still counts in
-   hikedToday — they did hike today — but no longer in onMountainNow. */
-export function countActiveHikers(docs, bounds) {
+/* Counts one poll's worth of documents.
+     checkedInIds   ids of users docs with checkIns == true
+     users          users docs whose lastActive is today */
+export function countActiveHikers(checkedInIds, users) {
     const now = Date.now();
-    let hikedToday = 0;
-    let onMountainNow = 0;
+    let onlineNow = 0;
+    users.forEach((data) => {
+        const lastActive = toPortalDate(data.lastActive);
+        if (lastActive && now - lastActive.getTime() <= ACTIVE_ONLINE_MS) onlineNow += 1;
+    });
+    return { hikedToday: new Set(checkedInIds).size, onlineNow };
+}
 
-    docs.forEach((data) => {
-        const updatedAt = toPortalDate(data.updatedAt);
-        const coordinates = data.position ? getCoordinates(data.position) : null;
-        if (!updatedAt || !coordinates) return;
-        hikedToday += 1;
-        if (now - updatedAt.getTime() <= HIKER_ONLINE_MS && bounds.contains(coordinates)) {
-            onMountainNow += 1;
-        }
+/* A failed online count must not blank the check-in count, so the logins
+   read falls back to nobody online; the check-ins read is the one that has
+   to succeed. */
+const readLogins = (db) => getDocs(loginsQuery(db, portalMidnight()))
+    .then((snapshot) => snapshot.docs.map((snap) => snap.data()))
+    .catch((error) => {
+        console.warn('Could not read hiker logins:', error.message);
+        return [];
     });
 
-    return { hikedToday, onMountainNow };
+export async function fetchActiveHikers(db) {
+    const [checkIns, users] = await Promise.all([
+        getDocs(checkInsQuery(db)),
+        readLogins(db)
+    ]);
+    return countActiveHikers(checkIns.docs.map((snap) => snap.id), users);
 }
 
-export async function fetchActiveHikers(db, bounds) {
-    const snapshot = await getDocs(query(
-        collection(db, 'locations'),
-        where('updatedAt', '>=', Timestamp.fromDate(portalMidnight()))
-    ));
-    return countActiveHikers(snapshot.docs.map((snap) => snap.data()), bounds);
-}
+const errorMessage = (error) => error?.code === 'permission-denied'
+    ? 'Hiker check-ins blocked by Firestore rules'
+    : 'Hiker activity unavailable';
 
 /* Polls fetchActiveHikers and hands each result to the page.
 
-   onUpdate({ hikedToday, onMountainNow })  a fresh count
-   onError(message)                         a message ready to show; the
-                                            rules failure is named, because
-                                            that is the one an admin can fix
+   onUpdate({ hikedToday, onlineNow })  a fresh count
+   onError(message)                     a message ready to show; the rules
+                                        failure is named, because that is
+                                        the one an admin can fix
+
+   live: true listens instead of polling, so a hiker who checks in shows up
+   on the tile within seconds. The count is still redone every minute so
+   hikers who closed the app drop out of onlineNow.
 
    Returns a stop function. Overlapping polls are skipped rather than queued,
    so a slow network cannot stack requests up. */
-export function watchActiveHikers({ db, bounds, onUpdate, onError, live = false }) {
+export function watchActiveHikers({ db, onUpdate, onError, live = false }) {
     if (live) {
-        let unsubscribe;
+        let checkedInIds = [];
+        let users = [];
         let dayKey;
-        let records = [];
+        let unsubscribeLogins;
         let stopped = false;
+        const report = () => onUpdate(countActiveHikers(checkedInIds, users));
+
+        const unsubscribeCheckIns = onSnapshot(checkInsQuery(db), (snapshot) => {
+            if (stopped) return;
+            checkedInIds = snapshot.docs.map((snap) => snap.id);
+            report();
+        }, (error) => {
+            if (stopped) return;
+            console.error('Error loading hiker check-ins:', error);
+            onError(errorMessage(error));
+        });
+
+        // The logins listener is re-opened at midnight so "today" rolls over.
         const refresh = () => {
             if (stopped || document.hidden) return;
             const midnight = portalMidnight();
             midnight.setMilliseconds(0);
             const nextDay = midnight.getTime();
-            if (nextDay !== dayKey) {
-                unsubscribe?.();
-                dayKey = nextDay;
-                records = [];
-                unsubscribe = onSnapshot(query(
-                    collection(db, 'locations'),
-                    where('updatedAt', '>=', Timestamp.fromDate(midnight))
-                ), (snapshot) => {
-                    if (stopped || dayKey !== nextDay) return;
-                    records = snapshot.docs.map((doc) => doc.data());
-                    onUpdate(countActiveHikers(records, bounds));
-                }, (error) => {
-                    if (stopped) return;
-                    dayKey = undefined;
-                    onError(error?.code === 'permission-denied'
-                        ? 'Hiker locations blocked by Firestore rules'
-                        : 'Hiker activity unavailable');
-                });
-            } else {
-                onUpdate(countActiveHikers(records, bounds));
+            if (nextDay === dayKey) {
+                report();
+                return;
             }
+            unsubscribeLogins?.();
+            dayKey = nextDay;
+            users = [];
+            unsubscribeLogins = onSnapshot(loginsQuery(db, midnight), (snapshot) => {
+                if (stopped || dayKey !== nextDay) return;
+                users = snapshot.docs.map((snap) => snap.data());
+                report();
+            }, (error) => {
+                console.warn('Could not read hiker logins:', error.message);
+                dayKey = undefined;
+            });
         };
         refresh();
         const timer = setInterval(refresh, HIKER_POLL_MS);
@@ -144,7 +159,8 @@ export function watchActiveHikers({ db, bounds, onUpdate, onError, live = false 
         window.addEventListener('online', refresh);
         return () => {
             stopped = true;
-            unsubscribe?.();
+            unsubscribeCheckIns();
+            unsubscribeLogins?.();
             clearInterval(timer);
             document.removeEventListener('visibilitychange', refresh);
             window.removeEventListener('online', refresh);
@@ -156,12 +172,10 @@ export function watchActiveHikers({ db, bounds, onUpdate, onError, live = false 
         if (polling) return;
         polling = true;
         try {
-            onUpdate(await fetchActiveHikers(db, bounds));
+            onUpdate(await fetchActiveHikers(db));
         } catch (error) {
             console.error('Error loading active hikers:', error);
-            onError(error?.code === 'permission-denied'
-                ? 'Hiker locations blocked by Firestore rules'
-                : 'Hiker activity unavailable');
+            onError(errorMessage(error));
         } finally {
             polling = false;
         }
