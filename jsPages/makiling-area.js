@@ -40,6 +40,18 @@ export const MAKILING_BOUNDS = (() => {
   };
 })();
 
+/* Satellite imagery (Esri World Imagery) for every map in the portal. Esri
+   has imagery down to about zoom 18 here; closer than that, Leaflet enlarges
+   the zoom 18 tiles rather than showing blank squares. */
+export function addSatelliteLayer(map, options = {}) {
+  return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    maxNativeZoom: 18,
+    attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics',
+    ...options
+  }).addTo(map);
+}
+
 // The same colours as the page behind the map in each theme (pages.css).
 const maskColor = () =>
   (document.documentElement.getAttribute('data-theme') === 'dark' ? '#111410' : '#e8edf0');
@@ -59,12 +71,7 @@ export function createMakilingMap(element) {
     maxBounds: bounds,
     maxBoundsViscosity: 1
   });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    minZoom: 13,
-    maxZoom: 19,
-    bounds,
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
+  addSatelliteLayer(map, { minZoom: 13, bounds });
 
   // Grey out everything beyond the mountain: one polygon covering the world
   // with the Makiling ring punched out of it as a hole. Leaflet draws it in

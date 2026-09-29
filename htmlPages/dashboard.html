@@ -16,9 +16,7 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
-    <link rel="dns-prefetch" href="https://a.tile.openstreetmap.org">
-    <link rel="dns-prefetch" href="https://b.tile.openstreetmap.org">
-    <link rel="dns-prefetch" href="https://c.tile.openstreetmap.org">
+    <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
 <!-- ===== end resource hints ===== -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="../jsPages/sidebar.js"></script>
@@ -1200,7 +1198,7 @@
                 document.getElementById('summaryOnMountain').textContent = onlineNow;
                 document.getElementById('activeHikersValue').textContent = hikedToday;
                 document.getElementById('activeHikersMeta').textContent = hikedToday
-                    ? `${onlineNow} online now`
+                    ? `${onlineNow} hikers on the mountain now`
                     : 'No hikers checked in';
             },
             onError: (message) => {

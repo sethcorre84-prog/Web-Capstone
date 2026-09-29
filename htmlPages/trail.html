@@ -17,9 +17,7 @@
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
-<link rel="dns-prefetch" href="https://a.tile.openstreetmap.org">
-<link rel="dns-prefetch" href="https://b.tile.openstreetmap.org">
-<link rel="dns-prefetch" href="https://c.tile.openstreetmap.org">
+<link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
 <!-- ===== end resource hints ===== -->
 <script src="../jsPages/sidebar.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
@@ -1342,13 +1340,11 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getDownloadURL, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { addSatelliteLayer } from "../jsPages/makiling-area.js";
 
 const makilingCenter = [14.136, 121.197];
 const trailMap = L.map('trailMap').setView(makilingCenter, 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '&copy; OpenStreetMap contributors'
-}).addTo(trailMap);
+addSatelliteLayer(trailMap);
 L.marker(makilingCenter)
   .bindPopup('<strong>Mount Makiling</strong><br>1,096 m')
   .addTo(trailMap);
