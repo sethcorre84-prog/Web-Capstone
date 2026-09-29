@@ -574,6 +574,36 @@
 		border-radius: 50%;
 		background: var(--accent);
 	}
+	/* Delivery note for the Email channel, on its own line under the chips. */
+	.chan-email-status {
+		flex-basis: 100%;
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		padding: 6px 10px;
+		border-radius: 8px;
+		font-size: 12px;
+		font-weight: 600;
+	}
+	.chan-email-status i {
+		color: inherit;
+	}
+	.chan-email-status.is-ok {
+		background: var(--green-bg);
+		color: var(--green-text);
+	}
+	.chan-email-status.is-wait {
+		background: var(--blue-bg);
+		color: var(--blue-text);
+	}
+	.chan-email-status.is-bad {
+		background: var(--red-bg);
+		color: var(--red-text);
+	}
+	.chan-email-status.is-muted {
+		background: var(--dm-surface-2, #f3f5f2);
+		color: var(--text-muted);
+	}
 	.actions-row {
 		display: flex;
 		gap: 10px;
@@ -1466,6 +1496,41 @@
 // Effective status for display/filtering — an advisory whose expiresAt
 // has passed is treated as Expired immediately, even before Firestore's
 // stored status field is updated by syncExpiredAdvisories() below.
+		// Where the Email channel stands for one advisory, for the detail panel.
+		function describeEmailStatus(it){
+			const email = it.email || {};
+			const count = Number(email.recipients) || 0;
+			const people = `${count} registered user${count === 1 ? '' : 's'}`;
+			switch (email.status) {
+				case 'sent': {
+					const when = toDate(email.sentAt);
+					return {
+						tone: 'ok',
+						icon: 'fa-envelope-circle-check',
+						text: count ? `Emailed to ${people}${when ? ' · ' + when.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : ''}` : 'No registered users with an email to send to'
+					};
+				}
+				case 'sending':
+					return { tone: 'wait', icon: 'fa-paper-plane', text: 'Sending email…' };
+				case 'scheduled':
+					return { tone: 'wait', icon: 'fa-clock', text: 'Email will be sent on the effective date' };
+				case 'failed':
+					return {
+						tone: 'bad',
+						icon: 'fa-triangle-exclamation',
+						text: (email.attempts || 0) >= 3 ? 'Email could not be sent' : 'Email failed, retrying shortly',
+						title: email.error || ''
+					};
+				// Nothing recorded: either the send is a second away, or this
+				// advisory was saved before email sending existed (saving it
+				// again sends it).
+				default:
+					return getEffectiveStatus(it) === 'Expired'
+						? { tone: 'muted', icon: 'fa-envelope', text: 'Not emailed (expired)' }
+						: { tone: 'muted', icon: 'fa-envelope', text: 'Not emailed yet', title: 'Save the advisory again with Email checked to send it.' };
+			}
+		}
+
 		function getEffectiveStatus(it){
     		if ((it.status || '').toLowerCase() === 'archived') return 'Archived';
     		if (it.status === 'Expired') return 'Expired';
@@ -1890,6 +1955,15 @@ async function syncExpiredAdvisories(){
 					chanEl.appendChild(item);
 				});
 			}
+			// The Email channel is sent by the emailAdvisory Cloud Function,
+			// which records how it went on the advisory's `email` field.
+			if (channels.includes('Email')) {
+				const status = describeEmailStatus(it);
+				const note = el('div', `chan-email-status is-${status.tone}`);
+				note.innerHTML = `<i class="fa-solid ${status.icon}" aria-hidden="true"></i>${escapeHtml(status.text)}`;
+				if (status.title) note.title = status.title;
+				chanEl.appendChild(note);
+			}
 
 			const recEl = document.getElementById('recommendations');
 			recEl.innerHTML = '';
@@ -2264,7 +2338,10 @@ setInterval(() => {
 				visibility: document.getElementById('mVisibility').value,
 				channels,
 				desc: document.getElementById('mDesc').value.trim(),
-				recommendedActions: actions
+				recommendedActions: actions,
+				// The Email channel is sent from (and replies go to) the admin
+				// who saved it; see advisoryMessage in functions/index.js.
+				sentByEmail: auth.currentUser?.email || null
 			};
 
 			if (currentItem && currentItem.visible === false) {

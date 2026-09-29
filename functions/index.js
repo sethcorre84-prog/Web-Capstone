@@ -30,11 +30,13 @@
    changes and they are deployed again.
    ========================================================================== */
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret } = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const { initializeApp } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
-const { getFirestore, Timestamp } = require("firebase-admin/firestore");
+const { getFirestore, Timestamp, FieldValue } = require("firebase-admin/firestore");
 const crypto = require("node:crypto");
 const nodemailer = require("nodemailer");
 
@@ -77,11 +79,14 @@ const codesMatch = (code, record) => {
   return given.length === stored.length && crypto.timingSafeEqual(given, stored);
 };
 
-async function sendCodeEmail(to, code) {
-  const transporter = nodemailer.createTransport({
+const mailTransport = () =>
+  nodemailer.createTransport({
     service: "gmail",
     auth: { user: GMAIL_USER.value(), pass: GMAIL_APP_PASSWORD.value() }
   });
+
+async function sendCodeEmail(to, code) {
+  const transporter = mailTransport();
   const minutes = CODE_TTL_MS / 60000;
   const sender = GMAIL_USER.value();
   // Kept plain on purpose, to stay out of spam: a normal subject line (a
@@ -242,3 +247,266 @@ exports.resetPasswordWithCode = onCall(async (request) => {
   await getAuth().revokeRefreshTokens(uid);
   return { ok: true };
 });
+
+/* ==========================================================================
+   Advisories & Announcements — the "Email" channel.
+
+   When an admin saves an advisory with Email ticked, it is emailed to every
+   registered user in `users` (only guides when Visibility is "Guide").
+   Progress is written back onto the advisory as an `email` map, which the
+   A&A page shows under Channels:
+     email.status      "scheduled" | "sending" | "sent" | "failed"
+     email.sentAt      when it went out
+     email.recipients  how many addresses it went to
+
+   Each advisory is emailed once. Editing it later does not send it again;
+   re-accepting an expired one (A&A sets `restoredAt`) does, like the in-app
+   notification. An advisory whose Effective date is still ahead is marked
+   "scheduled" and sent by emailDueAdvisories once that date arrives.
+
+   Advisories that already existed before this was deployed are never
+   emailed unless someone saves them again with Email ticked.
+   ========================================================================== */
+
+// Firestore triggers must run where the database lives.
+const FIRESTORE_REGION = "asia-southeast1";
+// Recipients go in Bcc, so no user sees another's address; Gmail accepts up
+// to 100 per message. A normal Gmail account can send to about 500 people a
+// day in total.
+const BCC_BATCH = 90;
+// A claim older than this is from a run that crashed, and may be retried.
+const EMAIL_STALE_MS = 10 * 60 * 1000;
+const EMAIL_RETRY_MS = 10 * 60 * 1000;
+const EMAIL_MAX_ATTEMPTS = 3;
+
+const toMillis = (value) => {
+  if (!value) return null;
+  if (typeof value.toMillis === "function") return value.toMillis();
+  const ms = new Date(value).getTime();
+  return Number.isNaN(ms) ? null : ms;
+};
+
+// What to do with an advisory's email right now: "send", "schedule" (the
+// Effective date is still ahead) or null (nothing).
+function advisoryEmailAction(advisory, now = Date.now()) {
+  if (!advisory || advisory.visible === false) return null;
+  if (!Array.isArray(advisory.channels) || !advisory.channels.includes("Email")) return null;
+  const status = String(advisory.status || "").toLowerCase();
+  if (status !== "active" && status !== "scheduled") return null;
+  const expires = toMillis(advisory.expiresAt);
+  if (expires && expires <= now) return null;
+
+  const email = advisory.email || {};
+  const sentAt = toMillis(email.sentAt);
+  const restoredAt = toMillis(advisory.restoredAt);
+  if (sentAt && !(restoredAt && restoredAt > sentAt)) return null;
+  if (email.status === "sending" && now - (toMillis(email.claimedAt) || 0) < EMAIL_STALE_MS) return null;
+  if (email.status === "failed") {
+    if ((email.attempts || 0) >= EMAIL_MAX_ATTEMPTS) return null;
+    if (now - (toMillis(email.failedAt) || 0) < EMAIL_RETRY_MS) return null;
+  }
+
+  const starts = toMillis(advisory.effectiveDate || advisory.publishedAt);
+  return starts && starts > now ? "schedule" : "send";
+}
+
+// Marks the advisory as being sent, inside a transaction, so the trigger and
+// the scheduled sweep can never both send the same one.
+function claimAdvisoryEmail(ref) {
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const advisory = snap.exists ? snap.data() : null;
+    if (advisoryEmailAction(advisory) !== "send") return null;
+    tx.update(ref, {
+      "email.status": "sending",
+      "email.claimedAt": FieldValue.serverTimestamp()
+    });
+    return advisory;
+  });
+}
+
+async function advisoryRecipients(visibility) {
+  const guidesOnly = visibility === "Guide";
+  const snap = await db.collection("users").get();
+  const emails = new Set();
+  snap.forEach((userDoc) => {
+    const user = userDoc.data() || {};
+    const email = String(user.email || user.Email || "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    // Suspended hikers still get safety advisories; only deactivated
+    // accounts are left out.
+    if (String(user.status || user.Status || "").toLowerCase() === "deactivated") return;
+    if (guidesOnly && !String(user.role || user.Role || "").toLowerCase().includes("guide")) return;
+    emails.add(email);
+  });
+  return [...emails];
+}
+
+const escapeHtml = (value) =>
+  String(value ?? "").replace(/[&<>"']/g, (ch) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+
+const formatManila = (value) => {
+  const ms = toMillis(value);
+  if (!ms) return null;
+  return new Intl.DateTimeFormat("en-PH", {
+    timeZone: "Asia/Manila",
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(ms));
+};
+
+const RISK_COLORS = {
+  high: { bg: "#fbe9e7", text: "#c8402f" },
+  moderate: { bg: "#fbf1e2", text: "#b9791b" },
+  low: { bg: "#e7f5eb", text: "#2f8f4e" }
+};
+
+function advisoryMessage(advisory) {
+  const type = advisory.type || "Advisory";
+  const title = advisory.title || "Untitled";
+  const risk = advisory.riskLevel || "";
+  const riskColor = RISK_COLORS[risk.toLowerCase()] || RISK_COLORS.moderate;
+  const trail = advisory.target || "All Trails";
+  const effective = formatManila(advisory.effectiveDate || advisory.publishedAt);
+  const expires = formatManila(advisory.expiresAt);
+  const desc = advisory.desc || "";
+  const actions = Array.isArray(advisory.recommendedActions) ? advisory.recommendedActions : [];
+  const publishedBy = advisory.publishedBy || "PeakPath Admin";
+
+  const details = [
+    ["Trail", trail],
+    risk && ["Risk level", risk],
+    effective && ["Effective", effective],
+    expires && ["Until", expires]
+  ].filter(Boolean);
+
+  const text = [
+    `PeakPath ${type}: ${title}`,
+    "",
+    ...details.map(([label, value]) => `${label}: ${value}`),
+    "",
+    desc,
+    actions.length ? "\nRecommended actions:" : "",
+    ...actions.map((action) => `- ${action}`),
+    "",
+    `Published by ${publishedBy}`,
+    "You are receiving this because you have a PeakPath account."
+  ].join("\n");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
+<body style="margin:0;padding:0;background:#ffffff">
+  <div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;padding:28px 24px;color:#1c231c">
+    <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#1f6b39">PeakPath ${escapeHtml(type)}</p>
+    <h2 style="margin:0 0 14px;font-size:21px;line-height:1.3;color:#1c231c">${escapeHtml(title)}</h2>
+    ${risk ? `<p style="margin:0 0 16px"><span style="display:inline-block;padding:3px 12px;border-radius:999px;background:${riskColor.bg};color:${riskColor.text};font-size:12px;font-weight:700">${escapeHtml(risk)} risk</span></p>` : ""}
+    <table style="margin:0 0 18px;border-collapse:collapse;font-size:13.5px">
+      ${details.filter(([label]) => label !== "Risk level").map(([label, value]) =>
+        `<tr><td style="padding:3px 16px 3px 0;color:#5b6b60">${escapeHtml(label)}</td><td style="padding:3px 0;font-weight:600">${escapeHtml(value)}</td></tr>`).join("")}
+    </table>
+    ${desc ? `<p style="margin:0 0 18px;font-size:14.5px;line-height:1.6;white-space:pre-line">${escapeHtml(desc)}</p>` : ""}
+    ${actions.length ? `<p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#1f6b39">Recommended actions</p>
+    <ul style="margin:0 0 18px;padding-left:20px;font-size:14px;line-height:1.6">${actions.map((action) => `<li>${escapeHtml(action)}</li>`).join("")}</ul>` : ""}
+    <p style="margin:24px 0 0;padding-top:14px;border-top:1px solid #e4e7e1;font-size:12px;color:#93a199">Published by ${escapeHtml(publishedBy)} · You are receiving this because you have a PeakPath account.</p>
+  </div>
+</body>
+</html>`;
+
+  return { subject: `PeakPath ${type}: ${title}`, text, html };
+}
+
+/* The email comes from the admin who saved the advisory (sentByEmail, set by
+   the A&A page), and replies go to them. Gmail only sends *as* an address
+   the GMAIL_USER account has verified under Settings > Accounts > "Send mail
+   as"; for any other address it quietly puts GMAIL_USER back in From. The
+   admin's name and Reply-To survive either way, so replies always reach the
+   admin who posted it. */
+function advisorySender(advisory) {
+  const account = GMAIL_USER.value();
+  const admin = String(advisory.sentByEmail || "").trim().toLowerCase();
+  const address = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(admin) ? admin : account;
+  const publisher = String(advisory.publishedBy || "").trim();
+  const name = publisher && publisher !== "Admin User" ? `${publisher} (PeakPath)` : "PeakPath Admin";
+  return { from: { name, address }, replyTo: address, account };
+}
+
+async function sendAdvisoryEmail(ref, advisory) {
+  const recipients = await advisoryRecipients(advisory.visibility);
+  const { from, replyTo, account } = advisorySender(advisory);
+  const message = advisoryMessage(advisory);
+  const transporter = mailTransport();
+  let sent = 0;
+  try {
+    for (let i = 0; i < recipients.length; i += BCC_BATCH) {
+      const batch = recipients.slice(i, i + BCC_BATCH);
+      await transporter.sendMail({
+        ...message,
+        from,
+        replyTo,
+        to: account,
+        bcc: batch
+      });
+      sent += batch.length;
+    }
+    await ref.update({
+      "email.status": "sent",
+      "email.sentAt": FieldValue.serverTimestamp(),
+      "email.recipients": sent,
+      "email.error": FieldValue.delete()
+    });
+    logger.info(`Advisory ${ref.id} emailed to ${sent} users`);
+  } catch (error) {
+    logger.error(`Could not email advisory ${ref.id}`, error);
+    await ref.update({
+      "email.status": "failed",
+      "email.failedAt": FieldValue.serverTimestamp(),
+      "email.recipients": sent,
+      "email.error": String(error.message || error).slice(0, 300),
+      "email.attempts": FieldValue.increment(1)
+    });
+  }
+}
+
+async function processAdvisory(ref, advisory) {
+  const action = advisoryEmailAction(advisory);
+  if (action === "schedule") {
+    if (advisory.email?.status !== "scheduled") await ref.update({ "email.status": "scheduled" });
+    return;
+  }
+  if (action !== "send") return;
+  const claimed = await claimAdvisoryEmail(ref);
+  if (claimed) await sendAdvisoryEmail(ref, claimed);
+}
+
+// Runs on every save of an advisory. Its own writes to `email` land here too,
+// and advisoryEmailAction lets those pass without sending anything.
+exports.emailAdvisory = onDocumentWritten(
+  { document: "Advisory/{advisoryId}", region: FIRESTORE_REGION, secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] },
+  async (event) => {
+    const after = event.data?.after;
+    if (!after?.exists) return;
+    await processAdvisory(after.ref, after.data());
+  }
+);
+
+// Sends scheduled advisories once their Effective date arrives, and retries
+// failed sends (up to 3 tries, 10 minutes apart).
+exports.emailDueAdvisories = onSchedule(
+  {
+    schedule: "every 15 minutes",
+    timeZone: "Asia/Manila",
+    region: FIRESTORE_REGION,
+    secrets: [GMAIL_USER, GMAIL_APP_PASSWORD]
+  },
+  async () => {
+    const pending = await db
+      .collection("Advisory")
+      .where("email.status", "in", ["scheduled", "failed", "sending"])
+      .get();
+    for (const advisoryDoc of pending.docs) {
+      await processAdvisory(advisoryDoc.ref, advisoryDoc.data());
+    }
+  }
+);
