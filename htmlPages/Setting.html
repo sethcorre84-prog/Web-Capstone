@@ -2455,15 +2455,8 @@
      the current password is used to re-authenticate first. That also proves
      it is the admin at the keyboard and not someone at an unlocked session.
      The dialog stays open on any failure, with the reason shown in it. */
-  function bindChangePasswordForm() {
-    const form = document.getElementById('changePasswordForm');
-    const currentInput = document.getElementById('currentPassword');
-    const newInput = document.getElementById('newPassword');
-    const confirmInput = document.getElementById('confirmPassword');
-    const errorEl = document.getElementById('changePasswordError');
-    const submitBtn = document.getElementById('updatePasswordBtn');
-    if (!form) return;
-
+  // The eye button beside a password input shows or hides what was typed.
+  function bindPasswordToggles(form) {
     form.querySelectorAll('[data-password-toggle]').forEach((button) => {
       const input = document.getElementById(button.dataset.passwordToggle);
       if (!input) return;
@@ -2478,6 +2471,18 @@
         icon?.classList.toggle('fa-eye-slash', isHidden);
       });
     });
+  }
+
+  function bindChangePasswordForm() {
+    const form = document.getElementById('changePasswordForm');
+    const currentInput = document.getElementById('currentPassword');
+    const newInput = document.getElementById('newPassword');
+    const confirmInput = document.getElementById('confirmPassword');
+    const errorEl = document.getElementById('changePasswordError');
+    const submitBtn = document.getElementById('updatePasswordBtn');
+    if (!form) return;
+
+    bindPasswordToggles(form);
 
     const fail = (message, input) => {
       errorEl.textContent = message;
@@ -2549,6 +2554,8 @@
     const errorEl = document.getElementById('profileError');
     const submitBtn = document.getElementById('saveProfileBtn');
     if (!form) return;
+
+    bindPasswordToggles(form);
 
     const user = auth.currentUser;
     const saved = { name: user?.displayName || '', username: '', phone: '', gender: '', email: user?.email || '' };
@@ -2780,7 +2787,10 @@
               </div>
               <div class="field profile-grid-wide" id="profilePasswordField" hidden>
                 <label for="profileCurrentPassword">Current Password</label>
-                <input id="profileCurrentPassword" type="password" autocomplete="current-password" placeholder="Required to change your email">
+                <div class="password-input-wrap">
+                  <input id="profileCurrentPassword" type="password" autocomplete="current-password" placeholder="Required to change your email">
+                  <button type="button" class="password-toggle" data-password-toggle="profileCurrentPassword" aria-label="Show password" aria-pressed="false" title="Show password"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+                </div>
               </div>
             </div>
             <div class="form-error" id="profileError" role="alert"></div>
