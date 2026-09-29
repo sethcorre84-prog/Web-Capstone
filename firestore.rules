@@ -158,6 +158,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    /* Forgot Password codes, one per admin UID. Only the Cloud Functions in
+       functions/index.js touch these, through the Admin SDK, which skips
+       these rules. No browser may read or write one, or the code would be
+       no secret. */
+    match /passwordResets/{uid} {
+      allow read, write: if false;
+    }
+
     // ===================================================================
     // Safety. Never gated by a suspension.
     // ===================================================================

@@ -192,13 +192,18 @@
   </div>
 </div>
 
-<!-- Forgot Password Modal -->
+<!-- Forgot Password Modal: three steps in one window.
+     1 send    email a 6-digit code to the admin email from the login form
+     2 verify  enter that code, the new password, and the new password again
+     3 done    the password was changed; back to sign in -->
 <div id="forgotModal" class="modal-overlay">
-  <div class="modal-box forgot-box">
-    <i class="fa-solid fa-key modal-icon forgot-icon"></i>
-    <h3>Reset Password</h3>
-    <p>We'll send a link to reset your password to the admin email you entered on the login form.</p>
-    <form id="forgotForm" novalidate>
+  <div class="modal-box forgot-box" role="dialog" aria-modal="true" aria-labelledby="forgotTitle">
+
+    <!-- Step 1 -->
+    <form id="forgotForm" class="forgot-step" data-step="send" novalidate>
+      <div class="forgot-badge"><i class="fa-solid fa-key"></i></div>
+      <h3 id="forgotTitle">Reset Password</h3>
+      <p>We'll email a 6-digit verification code to the admin email you entered on the login form.</p>
       <div class="input-box">
         <i class="fa-regular fa-envelope"></i>
         <input type="email" id="forgotEmail" readonly tabindex="-1" aria-readonly="true" title="To use a different email, change it on the login form.">
@@ -206,12 +211,67 @@
       <p id="forgotStatus" class="forgot-status" role="status"></p>
       <div class="forgot-actions">
         <button type="button" id="forgotCancel" class="modal-btn modal-btn-secondary">Cancel</button>
-        <button type="submit" id="forgotSubmit" class="modal-btn">Send Link</button>
+        <button type="submit" id="forgotSubmit" class="modal-btn">Send Code</button>
       </div>
     </form>
+
+    <!-- Step 2 -->
+    <form id="verifyForm" class="forgot-step" data-step="verify" novalidate hidden>
+      <div class="forgot-badge"><i class="fa-solid fa-envelope-open-text"></i></div>
+      <h3>Enter verification code</h3>
+      <p>We sent a 6-digit code to <strong id="verifyEmail"></strong>. It expires in 10 minutes.</p>
+
+      <div id="codeInputs" class="code-inputs" role="group" aria-label="6-digit verification code">
+        <input class="code-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Digit 1">
+        <input class="code-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 2">
+        <input class="code-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 3">
+        <input class="code-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 4">
+        <input class="code-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 5">
+        <input class="code-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 6">
+      </div>
+
+      <label for="resetNewPassword">New Password</label>
+      <div class="input-box password-box">
+        <i class="fa-solid fa-lock"></i>
+        <input type="password" id="resetNewPassword" placeholder="At least 8 characters" autocomplete="new-password">
+        <button type="button" class="password-toggle" data-target="resetNewPassword" aria-label="Show password" title="Show password">
+          <i class="fa-regular fa-eye"></i>
+        </button>
+      </div>
+
+      <label for="resetConfirmPassword">Confirm New Password</label>
+      <div class="input-box password-box">
+        <i class="fa-solid fa-lock"></i>
+        <input type="password" id="resetConfirmPassword" placeholder="Type the new password again" autocomplete="new-password">
+        <button type="button" class="password-toggle" data-target="resetConfirmPassword" aria-label="Show password" title="Show password">
+          <i class="fa-regular fa-eye"></i>
+        </button>
+      </div>
+
+      <p id="verifyStatus" class="forgot-status" role="status"></p>
+      <div class="forgot-actions">
+        <button type="button" id="verifyBack" class="modal-btn modal-btn-secondary">Back</button>
+        <button type="submit" id="verifySubmit" class="modal-btn">Change Password</button>
+      </div>
+      <p class="resend-row">
+        Didn't get the code?
+        <button type="button" id="resendCode" class="link-btn">Resend code</button>
+      </p>
+    </form>
+
+    <!-- Step 3 -->
+    <div class="forgot-step" data-step="done" hidden>
+      <div class="forgot-badge is-success"><i class="fa-solid fa-circle-check"></i></div>
+      <h3>Password changed</h3>
+      <p>Your password has been updated and other devices were signed out. Sign in with your new password.</p>
+      <div class="forgot-actions">
+        <button type="button" id="doneSignIn" class="modal-btn">Back to Sign In</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<script type="module" src="../jsPages/login.js?v=2026-09-27-2"></script>
+<script type="module" src="../jsPages/login.js?v=2026-09-29-2"></script>
 </body>
 </html>

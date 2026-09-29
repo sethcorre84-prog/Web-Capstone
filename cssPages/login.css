@@ -945,16 +945,147 @@ button:hover {
 
 /* Forgot Password Modal */
 .forgot-box {
-    max-width: 400px;
+    max-width: 420px;
+    /* The code step is tall; on a short screen it scrolls inside itself. */
+    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
 }
 
-.forgot-icon {
+/* Round green tile at the top of each step. */
+.forgot-badge {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 14px;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    background: var(--icon-tint);
     color: #1e7f41;
+    font-size: 24px;
+}
+
+.forgot-badge.is-success {
+    border-radius: 50%;
+    font-size: 28px;
+}
+
+.forgot-step[hidden] {
+    display: none;
+}
+
+.forgot-step {
+    animation: modalPop 0.2s ease-out;
+}
+
+.forgot-box p strong {
+    color: #1a1a1a;
+    overflow-wrap: anywhere;
+}
+
+.forgot-box label {
+    margin-bottom: 8px;
+    text-align: left;
+    font-size: 13px;
 }
 
 .forgot-box .input-box {
     margin-bottom: 12px;
     text-align: left;
+}
+
+.forgot-box .input-box:focus-within {
+    border-color: #1e7f41;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(30, 127, 65, 0.14);
+}
+
+.forgot-box .input-box.invalid:focus-within {
+    border-color: #e3a29b;
+    box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.12);
+}
+
+/* The six code boxes. */
+.code-inputs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 0 20px;
+}
+
+.code-digit {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 50px;
+    height: 56px;
+    border: 1px solid #dae4eb;
+    border-radius: 12px;
+    background: #f8fbfd;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #17232d;
+    caret-color: #1e7f41;
+    font-variant-numeric: tabular-nums;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        background 0.15s ease;
+}
+
+.code-digit:focus {
+    outline: none;
+    border-color: #1e7f41;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(30, 127, 65, 0.14);
+}
+
+.code-inputs.invalid .code-digit {
+    border-color: #e3a29b;
+    background: #fff8f7;
+}
+
+.forgot-box .resend-row {
+    margin: 16px 0 0;
+    font-size: 13px;
+    color: #6b7885;
+}
+
+/* A text link that is really a button; undoes the page's big green button. */
+.link-btn {
+    display: inline;
+    width: auto;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    color: #1e7f41;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.link-btn:hover {
+    background: none;
+    text-decoration: underline;
+}
+
+.link-btn:disabled {
+    color: #9aa6b1;
+    cursor: default;
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+}
+
+#verifySubmit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .forgot-step {
+        animation: none;
+    }
 }
 
 .forgot-box input[readonly] {
@@ -993,6 +1124,13 @@ button:hover {
 
 .modal-btn-secondary:hover {
     background: #dfe5ea;
+}
+
+.modal-btn:focus-visible,
+.link-btn:focus-visible,
+.forgot-box .password-toggle:focus-visible {
+    outline: 3px solid rgba(30, 127, 65, 0.35);
+    outline-offset: 2px;
 }
 
 .modal-btn:disabled {
