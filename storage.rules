@@ -3,6 +3,12 @@ service firebase.storage {
   match /b/{bucket}/o {
     // Same admin check as firestore.rules: the UID must have a document in
     // the Firestore "admins" collection.
+    //
+    // Reading Firestore from Storage rules needs a one-time grant: the
+    // "Firebase Rules Firestore Service Agent" role for the Storage service
+    // account. `firebase deploy --only storage` offers it ("Grant the new
+    // role?") whenever the rules have changed; until it is granted, this
+    // check fails and every upload is refused as unauthorized.
     function isAdmin() {
       return request.auth != null &&
         firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));

@@ -1046,6 +1046,11 @@
 	.media-item.uploading .media-progress {
 		display: block;
 	}
+	/* A background upload that failed; Save tries it again. */
+	.media-item.upload-failed {
+		border-color: var(--danger);
+		box-shadow: 0 0 0 1px var(--danger);
+	}
 	.media-error {
 		font-size: 12px;
 		color: var(--danger);
@@ -2050,6 +2055,11 @@ setInterval(() => {
 		// Picked files are previewed from memory and only uploaded to Firebase
 		// Storage (advisories/{advisoryId}/...) when the advisory is saved.
 		const MAX_MEDIA_FILES = 6;
+		// Firebase retries a failing upload quietly for 10 minutes by default,
+		// which looks like a frozen "Uploading 0 of 1". Give up after 2 and
+		// say why instead.
+		storage.maxUploadRetryTime = 2 * 60 * 1000;
+		storage.maxOperationRetryTime = 2 * 60 * 1000;
 		const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 		const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
@@ -2094,11 +2104,16 @@ setInterval(() => {
 			}
 			mediaError.textContent = problems.join(' ');
 			renderMediaPicker();
+			// Upload straight away, in the background.
+			mediaItems
+				.filter(item => item.file && !item.saved && !item.upload)
+				.forEach(item => startUpload(draftRef.id, item));
 		}
 
 		function removeMediaItem(index){
 			const [item] = mediaItems.splice(index, 1);
 			if (!item) return;
+			cancelUpload(item);
 			if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
 			if (item.saved) removedMedia.push(item.saved);
 			mediaError.textContent = '';
@@ -2114,7 +2129,9 @@ setInterval(() => {
 				tile.title = name || '';
 
 				const preview = document.createElement(kind === 'video' ? 'video' : 'img');
-				preview.src = item.saved ? item.saved.url : item.previewUrl;
+				// The local preview stays after a background upload finishes,
+				// so the tile doesn't reload from Storage.
+				preview.src = item.previewUrl || item.saved.url;
 				if (kind === 'video') {
 					preview.muted = true;
 					preview.preload = 'metadata';
@@ -2143,6 +2160,7 @@ setInterval(() => {
 				tile.appendChild(progress);
 
 				item.tile = tile;
+				paintUpload(item);
 				mediaList.appendChild(tile);
 			});
 
@@ -2154,45 +2172,125 @@ setInterval(() => {
 				: 'Click to upload or drag files here';
 		}
 
-		function uploadMediaFile(advisoryId, item){
-			const safeName = item.file.name.replace(/[^\w.-]+/g, '_').slice(-80);
-			const path = `advisories/${advisoryId}/${Date.now()}-${safeName}`;
-			const task = uploadBytesResumable(storageRef(storage, path), item.file, { contentType: item.file.type });
-			const bar = item.tile?.querySelector('.media-progress span');
-			item.tile?.classList.add('uploading');
+		/* ---- Fast uploads ----
+		   Three things keep attaching media quick:
+		   1. Photos are shrunk in the browser first: at most 1920px on the long
+		      edge, as JPEG at 82% quality. A 4-8 MB phone photo comes out at a
+		      few hundred KB and still looks sharp in the app. Videos, GIFs
+		      (animation) and small images are sent untouched.
+		   2. Each file starts uploading the moment it is picked, while the admin
+		      is still typing, so Save usually has nothing left to wait for.
+		   3. Files upload side by side instead of one after another. */
+		const MAX_IMAGE_EDGE = 1920;
+		const IMAGE_QUALITY = 0.82;
+		const SHRINK_ABOVE_BYTES = 400 * 1024;
 
-			return new Promise((resolve, reject) => {
-				task.on('state_changed',
-					(snap) => { if (bar) bar.style.width = `${(snap.bytesTransferred / snap.totalBytes) * 100}%`; },
-					reject,
-					async () => {
-						try {
-							resolve({
-								url: await getDownloadURL(task.snapshot.ref),
-								path,
-								type: item.kind,
-								name: item.file.name,
-								contentType: item.file.type,
-								size: item.file.size
-							});
-						} catch (err) {
-							reject(err);
-						}
-					});
-			}).finally(() => item.tile?.classList.remove('uploading'));
+		async function shrinkImage(file){
+			if (!/^image\/(jpeg|png|webp|bmp)$/.test(file.type) || file.size <= SHRINK_ABOVE_BYTES) return file;
+			try {
+				const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+				const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height));
+				const canvas = document.createElement('canvas');
+				canvas.width = Math.round(bitmap.width * scale);
+				canvas.height = Math.round(bitmap.height * scale);
+				const ctx = canvas.getContext('2d');
+				// JPEG has no transparency; a transparent PNG gets a white
+				// background instead of a black one.
+				ctx.fillStyle = '#fff';
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+				bitmap.close?.();
+				const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', IMAGE_QUALITY));
+				if (!blob || blob.size >= file.size) return file;
+				const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+				return new File([blob], name, { type: 'image/jpeg', lastModified: file.lastModified });
+			} catch (err) {
+				// A format this browser cannot decode (e.g. HEIC) goes up as is.
+				console.warn('Could not shrink', file.name, err);
+				return file;
+			}
 		}
 
-		// Uploads every file that isn't in Storage yet, one at a time so the
-		// progress bars fill in order, and returns the full media list to save.
-		async function uploadPendingMedia(advisoryId){
-			const pending = mediaItems.filter(item => item.file);
-			for (const [i, item] of pending.entries()) {
-				saveBtn.textContent = `Uploading ${i + 1} of ${pending.length}…`;
-				const saved = await uploadMediaFile(advisoryId, item);
-				URL.revokeObjectURL(item.previewUrl);
-				Object.assign(item, { saved, file: null, previewUrl: null });
+		// Redraws one tile's progress bar and state; tiles are rebuilt on every
+		// add/remove, so the state lives on the item, not the element.
+		function paintUpload(item){
+			const tile = item.tile;
+			if (!tile) return;
+			tile.classList.toggle('uploading', !!item.uploading);
+			tile.classList.toggle('upload-failed', !!item.error);
+			const bar = tile.querySelector('.media-progress span');
+			if (bar) bar.style.width = `${Math.round((item.progress || 0) * 100)}%`;
+		}
+
+		// Shrinks and uploads one picked file in the background. The result
+		// lands on item.saved; a failure is kept on item.error and retried on
+		// Save.
+		function startUpload(advisoryId, item){
+			item.error = null;
+			item.uploading = true;
+			item.progress = 0;
+			paintUpload(item);
+			item.upload = (async () => {
+				const file = item.kind === 'image' ? await shrinkImage(item.file) : item.file;
+				if (item.cancelled) throw Object.assign(new Error('cancelled'), { code: 'storage/canceled' });
+				const safeName = file.name.replace(/[^\w.-]+/g, '_').slice(-80);
+				const path = `advisories/${advisoryId}/${Date.now()}-${safeName}`;
+				const task = uploadBytesResumable(storageRef(storage, path), file, {
+					contentType: file.type,
+					// Uploads never change, so the app can cache them for good.
+					cacheControl: 'public, max-age=31536000'
+				});
+				item.task = task;
+				await new Promise((resolve, reject) => {
+					task.on('state_changed', (snap) => {
+						item.progress = snap.bytesTransferred / snap.totalBytes;
+						paintUpload(item);
+					}, reject, resolve);
+				});
+				const saved = {
+					url: await getDownloadURL(task.snapshot.ref),
+					path,
+					type: item.kind,
+					name: item.file.name,
+					contentType: file.type,
+					size: file.size
+				};
+				// Removed (or the modal closed) just as it finished.
+				if (item.cancelled) {
+					deleteMediaFiles([saved]);
+					throw Object.assign(new Error('cancelled'), { code: 'storage/canceled' });
+				}
 				unsavedUploads.push(saved);
-			}
+				item.saved = saved;
+				return saved;
+			})();
+			item.upload
+				.catch(err => { if (err?.code !== 'storage/canceled') item.error = err; })
+				.finally(() => {
+					item.uploading = false;
+					item.task = null;
+					paintUpload(item);
+				});
+			return item.upload;
+		}
+
+		function cancelUpload(item){
+			if (!item.uploading) return;
+			item.cancelled = true;
+			item.task?.cancel();
+		}
+
+		// Waits for every background upload (retrying any that failed) and
+		// returns the full media list to save.
+		async function uploadPendingMedia(advisoryId){
+			const pending = mediaItems.filter(item => !item.saved);
+			let done = 0;
+			const show = () => { saveBtn.textContent = `Uploading ${done} of ${pending.length}…`; };
+			if (pending.length) show();
+			await Promise.all(pending.map(item => {
+				const upload = (item.uploading && item.upload) ? item.upload : startUpload(advisoryId, item);
+				return upload.then(() => { done += 1; show(); });
+			}));
 			return mediaItems.map(item => item.saved);
 		}
 
@@ -2284,6 +2382,7 @@ setInterval(() => {
 		}
 		function closeModal(){
 			if (isSaving) return;
+			mediaItems.forEach(cancelUpload);
 			deleteMediaFiles(unsavedUploads);
 			unsavedUploads = [];
 			resetMediaPicker([]);

@@ -362,7 +362,9 @@ const RISK_COLORS = {
   low: { bg: "#e7f5eb", text: "#2f8f4e" }
 };
 
-function advisoryMessage(advisory) {
+// `images` are the photos already downloaded by loadAdvisoryImages.
+function advisoryMessage(advisory, images = []) {
+  const videos = advisoryMedia(advisory, "video");
   const type = advisory.type || "Advisory";
   const title = advisory.title || "Untitled";
   const risk = advisory.riskLevel || "";
@@ -387,6 +389,8 @@ function advisoryMessage(advisory) {
     ...details.map(([label, value]) => `${label}: ${value}`),
     "",
     desc,
+    images.length ? `\n${images.length} photo${images.length === 1 ? "" : "s"} attached.` : "",
+    ...videos.map((video) => `Video: ${video.url}`),
     actions.length ? "\nRecommended actions:" : "",
     ...actions.map((action) => `- ${action}`),
     "",
@@ -407,14 +411,59 @@ function advisoryMessage(advisory) {
         `<tr><td style="padding:3px 16px 3px 0;color:#5b6b60">${escapeHtml(label)}</td><td style="padding:3px 0;font-weight:600">${escapeHtml(value)}</td></tr>`).join("")}
     </table>
     ${desc ? `<p style="margin:0 0 18px;font-size:14.5px;line-height:1.6;white-space:pre-line">${escapeHtml(desc)}</p>` : ""}
-    ${actions.length ? `<p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#1f6b39">Recommended actions</p>
+    ${images.map((image) =>
+      `<p style="margin:0 0 12px"><img src="cid:${image.cid}" alt="${escapeHtml(image.filename)}" style="display:block;max-width:100%;height:auto;border-radius:10px"></p>`).join("")}
+    ${videos.map((video) =>
+      `<p style="margin:0 0 12px;font-size:14px"><a href="${escapeHtml(video.url)}" style="color:#1f6b39;font-weight:700">&#9654; Watch video${video.name ? `: ${escapeHtml(video.name)}` : ""}</a></p>`).join("")}
+    ${actions.length ? `<p style="margin:${images.length || videos.length ? "18px" : "0"} 0 6px;font-size:14px;font-weight:700;color:#1f6b39">Recommended actions</p>
     <ul style="margin:0 0 18px;padding-left:20px;font-size:14px;line-height:1.6">${actions.map((action) => `<li>${escapeHtml(action)}</li>`).join("")}</ul>` : ""}
     <p style="margin:24px 0 0;padding-top:14px;border-top:1px solid #e4e7e1;font-size:12px;color:#93a199">Published by ${escapeHtml(publishedBy)} · You are receiving this because you have a PeakPath account.</p>
   </div>
 </body>
 </html>`;
 
-  return { subject: `PeakPath ${type}: ${title}`, text, html };
+  return { subject: `PeakPath ${type}: ${title}`, text, html, attachments: images };
+}
+
+/* ---- Photos and videos in the email ----
+   The advisory's photos travel inside the email (inline attachments shown by
+   "cid:" in the HTML), so they appear even where remote images are blocked.
+   They were already shrunk by the A&A page before upload. Videos are far too
+   large to attach, so each gets a link to watch it instead. */
+const MEDIA_URL_PREFIX = "https://firebasestorage.googleapis.com/";
+const MAX_EMAIL_IMAGES = 6;
+const MAX_EMAIL_IMAGE_BYTES = 5 * 1024 * 1024;
+const IMAGE_EXTENSIONS = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
+
+// Only files in this project's Storage are fetched or linked, whatever the
+// advisory document says.
+const advisoryMedia = (advisory, kind) =>
+  (Array.isArray(advisory.media) ? advisory.media : []).filter(
+    (item) => item && item.type === kind && typeof item.url === "string" && item.url.startsWith(MEDIA_URL_PREFIX)
+  );
+
+// Downloads the photos once, so every Bcc batch reuses the same bytes. One
+// that cannot be fetched is left out rather than failing the whole email.
+async function loadAdvisoryImages(advisory) {
+  const images = [];
+  for (const [index, item] of advisoryMedia(advisory, "image").slice(0, MAX_EMAIL_IMAGES).entries()) {
+    try {
+      const response = await fetch(item.url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const content = Buffer.from(await response.arrayBuffer());
+      if (content.length > MAX_EMAIL_IMAGE_BYTES) continue;
+      const contentType = item.contentType || response.headers.get("content-type") || "image/jpeg";
+      images.push({
+        filename: `photo-${index + 1}.${IMAGE_EXTENSIONS[contentType] || "jpg"}`,
+        content,
+        contentType,
+        cid: `photo${index + 1}@peakpath`
+      });
+    } catch (error) {
+      logger.warn(`Could not attach photo ${index + 1} of an advisory`, error);
+    }
+  }
+  return images;
 }
 
 /* The email comes from the admin who saved the advisory (sentByEmail, set by
@@ -435,7 +484,7 @@ function advisorySender(advisory) {
 async function sendAdvisoryEmail(ref, advisory) {
   const recipients = await advisoryRecipients(advisory.visibility);
   const { from, replyTo, account } = advisorySender(advisory);
-  const message = advisoryMessage(advisory);
+  const message = advisoryMessage(advisory, await loadAdvisoryImages(advisory));
   const transporter = mailTransport();
   let sent = 0;
   try {

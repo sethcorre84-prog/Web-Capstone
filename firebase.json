@@ -5,5 +5,8 @@
       "codebase": "default",
       "runtime": "nodejs22"
     }
-  ]
+  ],
+  "storage": {
+    "rules": "storage.rules"
+  }
 }
