@@ -1607,6 +1607,21 @@
         <span id="modalLocation">Location</span>
       </div>
 
+      <!-- Verifying only: the admin always picks the risk level here, even
+           when the report already has one, so no hazard is verified on a
+           level nobody checked. -->
+      <div id="verifyRiskField" hidden>
+        <label class="modal-label" for="verifyRiskLevel">Risk level (required)</label>
+        <select id="verifyRiskLevel" class="resolution-input">
+          <option value="" disabled>Select risk level…</option>
+          <option value="Low">Low</option>
+          <option value="Moderate">Moderate</option>
+          <option value="High">High</option>
+        </select>
+        <p id="verifyRiskHint" style="margin:-6px 0 8px;font-size:12px;color:var(--text-600);"></p>
+        <div class="form-error" id="verifyRiskError" role="alert"></div>
+      </div>
+
       <label class="modal-label" for="statusReason" id="statusReasonLabel">Note (optional)</label>
       <textarea
         class="modal-textarea"
@@ -1733,6 +1748,7 @@
           </label>
           <label>Risk Level
             <select id="editRiskLevel">
+              <option value="" disabled>Select risk level…</option>
               <option value="Low">Low</option>
               <option value="Moderate">Moderate</option>
               <option value="High">High</option>
@@ -2299,7 +2315,9 @@ function openEditReportModal(reportId) {
   editReportTargetId = reportId;
 
   document.getElementById('editHazardType').value = report.hazardType || '';
-  document.getElementById('editRiskLevel').value = getRiskLevel(report).className === 'unknown' ? 'Moderate' : getRiskLevel(report).label;
+  // No default for an unrated report: the admin has to pick a level.
+  const currentRisk = getRiskLevel(report);
+  document.getElementById('editRiskLevel').value = currentRisk.className === 'unknown' ? '' : currentRisk.label;
   document.getElementById('editLocation').value = report.location || '';
   document.getElementById('editTrail').value = report.trail || '';
   document.getElementById('editReportedBy').value = report.reportedBy || '';
@@ -2328,6 +2346,11 @@ async function confirmEditReport() {
   if (!editReportTargetId) return;
   const confirmBtn = document.getElementById('editReportSaveBtn');
   const errorEl = document.getElementById('editReportError');
+  const riskLevel = document.getElementById('editRiskLevel').value;
+  if (!riskLevel) {
+    errorEl.textContent = 'Select a risk level before saving.';
+    return;
+  }
 
   confirmBtn.disabled = true;
   confirmBtn.textContent = 'Saving...';
@@ -2338,7 +2361,7 @@ async function confirmEditReport() {
     // locked in the UI, and this is also enforced here so nothing
     // else is ever written even if the DOM were tampered with.
     await updateDoc(doc(db, 'reports', editReportTargetId), {
-      riskLevel: document.getElementById('editRiskLevel').value,
+      riskLevel,
       updatedAt: new Date()
     });
     closeEditReportModal();
@@ -2413,9 +2436,7 @@ function renderReportDetails(report) {
     ? 'Rejecting is final — this report cannot be verified again.'
     : isResolved
       ? 'This hazard is already resolved.'
-      : isVerified
-        ? 'This hazard is already being verified.'
-        : 'Set a valid risk level before this report can be verified.';
+      : 'This hazard is already being verified.';
 
   const rejectBlockedReason = isRejected
     ? 'This report is already rejected.'
@@ -2507,11 +2528,11 @@ function renderReportDetails(report) {
     </div>
     <div class="admin-actions">
       <p class="section-label">Admin Actions</p>
-      ${risk.className === 'unknown' ? `
-        <div class="form-error" style="margin-bottom:2px;">Set a valid risk level before this report can be verified or rejected.</div>
+      ${risk.className === 'unknown' && !isRejected && !isVerified && !isResolved ? `
+        <div class="form-error" style="margin-bottom:2px;">Set a valid risk level before this report can be rejected. Verifying asks for one.</div>
       ` : ''}
       <div class="row">
-          ${report.status === 'verified' || isRejected || isResolved || risk.className === 'unknown'
+          ${report.status === 'verified' || isRejected || isResolved
             ? `<button class="btn btn-verify" disabled style="opacity:.6;cursor:not-allowed" title="${verifyBlockedReason}">✔ Verify Hazard</button>`
             : `<button class="btn btn-verify" onclick="updateReportStatus('${report.id}', 'verified')">✔ Verify Hazard</button>`
           }
@@ -2700,6 +2721,17 @@ function openStatusModal(reportId, newStatus) {
   // Resolving asks the questionnaire; verifying and rejecting keep the note.
   setResolutionFormVisible(newStatus === 'resolved');
 
+  // Verifying asks for the risk level with nothing preselected; the level
+  // already on the report is only shown as a hint.
+  const verifyRiskField = document.getElementById('verifyRiskField');
+  verifyRiskField.hidden = newStatus !== 'verified';
+  document.getElementById('verifyRiskLevel').value = '';
+  const currentRisk = getRiskLevel(report);
+  document.getElementById('verifyRiskHint').textContent = currentRisk.className === 'unknown'
+    ? 'This report has no risk level yet.'
+    : `Currently marked ${currentRisk.label}. Confirm it or pick another level.`;
+  document.getElementById('verifyRiskError').textContent = '';
+
   if (newStatus === 'verified') {
     icon.className = 'modal-icon verify';
     icon.textContent = '✓';
@@ -2800,6 +2832,10 @@ Object.values(resolutionFields).forEach((field) => {
   field.addEventListener('change', refreshResolutionPreview);
 });
 
+document.getElementById('verifyRiskLevel').addEventListener('change', () => {
+  document.getElementById('verifyRiskError').textContent = '';
+});
+
 function closeStatusModal() {
   const modal = document.getElementById('statusModal');
   modal.classList.remove('show');
@@ -2826,6 +2862,7 @@ function showStatusModalMessage(message) {
   reasonLabel.style.display = 'none';
   reason.style.display = 'none';
   document.getElementById('resolutionForm').hidden = true;
+  document.getElementById('verifyRiskField').hidden = true;
 
   confirmBtn.className = 'modal-btn cancel';
   confirmBtn.textContent = 'Close';
@@ -2848,6 +2885,12 @@ async function confirmStatusUpdate() {
 
   const { reportId, newStatus, report } = pendingStatusAction;
   const reason = document.getElementById('statusReason').value.trim();
+  const verifyRiskLevel = document.getElementById('verifyRiskLevel').value;
+  if (newStatus === 'verified' && !verifyRiskLevel) {
+    document.getElementById('verifyRiskError').textContent = 'Select a risk level before verifying.';
+    document.getElementById('verifyRiskLevel').focus();
+    return;
+  }
   const confirmBtn = document.getElementById('modalConfirmBtn');
   const [idleLabel, busyLabel] = {
     verified: ['Verify Report', 'Verifying...'],
@@ -2866,6 +2909,8 @@ async function confirmStatusUpdate() {
       status: newStatus,
       updatedAt: new Date()
     };
+
+    if (newStatus === 'verified') updateData.riskLevel = verifyRiskLevel;
 
     if (newStatus === 'resolved') {
       /* The questionnaire's answers, turned into the paragraph the hiker
