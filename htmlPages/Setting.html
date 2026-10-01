@@ -17,6 +17,7 @@
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <!-- ===== end resource hints ===== -->
 <script src="../jsPages/sidebar.js"></script>
+<script defer src="../jsPages/image-viewer.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
@@ -1685,6 +1686,14 @@
   function detailValueHTML(key, value) {
     const text = detailText(key, value);
     if (/^https?:\/\/\S+$/i.test(text)) {
+      // A picture opens in the pop-up viewer (image-viewer.js); other links
+      // still open in a new tab.
+      const path = text.split('?')[0];
+      const isImage = /\.(png|jpe?g|gif|webp|bmp|avif|heic)$/i.test(path)
+        || (/firebasestorage/i.test(text) && !/\.(pdf|docx?|xlsx?|mp4|mov|webm)$/i.test(path));
+      if (isImage) {
+        return `<a href="${escapeHTML(text)}" data-lightbox="${escapeHTML(text)}">${escapeHTML(text)}</a>`;
+      }
       return `<a href="${escapeHTML(text)}" target="_blank" rel="noopener">${escapeHTML(text)}</a>`;
     }
     return escapeHTML(text);
@@ -1720,7 +1729,8 @@
       if (kind && !kind.includes('image') && !kind.includes('photo')) {
         return `<a class="file-link" href="${escapeHTML(url)}" target="_blank" rel="noopener">${escapeHTML(name)}</a>`;
       }
-      return `<a href="${escapeHTML(url)}" target="_blank" rel="noopener" title="Open full size">
+      // Opens in the pop-up viewer (image-viewer.js), not a new tab.
+      return `<a href="${escapeHTML(url)}" data-lightbox="${escapeHTML(url)}" data-lightbox-group="archive-media" data-lightbox-caption="${escapeHTML(name)}" title="View full size">
         <img src="${escapeHTML(url)}" alt="${escapeHTML(name)}" loading="lazy"></a>`;
     }).join('');
     return tiles ? `<div class="detail-media">${tiles}</div>` : '';

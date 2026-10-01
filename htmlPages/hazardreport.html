@@ -18,6 +18,7 @@
 <!-- ===== end resource hints ===== -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="../jsPages/sidebar.js"></script>
+<script defer src="../jsPages/image-viewer.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="../cssPages/pages.css">
 <script type="module" src="../jsPages/dashboard-guard.js"></script>
@@ -2391,19 +2392,27 @@ function renderAttachments(report) {
     : (report.photoUrl ? [report.photoUrl] : []);
 
   if (urls.length === 0) {
-    return '<div class="attach-thumb" style="background:var(--dm-surface-2, #eef2ee);"></div>';
+    return '<span style="font-size:12.5px;color:var(--text-400);">No attachment submitted</span>';
   }
 
   const maxShown = 3;
   const shown = urls.slice(0, maxShown);
   const remaining = urls.length - maxShown;
+  // Opens in the pop-up viewer (image-viewer.js); one group per report so
+  // the arrows step through all of its photos, including the hidden ones.
+  const group = escapeHtml(`report-${report.id}`);
+  const lightbox = (url, index) =>
+    `data-lightbox="${escapeHtml(url)}" data-lightbox-group="${group}" data-lightbox-caption="Attachment ${index + 1}"`;
 
-  const thumbs = shown.map(url => `
-    <div class="attach-thumb" onclick="window.open('${url}', '_blank')" style="cursor:pointer;background-image:url('${url}');background-size:cover;background-position:center;"></div>
+  const thumbs = shown.map((url, index) => `
+    <button type="button" class="attach-thumb" ${lightbox(url, index)} title="View attachment ${index + 1}" style="border:0;padding:0;">
+      <img src="${escapeHtml(url)}" alt="Attachment ${index + 1}" loading="lazy" style="width:100%;height:100%;object-fit:cover;">
+    </button>
   `).join('');
 
   const more = remaining > 0
-    ? `<div class="attach-more">+${remaining}<br>More</div>`
+    ? `<button type="button" class="attach-more" ${lightbox(urls[maxShown], maxShown)} style="border:0;">+${remaining}<br>More</button>` +
+      urls.slice(maxShown + 1).map((url, i) => `<span hidden ${lightbox(url, maxShown + 1 + i)}></span>`).join('')
     : '';
 
   return thumbs + more;

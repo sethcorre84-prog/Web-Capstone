@@ -3836,6 +3836,9 @@
       : `<div class="viewer-file"><i class="fa-regular fa-file-lines"></i>${escapeHtml(file.name)}<br>Preview not available — open the original file.</div>`;
     $('viewerCaption').textContent = `${viewer.index + 1} of ${viewer.files.length} · ${file.name}`;
     $('viewerOpen').href = file.url;
+    // Pictures stay in this viewer; only files it can't preview (PDFs and
+    // the like) get a link out to the original.
+    $('viewerOpen').style.display = file.isImage ? 'none' : '';
     $('viewerPrev').hidden = viewer.files.length < 2;
     $('viewerNext').hidden = viewer.files.length < 2;
   };

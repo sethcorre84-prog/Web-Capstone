@@ -20,6 +20,7 @@
 <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
 <!-- ===== end resource hints ===== -->
 <script src="../jsPages/sidebar.js"></script>
+<script defer src="../jsPages/image-viewer.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="../cssPages/pages.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
@@ -1110,7 +1111,7 @@
       <div>
         <div class="panel">
           <div class="panel-title">Trail Details</div>
-          <div id="detailPhoto" class="detail-photo">
+          <div id="detailPhoto" class="detail-photo" title="View full size">
             <span class="badge open detail-status-badge" id="detailPhotoStatus">Open</span>
           </div>
           <div class="detail-name" id="detailName">Mariang Makiling Trail</div>
@@ -1559,6 +1560,9 @@ function renderDetail() {
   document.getElementById('detailPhoto').style.backgroundImage = `url('${getTrailImage(t)}')`;
   document.getElementById('detailPhoto').style.backgroundSize = 'cover';
   document.getElementById('detailPhoto').style.backgroundPosition = 'center';
+  // Clicking the photo opens it full size in the pop-up viewer (image-viewer.js).
+  document.getElementById('detailPhoto').dataset.lightbox = getTrailImage(t);
+  document.getElementById('detailPhoto').dataset.lightboxCaption = t.Trail || '';
 
   const statusSelect = document.getElementById('statusUpdateSelect');
   if (statusSelect) {
