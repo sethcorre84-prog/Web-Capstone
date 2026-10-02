@@ -575,7 +575,8 @@
 		border-radius: 50%;
 		background: var(--accent);
 	}
-	/* Delivery note for the Email channel, on its own line under the chips. */
+	/* Delivery note for a channel (In-App, Email), each on its own line
+	   under the chips. */
 	.chan-email-status {
 		flex-basis: 100%;
 		display: inline-flex;
@@ -1398,20 +1399,6 @@
 	</div>
 </div>
 
-<!-- Restore Expired Advisory Modal -->
-<div class="modal-overlay" id="restoreConfirmOverlay">
-	<div class="modal" style="max-width:380px;text-align:center;padding:28px 24px">
-		<div style="width:44px;height:44px;border-radius:50%;background:var(--warning-light);color:var(--warning);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
-		</div>
-		<div style="font-size:14px;font-weight:600;margin-bottom:18px;color:var(--text-primary)">This advisory has been expired or deleted, do you want to edit it and place it again in the Advisory and Announcement?</div>
-		<div style="display:flex;gap:10px">
-			<button class="btn-secondary" id="restoreConfirmNo" style="flex:1">No</button>
-			<button class="btn-primary" id="restoreConfirmYes" style="flex:1">Yes</button>
-		</div>
-	</div>
-</div>
-
 	<script type="module">
 		import { auth, db, storage } from "../jsPages/firebase-config.js";
 		import { escapeHtml } from "../jsPages/utils.js";
@@ -1502,6 +1489,31 @@
 // Effective status for display/filtering — an advisory whose expiresAt
 // has passed is treated as Expired immediately, even before Firestore's
 // stored status field is updated by syncExpiredAdvisories() below.
+		// Where the In-App channel stands for one advisory, for the detail panel.
+		// The app keeps no delivery receipt, so this states what the app shows,
+		// worked out the way the app decides it (ReportService.showsInApp and
+		// the expiry check in the mobile repo): an advisory with In-App ticked
+		// appears from the moment it is published until it expires. The time is
+		// the same createdAt -> publishedAt -> updatedAt chain the app shows.
+		function describeInAppStatus(it){
+			const channels = Array.isArray(it.channels) ? it.channels : null;
+			const fmt = (d) => d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+			// No channels field at all is treated as In-App, by the app and here.
+			if (channels && !channels.includes('In-App')) {
+				return { tone: 'muted', icon: 'fa-mobile-screen', text: 'Not sent to the app (Email only)' };
+			}
+			if (getEffectiveStatus(it) === 'Expired') {
+				const until = toDate(it.expiresAt);
+				return { tone: 'muted', icon: 'fa-mobile-screen', text: `Removed from the app (expired${until ? ' ' + fmt(until) : ''})` };
+			}
+			const published = toDate(it.createdAt) || toDate(it.publishedAt) || toDate(it.updatedAt);
+			return {
+				tone: 'ok',
+				icon: 'fa-mobile-screen',
+				text: `Published in the app${published ? ' · ' + fmt(published) : ''}`
+			};
+		}
+
 		// Where the Email channel stands for one advisory, for the detail panel.
 		function describeEmailStatus(it){
 			const email = it.email || {};
@@ -1810,10 +1822,6 @@ async function syncExpiredAdvisories(){
 					updateArchiveButtonState();
 					renderExpiredList();
 				};
-				row.oncontextmenu = (e) => {
-					e.preventDefault();
-					showRestorePrompt(it.id);
-				};
 				row.innerHTML = `
 				<div class="thumb" style="background:${meta.bg};color:${meta.fg};width:32px;height:32px;flex-shrink:0">
 					<svg viewBox="0 0 24 24" style="width:15px;height:15px">${meta.icon}</svg>
@@ -1963,15 +1971,18 @@ async function syncExpiredAdvisories(){
 					chanEl.appendChild(item);
 				});
 			}
-			// The Email channel is sent by the emailAdvisory Cloud Function,
-			// which records how it went on the advisory's `email` field.
-			if (channels.includes('Email')) {
-				const status = describeEmailStatus(it);
+			const addNote = (status) => {
 				const note = el('div', `chan-email-status is-${status.tone}`);
 				note.innerHTML = `<i class="fa-solid ${status.icon}" aria-hidden="true"></i>${escapeHtml(status.text)}`;
 				if (status.title) note.title = status.title;
 				chanEl.appendChild(note);
-			}
+			};
+			// Always shown, so an Email-only advisory says plainly that the app
+			// never got it.
+			addNote(describeInAppStatus(it));
+			// The Email channel is sent by the emailAdvisory Cloud Function,
+			// which records how it went on the advisory's `email` field.
+			if (channels.includes('Email')) addNote(describeEmailStatus(it));
 
 			const recEl = document.getElementById('recommendations');
 			recEl.innerHTML = '';
@@ -1982,11 +1993,14 @@ async function syncExpiredAdvisories(){
 
 			// The faded, not-allowed look for both buttons comes from their
 			// [disabled] rules in the stylesheet; only the reason goes here.
-			const editBtnEl = document.getElementById('editBtn');
-			editBtnEl.disabled = !isVisible;
-			editBtnEl.title = isVisible ? '' : 'This advisory is hidden — make it visible to edit';
-
+			// Expired advisories are history: read-only, and can only be archived.
 			const alreadyExpired = effStatus === 'Expired';
+			const editBtnEl = document.getElementById('editBtn');
+			editBtnEl.disabled = !isVisible || alreadyExpired;
+			editBtnEl.title = alreadyExpired
+				? 'Expired advisories can no longer be edited'
+				: (isVisible ? '' : 'This advisory is hidden — make it visible to edit');
+
 			const endBtnEl = document.getElementById('endBtn');
 			endBtnEl.disabled = !isVisible || alreadyExpired;
 			endBtnEl.title = alreadyExpired
@@ -2358,8 +2372,13 @@ setInterval(() => {
 		overlay.addEventListener('drop', (e) => e.preventDefault());
 
 		function openModal(id){
-			editingId = id || null;
 			const it = id ? allItems.find(d => d.id === id) : null;
+			// Every way into the edit form passes through here, so this is the
+			// one check that keeps an expired advisory read-only.
+			if (it && getEffectiveStatus(it) === 'Expired') {
+				return showAlert('This advisory has expired and can no longer be edited.');
+			}
+			editingId = id || null;
 			draftRef = id ? doc(db, 'Advisory', id) : doc(advisoryCol);
 			document.getElementById('modalTitle').textContent = it ? 'Edit Advisory' : 'Create New Advisory';
 			saveBtn.textContent = it ? 'Edit Advisory' : 'Create Advisory';
@@ -2407,11 +2426,6 @@ setInterval(() => {
         pendingEndId = null;
         return;
     }
-    if (restoreConfirmOverlay.classList.contains('open')) {
-        restoreConfirmOverlay.classList.remove('open');
-        pendingRestoreId = null;
-        return;
-    }
 });
 
 		saveBtn.addEventListener('click', async () => {
@@ -2452,12 +2466,9 @@ setInterval(() => {
 				payload.archivedBy = null;
 			}
 
-			// Re-accepting an expired advisory (edited back to a non-expired status)
-			// should surface it as a fresh, unread notification instead of staying
-			// tied to whatever read state it had before it expired.
-			const wasExpired = currentItem && getEffectiveStatus(currentItem) === 'Expired';
-			if (wasExpired && payload.status !== 'Expired') {
-				payload.restoredAt = serverTimestamp();
+			// It may have expired while the form was open; expired is read-only.
+			if (currentItem && getEffectiveStatus(currentItem) === 'Expired') {
+				return showAlert('This advisory expired while you were editing it, so the changes were not saved.');
 			}
 
 			const wasEditing = !!editingId;
@@ -2585,39 +2596,6 @@ setInterval(() => {
 		if (e.target === endConfirmOverlay) {
 		endConfirmOverlay.classList.remove('open');
 		pendingEndId = null;
-	}
-});
-
-		let pendingRestoreId = null;
-		const restoreConfirmOverlay = document.getElementById('restoreConfirmOverlay');
-
-		function showRestorePrompt(id) {
-		pendingRestoreId = id;
-		restoreConfirmOverlay.classList.add('open');
-	}
-
-		document.getElementById('restoreConfirmYes').addEventListener('click', () => {
-    	const id = pendingRestoreId;
-    	restoreConfirmOverlay.classList.remove('open');
-    	pendingRestoreId = null;
-    	if (id) {
-        openModal(id);
-        document.getElementById('mStatus').value = 'Active'; // reset from stale "Expired"
-    	}
-	});
-		document.getElementById('restoreConfirmNo').addEventListener('click', () => {
-		restoreConfirmOverlay.classList.remove('open');
-		pendingRestoreId = null;
-		selectedId = null;
-		selectedArchiveIds.clear();
-		showEmptyDetail();
-		updateArchiveButtonState();
-		applyFiltersAndRender();
-	});
-		restoreConfirmOverlay.addEventListener('click', (e) => {
-		if (e.target === restoreConfirmOverlay) {
-		restoreConfirmOverlay.classList.remove('open');
-		pendingRestoreId = null;
 	}
 });
 

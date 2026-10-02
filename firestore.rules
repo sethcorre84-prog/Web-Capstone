@@ -319,9 +319,28 @@ service cloud.firestore {
     // ===================================================================
     // Content and housekeeping
     // ===================================================================
+    /* An expired advisory is read-only: past its expiry date, or marked
+       Expired (by End Advisory or the A&A page catching up on a lapsed
+       date). The writes still allowed are the ones that file it away:
+       stamping status "Expired", archiving it, and Settings' unarchive,
+       which returns it to Expired. The emailAdvisory Cloud Function uses
+       the Admin SDK and is not subject to these rules. */
+    function advisoryExpired() {
+      return resource.data.get('status', '') == 'Expired'
+        || (resource.data.get('expiresAt', null) is timestamp
+            && resource.data.expiresAt <= request.time);
+    }
+
     match /Advisory/{advisoryId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() && (
+        !advisoryExpired()
+        || (changedKeys().hasOnly(['status'])
+            && request.resource.data.status == 'Expired')
+        || (changedKeys().hasOnly(['status', 'archivedAt', 'archivedBy', 'visible', 'expiresAt'])
+            && request.resource.data.status == 'Archived')
+      );
     }
 
     match /notifications/{notificationId} {

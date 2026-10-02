@@ -465,7 +465,12 @@
         vertical-align: middle;
         transition: background 0.12s ease;
     }
+    /* Same row height as the User Management table (about 62px: a name
+       over an email, 12px padding). A row height is a minimum, so the
+       description and location are held to two lines to keep every row
+       the same size; the full text is in their tooltips. */
     .reports-table tbody tr[data-report-id] {
+        height: 62px;
         cursor: pointer;
     }
     .reports-table tbody tr[data-report-id]:hover td {
@@ -628,8 +633,8 @@
 
     .desc-clamp {
         display: -webkit-box;
-        line-clamp: 3;
-        -webkit-line-clamp: 3;
+        line-clamp: 2;
+        -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
         min-width: 130px;
@@ -639,7 +644,11 @@
         color: var(--text-600);
     }
     .loc-text {
-        display: block;
+        display: -webkit-box;
+        line-clamp: 2;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
         min-width: 80px;
         max-width: 110px;
         font-size: 11px;
@@ -2118,7 +2127,7 @@
 
   // Same page size as every other paginated table (trail.html, A&A.html,
   // hazardreport.html) so the number of pages is consistent across the portal.
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 12;
 
   // Firestore collection that holds reports submitted about other users.
   const REPORTS_COLLECTION = 'reportedUser';
@@ -2773,7 +2782,7 @@
         <td>${personCell(report.reportedBy)}</td>
         <td><span class="badge" style="background:${report.type.bg};color:${report.type.text};">${escapeHtml(report.type.label)}</span></td>
         <td><span class="desc-clamp" title="${escapeHtml(report.description)}">${escapeHtml(report.description)}</span></td>
-        <td><span class="loc-text">${escapeHtml(report.location)}</span></td>
+        <td><span class="loc-text" title="${escapeHtml(report.location)}">${escapeHtml(report.location)}</span></td>
         <td class="stacked-date">${report.date ? `<strong>${formatDate(report.date)}</strong>${report.dateHasTime ? `<span>${formatTime(report.date)}</span>` : ''}` : '<span>—</span>'}</td>
         <td><span class="badge status ${report.status.key}">${report.status.label}</span></td>
         <td>
