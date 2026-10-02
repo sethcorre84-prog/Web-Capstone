@@ -14,7 +14,7 @@
 // The markup and styles are added by this file, scoped to .qa-modal, so the
 // Dashboard's own .button / .card styles and these never affect each other.
 
-import { db, storage } from './firebase-config.js';
+import { auth, db, storage } from './firebase-config.js';
 import {
   addDoc,
   collection,
@@ -614,7 +614,10 @@ function createAdvisoryModal() {
       visibility: $('qaAdvVisibility').value,
       channels,
       desc: $('qaAdvDesc').value.trim(),
-      recommendedActions: $('qaAdvActions').value.split('\n').map((line) => line.trim()).filter(Boolean)
+      recommendedActions: $('qaAdvActions').value.split('\n').map((line) => line.trim()).filter(Boolean),
+      // Same as A&A.html: the Email channel is sent from the admin who
+      // created it (see advisorySender in functions/index.js).
+      sentByEmail: auth.currentUser?.email || null
     };
 
     errorEl.textContent = '';

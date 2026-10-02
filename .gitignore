@@ -1,0 +1,4 @@
+# Temporary file holding Gmail app passwords for the GMAIL_SENDERS secret.
+# Never commit it.
+gmail-senders.json
+gmail-app-password.txt

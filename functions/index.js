@@ -24,6 +24,15 @@
    Security > App passwords), not the Gmail password; Gmail refuses the
    real password with "534 Application-specific password required".
 
+   Advisory emails can instead go out through the Gmail account of the admin
+   who created the advisory, so recipients see that account as the sender.
+   Each such account needs its own app password, kept together in one
+   secret as JSON (addresses in lower case):
+     firebase functions:secrets:set GMAIL_SENDERS
+       {"uplbmcme@gmail.com":"abcd efgh ijkl mnop",
+        "stotomascityenro@gmail.com":"qrst uvwx yzab cdef"}
+   An admin with no entry there is sent through GMAIL_USER as before.
+
    Each deploy pins the secret versions current at that moment, and
    `firebase deploy` skips functions whose code is unchanged -- so after
    changing a secret, the functions keep the old value until the code
@@ -45,6 +54,7 @@ const db = getFirestore();
 
 const GMAIL_USER = defineSecret("GMAIL_USER");
 const GMAIL_APP_PASSWORD = defineSecret("GMAIL_APP_PASSWORD");
+const GMAIL_SENDERS = defineSecret("GMAIL_SENDERS");
 
 const CODE_TTL_MS = 10 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 60 * 1000;
@@ -79,11 +89,27 @@ const codesMatch = (code, record) => {
   return given.length === stored.length && crypto.timingSafeEqual(given, stored);
 };
 
-const mailTransport = () =>
+const mailTransport = (user = GMAIL_USER.value(), pass = GMAIL_APP_PASSWORD.value()) =>
   nodemailer.createTransport({
     service: "gmail",
-    auth: { user: GMAIL_USER.value(), pass: GMAIL_APP_PASSWORD.value() }
+    auth: { user, pass }
   });
+
+// GMAIL_SENDERS as { "address": "app password" }. A missing or malformed
+// secret means no per-admin accounts, not a failed send.
+function senderPasswords() {
+  try {
+    const parsed = JSON.parse(GMAIL_SENDERS.value() || "{}");
+    const out = {};
+    for (const [address, pass] of Object.entries(parsed || {})) {
+      if (typeof pass === "string" && pass.trim()) out[address.trim().toLowerCase()] = pass.trim();
+    }
+    return out;
+  } catch (error) {
+    logger.warn("GMAIL_SENDERS is not valid JSON; sending advisories through GMAIL_USER", error);
+    return {};
+  }
+}
 
 async function sendCodeEmail(to, code) {
   const transporter = mailTransport();
@@ -467,25 +493,29 @@ async function loadAdvisoryImages(advisory) {
 }
 
 /* The email comes from the admin who saved the advisory (sentByEmail, set by
-   the A&A page), and replies go to them. Gmail only sends *as* an address
-   the GMAIL_USER account has verified under Settings > Accounts > "Send mail
-   as"; for any other address it quietly puts GMAIL_USER back in From. The
-   admin's name and Reply-To survive either way, so replies always reach the
-   admin who posted it. */
+   the A&A page and the dashboard's quick action), and replies go to them.
+
+   Gmail puts the account that logged in back in From, so the creator's
+   address only shows as the sender when the email is sent through the
+   creator's own account: one listed in GMAIL_SENDERS. Anyone else is sent
+   through GMAIL_USER, still with their name and Reply-To, so replies reach
+   them either way. */
 function advisorySender(advisory) {
-  const account = GMAIL_USER.value();
+  const fallback = GMAIL_USER.value();
   const admin = String(advisory.sentByEmail || "").trim().toLowerCase();
-  const address = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(admin) ? admin : account;
+  const address = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(admin) ? admin : fallback;
   const publisher = String(advisory.publishedBy || "").trim();
   const name = publisher && publisher !== "Admin User" ? `${publisher} (PeakPath)` : "PeakPath Admin";
-  return { from: { name, address }, replyTo: address, account };
+  const ownPassword = senderPasswords()[address];
+  const account = ownPassword ? address : fallback;
+  const transporter = ownPassword ? mailTransport(address, ownPassword) : mailTransport();
+  return { from: { name, address }, replyTo: address, account, transporter };
 }
 
 async function sendAdvisoryEmail(ref, advisory) {
   const recipients = await advisoryRecipients(advisory.visibility);
-  const { from, replyTo, account } = advisorySender(advisory);
+  const { from, replyTo, account, transporter } = advisorySender(advisory);
   const message = advisoryMessage(advisory, await loadAdvisoryImages(advisory));
-  const transporter = mailTransport();
   let sent = 0;
   try {
     for (let i = 0; i < recipients.length; i += BCC_BATCH) {
@@ -505,7 +535,7 @@ async function sendAdvisoryEmail(ref, advisory) {
       "email.recipients": sent,
       "email.error": FieldValue.delete()
     });
-    logger.info(`Advisory ${ref.id} emailed to ${sent} users`);
+    logger.info(`Advisory ${ref.id} emailed to ${sent} users through ${account}`);
   } catch (error) {
     logger.error(`Could not email advisory ${ref.id}`, error);
     await ref.update({
@@ -532,7 +562,7 @@ async function processAdvisory(ref, advisory) {
 // Runs on every save of an advisory. Its own writes to `email` land here too,
 // and advisoryEmailAction lets those pass without sending anything.
 exports.emailAdvisory = onDocumentWritten(
-  { document: "Advisory/{advisoryId}", region: FIRESTORE_REGION, secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] },
+  { document: "Advisory/{advisoryId}", region: FIRESTORE_REGION, secrets: [GMAIL_USER, GMAIL_APP_PASSWORD, GMAIL_SENDERS] },
   async (event) => {
     const after = event.data?.after;
     if (!after?.exists) return;
@@ -547,7 +577,7 @@ exports.emailDueAdvisories = onSchedule(
     schedule: "every 15 minutes",
     timeZone: "Asia/Manila",
     region: FIRESTORE_REGION,
-    secrets: [GMAIL_USER, GMAIL_APP_PASSWORD]
+    secrets: [GMAIL_USER, GMAIL_APP_PASSWORD, GMAIL_SENDERS]
   },
   async () => {
     const pending = await db

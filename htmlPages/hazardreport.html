@@ -1731,60 +1731,6 @@
   </div>
 </div>
 
-<!-- Edit report information modal -->
-<div class="modal-overlay" id="editReportModal" aria-hidden="true">
-  <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="editReportTitle" style="width:min(560px,100%)">
-    <div class="modal-header">
-      <div class="modal-icon" style="background:var(--green-bg);color:var(--green-text);">✎</div>
-      <div>
-        <h3 id="editReportTitle">Edit Report Information</h3>
-        <p>Update the details for this hazard report.</p>
-      </div>
-    </div>
-    <div class="modal-body">
-      <div class="report-form">
-        <div class="report-form-grid">
-          <label>Hazard Type
-            <input type="text" id="editHazardType" placeholder="e.g. Rockfall" readonly style="background:var(--dm-surface-2, #f2f4f2);color:var(--text-600);cursor:not-allowed;">
-          </label>
-          <label>Risk Level
-            <select id="editRiskLevel">
-              <option value="" disabled>Select risk level…</option>
-              <option value="Low">Low</option>
-              <option value="Moderate">Moderate</option>
-              <option value="High">High</option>
-            </select>
-          </label>
-        </div>
-        <div class="report-form-grid">
-          <label>Location
-            <input type="text" id="editLocation" placeholder="e.g. Mount Makiling" readonly style="background:var(--dm-surface-2, #f2f4f2);color:var(--text-600);cursor:not-allowed;">
-          </label>
-          <label>Trail
-            <input type="text" id="editTrail" placeholder="e.g. Sipit Trail" readonly style="background:var(--dm-surface-2, #f2f4f2);color:var(--text-600);cursor:not-allowed;">
-          </label>
-        </div>
-        <div class="report-form-grid">
-          <label>Reported By
-            <input type="text" id="editReportedBy" placeholder="e.g. Anonymous" readonly style="background:var(--dm-surface-2, #f2f4f2);color:var(--text-600);cursor:not-allowed;">
-          </label>
-          <label>Contact
-            <input type="text" id="editContact" placeholder="Phone or email" readonly style="background:var(--dm-surface-2, #f2f4f2);color:var(--text-600);cursor:not-allowed;">
-          </label>
-        </div>
-        <label>Description
-          <textarea id="editDescription" placeholder="Full details of the hazard" readonly style="background:var(--dm-surface-2, #f2f4f2);color:var(--text-600);cursor:not-allowed;"></textarea>
-        </label>
-      </div>
-      <div class="form-error" id="editReportError" role="alert"></div>
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="modal-btn cancel" id="editReportCancelBtn">Cancel</button>
-      <button type="button" class="modal-btn confirm-verify" id="editReportSaveBtn">Save Changes</button>
-    </div>
-  </div>
-</div>
-
 <!-- Firebase -->
 <script type="module">
 import { auth, db } from "../jsPages/firebase-config.js";
@@ -2303,85 +2249,6 @@ async function confirmArchiveReports() {
   }
 }
 
-// -----------------------------
-// Edit report information modal
-// -----------------------------
-let editReportTargetId = null;
-
-function openEditReportModal(reportId) {
-  const report = allReports.find(r => r.id === reportId);
-  // Rejecting and resolving are both final, so neither can be edited. The
-  // button is disabled for these, so this only catches a direct call.
-  if (!report || report.status === 'resolved' || report.status === 'rejected') return;
-  editReportTargetId = reportId;
-
-  document.getElementById('editHazardType').value = report.hazardType || '';
-  // No default for an unrated report: the admin has to pick a level.
-  const currentRisk = getRiskLevel(report);
-  document.getElementById('editRiskLevel').value = currentRisk.className === 'unknown' ? '' : currentRisk.label;
-  document.getElementById('editLocation').value = report.location || '';
-  document.getElementById('editTrail').value = report.trail || '';
-  document.getElementById('editReportedBy').value = report.reportedBy || '';
-  document.getElementById('editContact').value = report.contact || '';
-  document.getElementById('editDescription').value = report.description || '';
-  document.getElementById('editReportError').textContent = '';
-
-  const confirmBtn = document.getElementById('editReportSaveBtn');
-  confirmBtn.disabled = false;
-  confirmBtn.textContent = 'Save Changes';
-
-  const modal = document.getElementById('editReportModal');
-  modal.classList.add('show');
-  modal.setAttribute('aria-hidden', 'false');
-}
-window.openEditReportModal = openEditReportModal; // called from inline onclick
-
-function closeEditReportModal() {
-  const modal = document.getElementById('editReportModal');
-  modal.classList.remove('show');
-  modal.setAttribute('aria-hidden', 'true');
-  editReportTargetId = null;
-}
-
-async function confirmEditReport() {
-  if (!editReportTargetId) return;
-  const confirmBtn = document.getElementById('editReportSaveBtn');
-  const errorEl = document.getElementById('editReportError');
-  const riskLevel = document.getElementById('editRiskLevel').value;
-  if (!riskLevel) {
-    errorEl.textContent = 'Select a risk level before saving.';
-    return;
-  }
-
-  confirmBtn.disabled = true;
-  confirmBtn.textContent = 'Saving...';
-  errorEl.textContent = '';
-
-  try {
-    // Only Risk Level is editable by admins — all other fields are
-    // locked in the UI, and this is also enforced here so nothing
-    // else is ever written even if the DOM were tampered with.
-    await updateDoc(doc(db, 'reports', editReportTargetId), {
-      riskLevel,
-      updatedAt: new Date()
-    });
-    closeEditReportModal();
-    // onSnapshot() will refresh the details panel and table automatically.
-  } catch (error) {
-    console.error('Error updating report info:', error);
-    confirmBtn.disabled = false;
-    confirmBtn.textContent = 'Save Changes';
-    errorEl.textContent = error?.code === 'permission-denied'
-      ? 'Firebase denied this update. Check your Firestore security rules.'
-      : `Could not save changes: ${error.message || 'Unknown error'}`;
-  }
-}
-
-document.getElementById('editReportCancelBtn').addEventListener('click', closeEditReportModal);
-document.getElementById('editReportSaveBtn').addEventListener('click', confirmEditReport);
-document.getElementById('editReportModal').addEventListener('click', (event) => {
-  if (event.target.id === 'editReportModal') closeEditReportModal();
-});
 
 // Renders photo attachments for a report. Currently your Firestore docs
 // store a single `photoUrl` string, but this also supports a future
@@ -2451,14 +2318,7 @@ function renderReportDetails(report) {
     ? 'This report is already rejected.'
     : isVerified
       ? 'A hazard being verified cannot be rejected. Resolve it once the hazard is cleared.'
-      : isResolved
-        ? 'Resolved reports cannot be rejected.'
-        : 'Set a valid risk level before this report can be rejected.';
-
-  // A report in a final state is read-only: nothing about it can be edited.
-  const editBlockedReason = isRejected
-    ? "Rejected reports can't be edited."
-    : "Resolved reports can't be edited.";
+      : 'Resolved reports cannot be rejected.';
 
   // Only a verified (confirmed, still active) hazard can be resolved.
   const resolveBlockedReason = isResolved
@@ -2530,22 +2390,14 @@ function renderReportDetails(report) {
         ${renderAttachments(report)}
       </div>
     </div>
-      <div>
-      ${isResolved || isRejected
-        ? `<button class="btn btn-info" style="width:100%;opacity:.6;cursor:not-allowed" disabled title="${editBlockedReason}">✎ Edit Information</button>`
-        : `<button class="btn btn-info" style="width:100%" onclick="openEditReportModal('${report.id}')">✎ Edit Information</button>`}
-    </div>
     <div class="admin-actions">
       <p class="section-label">Admin Actions</p>
-      ${risk.className === 'unknown' && !isRejected && !isVerified && !isResolved ? `
-        <div class="form-error" style="margin-bottom:2px;">Set a valid risk level before this report can be rejected. Verifying asks for one.</div>
-      ` : ''}
       <div class="row">
           ${report.status === 'verified' || isRejected || isResolved
             ? `<button class="btn btn-verify" disabled style="opacity:.6;cursor:not-allowed" title="${verifyBlockedReason}">✔ Verify Hazard</button>`
             : `<button class="btn btn-verify" onclick="updateReportStatus('${report.id}', 'verified')">✔ Verify Hazard</button>`
           }
-          ${isRejected || isVerified || isResolved || risk.className === 'unknown' ?
+          ${isRejected || isVerified || isResolved ?
             `<button class="btn btn-reject" disabled style="opacity:.6;cursor:not-allowed" title="${rejectBlockedReason}">✖ Reject Report</button>` :
             `<button class="btn btn-reject" onclick="updateReportStatus('${report.id}', 'rejected')">✖ Reject Report</button>`
           }
@@ -3472,10 +3324,6 @@ document.addEventListener('keydown', (event) => {
     const archiveModal = document.getElementById('archiveConfirmModal');
     if (archiveModal.classList.contains('show')) {
       closeArchiveModal();
-    }
-        const editReportModal = document.getElementById('editReportModal');
-    if (editReportModal.classList.contains('show')) {
-      closeEditReportModal();
     }
   }
 });
