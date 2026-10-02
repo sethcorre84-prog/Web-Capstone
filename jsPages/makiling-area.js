@@ -99,5 +99,105 @@ export function createMakilingMap(element) {
     interactive: false
   }).addTo(map);
 
+  // Every Mount Makiling map shows the trails. A missing file only costs
+  // the lines, never the map.
+  addTrailLines(map).catch((error) => console.warn('Could not draw the trail lines:', error.message));
+
   return { map, bounds };
+}
+
+/* ---- Trail lines ----
+   The trails themselves, drawn over the satellite imagery: Mariang Makiling,
+   Sipit, the Makiling Traverse and the Mud Spring and Flat Rocks side trails.
+   The lines are OpenStreetMap data, copied once into
+   assets/data/makiling-trails.geojson (see its "attribution") so the maps
+   do not depend on a live OSM service. The Botanic Gardens trail is not
+   mapped in OSM, so it has no line. */
+const TRAILS_URL = new URL('../assets/data/makiling-trails.geojson', import.meta.url).href;
+let trailsRequest = null;
+
+export function loadTrailLines() {
+  trailsRequest ||= fetch(TRAILS_URL)
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    })
+    .catch((error) => {
+      trailsRequest = null; // let a later call try again
+      throw error;
+    });
+  return trailsRequest;
+}
+
+// A trails/{id} document's name -> the line it is drawn with, or null.
+export function trailLineKey(name) {
+  const n = String(name || '').toLowerCase();
+  if (n.includes('sipit')) return 'sipit';
+  if (n.includes('traverse') || n.includes('maktrav')) return 'traverse';
+  if (n.includes('mariang makiling') || n.includes('maria makiling')) return 'mariang';
+  if (n.includes('mud spring') || n.includes('mudspring')) return 'mudspring';
+  if (n.includes('flat rock')) return 'flatrocks';
+  return null;
+}
+
+const TRAIL_COLOR = '#ffb020';
+
+/* Draws every trail line on a map. Each line is a white casing under a
+   coloured stroke, which keeps it readable on both forest and cloud.
+   colorFor(key) picks a line's colour (Trail Management colours by open or
+   closed); onClick(key) makes the lines clickable. Returns the lines by key
+   and highlight(key), which thickens one line and fades the rest. */
+export async function addTrailLines(map, { colorFor, onClick } = {}) {
+  const data = await loadTrailLines();
+  const lines = new Map();
+  const peaks = [];
+  const group = L.layerGroup().addTo(map);
+
+  // The traverse goes first, so the trails it shares a path with draw on top.
+  const features = [...data.features].sort((a, b) =>
+    (a.properties.key === 'traverse' ? -1 : 0) - (b.properties.key === 'traverse' ? -1 : 0));
+
+  for (const feature of features) {
+    const { key, name, kind, lengthKm, elevation } = feature.properties;
+    if (feature.geometry.type === 'Point') {
+      const [lng, lat] = feature.geometry.coordinates;
+      peaks.push(L.circleMarker([lat, lng], {
+        radius: 6, color: '#fff', weight: 2, fillColor: '#c8402f', fillOpacity: 1
+      }).bindTooltip(`${name}${elevation ? ` · ${elevation}` : ''}`, { direction: 'top' }));
+      continue;
+    }
+    const latLngs = feature.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+    const color = colorFor?.(key) || TRAIL_COLOR;
+    const side = kind === 'side';
+    const casing = L.polyline(latLngs, {
+      color: '#fff', weight: side ? 5 : 7, opacity: 0.85, interactive: false
+    }).addTo(group);
+    const stroke = L.polyline(latLngs, {
+      color, weight: side ? 3 : 4, opacity: 1, dashArray: side ? '6 6' : null
+    }).bindTooltip(`${name}${lengthKm ? ` · ${lengthKm} km` : ''}`, { sticky: true }).addTo(group);
+    if (onClick) stroke.on('click', () => onClick(key));
+    lines.set(key, { casing, stroke, side, name });
+  }
+
+  // Added after the lines so Peak 2 sits on top of the trails that end there.
+  peaks.forEach((peak) => peak.addTo(group));
+
+  map.attributionControl?.addAttribution('Trails &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors');
+
+  function highlight(activeKey) {
+    lines.forEach((line, key) => {
+      const active = key === activeKey;
+      const dim = activeKey && !active;
+      line.casing.setStyle({ weight: active ? 10 : (line.side ? 5 : 7), opacity: dim ? 0.35 : 0.85 });
+      line.stroke.setStyle({ weight: active ? 6 : (line.side ? 3 : 4), opacity: dim ? 0.45 : 1 });
+      if (active) { line.casing.bringToFront(); line.stroke.bringToFront(); }
+    });
+    peaks.forEach((peak) => peak.bringToFront());
+  }
+
+  function recolor() {
+    lines.forEach((line, key) => line.stroke.setStyle({ color: colorFor?.(key) || TRAIL_COLOR }));
+  }
+
+  return { lines, highlight, recolor, group };
 }

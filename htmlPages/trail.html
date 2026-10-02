@@ -544,6 +544,20 @@
         color: var(--text-secondary);
     }
 
+    /* A trail line in the legend: a short stroke with the white casing the
+       map draws around every line. */
+    .legend-line {
+        display: inline-block;
+        width: 18px;
+        height: 5px;
+        margin-right: 6px;
+        vertical-align: middle;
+        border-radius: 3px;
+        box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.5px rgba(0, 0, 0, .15);
+    }
+    .legend-line.is-dashed {
+        background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 8px);
+    }
     .legend-dot {
         display: inline-block;
         width: 9px;
@@ -769,6 +783,333 @@
         border-color: var(--accent);
         background: var(--accent-light);
         color: var(--accent-dark);
+    }
+
+        /* ==========================================
+       TRAIL STATIONS (jsPages/trail-stations.js)
+    ========================================== */
+
+    .st-switch {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+    .st-switch-btn {
+        padding: 6px 12px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--dm-surface, #fff);
+        color: var(--text-secondary);
+        font-size: 12.5px;
+        font-weight: 600;
+    }
+    .st-switch-btn:hover {
+        background: var(--dm-surface-2, #f5f5f2);
+    }
+    .st-switch-btn.is-active {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+    }
+
+    .st-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+    .st-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        background: var(--dm-surface-2, #f3f5f2);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .st-chip.is-saved {
+        background: var(--green-bg);
+        color: var(--green-text);
+    }
+    .st-chip.is-ref {
+        background: var(--warning-light);
+        color: var(--warning);
+    }
+    .st-desc {
+        margin-bottom: 14px;
+        font-size: 12.5px;
+        line-height: 1.5;
+        color: var(--text-secondary);
+    }
+    .st-muted {
+        color: var(--text-muted);
+    }
+
+    /* The numbered markers, in order. Wraps onto more rows instead of
+       scrolling, so all 30 stay visible on a narrow column. */
+    .st-track {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+    .st-node {
+        height: 30px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        border-bottom-width: 3px;
+        background: var(--dm-surface, #fff);
+        color: var(--text-secondary);
+        font-size: 11.5px;
+        font-weight: 700;
+    }
+    .st-node:hover {
+        background: var(--dm-surface-2, #f5f5f2);
+    }
+    .st-node.sec-0 { border-bottom-color: #9bb8a4; }
+    .st-node.sec-1 { border-bottom-color: var(--accent); }
+    .st-node.sec-2 { border-bottom-color: var(--accent-dark); }
+    .st-node.is-landmark {
+        background: var(--accent-light);
+        color: var(--accent-dark);
+    }
+    .st-node.is-closed {
+        color: var(--danger);
+        text-decoration: line-through;
+    }
+    .st-node.is-active {
+        background: var(--accent);
+        border-color: var(--accent-dark);
+        color: #fff;
+    }
+
+    .st-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 14px;
+        font-size: 11.5px;
+        color: var(--text-secondary);
+    }
+    .st-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .st-legend-swatch {
+        width: 14px;
+        height: 4px;
+        border-radius: 2px;
+    }
+    .st-legend-swatch.sec-0 { background: #9bb8a4; }
+    .st-legend-swatch.sec-1 { background: var(--accent); }
+    .st-legend-swatch.sec-2 { background: var(--accent-dark); }
+    .st-legend-swatch.is-landmark {
+        height: 12px;
+        width: 12px;
+        border-radius: 3px;
+        background: var(--accent-light);
+        border: 1px solid var(--accent);
+    }
+
+    .st-body {
+        display: grid;
+        grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+    }
+    .st-subtitle {
+        margin-bottom: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .03em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+    .st-landmarks {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    .st-landmark {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        padding: 7px 8px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--text-primary);
+        font-size: 12.5px;
+        text-align: left;
+    }
+    .st-landmark:hover {
+        background: var(--dm-surface-2, #f5f5f2);
+    }
+    .st-landmark.is-active {
+        background: var(--accent-light);
+        color: var(--accent-dark);
+        font-weight: 600;
+    }
+    .st-landmark-num {
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--dm-surface-3, #e7ece6);
+        font-size: 11px;
+        font-weight: 700;
+    }
+    .st-landmark.is-active .st-landmark-num {
+        background: var(--accent);
+        color: #fff;
+    }
+    .st-landmark-text {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .st-landmark-icon {
+        color: var(--text-muted);
+        font-size: 11.5px;
+    }
+
+    .st-detail {
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--dm-surface-2, #fbfcfa);
+    }
+    .st-detail-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+    .st-detail-num {
+        flex-shrink: 0;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--accent);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+    }
+    .st-detail-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    .st-detail-sub {
+        margin-top: 2px;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+    .st-closed-text {
+        color: var(--danger);
+        font-weight: 600;
+    }
+    .st-detail-desc {
+        font-size: 13px;
+        line-height: 1.55;
+        color: var(--text-secondary);
+    }
+    .st-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+    }
+    .st-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 20px;
+        background: var(--dm-surface, #fff);
+        border: 1px solid var(--border);
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+    .st-tag i {
+        color: var(--accent);
+    }
+
+    .st-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+        font-size: 11.5px;
+    }
+    .st-save-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 14px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 12.5px;
+        font-weight: 600;
+    }
+    .st-save-btn:hover {
+        background: var(--accent-dark);
+    }
+    .st-save-btn[disabled] {
+        opacity: .6;
+        cursor: wait;
+    }
+    .st-error {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--danger);
+    }
+    .st-error:empty {
+        display: none;
+    }
+    .st-empty {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 14px;
+        border: 1px dashed var(--border);
+        border-radius: var(--radius);
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text-secondary);
+    }
+    .st-empty i {
+        margin-top: 3px;
+        color: var(--accent);
+    }
+
+    @media (max-width: 760px) {
+        .st-body {
+            grid-template-columns: 1fr;
+        }
+        .st-landmarks {
+            max-height: 180px;
+        }
     }
 
     /* ==========================================
@@ -1095,13 +1436,20 @@
         </div>
 
         <div class="panel">
+          <div class="panel-title">Trail Stations</div>
+          <div id="stationsPanel" aria-live="polite"></div>
+        </div>
+
+        <div class="panel">
           <div class="panel-title">Trail Map Overview (Mount Makiling)</div>
           <div class="map-box">
             <div id="trailMap" aria-label="Interactive map of Mount Makiling"></div>
             <div class="map-legend">
-              <div><span class="legend-dot" style="background:#2f8f4e"></span>Open Trail</div>
-              <div><span class="legend-dot" style="background:#c8402f"></span>Closed Trail</div>
-              <div><span class="legend-dot" style="background:#2f6b45"></span>Checkpoint / Campsite</div>
+              <div><span class="legend-line" style="background:#2f8f4e"></span>Open Trail</div>
+              <div><span class="legend-line" style="background:#c8402f"></span>Closed Trail</div>
+              <div><span class="legend-line is-dashed" style="color:#ffb020"></span>Side Trail</div>
+              <div><span class="legend-dot" style="background:#2f6b45"></span>Checkpoint</div>
+              <div><span class="legend-dot" style="background:#8a5a1f"></span>Campsite</div>
             </div>
           </div>
         </div>
@@ -1158,8 +1506,8 @@
           <div class="quick-grid">
             <button class="quick-btn" id="addTrailBtn">+ Add Trail</button>
             <button class="quick-btn outline" id="viewMapBtn" type="button">📍 View on Map</button>
-            <button class="quick-btn outline" type="button">+ Add Checkpoints</button>
-            <button class="quick-btn outline" type="button">+ Add Campsites</button>
+            <button class="quick-btn outline" id="addCheckpointBtn" type="button">+ Add Checkpoints</button>
+            <button class="quick-btn outline" id="addCampsiteBtn" type="button">+ Add Campsites</button>
           </div>
         </div>
       </div>
@@ -1341,7 +1689,9 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getDownloadURL, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { addSatelliteLayer } from "../jsPages/makiling-area.js";
+import { addSatelliteLayer, addTrailLines, trailLineKey } from "../jsPages/makiling-area.js";
+import { initTrailPoints } from "../jsPages/trail-points.js";
+import { initStationsPanel } from "../jsPages/trail-stations.js";
 
 const makilingCenter = [14.136, 121.197];
 const trailMap = L.map('trailMap').setView(makilingCenter, 13);
@@ -1350,6 +1700,36 @@ L.marker(makilingCenter)
   .bindPopup('<strong>Mount Makiling</strong><br>1,096 m')
   .addTo(trailMap);
 let selectedTrailMarker = null;
+
+// The trails drawn on the satellite map (makiling-area.js), coloured by the
+// status of the trail in the list and highlighted when it is selected.
+// Clicking a line selects its trail, the same as clicking its row.
+let trailLines = null;
+const trailForLine = (key) => trails.find(t => trailLineKey(t.Trail) === key);
+const isClosed = (trail) => String(trail?.Status || 'Open').toLowerCase().startsWith('close');
+addTrailLines(trailMap, {
+  colorFor(key) {
+    const trail = trailForLine(key);
+    if (!trail) return null; // not in the trail list: drawn in the default colour
+    return isClosed(trail) ? '#c8402f' : '#2f8f4e';
+  },
+  onClick(key) {
+    const trail = trailForLine(key);
+    if (!trail) return;
+    selectedId = trail.id; editing = false; renderDetail(); render();
+  }
+}).then((lines) => {
+  trailLines = lines;
+  syncTrailLines();
+}).catch((error) => console.warn('Could not draw the trail lines:', error.message));
+
+function syncTrailLines() {
+  if (!trailLines) return;
+  trailLines.recolor();
+  trailLines.highlight(trailLineKey(getSelected()?.Trail));
+}
+
+const lineForTrail = (trail) => trailLines?.lines.get(trailLineKey(trail?.Trail))?.stroke || null;
 const trailCoordinateFallbacks = {
   "Sipit Trail": [14.1150551, 121.186634],
   "Makiling Traverse (MakTrav)": [14.1352241, 121.1944517],
@@ -1387,6 +1767,7 @@ const trailsCol = collection(db, "trails");
 onSnapshot(trailsCol, (snapshot) => {
   trails = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   if (!selectedId && trails.length > 0) selectedId = trails[0].id;
+  trailPoints.render(trails);
   render();
   updateStats();               // add this line
   if (!editing) renderDetail();
@@ -1396,6 +1777,30 @@ function getSelected() {
   return trails.find(t => t.id === selectedId);
 }
 
+// + Add Checkpoints / + Add Campsites: click the map to drop a pin on the
+// selected trail (trail-points.js). The pins are saved on the trail itself.
+const trailPoints = initTrailPoints({
+  map: trailMap,
+  db,
+  getSelected,
+  lineFor: lineForTrail,
+  buttons: {
+    checkpoints: document.getElementById('addCheckpointBtn'),
+    campsites: document.getElementById('addCampsiteBtn')
+  },
+  notify: (message) => alert(message)
+});
+
+// Trail Stations panel: follows the trail selected in the list. Its own trail
+// buttons select the trail on the whole page, the same as clicking its row.
+const stationsPanel = initStationsPanel({
+  db,
+  root: document.getElementById('stationsPanel'),
+  onSelectTrail(id) {
+    selectedId = id; editing = false; renderDetail(); render();
+  }
+});
+
 function showSelectedTrailOnMap() {
   const trail = getSelected();
   if (!trail) return;
@@ -1404,11 +1809,15 @@ function showSelectedTrailOnMap() {
   if (selectedTrailMarker) trailMap.removeLayer(selectedTrailMarker);
   selectedTrailMarker = L.marker(coordinates).addTo(trailMap);
   selectedTrailMarker.bindPopup(`<strong>${trail.Trail || 'Selected trail'}</strong><br>${trail.Status || 'Open'}`).openPopup();
-  trailMap.setView(coordinates, 15);
+  const line = lineForTrail(trail);
+  if (line) trailMap.fitBounds(line.getBounds(), { padding: [30, 30] });
+  else trailMap.setView(coordinates, 15);
   document.getElementById('trailMap').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function render() {
+  stationsPanel.update(getSelected(), trails);
+  syncTrailLines();
   const q = document.getElementById('searchInput').value.toLowerCase();
   const st = document.getElementById('statusFilter').value;
   const df = document.getElementById('diffFilter').value;
