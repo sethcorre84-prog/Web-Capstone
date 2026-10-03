@@ -193,25 +193,6 @@
                area with no tiles blends into it instead of showing Leaflet's grey. */
           background: var(--dm-surface-3, #e8edf0);
       }
-      .location-control {
-          background: var(--dm-surface, #fff);
-          border: 1px solid rgba(0, 0, 0, 0.2);
-          border-radius: 4px;
-          box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25);
-          color: var(--text-primary);
-          cursor: pointer;
-          font: 600 12px/1.2 inherit;
-          padding: 8px 10px;
-      }
-      .location-control:hover,
-      .location-control.is-tracking {
-          background: var(--accent-light);
-          color: var(--accent-dark);
-      }
-      .location-control:disabled {
-          cursor: wait;
-          opacity: 0.7;
-      }
       .content-grid {
           display: grid;
           grid-template-columns: 1fr 320px;
@@ -495,6 +476,35 @@
       }
       .legend-row.is-river i {
           color: var(--blue-text, #2a63b5);
+      }
+      /* Trail lines and checkpoint/campsite pins, as on Trail Management's
+         map legend (trail.html) and the pins in trail-points.js. */
+      .legend-line {
+          width: 16px;
+          height: 5px;
+          flex-shrink: 0;
+          border-radius: 3px;
+          box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.5px rgba(0, 0, 0, .15);
+      }
+      .legend-line.is-dashed {
+          background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 8px);
+      }
+      .legend-pin {
+          display: grid;
+          place-items: center;
+          width: 16px;
+          height: 16px;
+          flex-shrink: 0;
+          border: 1.5px solid #fff;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+      }
+      .legend-row .legend-pin i {
+          width: auto;
+          font-size: 7px;
+          color: #fff;
+          transform: rotate(45deg);
       }
       /* Same look as the hazard circle markers — keep in sync with HAZARD_RISK_COLORS. */
       .hazard-dot {
@@ -818,6 +828,11 @@
           <div class="legend">
             <div class="legend-title">Map Legend</div>
             <div class="legend-list">
+              <div class="legend-row"><span class="legend-line" style="background:#2f8f4e" aria-hidden="true"></span><span>Open Trail</span></div>
+              <div class="legend-row"><span class="legend-line" style="background:#c8402f" aria-hidden="true"></span><span>Closed Trail</span></div>
+              <div class="legend-row"><span class="legend-line is-dashed" style="color:#ffb020" aria-hidden="true"></span><span>Side Trail</span></div>
+              <div class="legend-row"><span class="legend-pin" style="background:#2f6b45" aria-hidden="true"><i class="fa-solid fa-flag"></i></span><span>Checkpoint</span></div>
+              <div class="legend-row"><span class="legend-pin" style="background:#8a5a1f" aria-hidden="true"><i class="fa-solid fa-campground"></i></span><span>Campsite</span></div>
               <div class="legend-row"><span class="hazard-dot high" aria-hidden="true"></span><span>High Risk Hazard</span></div>
               <div class="legend-row"><span class="hazard-dot moderate" aria-hidden="true"></span><span>Moderate Risk Hazard</span></div>
               <div class="legend-row"><span class="hazard-dot low" aria-hidden="true"></span><span>Low Risk Hazard</span></div>
@@ -827,7 +842,6 @@
               <div class="legend-row is-river"><i class="fa-solid fa-water" aria-hidden="true"></i><span>River/Creek</span></div>
               <div class="legend-row"><i class="fa-regular fa-circle" aria-hidden="true"></i><span>Trail Station</span></div>
               <div class="legend-row"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i><span>Monitoring Station</span></div>
-              <div class="legend-row"><i class="fa-solid fa-campground" aria-hidden="true"></i><span>Campsite</span></div>
               <div class="legend-row"><i class="fa-solid fa-kit-medical" aria-hidden="true"></i><span>First Aid Station</span></div>
               <div class="legend-row"><i class="fa-solid fa-utensils" aria-hidden="true"></i><span>Food Station</span></div>
             </div>
@@ -871,7 +885,8 @@
     import { escapeHtml } from "../jsPages/utils.js";
     import { collection, onSnapshot, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { formatPortalDate, portalHourCycle, portalTimeZone, toPortalDate as toDate } from "../jsPages/datetime-prefs.js";
-    import { createMakilingMap } from "../jsPages/makiling-area.js";
+    import { createMakilingMap, trailLineKey } from "../jsPages/makiling-area.js";
+    import { initTrailPoints } from "../jsPages/trail-points.js";
     import { watchActiveHikers } from "../jsPages/active-hikers.js";
 
     const setSummaryValue = (id, value) => {
@@ -882,18 +897,27 @@
        the summit is greyed out, and panning/zooming is locked to that area so
        the view can never wander off the mountain. The area itself is defined
        once in makiling-area.js, shared with the dashboard map. */
-    const { map, bounds: makilingBounds } = createMakilingMap('makilingMap');
-
-    // Keeps a requested view inside the mountain, so hazard framing and the
-    // Locate me button can never push the map past the masked edge.
-    const clampToMakiling = (latLng) => {
-      const point = L.latLng(latLng);
-      return makilingBounds.contains(point) ? point : makilingBounds.getCenter();
-    };
+    /* Trail lines are coloured by their trail's status, the same as Trail
+       Management (trail.html): green open, red closed. Lines for trails not
+       in Firestore (the side trails) keep the default amber. */
+    let mapTrails = [];
+    const { map, bounds: makilingBounds, trailLines } = createMakilingMap('makilingMap', {
+      trailLineOptions: {
+        colorFor(key) {
+          const trail = mapTrails.find((t) => trailLineKey(t.Trail) === key);
+          if (!trail) return null;
+          return String(trail.Status || 'Open').toLowerCase().startsWith('close') ? '#c8402f' : '#2f8f4e';
+        }
+      }
+    });
 
     const trailLayer = L.layerGroup().addTo(map);
     const hazardLayer = L.layerGroup().addTo(map);
     const hikerLayer = L.layerGroup().addTo(map);
+
+    // Checkpoint and campsite pins added in Trail Management, shown read-only.
+    const pointLayer = L.layerGroup().addTo(map);
+    const trailPoints = initTrailPoints({ map, readOnly: true, layer: pointLayer });
 
     const getCoordinates = (data) => {
       const latitude = Number(data.latitude ?? data.lat ?? data.coordinates?.latitude);
@@ -1161,6 +1185,9 @@
 
     onSnapshot(collection(db, 'trails'), (snapshot) => {
       const trails = snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
+      mapTrails = trails;
+      trailLines.then((lines) => lines?.recolor());
+      trailPoints.render(trails);
       trailLayer.clearLayers();
       trails.forEach((data) => {
         const coordinates = getCoordinates(data);
@@ -1402,79 +1429,10 @@
 
     L.control.layers(null, {
       'Trails': trailLayer,
+      'Checkpoints & campsites': pointLayer,
       'Verified hazards': hazardLayer,
       'Hikers': hikerLayer
     }).addTo(map);
-
-    let locationWatchId = null;
-    let userLocationMarker = null;
-    let userLocationAccuracy = null;
-
-    const locationControl = L.control({ position: 'topright' });
-    locationControl.onAdd = () => {
-      const button = L.DomUtil.create('button', 'location-control');
-      button.type = 'button';
-      button.textContent = 'Locate me';
-      button.title = 'Track my current location';
-      button.setAttribute('aria-label', 'Track my current location');
-
-      L.DomEvent.disableClickPropagation(button);
-      L.DomEvent.on(button, 'click', () => {
-        if (locationWatchId !== null) {
-          navigator.geolocation.clearWatch(locationWatchId);
-          locationWatchId = null;
-          button.textContent = 'Locate me';
-          button.classList.remove('is-tracking');
-          return;
-        }
-
-        if (!navigator.geolocation) {
-          button.textContent = 'Location unavailable';
-          return;
-        }
-
-        button.disabled = true;
-        button.textContent = 'Finding location...';
-        locationWatchId = navigator.geolocation.watchPosition((position) => {
-          const coordinates = [position.coords.latitude, position.coords.longitude];
-          const accuracy = position.coords.accuracy;
-
-          if (!userLocationMarker) {
-            userLocationMarker = L.circleMarker(coordinates, {
-              radius: 7,
-              color: '#1f6b39',
-              fillColor: '#3fa860',
-              fillOpacity: 1,
-              weight: 3
-            }).bindPopup('Your current location').addTo(map);
-            userLocationAccuracy = L.circle(coordinates, {
-              radius: accuracy,
-              color: '#2f8f4e',
-              fillColor: '#2f8f4e',
-              fillOpacity: 0.12,
-              weight: 1
-            }).addTo(map);
-            map.setView(clampToMakiling(coordinates), Math.max(map.getZoom(), 15));
-          } else {
-            userLocationMarker.setLatLng(coordinates);
-            userLocationAccuracy.setLatLng(coordinates).setRadius(accuracy);
-          }
-
-          button.disabled = false;
-          button.textContent = 'Stop tracking';
-          button.classList.add('is-tracking');
-        }, () => {
-          if (locationWatchId !== null) navigator.geolocation.clearWatch(locationWatchId);
-          locationWatchId = null;
-          button.disabled = false;
-          button.textContent = 'Location blocked';
-          button.classList.remove('is-tracking');
-        }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 });
-      });
-
-      return button;
-    };
-    locationControl.addTo(map);
 
     // Match the map's bottom edge to the bottom of the Alerts Overview
     // panel in the right column (legend + alerts, not Recent Hazards below
@@ -1577,7 +1535,7 @@
         if (!response.ok) throw new Error(`Weather request failed with ${response.status}`);
         const data = await response.json();
         const current = data.current;
-        temperature.textContent = `${Math.round(current.temperature_2m)}°C`;
+        temperature.textContent = `${Number(current.temperature_2m).toFixed(1)}°C`;
         condition.textContent = `${weatherCodes[current.weather_code] || 'Current conditions'} · Updated ${new Date(current.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
       } catch (error) {
         console.error('Error loading Mount Makiling weather:', error);

@@ -187,6 +187,18 @@ service cloud.firestore {
       allow delete: if signedIn() && request.auth.uid == userId;
     }
 
+    /* A hiker's check-in, one document per hiker (id = uid): checkedIn and
+       the lastSeenAt heartbeat the app refreshes every two minutes
+       (CheckInService in the app). The portal reads them all for the
+       "on the mountain now" count and User Management's Last Active; a
+       hiker reads and writes only their own. Not gated by a suspension,
+       like locations: a suspended hiker already on the mountain still has
+       to be counted. Same block as the app repo's firestore.rules. */
+    match /checkIns/{userId} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      allow create, update, delete: if isAdmin() || (signedIn() && request.auth.uid == userId);
+    }
+
     match /emergency/{alertId} {
       allow read: if signedIn();
       allow create: if signedIn();

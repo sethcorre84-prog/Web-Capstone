@@ -29,7 +29,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Tag -> label and icon (Font Awesome), shown on landmark stations.
-const TAGS = {
+export const TAGS = {
   registration: { label: 'Registration', icon: 'fa-clipboard-check' },
   water: { label: 'Water source', icon: 'fa-droplet' },
   store: { label: 'Stores', icon: 'fa-store' },
@@ -156,7 +156,7 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[c]));
 
-export function initStationsPanel({ db, root, onSelectTrail }) {
+export function initStationsPanel({ db, root, onSelectTrail, onSelectStation }) {
   const stationsByTrail = new Map();
   let loaded = false;
   let currentTrail = null;
@@ -363,6 +363,7 @@ export function initStationsPanel({ db, root, onSelectTrail }) {
     if (stationBtn) {
       activeNumber = Number(stationBtn.dataset.station);
       draw();
+      onSelectStation?.(activeNumber);
       return;
     }
     const trailBtn = event.target.closest('[data-trail]');

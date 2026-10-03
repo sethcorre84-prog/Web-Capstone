@@ -1935,7 +1935,7 @@
   // mobile app has to mirror. Suspensions end on their own date.
   import { suspensionState } from '../jsPages/account-status.js';
   // The Dashboard and Geomap count active hikers from this too.
-  import { watchActiveHikers } from '../jsPages/active-hikers.js';
+  import { watchActiveHikers, watchLastSeen } from '../jsPages/active-hikers.js';
   import { openExportMenu } from '../jsPages/export-table.js';
   import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
   import { initializeAuth, inMemoryPersistence, createUserWithEmailAndPassword, deleteUser, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
@@ -3112,8 +3112,26 @@
     }
   });
 
+  /* Last Active comes from the app's heartbeat, checkIns/{uid}.lastSeenAt
+     (active-hikers.js). A user with no check-in yet keeps whatever their
+     profile had (lastActive, lastLogin, ...); otherwise the newer wins. */
+  let lastSeenByUid = new Map();
+  const applyLastSeen = (user) => {
+    const seen = lastSeenByUid.get(user.uid) || lastSeenByUid.get(user.id);
+    const stored = toDate(user.profileLastActive);
+    user.lastActive = seen && (!stored || seen > stored) ? seen : user.profileLastActive;
+    return user;
+  };
+  watchLastSeen(db, (lastSeen) => {
+    lastSeenByUid = lastSeen;
+    if (!state.users?.length) return;
+    state.users.forEach(applyLastSeen);
+    refreshAll();
+  });
+
   onSnapshot(collection(db, 'users'), (snapshot) => {
     state.users = snapshot.docs.map(normalizeUser)
+      .map((user) => applyLastSeen({ ...user, profileLastActive: user.lastActive }))
       .sort((a, b) => (toDate(b.memberSince)?.getTime() || 0) - (toDate(a.memberSince)?.getTime() || 0));
 
     if (!state.users.length) {

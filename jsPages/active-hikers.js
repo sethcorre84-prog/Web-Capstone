@@ -6,10 +6,13 @@
 //   hikedToday   hikers currently checked in: users/{uid} with
 //                checkIns == true. Setting it back to false takes the hiker
 //                off the count straight away.
-//   onlineNow    hikers whose users/{uid}.lastActive is within
-//                ACTIVE_ONLINE_MS. The PeakPath app stamps it when a hiker
-//                signs in and about once a minute while they stay signed in
-//                (ActivityService in the app).
+//   onlineNow    hikers whose checkIns/{uid}.lastSeenAt is within
+//                ACTIVE_ONLINE_MS. The PeakPath app refreshes that heartbeat
+//                every two minutes while it is open (CheckInService in the
+//                app); a phone that died or lost signal stops refreshing it.
+//
+// lastSeenAt is also each user's "Last Active" in User Management
+// (watchLastSeen below).
 //
 // Polled rather than listened to by default: a summary tile does not need
 // per-second figures, so it polls once a minute and pauses while the tab is
@@ -30,9 +33,10 @@ export const HIKER_POLL_MS = 60 * 1000;
 export const HIKER_ONLINE_MS = 2 * 60 * 1000;
 export const HIKER_EXPIRY_MS = 12 * 60 * 60 * 1000;
 
-/* The app checks in every minute, so three minutes allows for one missed
-   check-in (a slow network, a phone waking up) before a hiker drops offline. */
-export const ACTIVE_ONLINE_MS = 3 * 60 * 1000;
+/* The app refreshes lastSeenAt every two minutes, so five minutes allows for
+   one missed heartbeat (a slow network, a phone waking up) before a hiker
+   drops offline -- the window the app's CheckInService recommends. */
+export const ACTIVE_ONLINE_MS = 5 * 60 * 1000;
 
 /* Midnight today in the portal's time zone (Settings > Date & Time), so the
    count rolls over with the clock the admin is reading rather than with the
@@ -58,21 +62,22 @@ const checkInsQuery = (db) => query(
     where('checkIns', '==', true)
 );
 
-// Hikers who have used the app today; onlineNow narrows these down.
+// Hikers whose app was open today (checkIns/{uid}.lastSeenAt); onlineNow
+// narrows these down to the last few minutes.
 const loginsQuery = (db, midnight) => query(
-    collection(db, 'users'),
-    where('lastActive', '>=', Timestamp.fromDate(midnight))
+    collection(db, 'checkIns'),
+    where('lastSeenAt', '>=', Timestamp.fromDate(midnight))
 );
 
 /* Counts one poll's worth of documents.
      checkedInIds   ids of users docs with checkIns == true
-     users          users docs whose lastActive is today */
+     users          checkIns docs whose lastSeenAt is today */
 export function countActiveHikers(checkedInIds, users) {
     const now = Date.now();
     let onlineNow = 0;
     users.forEach((data) => {
-        const lastActive = toPortalDate(data.lastActive);
-        if (lastActive && now - lastActive.getTime() <= ACTIVE_ONLINE_MS) onlineNow += 1;
+        const lastSeen = toPortalDate(data.lastSeenAt);
+        if (lastSeen && now - lastSeen.getTime() <= ACTIVE_ONLINE_MS) onlineNow += 1;
     });
     return { hikedToday: new Set(checkedInIds).size, onlineNow };
 }
@@ -191,4 +196,20 @@ export function watchActiveHikers({ db, onUpdate, onError, live = false }) {
         clearInterval(timer);
         document.removeEventListener('visibilitychange', onVisible);
     };
+}
+
+/* Each user's last-seen time from the app's heartbeat: listens to every
+   checkIns/{uid} and hands onChange a Map of uid -> Date (lastSeenAt).
+   User Management shows it as Last Active. Returns the unsubscribe. */
+export function watchLastSeen(db, onChange) {
+    return onSnapshot(collection(db, 'checkIns'), (snapshot) => {
+        const lastSeen = new Map();
+        snapshot.docs.forEach((snap) => {
+            const date = toPortalDate(snap.data().lastSeenAt);
+            if (date) lastSeen.set(snap.id, date);
+        });
+        onChange(lastSeen);
+    }, (error) => {
+        console.warn('Could not read check-ins (lastSeenAt):', error.message);
+    });
 }

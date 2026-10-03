@@ -1749,7 +1749,7 @@ let pendingArchiveIds = [];
 // Which panel opened the archive confirmation modal: 'rejected' or 'resolved'.
 let archiveMode = 'rejected';
 let currentPage = 1;
-const itemsPerPage = 8;
+const itemsPerPage = 7;
 let currentFilteredReports = [];
 let rejectedPage = 1;
 const rejectedPageSize = 5;
@@ -1823,6 +1823,10 @@ function getRiskLevel(report) {
 
   return { label: value, className: 'unknown' };
 }
+
+// ?type=Landslide (from the Dashboard's Hazard Trends bars) starts the list
+// filtered to that hazard type. Applied once, on the first load.
+let urlHazardType = new URLSearchParams(window.location.search).get('type');
 
 function getReportIdFromURL() {
   return new URLSearchParams(window.location.search).get('report');
@@ -3228,6 +3232,17 @@ function loadReports() {
     // Don't reset the page on a background data refresh — keep the admin
     // on whatever page they're currently viewing.
     populateHazardFilter();
+    if (urlHazardType !== null) {
+      // Types are matched ignoring case and spaces, the same as the Dashboard
+      // groups them; an unknown type leaves the filter at All.
+      const wanted = urlHazardType.trim().toLowerCase();
+      const match = [...hazardTypes].find(t => String(t).trim().toLowerCase() === wanted);
+      if (match) document.getElementById('hazardFilter').value = match;
+      urlHazardType = null;
+      const url = new URL(window.location.href);
+      url.searchParams.delete('type');
+      window.history.replaceState({}, '', url);
+    }
     filterReports(false);
     updateStats();
     renderRejectedList();

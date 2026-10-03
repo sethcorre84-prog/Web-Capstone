@@ -1380,7 +1380,7 @@
     <div class="stat-label" id="statClosedLabel">Closed Trails · 0%</div>
   </div>
       <div class="stat-card">
-        <div class="stat-top"><span class="stat-value">15</span>
+        <div class="stat-top"><span class="stat-value" id="statCheckpoints">0</span>
           <div class="stat-icon" style="background:var(--blue-bg);">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2a63b5" stroke-width="2"><path d="M12 21s-7-6.5-7-11a7 7 0 0114 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
           </div>
@@ -1388,7 +1388,7 @@
         <div class="stat-label">Total Checkpoints · Across all trails</div>
       </div>
       <div class="stat-card">
-        <div class="stat-top"><span class="stat-value">8</span>
+        <div class="stat-top"><span class="stat-value" id="statCampsites">0</span>
           <div class="stat-icon" style="background:var(--dm-surface-3, #f2e9fb);">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a4bb5" stroke-width="2"><path d="M4 20l6-9 4 5 2-3 4 7H4z"/></svg>
           </div>
@@ -1499,6 +1499,11 @@
             <option>Closed</option>
           </select>
           <button class="btn-primary" id="updateStatusBtn">Update Status</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Trail Station Management</div>
+          <div id="stationEditor"></div>
         </div>
 
         <div class="panel">
@@ -1644,7 +1649,7 @@
 <script type="module">
 import { db, storage } from "../jsPages/firebase-config.js";
 import { formatPortalDate, formatPortalDateTime } from "../jsPages/datetime-prefs.js";
-import { getTrailImage } from "../jsPages/trail-images.js";
+import { getTrailImage, onTrailImagesReady } from "../jsPages/trail-images.js";
 
 // Follows Settings > Date & Time (datetime-prefs.js).
 function formatTimestamp(ts) {
@@ -1692,6 +1697,7 @@ import { getDownloadURL, ref, uploadBytes } from "https://www.gstatic.com/fireba
 import { addSatelliteLayer, addTrailLines, trailLineKey } from "../jsPages/makiling-area.js";
 import { initTrailPoints } from "../jsPages/trail-points.js";
 import { initStationsPanel } from "../jsPages/trail-stations.js";
+import { initStationEditor } from "../jsPages/trail-station-editor.js";
 
 const makilingCenter = [14.136, 121.197];
 const trailMap = L.map('trailMap').setView(makilingCenter, 13);
@@ -1707,7 +1713,7 @@ let selectedTrailMarker = null;
 let trailLines = null;
 const trailForLine = (key) => trails.find(t => trailLineKey(t.Trail) === key);
 const isClosed = (trail) => String(trail?.Status || 'Open').toLowerCase().startsWith('close');
-addTrailLines(trailMap, {
+const trailLinesReady = addTrailLines(trailMap, {
   colorFor(key) {
     const trail = trailForLine(key);
     if (!trail) return null; // not in the trail list: drawn in the default colour
@@ -1768,6 +1774,7 @@ onSnapshot(trailsCol, (snapshot) => {
   trails = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   if (!selectedId && trails.length > 0) selectedId = trails[0].id;
   trailPoints.render(trails);
+  startRequestedAdd();
   render();
   updateStats();               // add this line
   if (!editing) renderDetail();
@@ -1776,6 +1783,12 @@ onSnapshot(trailsCol, (snapshot) => {
 function getSelected() {
   return trails.find(t => t.id === selectedId);
 }
+
+// Trail pictures from Storage arrive after the first draw; redraw with them.
+onTrailImagesReady(() => {
+  render();
+  if (!editing) renderDetail();
+});
 
 // + Add Checkpoints / + Add Campsites: click the map to drop a pin on the
 // selected trail (trail-points.js). The pins are saved on the trail itself.
@@ -1791,14 +1804,39 @@ const trailPoints = initTrailPoints({
   notify: (message) => alert(message)
 });
 
+// trail.html?add=checkpoint (the Dashboard's Quick Actions > Add Checkpoint)
+// or ?add=campsite opens the page already adding one, the same as clicking
+// + Add Checkpoints / + Add Campsites, on the first trail in the list. Waits
+// for the trails and the trail lines, so the map zooms to the trail.
+let requestedAdd = { checkpoint: 'checkpoints', campsite: 'campsites' }[
+  new URLSearchParams(window.location.search).get('add')] || null;
+function startRequestedAdd() {
+  if (!requestedAdd || !getSelected()) return;
+  const type = requestedAdd;
+  requestedAdd = null;
+  const url = new URL(window.location.href);
+  url.searchParams.delete('add');
+  window.history.replaceState({}, '', url);
+  trailLinesReady.then(() => trailPoints.start(type));
+}
+
+// Trail Station Management: edit, add and delete the selected trail's saved
+// stations (trail-station-editor.js).
+const stationEditor = initStationEditor({
+  db,
+  root: document.getElementById('stationEditor')
+});
+
 // Trail Stations panel: follows the trail selected in the list. Its own trail
-// buttons select the trail on the whole page, the same as clicking its row.
+// buttons select the trail on the whole page, the same as clicking its row,
+// and clicking a station opens it in Trail Station Management.
 const stationsPanel = initStationsPanel({
   db,
   root: document.getElementById('stationsPanel'),
   onSelectTrail(id) {
     selectedId = id; editing = false; renderDetail(); render();
-  }
+  },
+  onSelectStation: (number) => stationEditor.select(number)
 });
 
 function showSelectedTrailOnMap() {
@@ -1817,6 +1855,7 @@ function showSelectedTrailOnMap() {
 
 function render() {
   stationsPanel.update(getSelected(), trails);
+  stationEditor.update(getSelected());
   syncTrailLines();
   const q = document.getElementById('searchInput').value.toLowerCase();
   const st = document.getElementById('statusFilter').value;
@@ -1936,6 +1975,12 @@ function updateStats() {
   const closedPct = total ? Math.round((closed / total) * 100) : 0;
   document.getElementById('statOpenLabel').textContent = `Open Trails · ${openPct}%`;
   document.getElementById('statClosedLabel').textContent = `Closed Trails · ${closedPct}%`;
+
+  // The pins added with + Add Checkpoints / + Add Campsites, saved on each
+  // trail's checkpoints and campsites arrays (trail-points.js).
+  const countPoints = (type) => trails.reduce((sum, t) => sum + (Array.isArray(t[type]) ? t[type].length : 0), 0);
+  document.getElementById('statCheckpoints').textContent = countPoints('checkpoints');
+  document.getElementById('statCampsites').textContent = countPoints('campsites');
 
 }
 

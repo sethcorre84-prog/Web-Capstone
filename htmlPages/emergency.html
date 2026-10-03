@@ -1703,7 +1703,7 @@
         code: Number(current.weather_code),
         condition: WEATHER_CODES[current.weather_code] || 'Current conditions'
       };
-      $('weatherChip').textContent = `${Math.round(current.temperature_2m)}°C · ${weather.condition}`;
+      $('weatherChip').textContent = `${Number(current.temperature_2m).toFixed(1)}°C · ${weather.condition}`;
     } catch (error) {
       console.error('Error loading Mount Makiling weather:', error);
       weather = null;

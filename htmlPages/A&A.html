@@ -423,6 +423,17 @@
 		color: var(--text-muted);
 		margin-top: 1px;
 	}
+	/* An advisory that was edited (and so republished at the top). */
+	.edited-tag {
+		display: inline-flex;
+		margin-top: 4px;
+		padding: 1px 7px;
+		border-radius: 20px;
+		background: var(--accent-light);
+		color: var(--accent-dark);
+		font-size: 11px;
+		font-weight: 600;
+	}
 	.badge {
 		display: inline-block;
 		padding: 6px 10px;
@@ -1248,6 +1259,7 @@
 							<div class="detail-row"><div class="k">Effective Date</div><div class="v" id="dEffective">—</div></div>
 							<div class="detail-row"><div class="k">Expires On</div><div class="v" id="dExpires">—</div></div>
 							<div class="detail-row"><div class="k">Published By</div><div class="v" id="dPublishedBy">—</div></div>
+							<div class="detail-row" id="dEditedRow" style="display:none"><div class="k">Last Edited</div><div class="v" id="dEdited">—</div></div>
 							<div class="detail-row" style="border-bottom:none"><div class="k">Visibility</div><div class="v" id="dVisibility">—</div></div>
 
 							<div class="detail-section">
@@ -1404,7 +1416,7 @@
 		import { escapeHtml } from "../jsPages/utils.js";
 		import {
 			collection, onSnapshot, updateDoc, setDoc, doc, getDoc,
-			serverTimestamp, orderBy, query, Timestamp
+			serverTimestamp, orderBy, query, Timestamp, increment
 		} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 		import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 		import { formatPortalDateTime, toPortalDate as toDate } from "../jsPages/datetime-prefs.js";
@@ -1708,6 +1720,11 @@ async function syncExpiredAdvisories(){
 				const t = el('div', 'trail-name'); t.textContent = it.title || 'Untitled';
 				const s = el('div', 'trail-loc'); s.textContent = (it.desc || '').slice(0, 60) + ((it.desc || '').length > 60 ? '...' : '');
 				titleWrap.appendChild(t); titleWrap.appendChild(s);
+				if (it.editedAt) {
+					const edited = el('div', 'edited-tag');
+					edited.textContent = `Edited · ${fmtDateTime(it.editedAt)}`;
+					titleWrap.appendChild(edited);
+				}
 				wrap.appendChild(thumb); wrap.appendChild(titleWrap);
 				tdTitle.appendChild(wrap);
 
@@ -1955,6 +1972,10 @@ async function syncExpiredAdvisories(){
 			document.getElementById('dEffective').textContent = fmtDateTime(it.effectiveDate || it.publishedAt || it.createdAt);
 			document.getElementById('dExpires').textContent = it.expiresAt ? fmtDateTime(it.expiresAt) : '—';
 			document.getElementById('dPublishedBy').textContent = it.publishedBy || 'Admin User';
+			document.getElementById('dEditedRow').style.display = it.editedAt ? '' : 'none';
+			document.getElementById('dEdited').textContent = it.editedAt
+				? `${fmtDateTime(it.editedAt)}${it.editCount > 1 ? ` (${it.editCount} edits)` : ''}${it.firstCreatedAt ? ` · first published ${fmtDateTime(it.firstCreatedAt)}` : ''}`
+				: '—';
 			document.getElementById('dVisibility').textContent = it.visibility || 'All Users';
 			document.getElementById('dDesc').textContent = it.desc || 'No description provided.';
 			renderDetailMedia(it);
@@ -2459,6 +2480,20 @@ setInterval(() => {
 				// who saved it; see advisoryMessage in functions/index.js.
 				sentByEmail: auth.currentUser?.email || null
 			};
+
+			/* An edit is republished: createdAt moves to now, so the advisory
+			   goes back to the top of this list (ordered by createdAt) and of
+			   the app's Notifications, where it shows as NEW again (the app
+			   sorts and marks new by createdAt). editedAt tells the app it was
+			   an edit, so it pops an "Advisory updated" notification. The
+			   first publish time is kept in firstCreatedAt. The email is not
+			   re-sent (functions/index.js skips an advisory already emailed). */
+			if (currentItem) {
+				payload.createdAt = serverTimestamp();
+				payload.editedAt = serverTimestamp();
+				payload.editCount = increment(1);
+				payload.firstCreatedAt = currentItem.firstCreatedAt || currentItem.createdAt || null;
+			}
 
 			if (currentItem && currentItem.visible === false) {
 				payload.visible = true;

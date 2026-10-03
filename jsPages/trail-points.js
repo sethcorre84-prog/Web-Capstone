@@ -118,18 +118,24 @@ function nearestOnLine(latLngs, p) {
   lineFor     (trail) => that trail's Leaflet polyline, or null
   buttons     { checkpoints: <button>, campsites: <button> }
   notify      (message) => void, for "select a trail first" and the like
+  readOnly    true to only show the pins (GeoMap): no Remove button, and
+              db, getSelected, lineFor, buttons and notify are not needed
+  layer       optional layer group to draw the pins in (e.g. one a layers
+              control can toggle); made and added to the map if left out
 */
-export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify }) {
+export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify, readOnly = false, layer: pinLayer }) {
   const style = document.createElement('style');
   style.textContent = CSS;
   document.head.appendChild(style);
 
-  const layer = L.layerGroup().addTo(map);
+  const layer = pinLayer || L.layerGroup().addTo(map);
   const container = map.getContainer();
   let placing = null; // { type, trail }
   let banner = null;
   let pending = null; // { type, trail, latlng, snapped }
   let saving = false;
+
+  if (readOnly) return { render };
 
   const modal = document.createElement('div');
   modal.className = 'tp-modal';
@@ -167,8 +173,8 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
               <div class="tp-type">${POINT_TYPES[type].label} · ${escapeHtml(trail.Trail || 'Trail')}</div>
               ${point.note ? `<div class="tp-note">${escapeHtml(point.note)}</div>` : ''}
               <div class="tp-coords">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
-              <button type="button">Remove</button>`;
-            el.querySelector('button').addEventListener('click', () => removePoint(trail.id, type, point.id, el));
+              ${readOnly ? '' : '<button type="button">Remove</button>'}`;
+            el.querySelector('button')?.addEventListener('click', () => removePoint(trail.id, type, point.id, el));
             return el;
           });
           marker.addTo(layer);
@@ -221,7 +227,7 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
     container.appendChild(banner);
 
     // Show the trail being added to, so the admin can see where to click.
-    const line = lineFor(trail);
+    const line = lineFor?.(trail);
     if (line) map.fitBounds(line.getBounds(), { padding: [30, 30] });
     container.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -231,7 +237,7 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
     const { type, trail } = placing;
     let latlng = event.latlng;
     let snapped = false;
-    const line = lineFor(trail);
+    const line = lineFor?.(trail);
     if (line) {
       const near = nearestOnLine(line.getLatLngs().flat(), latlng);
       if (near && near.d <= SNAP_METERS) {
@@ -311,8 +317,12 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
     else if (placing) stopPlacing();
   });
 
-  buttons.checkpoints?.addEventListener('click', () => startPlacing('checkpoints'));
-  buttons.campsites?.addEventListener('click', () => startPlacing('campsites'));
+  buttons?.checkpoints?.addEventListener('click', () => startPlacing('checkpoints'));
+  buttons?.campsites?.addEventListener('click', () => startPlacing('campsites'));
 
-  return { render };
+  // Starts adding a point of `type` ('checkpoints' or 'campsites') on the
+  // selected trail, the same as clicking its button (trail.html?add=...).
+  const start = (type) => startPlacing(type);
+
+  return { render, start };
 }

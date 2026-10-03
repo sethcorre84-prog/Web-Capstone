@@ -58,9 +58,11 @@ const maskColor = () =>
 
 /* A Mount Makiling map only: everything outside the 6 km radius is greyed
    out, and panning/zooming is locked to that area so the view can never
-   wander off the mountain. Returns the map and the locked bounds, which
-   pages use to keep markers and views inside the mountain. */
-export function createMakilingMap(element) {
+   wander off the mountain. Returns the map, the locked bounds, which pages
+   use to keep markers and views inside the mountain, and trailLines, a
+   promise of what addTrailLines returns. `trailLineOptions` is passed to
+   addTrailLines (colorFor / onClick). */
+export function createMakilingMap(element, { trailLineOptions } = {}) {
   const bounds = L.latLngBounds(MAKILING_RING);
 
   const map = L.map(element, {
@@ -101,9 +103,12 @@ export function createMakilingMap(element) {
 
   // Every Mount Makiling map shows the trails. A missing file only costs
   // the lines, never the map.
-  addTrailLines(map).catch((error) => console.warn('Could not draw the trail lines:', error.message));
+  const trailLines = addTrailLines(map, trailLineOptions).catch((error) => {
+    console.warn('Could not draw the trail lines:', error.message);
+    return null;
+  });
 
-  return { map, bounds };
+  return { map, bounds, trailLines };
 }
 
 /* ---- Trail lines ----

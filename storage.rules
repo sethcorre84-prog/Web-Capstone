@@ -37,6 +37,17 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // Trail pictures matched to trails by file name (jsPages/trail-images.js),
+    // e.g. trailPicture/sipitTrail.jpg for "Sipit Trail". Pages list this
+    // folder, so signed-in users need read (which covers list) access.
+    match /trailPicture/{fileName} {
+      allow read: if request.auth != null;
+      allow create, update: if isAdmin() &&
+        request.resource.contentType.matches('image/.*') &&
+        request.resource.size <= 5 * 1024 * 1024;
+      allow delete: if isAdmin();
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

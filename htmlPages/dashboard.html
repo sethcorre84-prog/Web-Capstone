@@ -157,8 +157,8 @@
         }
 
         /* ---- Content: three rows of three cards ----
-                     1  Visitor Trends | Visitors per Trail | Trail Status Overview
-                     2  Map            | Recent Hazards     | Announcements + Emergencies
+                     1  Visitors per Trail | Recent Hazards | Trail Status Overview
+                     2  Map (spans two columns)             | Announcements + Emergencies
                      3  Trail Summary  | Hazard Trends      | Quick Actions
                    Cards in a row share one height so their edges line up. */
         .dash-row {
@@ -167,6 +167,11 @@
             gap: 18px;
             align-items: stretch;
             margin-bottom: 18px;
+        }
+        /* The map takes the first two columns of the same grid, so its edges
+           line up with the cards above and below it. */
+        .map-row > .map-card {
+            grid-column: span 2;
         }
         .dash-stack {
             display: flex;
@@ -216,6 +221,142 @@
 
         .card > .empty-state {
             flex: 1;
+        }
+
+        /* ---- Visitors per Trail: donut + legend ----
+           Trail colours, checked for colour-blind separation and contrast
+           (dataviz validate_palette.js) on the light card (#fff) and, as
+           their own steps, on the dark card (#1a1e18). A colour belongs to a
+           trail (by name order), never to its rank, so it doesn't jump around
+           as counts change. Trails past the fourth share the grey. */
+        :root {
+            --visit-1: #2f8f4e;
+            --visit-2: #c98a12;
+            --visit-3: #2a63b5;
+            --visit-4: #b04a8f;
+            --visit-other: #8a948c;
+        }
+        :root[data-theme="dark"] {
+            --visit-1: #3d9b5a;
+            --visit-2: #ad7a12;
+            --visit-3: #3f78cc;
+            --visit-4: #c0569a;
+            --visit-other: #6f7a72;
+        }
+        .visit-chart {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .visit-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 22px;
+        }
+        .visit-donut {
+            position: relative;
+            flex: 0 0 auto;
+            width: calc(170px * var(--ui-scale, 1));
+            aspect-ratio: 1;
+        }
+        .visit-donut svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        .visit-slice {
+            fill: none;
+            stroke-width: 22;
+            transition: opacity .15s, stroke-width .15s;
+            cursor: default;
+        }
+        .visit-chart.has-focus .visit-slice:not(.is-focus) {
+            opacity: .3;
+        }
+        .visit-slice.is-focus {
+            stroke-width: 26;
+        }
+        .visit-center {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            text-align: center;
+        }
+        .visit-center span {
+            font-size: calc(12px * var(--ui-scale, 1));
+            color: var(--text-secondary);
+        }
+        .visit-center strong {
+            font-size: calc(24px * var(--ui-scale, 1));
+            line-height: 1.15;
+            color: var(--text-primary);
+        }
+        .visit-legend {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .visit-legend li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 5px 6px;
+            border-radius: 8px;
+            transition: background .15s;
+        }
+        .visit-legend li.is-focus {
+            background: var(--dm-surface-2, #f3f6f1);
+        }
+        .visit-swatch {
+            flex-shrink: 0;
+            width: 12px;
+            height: 12px;
+            margin-top: 3px;
+            border-radius: 3px;
+        }
+        .visit-label {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            font-size: calc(12.5px * var(--ui-scale, 1));
+            line-height: 1.35;
+        }
+        .visit-label strong {
+            font-weight: 600;
+            color: var(--text-primary);
+            overflow-wrap: anywhere;
+        }
+        .visit-label span {
+            color: var(--text-secondary);
+        }
+        .visit-legend li.is-zero strong,
+        .visit-legend li.is-zero span {
+            color: var(--text-muted);
+        }
+        .visit-note {
+            margin-top: 10px;
+            font-size: calc(11px * var(--ui-scale, 1));
+            color: var(--text-muted);
+        }
+        @media (max-width: 480px) {
+            .visit-body {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .visit-donut {
+                align-self: center;
+            }
         }
 
         #dashboardMap {
@@ -665,6 +806,40 @@
         .bar-chart .empty-state {
             flex: 1;
         }
+        .trend-tools {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .trend-period {
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: var(--dm-surface, #fff);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: calc(12px * var(--ui-scale, 1));
+        }
+        .trend-change {
+            margin-left: auto;
+            font-weight: 600;
+        }
+        .trend-change.is-up { color: var(--red-text, #c8402f); }
+        .trend-change.is-down { color: var(--accent); }
+        /* Each bar opens Hazard Reports filtered to its hazard type. */
+        a.bar-col {
+            text-decoration: none;
+            border-radius: 6px 6px 0 0;
+        }
+        a.bar-col:hover .bar,
+        a.bar-col:focus-visible .bar {
+            background: var(--accent-dark);
+            box-shadow: 0 0 0 2px var(--accent-light);
+        }
+        a.bar-col:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
 
         /* ---- Quick actions: coloured buttons in two columns ---- */
         .action-grid {
@@ -822,6 +997,10 @@
             .dash-row > :first-child {
                 grid-column: 1 / -1;
             }
+            /* The map already fills the row; the stack goes full width below it. */
+            .map-row > .dash-stack {
+                grid-column: 1 / -1;
+            }
         }
         @media (max-width: 1240px) {
             .hero-grid {
@@ -945,11 +1124,11 @@
                     <div class="avatar avatar-logo topbar-logo"><img src="../assets/images/logo.png" alt="PeakPath logo"></div>
                 </div>
             </section>
-
+            
             <section class="hero-grid">
                 <article class="hero-card">
-                    <div class="hero-card-title"><i class="fa-solid fa-person-hiking"></i><h3>Active Hikers Today</h3></div>
-                    <p id="activeHikersValue">—</p><span id="activeHikersMeta">Loading hiker data...</span>
+                    <div class="hero-card-title"><i class="fa-solid fa-person-hiking"></i><h3>Active Users Today</h3></div>
+                    <p id="activeHikersValue">—</p><span id="activeHikersMeta">Loading user data...</span>
                 </article>
                 <article class="hero-card">
                     <div class="hero-card-title"><i class="fa-solid fa-route"></i><h3>Open Trails</h3></div>
@@ -964,48 +1143,20 @@
                     <p id="weatherTemperature">Loading...</p><span id="weatherCondition">Getting current conditions...</span>
                 </article>
                 <article class="hero-card">
-                    <div class="hero-card-title"><i class="fa-solid fa-users"></i><h3>Total Visitors</h3></div>
-                    <p id="totalVisitorsValue">—</p><span>Visitor data unavailable</span>
+                    <div class="hero-card-title"><i class="fa-solid fa-users"></i><h3>Total Hikers Visitors</h3></div>
+                    <p id="totalVisitorsValue">—</p><span id="totalVisitorsMeta">Loading user data...</span>
                 </article>
             </section>
 
-            <!-- Row 1: visitors and trails -->
+            <!-- Row 1: visitors, what is being reported, trails -->
             <section class="dash-row">
                 <div class="card">
-                    <div class="card-top"><h2>Visitor Trends <small>(Mount Makiling)</small></h2></div>
-                    <div class="empty-state">
-                        <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
-                        <strong>No visitor data yet</strong>
-                        <span>Trends will appear here once visitor check-ins are recorded.</span>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-top"><h2>Visitors per Trail <small>(This Month)</small></h2></div>
-                    <div class="empty-state">
-                        <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
-                        <strong>No visitor data yet</strong>
-                        <span>A per-trail breakdown will appear once visitor check-ins are recorded.</span>
-                    </div>
-                </div>
-                <div class="card">
                     <div class="card-top">
-                        <h2>Trail Status Overview</h2>
-                        <a class="card-link" href="trail.html">Manage trails</a>
+                        <h2>Visitors per Trail <small>(This Month)</small></h2>
+                        <a class="card-link" href="usermanagement.html">View teams</a>
                     </div>
-                    <ul class="pill-list" id="trailStatusList"><li class="pill-item"><span>Loading trails...</span></li></ul>
+                    <div class="visit-chart" id="visitorsPerTrail"><div class="empty-state"><span>Loading visitors...</span></div></div>
                 </div>
-            </section>
-
-            <!-- Row 2: the mountain, what is being reported, what has been said -->
-            <section class="dash-row">
-                <div class="card map-card">
-                    <div class="card-top">
-                        <h2>Mount Makiling Map Overview</h2>
-                        <a class="card-link" href="geomap.html">Open Geomap</a>
-                    </div>
-                    <div id="dashboardMap" aria-label="Interactive map of Mount Makiling"></div>
-                </div>
-
                 <div class="card">
                     <div class="card-top">
                         <h2>Recent Hazard Reports</h2>
@@ -1017,6 +1168,24 @@
                             <tbody id="recentHazardsList"><tr><td colspan="4" class="empty-cell">Loading hazard reports...</td></tr></tbody>
                         </table>
                     </div>
+                </div>
+                <div class="card">
+                    <div class="card-top">
+                        <h2>Trail Status Overview</h2>
+                        <a class="card-link" href="trail.html">Manage trails</a>
+                    </div>
+                    <ul class="pill-list" id="trailStatusList"><li class="pill-item"><span>Loading trails...</span></li></ul>
+                </div>
+            </section>
+
+            <!-- Row 2: the mountain (two columns wide), what has been said -->
+            <section class="dash-row map-row">
+                <div class="card map-card">
+                    <div class="card-top">
+                        <h2>Mount Makiling Map Overview</h2>
+                        <a class="card-link" href="geomap.html">Open Geomap</a>
+                    </div>
+                    <div id="dashboardMap" aria-label="Interactive map of Mount Makiling"></div>
                 </div>
 
                 <div class="dash-stack">
@@ -1057,8 +1226,16 @@
 
                 <div class="card">
                     <div class="card-top">
-                        <h2>Hazard Trends <small>(This Month)</small></h2>
-                        <a class="card-link" href="hazardreport.html">View reports</a>
+                        <h2>Hazard Trends <small id="hazardTrendsPeriodLabel">(This Month)</small></h2>
+                        <div class="trend-tools">
+                            <select id="hazardTrendsPeriod" class="trend-period" aria-label="Hazard Trends period">
+                                <option value="week">Last 7 Days</option>
+                                <option value="month" selected>This Month</option>
+                                <option value="quarter">Last 3 Months</option>
+                                <option value="year">This Year</option>
+                            </select>
+                            <a class="card-link" href="hazardreport.html">View reports</a>
+                        </div>
                     </div>
                     <div class="bar-chart" id="hazardTrends"><div class="empty-state"><span>Loading hazard trends...</span></div></div>
                 </div>
@@ -1069,7 +1246,7 @@
                         <!-- Add Trail and Post Announcement open a popup here
                              (quick-actions.js); the href is only the fallback. -->
                         <a class="button button-primary" href="trail.html" data-quick-action="add-trail"><i class="fa-solid fa-plus" aria-hidden="true"></i>Add Trail</a>
-                        <a class="button button-primary" href="trail.html"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>Add Checkpoint</a>
+                        <a class="button button-primary" href="trail.html?add=checkpoint"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>Add Checkpoint</a>
                         <a class="button button-blue" href="A&amp;A.html" data-quick-action="post-advisory"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i>Post Announcement</a>
                         <a class="button button-purple" href="hazardreport.html"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>View Reports</a>
                         <a class="button button-wide" href="geomap.html"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>Open Geomap Monitoring</a>
@@ -1083,7 +1260,7 @@
         import { escapeHtml } from "../jsPages/utils.js";
         import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { formatPortalDate, formatPortalTime, portalHourCycle, portalTimeZone, toPortalDate } from "../jsPages/datetime-prefs.js";
-        import { getTrailImage } from "../jsPages/trail-images.js";
+        import { getTrailImage, onTrailImagesReady } from "../jsPages/trail-images.js";
         import { createMakilingMap } from "../jsPages/makiling-area.js";
         import { watchActiveHikers } from "../jsPages/active-hikers.js";
         import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, weatherUrlFor } from "../jsPages/weather-locations.js";
@@ -1114,17 +1291,74 @@
             return (HAZARD_ICONS.find(([pattern]) => pattern.test(lower)) || [null, 'fa-triangle-exclamation'])[1];
         }
 
-        // Reports per hazard type this month (portal time zone), top five
-        // types plus "Others". Rejected reports were judged false, so they
-        // are left out.
-        function renderHazardTrends(reports) {
-            const monthKey = (date) => date.toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).slice(0, 7);
-            const thisMonth = monthKey(new Date());
+        /* Hazard Trends periods. Each gives the [start, end) of the current
+           period and of the one before it, for the change figure. Months and
+           years are calendar ones in the portal time zone. */
+        const HAZARD_TREND_PERIODS = {
+            week: { label: 'Last 7 Days', empty: 'in the last 7 days', previous: 'previous 7 days' },
+            month: { label: 'This Month', empty: 'this month', previous: 'last month' },
+            quarter: { label: 'Last 3 Months', empty: 'in the last 3 months', previous: 'previous 3 months' },
+            year: { label: 'This Year', empty: 'this year', previous: 'last year' }
+        };
+        const HAZARD_PERIOD_KEY = 'peakpath-hazard-trends-period';
+        let hazardTrendPeriod = 'month';
+        try {
+            const saved = localStorage.getItem(HAZARD_PERIOD_KEY);
+            if (HAZARD_TREND_PERIODS[saved]) hazardTrendPeriod = saved;
+        } catch { /* storage blocked: use the default */ }
+        let latestHazardReports = null;
+
+        // Year/month/day of a date in the portal time zone.
+        function portalParts(date) {
+            const [year, month, day] = date.toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).split('-').map(Number);
+            return { year, month, day };
+        }
+
+        // Which period ('current' / 'previous' / null) a report date falls in.
+        function hazardPeriodOf(date, period, now = new Date()) {
+            const DAY = 24 * 60 * 60 * 1000;
+            if (period === 'week') {
+                const age = now - date;
+                if (age >= 0 && age < 7 * DAY) return 'current';
+                if (age >= 7 * DAY && age < 14 * DAY) return 'previous';
+                return null;
+            }
+            const d = portalParts(date);
+            const n = portalParts(now);
+            const monthIndex = (p) => p.year * 12 + (p.month - 1);
+            if (period === 'month' || period === 'quarter') {
+                const span = period === 'month' ? 1 : 3;
+                const back = monthIndex(n) - monthIndex(d);
+                if (back >= 0 && back < span) return 'current';
+                if (back >= span && back < 2 * span) return 'previous';
+                return null;
+            }
+            if (d.year === n.year) return 'current';
+            if (d.year === n.year - 1) return 'previous';
+            return null;
+        }
+
+        // Reports per hazard type in the chosen period (portal time zone), top
+        // five types plus "Others", with the change from the period before.
+        // Rejected reports were judged false, so they are left out. Each bar
+        // opens Hazard Reports filtered to its type.
+        function renderHazardTrends(reports = latestHazardReports) {
+            if (!reports) return;
+            latestHazardReports = reports;
+            const period = HAZARD_TREND_PERIODS[hazardTrendPeriod];
+            document.getElementById('hazardTrendsPeriodLabel').textContent = `(${period.label})`;
+            document.getElementById('hazardTrendsPeriod').value = hazardTrendPeriod;
+
+            const now = new Date();
             const counts = new Map();
+            let previousTotal = 0;
             reports.forEach((report) => {
                 if ((report.status || 'pending') === 'rejected') return;
                 const date = toPortalDate(report.timestamp || report.createdAt);
-                if (!date || monthKey(date) !== thisMonth) return;
+                if (!date) return;
+                const which = hazardPeriodOf(date, hazardTrendPeriod, now);
+                if (which === 'previous') previousTotal += 1;
+                if (which !== 'current') return;
                 const type = String(report.hazardType || 'Other').trim() || 'Other';
                 counts.set(type, (counts.get(type) || 0) + 1);
             });
@@ -1132,21 +1366,31 @@
             const container = document.getElementById('hazardTrends');
             const sorted = [...counts].sort((a, b) => b[1] - a[1]);
             if (!sorted.length) {
-                container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><strong>No hazard reports this month</strong><span>Bars appear here as reports come in.</span></div>';
+                container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><strong>No hazard reports ${escapeHtml(period.empty)}</strong><span>${previousTotal ? `${previousTotal} in the ${escapeHtml(period.previous)}. ` : ''}Bars appear here as reports come in.</span></div>`;
                 return;
             }
+            const total = sorted.reduce((sum, [, value]) => sum + value, 0);
+            const diff = total - previousTotal;
+            const change = previousTotal
+                ? `<span class="trend-change ${diff > 0 ? 'is-up' : diff < 0 ? 'is-down' : ''}" title="Compared with the ${escapeHtml(period.previous)} (${previousTotal})">${diff > 0 ? '▲' : diff < 0 ? '▼' : ''} ${diff === 0 ? 'No change' : `${Math.abs(Math.round((diff / previousTotal) * 100))}%`} vs ${escapeHtml(period.previous)}</span>`
+                : `<span class="trend-change">None in the ${escapeHtml(period.previous)}</span>`;
             const bars = sorted.slice(0, 5);
             const others = sorted.slice(5).reduce((sum, [, value]) => sum + value, 0);
             if (others) bars.push(['Others', others]);
             const max = Math.max(...bars.map(([, value]) => value));
 
+            // "Others" is several types, so it opens the unfiltered list.
+            const reportsLink = (type) => type === 'Others'
+                ? 'hazardreport.html'
+                : `hazardreport.html?type=${encodeURIComponent(type)}`;
+
             container.innerHTML = `
-                <div class="bar-legend">Number of Reports</div>
+                <div class="bar-legend">Number of Reports · ${total} total${change}</div>
                 <div class="bars">${bars.map(([type, value]) => `
-                    <div class="bar-col" title="${escapeHtml(type)}: ${value}">
+                    <a class="bar-col" href="${reportsLink(type)}" title="${escapeHtml(type)}: ${value} (${Math.round((value / total) * 100)}%) · View reports" aria-label="${escapeHtml(type)}: ${value} report${value === 1 ? '' : 's'}. View reports">
                         <span class="bar-value">${value}</span>
                         <span class="bar" style="height:${Math.max(4, (value / max) * 100)}%"></span>
-                    </div>`).join('')}
+                    </a>`).join('')}
                 </div>
                 <div class="bar-labels">${bars.map(([type]) => `<span>${escapeHtml(type)}</span>`).join('')}</div>`;
         }
@@ -1197,8 +1441,9 @@
             onUpdate: ({ hikedToday, onlineNow }) => {
                 document.getElementById('summaryOnMountain').textContent = onlineNow;
                 document.getElementById('activeHikersValue').textContent = hikedToday;
+                // Describes the number above it: hikers checked in right now.
                 document.getElementById('activeHikersMeta').textContent = hikedToday
-                    ? `${onlineNow} hikers on the mountain now`
+                    ? `${hikedToday} hiker${hikedToday === 1 ? '' : 's'} checked in`
                     : 'No hikers checked in';
             },
             onError: (message) => {
@@ -1207,8 +1452,185 @@
             }
         });
 
+        function renderTrailStatusList(trails) {
+            document.getElementById('trailStatusList').innerHTML = trails.length
+                ? trails.map(trail => {
+                    const status = trail.Status || 'Open';
+                    const chipClass = status === 'Open' ? 'pill-green' : status === 'Closed' ? 'pill-red' : 'pill-yellow';
+                    const distance = trail['Approximate Distance'] || '';
+                    return `<li class="pill-item trail-row">
+                        <span class="trail-thumb" style="background-image:url('${escapeHtml(getTrailImage(trail))}')" aria-hidden="true"></span>
+                        <div class="item-main"><strong>${escapeHtml(trail.Trail || 'Untitled Trail')}</strong>${trail.Municipality ? `<span class="item-meta">${escapeHtml(trail.Municipality)}</span>` : ''}${distance ? `<span class="trail-dist"><i class="fa-solid fa-route" aria-hidden="true"></i>${escapeHtml(distance)}</span>` : ''}</div>
+                        <span class="pill-chip ${chipClass}">${escapeHtml(status)}</span>
+                    </li>`;
+                }).join('')
+                : '<li class="pill-item"><span>No trails found.</span></li>';
+        }
+
+        /* Visitors per Trail (this month, portal time zone). The app records
+           which trail a hiker is on only through teams: teams/{id} has
+           trailID, members (uids) and createdAt. So a visitor is a member of
+           a team created this month for that trail; a hiker in two teams on
+           the same trail counts once. Hikers who go without a team are not
+           recorded anywhere per trail, so they cannot be counted here. */
+        let latestTeams = null;
+        function renderVisitorsPerTrail() {
+            const container = document.getElementById('visitorsPerTrail');
+            if (!latestTeams || !latestTrails) return;
+            const monthKey = (date) => date.toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).slice(0, 7);
+            const thisMonth = monthKey(new Date());
+
+            const visitors = new Map(); // trailID -> Set of uids
+            const teamCounts = new Map(); // trailID -> number of teams
+            latestTeams.forEach((team) => {
+                const trailID = String(team.trailID || team.trailId || '').trim();
+                const created = toPortalDate(team.createdAt);
+                if (!trailID || !created || monthKey(created) !== thisMonth) return;
+                const members = Array.isArray(team.members) ? team.members.filter(Boolean) : [];
+                if (!visitors.has(trailID)) visitors.set(trailID, new Set());
+                members.forEach((uid) => visitors.get(trailID).add(uid));
+                teamCounts.set(trailID, (teamCounts.get(trailID) || 0) + 1);
+            });
+
+            // Every trail gets a row, so a quiet trail reads as 0 rather than
+            // missing; teams for a trail that was since deleted still count.
+            const rows = latestTrails.map((trail) => ({
+                name: trail.Trail || 'Untitled Trail',
+                count: visitors.get(trail.id)?.size || 0,
+                teams: teamCounts.get(trail.id) || 0
+            }));
+            const known = new Set(latestTrails.map((trail) => trail.id));
+            visitors.forEach((uids, trailID) => {
+                if (!known.has(trailID)) rows.push({ name: 'Removed trail', count: uids.size, teams: teamCounts.get(trailID) || 0 });
+            });
+            rows.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+            const allVisitors = new Set();
+            visitors.forEach((uids) => uids.forEach((uid) => allVisitors.add(uid)));
+            if (!rows.length) {
+                container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-chart-bar" aria-hidden="true"></i><strong>No trails yet</strong><span>Add trails in Trail Management.</span></div>';
+                return;
+            }
+            if (!allVisitors.size) {
+                container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-people-group" aria-hidden="true"></i><strong>No visitors this month</strong><span>Hikers appear here when they form a team for a trail in the app.</span></div>';
+                return;
+            }
+            // Colour by trail (name order), not by rank: four colours, then grey.
+            const colorOf = new Map([...latestTrails]
+                .sort((a, b) => String(a.Trail || '').localeCompare(String(b.Trail || '')))
+                .map((trail, index) => [trail.Trail || 'Untitled Trail', index < 4 ? `var(--visit-${index + 1})` : 'var(--visit-other)']));
+            rows.forEach((row) => { row.color = colorOf.get(row.name) || 'var(--visit-other)'; });
+
+            // A trail's share of visits: the sum of every trail's hikers, so a
+            // hiker on two trails counts on both and the slices add up to 100%.
+            const visits = rows.reduce((sum, row) => sum + row.count, 0);
+            const percent = (count) => {
+                const value = (count / visits) * 100;
+                return value > 0 && value < 1 ? '<1%' : `${Math.round(value)}%`;
+            };
+
+            // Slices: stroke dashes on one circle, a 2-unit gap between them.
+            const RADIUS = 48;
+            const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+            const shown = rows.filter((row) => row.count > 0);
+            const GAP = shown.length > 1 ? 2 : 0;
+            let offset = 0;
+            const slices = shown.map((row) => {
+                const length = (row.count / visits) * CIRCUMFERENCE;
+                const slice = `<circle class="visit-slice" data-trail="${escapeHtml(row.name)}" cx="60" cy="60" r="${RADIUS}"
+                    style="stroke:${row.color}" stroke-dasharray="${Math.max(length - GAP, 0.5)} ${CIRCUMFERENCE}" stroke-dashoffset="${-offset}">
+                    <title>${escapeHtml(row.name)}: ${percent(row.count)} (${row.count} hiker${row.count === 1 ? '' : 's'}, ${row.teams} team${row.teams === 1 ? '' : 's'})</title></circle>`;
+                offset += length;
+                return slice;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="visit-body">
+                    <div class="visit-donut">
+                        <svg viewBox="0 0 120 120" role="img" aria-label="Visitors per trail this month: ${allVisitors.size} hikers in total">${slices}</svg>
+                        <div class="visit-center"><span>Total</span><strong>${allVisitors.size.toLocaleString()}</strong></div>
+                    </div>
+                    <ul class="visit-legend">${rows.map((row) => `
+                        <li class="${row.count ? '' : 'is-zero'}" data-trail="${escapeHtml(row.name)}" title="${row.teams} team${row.teams === 1 ? '' : 's'}">
+                            <span class="visit-swatch" style="background:${row.color}" aria-hidden="true"></span>
+                            <span class="visit-label"><strong>${escapeHtml(row.name)}</strong><span>${row.count ? percent(row.count) : '0%'} (${row.count.toLocaleString()})</span></span>
+                        </li>`).join('')}
+                    </ul>
+                </div>
+                <div class="visit-note">Hikers in teams formed for each trail this month.</div>`;
+        }
+
+        (() => {
+            const chart = document.getElementById('visitorsPerTrail');
+            const focus = (name) => {
+                chart.classList.toggle('has-focus', name !== null);
+                chart.querySelectorAll('[data-trail]').forEach((el) => {
+                    el.classList.toggle('is-focus', el.dataset.trail === name);
+                });
+            };
+            chart.addEventListener('mouseover', (event) => {
+                const target = event.target.closest('[data-trail]');
+                focus(target && !target.classList.contains('is-zero') ? target.dataset.trail : null);
+            });
+            chart.addEventListener('mouseleave', () => focus(null));
+        })();
+
+        /* Total Visitors tile: different hikers in teams formed this month
+           (portal time zone), the same count as the centre of the Visitors per
+           Trail donut, compared with last month. Needs only the teams, not
+           the trails, so it shows even before the trail list arrives. */
+        function renderTotalVisitors() {
+            const value = document.getElementById('totalVisitorsValue');
+            const meta = document.getElementById('totalVisitorsMeta');
+            const monthIndex = (date) => {
+                const [year, month] = date.toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).split('-').map(Number);
+                return year * 12 + month - 1;
+            };
+            const current = monthIndex(new Date());
+            const thisMonth = new Set();
+            const lastMonth = new Set();
+            let teams = 0;
+            latestTeams.forEach((team) => {
+                const created = toPortalDate(team.createdAt);
+                if (!created) return;
+                const back = current - monthIndex(created);
+                if (back !== 0 && back !== 1) return;
+                const target = back === 0 ? thisMonth : lastMonth;
+                (Array.isArray(team.members) ? team.members : []).filter(Boolean).forEach((uid) => target.add(uid));
+                if (back === 0) teams += 1;
+            });
+
+            value.textContent = thisMonth.size.toLocaleString();
+            const diff = thisMonth.size - lastMonth.size;
+            const change = !lastMonth.size
+                ? 'none last month'
+                : diff === 0
+                    ? 'same as last month'
+                    : `${diff > 0 ? '▲' : '▼'} ${Math.abs(Math.round((diff / lastMonth.size) * 100))}% vs last month`;
+            meta.textContent = `This month · ${teams} team${teams === 1 ? '' : 's'} · ${change}`;
+            meta.title = `Hikers in teams formed this month. Last month: ${lastMonth.size.toLocaleString()}.`;
+        }
+
+        onSnapshot(collection(db, 'teams'), (snapshot) => {
+            latestTeams = snapshot.docs.map((document) => document.data());
+            renderTotalVisitors();
+            renderVisitorsPerTrail();
+        }, (error) => {
+            console.error('Error loading teams:', error);
+            document.getElementById('totalVisitorsValue').textContent = '—';
+            document.getElementById('totalVisitorsMeta').textContent = 'Unable to load visitor data';
+            document.getElementById('visitorsPerTrail').innerHTML = '<div class="empty-state"><span>Unable to load visitor data.</span></div>';
+        });
+
+        // Trail pictures from Storage arrive after the first draw; redraw with them.
+        let latestTrails = null;
+        onTrailImagesReady(() => {
+            if (latestTrails) renderTrailStatusList(latestTrails);
+        });
+
         onSnapshot(collection(db, 'trails'), (snapshot) => {
             const trails = snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
+            latestTrails = trails;
             trailLayer.clearLayers();
             trails.forEach(trail => {
                 const coordinates = getCoordinates(trail);
@@ -1224,18 +1646,8 @@
             document.getElementById('openTrailsMeta').textContent = trails.length
                 ? `${Math.round((openTrails.length / trails.length) * 100)}% of trails`
                 : 'No trails found';
-            document.getElementById('trailStatusList').innerHTML = trails.length
-                ? trails.map(trail => {
-                    const status = trail.Status || 'Open';
-                    const chipClass = status === 'Open' ? 'pill-green' : status === 'Closed' ? 'pill-red' : 'pill-yellow';
-                    const distance = trail['Approximate Distance'] || '';
-                    return `<li class="pill-item trail-row">
-                        <span class="trail-thumb" style="background-image:url('${escapeHtml(getTrailImage(trail))}')" aria-hidden="true"></span>
-                        <div class="item-main"><strong>${escapeHtml(trail.Trail || 'Untitled Trail')}</strong>${trail.Municipality ? `<span class="item-meta">${escapeHtml(trail.Municipality)}</span>` : ''}${distance ? `<span class="trail-dist"><i class="fa-solid fa-route" aria-hidden="true"></i>${escapeHtml(distance)}</span>` : ''}</div>
-                        <span class="pill-chip ${chipClass}">${escapeHtml(status)}</span>
-                    </li>`;
-                }).join('')
-                : '<li class="pill-item"><span>No trails found.</span></li>';
+            renderTrailStatusList(trails);
+            renderVisitorsPerTrail();
 
             // Trail Summary tiles.
             const closed = trails.filter(trail => (trail.Status || 'Open') === 'Closed').length;
@@ -1282,6 +1694,13 @@
             console.error('Error loading dashboard reports:', error);
             document.getElementById('recentHazardsList').innerHTML = '<tr><td colspan="4" class="empty-cell">Unable to load hazard data.</td></tr>';
             document.getElementById('hazardTrends').innerHTML = '<div class="empty-state"><span>Unable to load hazard data.</span></div>';
+        });
+
+        document.getElementById('hazardTrendsPeriod').addEventListener('change', (event) => {
+            if (!HAZARD_TREND_PERIODS[event.target.value]) return;
+            hazardTrendPeriod = event.target.value;
+            try { localStorage.setItem(HAZARD_PERIOD_KEY, hazardTrendPeriod); } catch { /* not remembered */ }
+            renderHazardTrends();
         });
 
         // Rows in the dashboard tables open their record.
@@ -1399,7 +1818,8 @@
                 const data = await response.json();
                 if (request !== weatherRequest) return;
                 const current = data.current;
-                temperature.textContent = `${Math.round(current.temperature_2m)}°C`;
+                // Open-Meteo reports one decimal place; show it rather than rounding.
+                temperature.textContent = `${Number(current.temperature_2m).toFixed(1)}°C`;
                 // The update time gets its own line (a nested span is a block
                 // in .hero-card), so it never splits off from its label.
                 const updated = document.createElement('span');
