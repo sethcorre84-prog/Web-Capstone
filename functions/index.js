@@ -351,14 +351,39 @@ function claimAdvisoryEmail(ref) {
   });
 }
 
+// Every UID in `admins` and every address that belongs to one (their Auth
+// email and any adminEmails entry pointing at them). Admins publish the
+// advisories, so they are never on the mailing list themselves.
+async function adminIdentities() {
+  const uids = new Set((await db.collection("admins").get()).docs.map((adminDoc) => adminDoc.id));
+  const emails = new Set();
+  const entries = await db.collection("adminEmails").get();
+  entries.forEach((entry) => {
+    if (uids.has(entry.get("uid"))) emails.add(entry.id.trim().toLowerCase());
+  });
+  const ids = [...uids].map((uid) => ({ uid }));
+  for (let i = 0; i < ids.length; i += 100) {
+    try {
+      const { users } = await getAuth().getUsers(ids.slice(i, i + 100));
+      users.forEach((user) => user.email && emails.add(user.email.trim().toLowerCase()));
+    } catch (error) {
+      logger.warn("Could not look up admin accounts in Auth", error);
+    }
+  }
+  return { uids, emails };
+}
+
 async function advisoryRecipients(visibility) {
   const guidesOnly = visibility === "Guide";
-  const snap = await db.collection("users").get();
+  const [snap, admins] = await Promise.all([db.collection("users").get(), adminIdentities()]);
   const emails = new Set();
   snap.forEach((userDoc) => {
+    if (admins.uids.has(userDoc.id)) return;
     const user = userDoc.data() || {};
     const email = String(user.email || user.Email || "").trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    if (admins.emails.has(email)) return;
+    if (String(user.role || user.Role || "").toLowerCase() === "admin") return;
     // Suspended hikers still get safety advisories; only deactivated
     // accounts are left out.
     if (String(user.status || user.Status || "").toLowerCase() === "deactivated") return;
@@ -518,13 +543,14 @@ async function sendAdvisoryEmail(ref, advisory) {
   const message = advisoryMessage(advisory, await loadAdvisoryImages(advisory));
   let sent = 0;
   try {
+    // Bcc only: putting the sending account in To would drop a copy into
+    // the publishing admin's own inbox.
     for (let i = 0; i < recipients.length; i += BCC_BATCH) {
       const batch = recipients.slice(i, i + BCC_BATCH);
       await transporter.sendMail({
         ...message,
         from,
         replyTo,
-        to: account,
         bcc: batch
       });
       sent += batch.length;
