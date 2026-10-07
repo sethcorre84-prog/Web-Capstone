@@ -69,6 +69,15 @@ service cloud.firestore {
     // ===================================================================
     // Accounts
     // ===================================================================
+    function emailVerifiedForNewUser() {
+      let email = request.resource.data.get('email', '');
+      let path = /databases/$(database)/documents/emailVerifications/$(string(email).lower());
+      return email is string
+        && exists(path)
+        && get(path).data.get('verified', false) == true
+        && get(path).data.verifiedUntil > request.time;
+    }
+
     match /users/{userId} {
       allow read: if signedIn();
 
@@ -78,7 +87,13 @@ service cloud.firestore {
          otherwise a modified client could register straight as a guide and
          the create/join split would mean nothing. Admins are unrestricted:
          User Management creates accounts of either role. */
-      allow create: if isAdmin()
+      /* An admin-created profile (User Management > Add User) needs an
+         email that was verified by code first: the sendSignupVerification-
+         Code / confirmSignupVerificationCode Cloud Functions mark
+         emailVerifications/{email} verified for an hour. Without it the
+         profile is refused and the page removes the sign-in account it
+         had just made. Self-registration in the app is unaffected. */
+      allow create: if (isAdmin() && emailVerifiedForNewUser())
         || (
           signedIn()
           && request.auth.uid == userId
@@ -375,6 +390,11 @@ service cloud.firestore {
 
     match /prescriptiveHistory/{day} {
       allow read, write: if isAdmin();
+    }
+
+    // Email verification codes for Add User: written only by Cloud Functions.
+    match /emailVerifications/{email} {
+      allow read, write: if false;
     }
 
     match /passwordResetOtps/{username} {

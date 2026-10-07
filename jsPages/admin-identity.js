@@ -157,11 +157,87 @@ document.querySelectorAll('.topbar-right .avatar-logo, .avatar-logo.topbar-logo'
   });
 });
 
+/* ---- Admin roles (Settings > Role & Permission Settings) ----
+   Super Administrator and Administrator can change things; a Viewer can only
+   look. firestore.rules enforce that (isEditor()); this makes the pages say
+   so: a "view-only" banner, and the buttons that change data dimmed and
+   inert, so a Viewer is not left clicking buttons that will be refused.
+   The role is put on <html data-admin-role> and announced with a
+   "peakpath:admin-role" event for any page that wants it. */
+export const ADMIN_ROLES = ['Super Administrator', 'Administrator', 'Viewer'];
+export const roleOf = (role) => (ADMIN_ROLES.includes(role) ? role : DEFAULT_ADMIN_ROLE);
+
+// Buttons and links that change data, across the portal.
+const EDIT_CONTROLS = [
+  // Dashboard quick actions
+  '[data-quick-action]', 'a[href*="add=checkpoint"]',
+  // Trail Management
+  '#addTrailBtn', '#editTrailBtn', '#deleteTrailBtn', '#addCheckpointBtn', '#addCampsiteBtn',
+  '#addSuggestedCheckpointsBtn', '.visibility-btn', '.more-btn', '.st-save-btn', '[data-se]', '.tp-popup button',
+  // Hazard Reports
+  '.btn-verify', '.btn-resolve', '.btn-reject', '#archiveSelectedBtn', '#archiveResolvedBtn',
+  // Advisories & Announcements
+  '#createBtn', '#editBtn', '#endBtn', '.row-actions .icon-btn',
+  // Emergency Monitoring
+  '#emRespondBtn', '#emResolveBtn', '#alertBannerButton',
+  // User Management / User Reports
+  '#addUserBtn', '#resetPasswordBtn', '#suspendUserBtn', '#deactivateUserBtn',
+  '#warnUserBtn', '#resolveReportBtn',
+  // Settings: archives (profile and password stay the admin's own)
+  '#archiveDetailUnarchiveBtn', '#deleteArchiveConfirmBtn', '#unarchiveModalConfirmBtn', '#unarchiveAdvisoryConfirmBtn'
+];
+
+function applyAdminRole(role) {
+  const clean = roleOf(role);
+  const root = document.documentElement;
+  if (root.dataset.adminRole === clean) return;
+  root.dataset.adminRole = clean;
+  window.dispatchEvent(new CustomEvent('peakpath:admin-role', { detail: { role: clean } }));
+  if (clean === 'Viewer') enterViewOnly();
+  else document.getElementById('viewOnlyBanner')?.remove();
+}
+
+let viewOnlyReady = false;
+function enterViewOnly() {
+  if (!viewOnlyReady) {
+    viewOnlyReady = true;
+    const list = EDIT_CONTROLS.join(',');
+    document.head.appendChild(Object.assign(document.createElement('style'), {
+      textContent: `
+html[data-admin-role="Viewer"] :is(${list}) { opacity:.45 !important; cursor:not-allowed !important; }
+.view-only-banner { display:flex; align-items:center; gap:10px; margin:0 0 16px; padding:10px 14px; border-radius:10px;
+  border:1px solid #e3d3a8; background:#fdf6e3; color:#6b5413; font-size:13px; line-height:1.45; }
+.view-only-banner i { color:#b9791b; }`
+    }));
+    // Clicks (and Enter/Space on a focused control) on those are stopped.
+    document.addEventListener('click', (event) => {
+      if (document.documentElement.dataset.adminRole !== 'Viewer') return;
+      const control = event.target.closest?.(list);
+      if (!control) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }, true);
+  }
+  if (!document.getElementById('viewOnlyBanner')) {
+    const main = document.querySelector('main, .main, .main-panel');
+    if (!main) return;
+    const banner = document.createElement('div');
+    banner.id = 'viewOnlyBanner';
+    banner.className = 'view-only-banner';
+    banner.setAttribute('role', 'status');
+    banner.innerHTML = '<i class="fa-solid fa-eye" aria-hidden="true"></i><span><strong>View-only access.</strong> Your role is Viewer: you can see everything, but changes are turned off. A Super Administrator can change your role in Settings.</span>';
+    const header = main.querySelector('.top-bar, .topbar');
+    if (header) header.after(banner);
+    else main.prepend(banner);
+  }
+}
+
 // Show the cached name before sign-in resolves. It is only trusted for the
 // admin who saved it; a different account overwrites it below.
 {
   const cached = readCachedIdentity();
   applyIdentity(cached.name || '', cached.role || '');
+  if (cached.role) applyAdminRole(cached.role);
 }
 
 // No name anywhere (a brand-new admin): fall back to the old placeholder
@@ -200,11 +276,12 @@ onAuthStateChanged(auth, async (user) => {
       setDoc(doc(db, 'adminEmails', user.email.toLowerCase()), { uid: user.uid, email: user.email.toLowerCase(), updatedAt: serverTimestamp() })
         .catch((error) => console.warn('Could not register the admin email for password resets:', error.message));
     }
-    renderAdminIdentity({ name: data.name || user.displayName, role: data.role });
+    renderAdminIdentity({ name: data.name || user.displayName, role: roleOf(data.role) });
+    applyAdminRole(data.role);
     showFallbackName();
     updateAdminProfile({
       name: data.name || user.displayName || '',
-      role: data.role || DEFAULT_ADMIN_ROLE,
+      role: roleOf(data.role),
       username: data.username || '',
       phone: data.phone || '',
       gender: data.gender || ''

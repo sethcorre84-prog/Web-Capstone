@@ -447,17 +447,33 @@
           border-radius: 7px;
           margin-bottom: 8px;
       }
+      /* Two columns, filled top to bottom (left column first), so the legend
+         reads in order but takes half the height. The station-tag rows come
+         from a display:contents wrapper, so they flow into the columns too. */
       .legend-list {
           border-top: 1px solid var(--border);
           padding-top: 6px;
+          column-count: 2;
+          column-gap: 14px;
       }
       .legend-row {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           padding: 4px 3px;
           font-size: 12px;
+          line-height: 1.3;
           color: var(--text-primary);
+          break-inside: avoid;
+      }
+      .legend-row > span:last-child {
+          min-width: 0;
+      }
+      /* Too narrow for two readable columns (phones): back to one. */
+      @media (max-width: 420px) {
+          .legend-list {
+              column-count: 1;
+          }
       }
       .legend-row i,
       .legend-row svg {
@@ -470,12 +486,68 @@
       .legend-row svg {
           height: 10px;
       }
-      .legend-row.is-contour i,
-      .legend-row.is-contour svg {
-          color: #2f8f8f;
+      /* Contours and rivers are light lines drawn for the dark satellite
+         imagery (map-features.js), so their swatches sit on a small dark
+         tile the same way, rather than vanishing on the white legend. */
+      .legend-map-swatch {
+          display: grid;
+          place-items: center;
+          width: 20px;
+          height: 14px;
+          flex-shrink: 0;
+          border-radius: 4px;
+          background: #2c3d2b;
       }
-      .legend-row.is-river i {
-          color: var(--blue-text, #2a63b5);
+      .legend-row .legend-map-swatch svg {
+          width: 16px;
+          height: 8px;
+      }
+      .legend-row.is-contour svg {
+          color: #7fd8c8;
+      }
+      /* River/Creek: a small copy of the river label on the map (white,
+         blue border, the blue wave), so the legend shows what you see. */
+      .legend-river {
+          display: grid;
+          place-items: center;
+          width: 26px;
+          height: 16px;
+          flex-shrink: 0;
+          border: 2px solid #2a7fd0;
+          border-radius: 10px;
+          background: #fff;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, .2);
+      }
+      .legend-row .legend-river svg {
+          width: 16px;
+          height: 8px;
+          color: #2a7fd0;
+      }
+      /* Trail station: the white dot on the map. */
+      .legend-station {
+          width: 12px;
+          height: 12px;
+          margin: 0 2px;
+          flex-shrink: 0;
+          border-radius: 50%;
+          border: 2px solid #1f3a28;
+          background: #fff;
+      }
+      /* Facility stations: the round white badges on the map. */
+      .legend-facility {
+          display: grid;
+          place-items: center;
+          width: 18px;
+          height: 18px;
+          flex-shrink: 0;
+          border-radius: 50%;
+          border: 1.5px solid #1f3a28;
+          background: #fff;
+      }
+      .legend-row .legend-facility i {
+          width: auto;
+          font-size: 8.5px;
+          color: #1f3a28;
       }
       /* Trail lines and checkpoint/campsite pins, as on Trail Management's
          map legend (trail.html) and the pins in trail-points.js. */
@@ -754,8 +826,8 @@
             </div>
           </div>
           <div class="card-content">
-            <div class="label">Active Hikers Today</div>
-            <div class="percentage" id="activeHikersMeta">Loading hiker activity…</div>
+            <div class="label">Active Users Today</div>
+            <div class="percentage" id="activeHikersMeta">Loading user activity…</div>
           </div>
         </div>
         <div class="card">
@@ -790,7 +862,7 @@
             </div>
           </div>
           <div class="card-content">
-            <div class="label">Weather (Mt. Makiling)</div>
+            <div class="label" id="weatherTitle">Weather (Mt. Makiling Summit)</div>
             <div id="weatherCondition" style="font-size:11px;color:var(--text-muted);margin-top:4px">Loading current conditions...</div>
           </div>
         </div>
@@ -832,18 +904,17 @@
               <div class="legend-row"><span class="legend-line" style="background:#c8402f" aria-hidden="true"></span><span>Closed Trail</span></div>
               <div class="legend-row"><span class="legend-line is-dashed" style="color:#ffb020" aria-hidden="true"></span><span>Side Trail</span></div>
               <div class="legend-row"><span class="legend-pin" style="background:#2f6b45" aria-hidden="true"><i class="fa-solid fa-flag"></i></span><span>Checkpoint</span></div>
-              <div class="legend-row"><span class="legend-pin" style="background:#8a5a1f" aria-hidden="true"><i class="fa-solid fa-campground"></i></span><span>Campsite</span></div>
+              <div class="legend-row" title="Placed with + Add Campsites, or a trail station tagged Campsite"><span class="legend-pin" style="background:#8a5a1f" aria-hidden="true"><i class="fa-solid fa-campground"></i></span><span>Campsite</span></div>
               <div class="legend-row"><span class="hazard-dot high" aria-hidden="true"></span><span>High Risk Hazard</span></div>
               <div class="legend-row"><span class="hazard-dot moderate" aria-hidden="true"></span><span>Moderate Risk Hazard</span></div>
               <div class="legend-row"><span class="hazard-dot low" aria-hidden="true"></span><span>Low Risk Hazard</span></div>
               <div class="legend-row"><span class="hiker-pin online" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Hiker (online)</span></div>
               <div class="legend-row"><span class="hiker-pin offline" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Hiker (last seen)</span></div>
-              <div class="legend-row is-contour"><svg viewBox="0 0 24 10" aria-hidden="true"><path d="M1 6c2.5-6 5.5 6 8 0s5.5-6 8 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Contour Line</span></div>
-              <div class="legend-row is-river"><i class="fa-solid fa-water" aria-hidden="true"></i><span>River/Creek</span></div>
-              <div class="legend-row"><i class="fa-regular fa-circle" aria-hidden="true"></i><span>Trail Station</span></div>
-              <div class="legend-row"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i><span>Monitoring Station</span></div>
-              <div class="legend-row"><i class="fa-solid fa-kit-medical" aria-hidden="true"></i><span>First Aid Station</span></div>
-              <div class="legend-row"><i class="fa-solid fa-utensils" aria-hidden="true"></i><span>Food Station</span></div>
+              <div class="legend-row is-contour"><span class="legend-map-swatch" aria-hidden="true"><svg viewBox="0 0 24 10"><path d="M1 6c2.5-6 5.5 6 8 0s5.5-6 8 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Contour Line (100 m)</span></div>
+              <div class="legend-row is-river" title="Rivers and creeks inside the Mount Makiling Forest Reserve"><span class="legend-river" aria-hidden="true"><svg viewBox="0 0 24 10" aria-hidden="true"><path d="M1 7c4-5 8 2 12-2s7-3 10-1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span><span>River/Creek</span></div>
+              <div class="legend-row"><span class="legend-station" aria-hidden="true"></span><span>Trail Station</span></div>
+              <!-- One row per station tag, from FACILITIES in map-features.js. -->
+              <div id="stationTagLegend" style="display:contents"></div>
             </div>
           </div>
 
@@ -885,23 +956,31 @@
     import { escapeHtml } from "../jsPages/utils.js";
     import { collection, onSnapshot, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { formatPortalDate, portalHourCycle, portalTimeZone, toPortalDate as toDate } from "../jsPages/datetime-prefs.js";
-    import { createMakilingMap, trailLineKey } from "../jsPages/makiling-area.js";
+    import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, weatherUrlFor } from "../jsPages/weather-locations.js";
+    import { createMakilingMap, trailLineKey, PEAK_2 } from "../jsPages/makiling-area.js";
     import { initTrailPoints } from "../jsPages/trail-points.js";
+    import { addMapFeatures, FACILITIES } from "../jsPages/map-features.js";
+
+    // The station-tag rows of the legend: every tag a station can carry.
+    document.getElementById('stationTagLegend').innerHTML = FACILITIES.map((f) => `
+      <div class="legend-row" title="${escapeHtml(f.hint)}"><span class="legend-facility" aria-hidden="true"><i class="fa-solid ${f.icon}" style="color:${f.color}"></i></span><span>${escapeHtml(f.label)}</span></div>`).join('');
     import { watchActiveHikers } from "../jsPages/active-hikers.js";
 
     const setSummaryValue = (id, value) => {
       document.getElementById(id).textContent = value;
     };
 
-    /* This is a Mount Makiling map only: everything outside a 6 km radius of
-       the summit is greyed out, and panning/zooming is locked to that area so
-       the view can never wander off the mountain. The area itself is defined
-       once in makiling-area.js, shared with the dashboard map. */
+    /* This is a Mount Makiling map only: a rectangle around the mountain,
+       with panning and zooming locked to it so the view can never wander off
+       the mountain. The area itself is defined once in makiling-area.js,
+       shared with the dashboard map. */
     /* Trail lines are coloured by their trail's status, the same as Trail
        Management (trail.html): green open, red closed. Lines for trails not
        in Firestore (the side trails) keep the default amber. */
     let mapTrails = [];
+    // Opens on the summit, Peak 2.
     const { map, bounds: makilingBounds, trailLines } = createMakilingMap('makilingMap', {
+      center: PEAK_2,
       trailLineOptions: {
         colorFor(key) {
           const trail = mapTrails.find((t) => trailLineKey(t.Trail) === key);
@@ -916,8 +995,22 @@
     const hikerLayer = L.layerGroup().addTo(map);
 
     // Checkpoint and campsite pins added in Trail Management, shown read-only.
-    const pointLayer = L.layerGroup().addTo(map);
+    // Not added on its own: grouped below with the station campsites, so
+    // "Checkpoints & campsites" in the layers control covers every campsite.
+    const pointLayer = L.layerGroup();
     const trailPoints = initTrailPoints({ map, readOnly: true, layer: pointLayer });
+
+    // Contour lines, rivers and creeks, and the trail stations with their
+    // facilities (monitoring, first aid, food): the rest of the legend.
+    const mapFeatures = addMapFeatures({
+      map,
+      db,
+      trails: () => mapTrails,
+      campsitesOnMap: false
+    });
+    // Campsites placed by hand and stations tagged Campsite are one kind of
+    // place: one pin, one legend row, one layer switch.
+    const pointsAndCampsites = L.layerGroup([pointLayer, mapFeatures.campsites]).addTo(map);
 
     const getCoordinates = (data) => {
       const latitude = Number(data.latitude ?? data.lat ?? data.coordinates?.latitude);
@@ -1186,6 +1279,7 @@
     onSnapshot(collection(db, 'trails'), (snapshot) => {
       const trails = snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
       mapTrails = trails;
+      mapFeatures.render();
       trailLines.then((lines) => lines?.recolor());
       trailPoints.render(trails);
       trailLayer.clearLayers();
@@ -1219,7 +1313,6 @@
 
     // Marker per report id, so a Recent Hazards item can bring its marker into view.
     const hazardMarkers = new Map();
-    let hazardViewFitted = false;
 
     const focusHazard = (id) => {
       const marker = hazardMarkers.get(id);
@@ -1283,13 +1376,9 @@
         : 'Mount Makiling · No verified hazards to plot';
       updateMapCaption();
 
-      // Frame the hazards once on load; later live updates leave the admin's view alone.
-      if (!hazardViewFitted && plotted) {
-        hazardViewFitted = true;
-        const bounds = L.latLngBounds([...hazardMarkers.values()].map((marker) => marker.getLatLng()));
-        // Never frame wider than the mountain itself.
-        map.fitBounds(makilingBounds.contains(bounds.pad(0.2)) ? bounds.pad(0.2) : makilingBounds, { maxZoom: 15 });
-      }
+      // The map opens on the summit and stays there: hazards are shown
+      // where they are, but the view no longer jumps to frame them (that
+      // opened the map on whichever side trail had the reports).
     }, (error) => {
       console.error('Error loading hazard map markers:', error);
       const list = document.getElementById('recentHazardsList');
@@ -1429,9 +1518,12 @@
 
     L.control.layers(null, {
       'Trails': trailLayer,
-      'Checkpoints & campsites': pointLayer,
+      'Checkpoints & campsites': pointsAndCampsites,
+      'Trail stations': mapFeatures.stations,
       'Verified hazards': hazardLayer,
-      'Hikers': hikerLayer
+      'Hikers': hikerLayer,
+      'Contour lines': mapFeatures.contours,
+      'Rivers & creeks': mapFeatures.waterways
     }).addTo(map);
 
     // Match the map's bottom edge to the bottom of the Alerts Overview
@@ -1478,13 +1570,17 @@
        Dashboard tile makes, so the two pages can never disagree. It used to
        count hiker *accounts* that were not suspended, which said nothing about
        today and never matched the hiker pins on this page's own map. */
+    // Live, like the Dashboard: users signed in to the app right now
+    // (checkIns/{uid}.checkedIn == true), and the line under the number says
+    // what that number is.
     watchActiveHikers({
       db,
-      onUpdate: ({ hikedToday, onlineNow }) => {
+      live: true,
+      onUpdate: ({ hikedToday }) => {
         setSummaryValue('activeHikersValue', hikedToday);
         setSummaryValue('activeHikersMeta', hikedToday
-          ? `${onlineNow} online now`
-          : 'No hikers checked in');
+          ? `${hikedToday} user${hikedToday === 1 ? '' : 's'} signed in to the app`
+          : 'No users signed in');
       },
       onError: (message) => {
         setSummaryValue('activeHikersValue', '—');
@@ -1525,20 +1621,30 @@
       96: 'Thunderstorm with hail', 99: 'Severe thunderstorm with hail'
     };
 
+    /* Same place and reading as the Dashboard's weather card: the location
+       chosen in Settings > System Settings > Dashboard Weather
+       (weather-locations.js), so the two cards always agree. */
+    let weatherRequest = 0;
     async function updateWeather() {
       const temperature = document.getElementById('weatherTemperature');
       const condition = document.getElementById('weatherCondition');
-      const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=14.136&longitude=121.197&current=temperature_2m,weather_code&temperature_unit=celsius&timezone=Asia%2FManila';
+      const locationKey = getWeatherLocationKey();
+      const place = WEATHER_LOCATIONS[locationKey];
+      document.getElementById('weatherTitle').textContent = `Weather (${place.name})`;
+      // A slow reply for a place that is no longer selected is dropped.
+      const request = ++weatherRequest;
 
       try {
-        const response = await fetch(weatherUrl, { cache: 'no-store' });
+        const response = await fetch(weatherUrlFor(locationKey), { cache: 'no-store' });
         if (!response.ok) throw new Error(`Weather request failed with ${response.status}`);
         const data = await response.json();
+        if (request !== weatherRequest) return;
         const current = data.current;
         temperature.textContent = `${Number(current.temperature_2m).toFixed(1)}°C`;
         condition.textContent = `${weatherCodes[current.weather_code] || 'Current conditions'} · Updated ${new Date(current.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
       } catch (error) {
-        console.error('Error loading Mount Makiling weather:', error);
+        if (request !== weatherRequest) return;
+        console.error(`Error loading ${place.name} weather:`, error);
         temperature.textContent = '—';
         condition.textContent = 'Weather service unavailable';
       }
@@ -1546,6 +1652,10 @@
 
     updateWeather();
     setInterval(updateWeather, 5 * 60 * 1000);
+    // Changed in Settings in another tab.
+    window.addEventListener('storage', (event) => {
+      if (event.key === WEATHER_STORAGE_KEY) updateWeather();
+    });
 
 function updateTime() {
     // The clock shows the time zone chosen in Settings > Date & Time.

@@ -28,15 +28,19 @@ import {
   writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Tag -> label and icon (Font Awesome), shown on landmark stations.
+// Tag -> label and icon (Font Awesome), shown on landmark stations and as
+// the station badges on the GeoMap (map-features.js). The keys are what is
+// saved on a station, so they stay as they are: "registration" is shown as
+// Monitoring station (where rangers log hikers in and out) and "store" as
+// Food station.
 export const TAGS = {
-  registration: { label: 'Registration', icon: 'fa-clipboard-check' },
+  registration: { label: 'Monitoring station', icon: 'fa-tower-broadcast' },
+  store: { label: 'Food station', icon: 'fa-utensils' },
   water: { label: 'Water source', icon: 'fa-droplet' },
-  store: { label: 'Stores', icon: 'fa-store' },
+  firstaid: { label: 'First aid', icon: 'fa-kit-medical' },
   campsite: { label: 'Campsite', icon: 'fa-campground' },
   sidetrip: { label: 'Side trip', icon: 'fa-signs-post' },
   steep: { label: 'Steep / roped', icon: 'fa-person-hiking' },
-  hazard: { label: 'Hazard', icon: 'fa-triangle-exclamation' },
   junction: { label: 'Trail junction', icon: 'fa-code-branch' },
   peak: { label: 'Summit', icon: 'fa-mountain' }
 };
@@ -51,13 +55,17 @@ export const REFERENCE_STATIONS = {
       { from: 12, to: 30, label: 'Forest trail', note: 'Muddy, root-covered trail to Peak 2' }
     ],
     stations: {
-      1: { landmark: 'Trailhead', tags: ['registration', 'sidetrip'],
+      // Stations 1 and 11 are the ranger posts where hikers log in; they are
+      // marked first aid because the rangers there are the trail's first
+      // responders. No source lists official first-aid stations, so confirm
+      // with MCME.
+      1: { landmark: 'Trailhead', tags: ['registration', 'firstaid', 'sidetrip'],
         description: 'Official start of the trail, near the Makiling Center for Mountain Ecosystems (MCME) office. Flat Rocks, natural pools on Molawin Creek, is a few hundred meters away.' },
       7: { landmark: 'Rest stop', tags: ['store'],
         description: 'Stores and buko stalls along the road; a common rest stop.' },
       8: { landmark: 'Mud Spring jump-off', tags: ['sidetrip', 'campsite'],
         description: 'Jump-off to the Mud Spring, volcanic mud pots about 690 m off the trail. Tayabak Campsite is around here.' },
-      11: { landmark: 'Agila Base', tags: ['registration', 'water', 'store'],
+      11: { landmark: 'Agila Base', tags: ['registration', 'firstaid', 'water', 'store'],
         description: 'End of the concrete road. Hikers log in again before entering the forest; natural water refill and occasional vendors. Rangers enforce the morning cut-off for continuing to the peak here.' },
       12: { landmark: 'Forest entry', tags: [],
         description: 'Start of the forest trail toward Malaboo.' },
@@ -65,7 +73,7 @@ export const REFERENCE_STATIONS = {
         description: 'Malaboo Campsite (Stations 13 to 14). Rafflesia buds have been seen around here.' },
       20: { landmark: 'Steeper section', tags: ['steep'],
         description: 'The trail becomes noticeably steeper from here on.' },
-      26: { landmark: 'Landslide area', tags: ['hazard'],
+      26: { landmark: 'Landslide area', tags: [],
         description: 'Start of a major landslide section; watch the footing.' },
       28: { landmark: 'Roped segments', tags: ['steep'],
         description: 'Roped sections on the final climb.' },
@@ -101,10 +109,50 @@ export const REFERENCE_STATIONS = {
   }
 };
 
+
+/* Estimated [latitude, longitude] of every reference station. No official
+   list of station coordinates exists, so each station is placed along its
+   trail's OpenStreetMap line (assets/data/makiling-trails.geojson), with the
+   landmarks the sources pin down used as anchors and the stations between
+   two anchors spaced evenly along the line:
+     Mariang Makiling  1  where the Flat Rocks side trail meets the road,
+                          by the MCME office (the trailhead)
+                       8  where the Mud Spring side trail leaves the road
+                      11  Agila Base, 5.4 km of road after Station 1 (the
+                          concrete-road length the sources give)
+                      30  Peak 2, the end of the line
+     Sipit             1  150 m past the Sto. Tomas jump-off (the start of
+                          the line); 21 at Peak 2, the end of the line
+   Expect them to be off by up to a few hundred metres; replace any with a
+   GPS reading taken at the marker (Trail Station Management). */
+export const STATION_COORDS = {
+  mariang: {
+    1: [14.14814, 121.23185], 2: [14.145695, 121.23042], 3: [14.143921, 121.232058],
+    4: [14.141533, 121.229972], 5: [14.139733, 121.230711], 6: [14.137916, 121.23034],
+    7: [14.135944, 121.229063], 8: [14.1358, 121.22573], 9: [14.131933, 121.219781],
+    10: [14.129922, 121.212583], 11: [14.132792, 121.208493], 12: [14.133768, 121.20792],
+    13: [14.134999, 121.207767], 14: [14.1356, 121.206861], 15: [14.136559, 121.205869],
+    16: [14.137726, 121.205396], 17: [14.138667, 121.204845], 18: [14.138445, 121.203696],
+    19: [14.137375, 121.202754], 20: [14.136851, 121.201577], 21: [14.13737, 121.201344],
+    22: [14.1382, 121.201418], 23: [14.138841, 121.200423], 24: [14.138608, 121.199237],
+    25: [14.138996, 121.198965], 26: [14.138217, 121.197868], 27: [14.137965, 121.196808],
+    28: [14.136691, 121.196247], 29: [14.135815, 121.195149], 30: [14.13574, 121.19387]
+  },
+  sipit: {
+    1: [14.107584, 121.187988], 2: [14.109588, 121.187099], 3: [14.111757, 121.186862],
+    4: [14.113844, 121.187294], 5: [14.115493, 121.186152], 6: [14.117606, 121.185981],
+    7: [14.119641, 121.186052], 8: [14.119928, 121.184158], 9: [14.121195, 121.182925],
+    10: [14.122601, 121.18444], 11: [14.124765, 121.184548], 12: [14.126518, 121.185959],
+    13: [14.128397, 121.187002], 14: [14.12989, 121.186645], 15: [14.130857, 121.184749],
+    16: [14.132523, 121.184455], 17: [14.134333, 121.185363], 18: [14.134294, 121.187646],
+    19: [14.1349, 121.189578], 20: [14.1353, 121.191634], 21: [14.13574, 121.19387]
+  }
+};
+
 const normalize = (value) => String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
 
 // Which reference list fits a trail document, by its name.
-function referenceKeyFor(trail) {
+export function referenceKeyFor(trail) {
   const name = normalize(trail?.Trail);
   if (name.includes('sipit')) return 'sipit';
   if (name.includes('mariang makiling') || name.includes('maria makiling')) return 'mariang';
@@ -115,13 +163,15 @@ const isTraverse = (trail) => /traverse|maktrav/.test(normalize(trail?.Trail));
 
 // The reference stations as the documents the app reads (see the field list
 // in station_service.dart): name, stationNumber, description, status.
-// landmark/tags/section are extra and ignored by the app.
-function referenceDocs(key, trailID) {
+// landmark/tags/section and lat/lng (with coordsEstimated: true, see
+// STATION_COORDS) are extra and ignored by the app.
+export function referenceDocs(key, trailID) {
   const ref = REFERENCE_STATIONS[key];
   const docs = [];
   for (let n = 1; n <= ref.count; n += 1) {
     const info = ref.stations[n] || {};
     const section = ref.sections.find((s) => n >= s.from && n <= s.to);
+    const [lat, lng] = STATION_COORDS[key]?.[n] || [null, null];
     docs.push({
       trailID,
       stationNumber: n,
@@ -130,7 +180,10 @@ function referenceDocs(key, trailID) {
       description: info.description || '',
       tags: info.tags || [],
       section: section ? section.label : '',
-      status: 'open'
+      status: 'open',
+      lat,
+      lng,
+      coordsEstimated: lat !== null
     });
   }
   return docs;
@@ -148,7 +201,10 @@ function fromStored(data) {
     description: data.description || '',
     tags: Array.isArray(data.tags) ? data.tags.filter((t) => TAGS[t]) : [],
     section: data.section || '',
-    open: !String(data.status ?? 'open').toLowerCase().startsWith('close')
+    open: !String(data.status ?? 'open').toLowerCase().startsWith('close'),
+    lat: Number.isFinite(Number(data.lat)) && data.lat !== null ? Number(data.lat) : null,
+    lng: Number.isFinite(Number(data.lng)) && data.lng !== null ? Number(data.lng) : null,
+    coordsEstimated: data.coordsEstimated === true
   };
 }
 
@@ -237,7 +293,13 @@ export function initStationsPanel({ db, root, onSelectTrail, onSelectStation }) 
       ${s.description
         ? `<p class="st-detail-desc">${escapeHtml(s.description)}</p>`
         : '<p class="st-detail-desc st-muted">A numbered trail marker. No landmark has been recorded for this station.</p>'}
-      ${s.tags.length ? `<div class="st-tags">${tagsHtml(s.tags)}</div>` : ''}`;
+      ${s.tags.length ? `<div class="st-tags">${tagsHtml(s.tags)}</div>` : ''}
+      <div class="st-coords">
+        <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
+        ${s.lat !== null && s.lng !== null
+          ? `${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}${s.coordsEstimated ? ' <span class="st-muted">· estimated</span>' : ''}`
+          : '<span class="st-muted">No coordinates yet</span>'}
+      </div>`;
   }
 
   function landmarksHtml(set) {

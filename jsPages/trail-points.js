@@ -16,6 +16,178 @@ import {
   getDoc,
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { trailLineKey } from "./makiling-area.js";
+import { STATION_COORDS } from "./trail-stations.js";
+
+/* Suggested checkpoints for each trail, added by Trail Management's
+   "+ Suggested Checkpoints" button: the places hikers log in or that mark a
+   leg of the climb, from the same sources as the station reference list
+   (trail-stations.js). Positions are estimates on the trail line (stations
+   from STATION_COORDS, Peak 2 and the jump-offs from the trail data); an
+   admin can remove any of them and place it again by hand. */
+const PEAK_2 = [14.13574, 121.19387];
+const at = (key, n) => STATION_COORDS[key][n];
+export const SUGGESTED_CHECKPOINTS = {
+  mariang: [
+    { name: 'MCME Registration', note: 'Station 1. Log in at the Makiling Center for Mountain Ecosystems office.', at: at('mariang', 1) },
+    { name: 'Agila Base', note: 'Station 11. Second log-in before the forest; rangers enforce the morning cut-off here.', at: at('mariang', 11) },
+    { name: 'Peak 2 Summit', note: 'Station 30. 1,090 MASL, end of the trail.', at: PEAK_2 }
+  ],
+  sipit: [
+    { name: 'Sto. Tomas Jump-off', note: 'Start of the Sipit Trail. Register before the climb.', at: [14.10642, 121.18826] },
+    { name: 'Melkas Campsite', note: 'Station 15. Last campsite before Haring Bato and the ridge.', at: at('sipit', 15) },
+    { name: 'Peak 2 Summit', note: 'Station 21. 1,090 MASL.', at: PEAK_2 }
+  ],
+  traverse: [
+    { name: 'Sto. Tomas Start', note: 'Start of the traverse, up the Sipit side. Register before the climb.', at: [14.1091, 121.1657] },
+    { name: 'Peak 2 Summit', note: '1,090 MASL, halfway point of the traverse.', at: PEAK_2 },
+    { name: 'Agila Base', note: 'Mariang Makiling Station 11. Log back in on the way down.', at: at('mariang', 11) },
+    { name: 'MCME Exit', note: 'Mariang Makiling Station 1. Log out at the MCME office, Los Baños.', at: at('mariang', 1) }
+  ],
+  botanic: [
+    // The main entrance on Mauricio Oteyza Road, by the garden's bus stop
+    // (OpenStreetMap node 3345224348).
+    { name: 'Botanic Gardens Entrance', note: 'Main entrance of the Makiling Botanic Gardens on Mauricio Oteyza Road, Los Baños, beside the bus stop and parking.', at: [14.15487, 121.23527] }
+  ]
+};
+
+const suggestionKey = (trail) => trailLineKey(trail?.Trail)
+  || (/botanic/i.test(String(trail?.Trail || '')) ? 'botanic' : null);
+
+/* The "+ Suggested Checkpoints" popup, styled like the Add Checkpoint one
+   (needs initTrailPoints to have run, which adds those styles): lists what
+   each trail will get, greying out the ones it already has, then adds them
+   and shows the result in the same popup. `trails` is the page's current
+   trail list (with id). */
+export function openSuggestedCheckpointsDialog({ db, trails }) {
+  const modal = document.createElement('div');
+  modal.className = 'tp-modal open';
+  document.body.appendChild(modal);
+  let busy = false;
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  function close() {
+    if (busy) return;
+    modal.remove();
+    document.removeEventListener('keydown', onKey);
+  }
+  document.addEventListener('keydown', onKey);
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+
+  const plan = trails
+    .map((trail) => {
+      const suggestions = SUGGESTED_CHECKPOINTS[suggestionKey(trail)];
+      if (!suggestions) return null;
+      const have = new Set((Array.isArray(trail.checkpoints) ? trail.checkpoints : [])
+        .map((p) => String(p?.name || '').trim().toLowerCase()));
+      return { trail, items: suggestions.map((s) => ({ name: s.name, done: have.has(s.name.toLowerCase()) })) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => String(a.trail.Trail || '').localeCompare(String(b.trail.Trail || '')));
+  const toAdd = plan.reduce((sum, p) => sum + p.items.filter((i) => !i.done).length, 0);
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+  const header = (icon, title, sub) => `
+    <h3 id="tpSuggestTitle"><i class="fa-solid ${icon}" aria-hidden="true"></i><span>${title}</span></h3>
+    ${sub ? `<p class="tp-sub">${sub}</p>` : ''}`;
+
+  function showResult(icon, title, text) {
+    modal.innerHTML = `
+      <div class="tp-dialog" role="dialog" aria-modal="true" aria-labelledby="tpSuggestTitle">
+        ${header(icon, title, '')}
+        <div class="tp-result">${escapeHtml(text)}</div>
+        <div class="tp-actions"><button type="button" class="tp-save">Done</button></div>
+      </div>`;
+    const done = modal.querySelector('.tp-save');
+    done.addEventListener('click', close);
+    done.focus();
+  }
+
+  if (!plan.length) {
+    showResult('fa-flag', 'Suggested Checkpoints', 'None of the trails has a suggested list.');
+    return;
+  }
+  if (!toAdd) {
+    showResult('fa-circle-check', 'Suggested Checkpoints', 'Every trail already has its suggested checkpoints.');
+    return;
+  }
+
+  modal.innerHTML = `
+    <div class="tp-dialog" role="dialog" aria-modal="true" aria-labelledby="tpSuggestTitle">
+      ${header('fa-flag', 'Add Suggested Checkpoints', `${plural(toAdd, 'checkpoint')} will be added to the trails below.`)}
+      <ul class="tp-list">${plan.map((p) => `
+        <li>
+          <strong>${escapeHtml(p.trail.Trail || 'Untitled Trail')}</strong>
+          <ul>${p.items.map((i) => `
+            <li class="${i.done ? 'is-done' : ''}"><i class="fa-solid ${i.done ? 'fa-check' : 'fa-flag'}" aria-hidden="true"></i>${escapeHtml(i.name)}${i.done ? ' · already added' : ''}</li>`).join('')}
+          </ul>
+        </li>`).join('')}
+      </ul>
+      <p class="tp-note-line">Positions are estimates on the trail line; you can remove any of them on the map and place it again.</p>
+      <div class="tp-error" role="alert"></div>
+      <div class="tp-actions">
+        <button type="button" class="tp-cancel">Cancel</button>
+        <button type="button" class="tp-save">Add ${plural(toAdd, 'Checkpoint')}</button>
+      </div>
+    </div>`;
+  const cancel = modal.querySelector('.tp-cancel');
+  const save = modal.querySelector('.tp-save');
+  cancel.addEventListener('click', close);
+  save.focus();
+  save.addEventListener('click', async () => {
+    if (busy) return;
+    busy = true;
+    save.disabled = true;
+    cancel.disabled = true;
+    save.textContent = 'Adding…';
+    try {
+      const { added, trails: count } = await addSuggestedCheckpoints(db, trails);
+      busy = false;
+      showResult('fa-circle-check', 'Checkpoints Added', added
+        ? `Added ${plural(added, 'checkpoint')} to ${plural(count, 'trail')}. They are on the map now.`
+        : 'Every trail already has its suggested checkpoints.');
+    } catch (error) {
+      busy = false;
+      save.disabled = false;
+      cancel.disabled = false;
+      save.textContent = 'Try Again';
+      modal.querySelector('.tp-error').textContent = error?.code === 'permission-denied'
+        ? 'Firebase denied this. Only admins can add checkpoints.'
+        : `Could not add the checkpoints: ${error?.message || 'Unknown error'}`;
+    }
+  });
+}
+
+/* Adds the suggested checkpoints to every trail that has a list, skipping
+   any a trail already has by name (so pressing it twice adds nothing).
+   Returns { added, trails } counts. */
+export async function addSuggestedCheckpoints(db, trails) {
+  let added = 0;
+  let touched = 0;
+  for (const trail of trails) {
+    const suggestions = SUGGESTED_CHECKPOINTS[suggestionKey(trail)];
+    if (!suggestions) continue;
+    const ref = doc(db, 'trails', trail.id);
+    const snap = await getDoc(ref);
+    const existing = new Set((Array.isArray(snap.data()?.checkpoints) ? snap.data().checkpoints : [])
+      .map((p) => String(p?.name || '').trim().toLowerCase()));
+    const points = suggestions
+      .filter((s) => !existing.has(s.name.toLowerCase()))
+      .map((s) => ({
+        id: (crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`),
+        name: s.name,
+        note: `${s.note} (Estimated position.)`,
+        lat: s.at[0],
+        lng: s.at[1],
+        createdAt: new Date().toISOString(),
+        suggested: true
+      }));
+    if (!points.length) continue;
+    await updateDoc(ref, { checkpoints: arrayUnion(...points) });
+    added += points.length;
+    touched += 1;
+  }
+  return { added, trails: touched };
+}
 
 export const POINT_TYPES = {
   checkpoints: { label: 'Checkpoint', icon: 'fa-flag', color: '#2f6b45' },
@@ -69,6 +241,16 @@ const CSS = `
 .tp-dialog .tp-cancel { border:1px solid var(--border); background:var(--dm-surface,#fff); color:var(--text-primary); }
 .tp-dialog .tp-save { border:0; background:var(--accent); color:#fff; }
 .tp-dialog .tp-save[disabled] { opacity:.6; cursor:wait; }
+.tp-dialog .tp-list { margin:0 0 14px; padding:0; list-style:none; display:flex; flex-direction:column; gap:10px; }
+.tp-dialog .tp-list > li { padding:10px 12px; border-radius:8px; background:var(--dm-surface-2,#f3f5f2); }
+.tp-dialog .tp-list strong { display:block; margin-bottom:4px; font-size:13px; color:var(--text-primary); }
+.tp-dialog .tp-list ul { margin:0; padding:0; list-style:none; }
+.tp-dialog .tp-list ul li { display:flex; align-items:center; gap:7px; padding:2px 0; font-size:12.5px; color:var(--text-secondary); }
+.tp-dialog .tp-list ul li i { width:12px; font-size:11px; color:#2f6b45; }
+.tp-dialog .tp-list ul li.is-done, .tp-dialog .tp-list ul li.is-done i { color:var(--text-muted); }
+.tp-dialog .tp-note-line { margin:-6px 0 14px; font-size:11.5px; color:var(--text-muted); }
+.tp-dialog .tp-result { margin:4px 0 16px; padding:12px; border-radius:8px; background:var(--accent-light);
+  color:var(--accent-dark); font-size:13px; font-weight:600; }
 `;
 
 const MODAL = `
@@ -134,6 +316,7 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
   let banner = null;
   let pending = null; // { type, trail, latlng, snapped }
   let saving = false;
+  let knownTrails = []; // the trails last drawn, for matching a click to a trail line
 
   if (readOnly) return { render };
 
@@ -156,6 +339,7 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
 
   // Redraws every trail's checkpoints and campsites.
   function render(trails) {
+    knownTrails = trails || [];
     layer.clearLayers();
     for (const trail of trails || []) {
       for (const type of Object.keys(POINT_TYPES)) {
@@ -220,7 +404,7 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
     banner.className = 'tp-banner';
     banner.innerHTML = `
       <i class="fa-solid ${POINT_TYPES[type].icon}" aria-hidden="true"></i>
-      <span>Click on the map to place a ${POINT_TYPES[type].label.toLowerCase()} on <strong>${escapeHtml(trail.Trail || 'this trail')}</strong></span>
+      <span>Click on a trail line to place a ${POINT_TYPES[type].label.toLowerCase()} on that trail, or anywhere else for <strong>${escapeHtml(trail.Trail || 'this trail')}</strong></span>
       <button type="button">Cancel</button>`;
     banner.querySelector('button').addEventListener('click', (e) => { e.stopPropagation(); stopPlacing(); });
     L.DomEvent.disableClickPropagation(banner);
@@ -234,16 +418,25 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
 
   map.on('click', (event) => {
     if (!placing) return;
-    const { type, trail } = placing;
+    const { type } = placing;
+    let { trail } = placing;
     let latlng = event.latlng;
     let snapped = false;
-    const line = lineFor?.(trail);
-    if (line) {
+    // A click on or near a trail's line puts the point on THAT trail (the
+    // closest line within SNAP_METERS wins), moved onto the line; anywhere
+    // else it goes on the trail that was selected when placing started.
+    let best = null;
+    const candidates = knownTrails.some((t) => t.id === trail.id) ? knownTrails : [trail, ...knownTrails];
+    for (const candidate of candidates) {
+      const line = lineFor?.(candidate);
+      if (!line) continue;
       const near = nearestOnLine(line.getLatLngs().flat(), latlng);
-      if (near && near.d <= SNAP_METERS) {
-        latlng = near.point;
-        snapped = true;
-      }
+      if (near && near.d <= SNAP_METERS && (!best || near.d < best.near.d)) best = { trail: candidate, near };
+    }
+    if (best) {
+      trail = best.trail;
+      latlng = best.near.point;
+      snapped = true;
     }
     stopPlacing();
     openForm({ type, trail, latlng, snapped });

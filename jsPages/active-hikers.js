@@ -3,9 +3,11 @@
 // of makiling-area.js: the Dashboard, Geomap and User Management tiles all
 // count from here, so the pages can never disagree about how many hikers are out.
 //
-//   hikedToday   hikers currently checked in: users/{uid} with
-//                checkIns == true. Setting it back to false takes the hiker
-//                off the count straight away.
+//   hikedToday   users signed in to the app right now: checkIns/{uid} with
+//                checkedIn == true. The app (CheckInService) sets it true
+//                when a user signs in or opens the app and false when they
+//                sign out or close it, which takes them off the count
+//                straight away.
 //   onlineNow    hikers whose checkIns/{uid}.lastSeenAt is within
 //                ACTIVE_ONLINE_MS. The PeakPath app refreshes that heartbeat
 //                every two minutes while it is open (CheckInService in the
@@ -56,10 +58,11 @@ export function portalMidnight() {
     return new Date(now.getTime() - secondsIntoDay * 1000);
 }
 
-// Hikers checked in right now: users/{uid} with checkIns: true.
+// Users signed in to the app right now: checkIns/{uid} with checkedIn: true
+// (the document id is the uid, so each user counts once).
 const checkInsQuery = (db) => query(
-    collection(db, 'users'),
-    where('checkIns', '==', true)
+    collection(db, 'checkIns'),
+    where('checkedIn', '==', true)
 );
 
 // Hikers whose app was open today (checkIns/{uid}.lastSeenAt); onlineNow
@@ -70,7 +73,7 @@ const loginsQuery = (db, midnight) => query(
 );
 
 /* Counts one poll's worth of documents.
-     checkedInIds   ids of users docs with checkIns == true
+     checkedInIds   ids of checkIns docs with checkedIn == true
      users          checkIns docs whose lastSeenAt is today */
 export function countActiveHikers(checkedInIds, users) {
     const now = Date.now();

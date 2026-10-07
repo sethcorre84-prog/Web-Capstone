@@ -1049,6 +1049,19 @@
         color: var(--accent);
     }
 
+    .st-coords {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-variant-numeric: tabular-nums;
+    }
+    .st-coords i {
+        color: var(--accent);
+    }
+
     .st-footer {
         display: flex;
         align-items: center;
@@ -1178,23 +1191,6 @@
         font-size: 11.5px;
         text-align: center;
         color: var(--accent);
-    }
-
-    .status-update-select {
-        width: 100%;
-        margin-bottom: 10px;
-        padding: 9px 10px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--dm-surface, #fff);
-        font-size: 13px;
-        color: var(--text-secondary);
-    }
-
-    .status-update-select:focus {
-        outline: none;
-        border-color: var(--accent);
-        box-shadow: 0 0 0 3px var(--accent-light);
     }
 
     /* ==========================================
@@ -1479,26 +1475,12 @@
             <div class="detail-row"><span><i class="fa-regular fa-calendar-plus" aria-hidden="true"></i>Publish Date</span><span id="detailPublishDate">—</span></div>
             <div class="detail-row"><span><i class="fa-regular fa-calendar-check" aria-hidden="true"></i>Last Updated</span><span id="detailUpdated">—</span></div>
           </div>
-          <button class="btn-secondary" id="editTrailBtn">✎ Edit Trail Information</button>
-        </div>
-
-        <div class="panel">
-          <div class="panel-title">Trail Status Management</div>
+          <span class="detail-section-label">Trail Status</span>
           <div class="status-mgmt-row">
             <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Current Status</span>
             <span class="badge open" id="detailStatus">Open</span>
           </div>
-          <div class="status-mgmt-row" style="margin-bottom:14px;">
-            <span><i class="fa-regular fa-calendar-check" aria-hidden="true"></i>Last Updated</span>
-            <span style="font-weight:600" id="statusLastUpdated">—</span>
-          </div>
-          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">Update Status</div>
-          <select class="status-update-select" id="statusUpdateSelect">
-            <option>Select Status</option>
-            <option>Open</option>
-            <option>Closed</option>
-          </select>
-          <button class="btn-primary" id="updateStatusBtn">Update Status</button>
+          <button class="btn-secondary" id="editTrailBtn" style="margin-top:12px;">✎ Edit Trail Information</button>
         </div>
 
         <div class="panel">
@@ -1513,6 +1495,7 @@
             <button class="quick-btn outline" id="viewMapBtn" type="button">📍 View on Map</button>
             <button class="quick-btn outline" id="addCheckpointBtn" type="button">+ Add Checkpoints</button>
             <button class="quick-btn outline" id="addCampsiteBtn" type="button">+ Add Campsites</button>
+            <button class="quick-btn outline" id="addSuggestedCheckpointsBtn" type="button" style="grid-column:1 / -1" title="Adds the registration points, campsites and summit of each trail as checkpoints">+ Suggested Checkpoints (all trails)</button>
           </div>
         </div>
       </div>
@@ -1694,18 +1677,13 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getDownloadURL, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { addSatelliteLayer, addTrailLines, trailLineKey } from "../jsPages/makiling-area.js";
-import { initTrailPoints } from "../jsPages/trail-points.js";
+import { createMakilingMap, trailLineKey } from "../jsPages/makiling-area.js";
+import { initTrailPoints, openSuggestedCheckpointsDialog } from "../jsPages/trail-points.js";
+import { countMapPoints } from "../jsPages/map-features.js";
 import { initStationsPanel } from "../jsPages/trail-stations.js";
 import { initStationEditor } from "../jsPages/trail-station-editor.js";
 
 const makilingCenter = [14.136, 121.197];
-const trailMap = L.map('trailMap').setView(makilingCenter, 13);
-addSatelliteLayer(trailMap);
-L.marker(makilingCenter)
-  .bindPopup('<strong>Mount Makiling</strong><br>1,096 m')
-  .addTo(trailMap);
-let selectedTrailMarker = null;
 
 // The trails drawn on the satellite map (makiling-area.js), coloured by the
 // status of the trail in the list and highlighted when it is selected.
@@ -1713,21 +1691,32 @@ let selectedTrailMarker = null;
 let trailLines = null;
 const trailForLine = (key) => trails.find(t => trailLineKey(t.Trail) === key);
 const isClosed = (trail) => String(trail?.Status || 'Open').toLowerCase().startsWith('close');
-const trailLinesReady = addTrailLines(trailMap, {
-  colorFor(key) {
-    const trail = trailForLine(key);
-    if (!trail) return null; // not in the trail list: drawn in the default colour
-    return isClosed(trail) ? '#c8402f' : '#2f8f4e';
-  },
-  onClick(key) {
-    const trail = trailForLine(key);
-    if (!trail) return;
-    selectedId = trail.id; editing = false; renderDetail(); render();
+
+// The same Mount Makiling map as the Dashboard and Geomap (makiling-area.js):
+// a rectangle around the mountain, locked so only Makiling is shown.
+const { map: trailMap, trailLines: trailLinesLoaded } = createMakilingMap('trailMap', {
+  trailLineOptions: {
+    colorFor(key) {
+      const trail = trailForLine(key);
+      if (!trail) return null; // not in the trail list: drawn in the default colour
+      return isClosed(trail) ? '#c8402f' : '#2f8f4e';
+    },
+    onClick(key) {
+      const trail = trailForLine(key);
+      if (!trail) return;
+      selectedId = trail.id; editing = false; renderDetail(); render();
+    }
   }
-}).then((lines) => {
+});
+L.marker(makilingCenter)
+  .bindPopup('<strong>Mount Makiling</strong><br>1,096 m')
+  .addTo(trailMap);
+let selectedTrailMarker = null;
+
+const trailLinesReady = trailLinesLoaded.then((lines) => {
   trailLines = lines;
   syncTrailLines();
-}).catch((error) => console.warn('Could not draw the trail lines:', error.message));
+});
 
 function syncTrailLines() {
   if (!trailLines) return;
@@ -1739,7 +1728,8 @@ const lineForTrail = (trail) => trailLines?.lines.get(trailLineKey(trail?.Trail)
 const trailCoordinateFallbacks = {
   "Sipit Trail": [14.1150551, 121.186634],
   "Makiling Traverse (MakTrav)": [14.1352241, 121.1944517],
-  "Makiling Botanic Gardens Trail": [14.1407, 121.2025],
+  // The garden in Batong Malake, Los Baños (OpenStreetMap node 797775790).
+  "Makiling Botanic Gardens Trail": [14.15669, 121.23399],
   "Mariang Makiling Trail": [14.1352241, 121.1944517],
   "Maria Makiling Trail": [14.1352241, 121.1944517]
 };
@@ -1757,7 +1747,7 @@ let selectedId = null;
 let editing = false;
 // Same page size as every other paginated table (A&A.html, hazardreport.html,
 // userreports.html) so the number of pages is consistent across the portal.
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 let currentPage = 1;
 
 function diffClass(diff) {
@@ -1819,6 +1809,13 @@ function startRequestedAdd() {
   window.history.replaceState({}, '', url);
   trailLinesReady.then(() => trailPoints.start(type));
 }
+
+// + Suggested Checkpoints: the registration points, campsites and summit of
+// every trail at once (SUGGESTED_CHECKPOINTS in trail-points.js). Ones a
+// trail already has, by name, are skipped.
+document.getElementById('addSuggestedCheckpointsBtn').addEventListener('click', () => {
+  openSuggestedCheckpointsDialog({ db, trails });
+});
 
 // Trail Station Management: edit, add and delete the selected trail's saved
 // stations (trail-station-editor.js).
@@ -1962,6 +1959,13 @@ function renderPagination(totalPages) {
   wrap.appendChild(nextBtn);
 }
 
+// The stations, for the campsite total; recounted whenever they change.
+let statsStationDocs = [];
+onSnapshot(collection(db, 'stations'), (snapshot) => {
+  statsStationDocs = snapshot.docs.map((d) => d.data());
+  updateStats();
+}, (error) => console.warn('Could not load stations for the campsite total:', error.message));
+
 function updateStats() {
   const total = trails.length;
   const open = trails.filter(t => (t.Status || "Open") === "Open").length;
@@ -1976,20 +1980,24 @@ function updateStats() {
   document.getElementById('statOpenLabel').textContent = `Open Trails · ${openPct}%`;
   document.getElementById('statClosedLabel').textContent = `Closed Trails · ${closedPct}%`;
 
-  // The pins added with + Add Checkpoints / + Add Campsites, saved on each
-  // trail's checkpoints and campsites arrays (trail-points.js).
-  const countPoints = (type) => trails.reduce((sum, t) => sum + (Array.isArray(t[type]) ? t[type].length : 0), 0);
-  document.getElementById('statCheckpoints').textContent = countPoints('checkpoints');
-  document.getElementById('statCampsites').textContent = countPoints('campsites');
+  // Exactly the checkpoint and campsite pins the GeoMap shows (countMapPoints
+  // in map-features.js): the pins added with + Add Checkpoints / + Add
+  // Campsites, plus a campsite for every trail station tagged Campsite.
+  const { checkpoints, campsites } = countMapPoints(trails, statsStationDocs);
+  document.getElementById('statCheckpoints').textContent = checkpoints;
+  document.getElementById('statCampsites').textContent = campsites;
 
 }
 
 function renderDetail() {
   const t = getSelected();
   if (!t) return;
-  document.getElementById('detailUpdated').textContent = formatTimestamp(t.UpdatedAt);
+  // One Last Updated for the trail: its newest change, whether an edit of
+  // its information (UpdatedAt) or of its status (StatusUpdatedAt).
+  const millis = (v) => (v?.toMillis ? v.toMillis() : (v ? new Date(v).getTime() : 0)) || 0;
+  const lastChange = millis(t.StatusUpdatedAt) > millis(t.UpdatedAt) ? t.StatusUpdatedAt : t.UpdatedAt;
+  document.getElementById('detailUpdated').textContent = formatTimestamp(lastChange);
   document.getElementById('detailPublishDate').textContent = formatPublishDate(t.PublishDate);
-  document.getElementById('statusLastUpdated').textContent = formatTimestamp(t.StatusUpdatedAt);
 
   const status = t.Status || "Open";
 
@@ -2017,12 +2025,6 @@ function renderDetail() {
   // Clicking the photo opens it full size in the pop-up viewer (image-viewer.js).
   document.getElementById('detailPhoto').dataset.lightbox = getTrailImage(t);
   document.getElementById('detailPhoto').dataset.lightboxCaption = t.Trail || '';
-
-  const statusSelect = document.getElementById('statusUpdateSelect');
-  if (statusSelect) {
-    const match = [...statusSelect.options].some(o => o.value === status);
-    statusSelect.value = match ? status : 'Select Status';
-  }
 
   const visible = t.Visible !== false;
   const editBtn = document.getElementById('editTrailBtn');
@@ -2087,54 +2089,80 @@ function openEditMode() {
       <option ${currentDiff === "Undefined" ? "selected" : ""}>Undefined</option>
     </select>`;
 
+  // The status is changed here too, and saved with the rest.
+  const currentStatus = t.Status || "Open";
+  const statusEl = document.getElementById('detailStatus');
+  statusEl.className = '';
+  statusEl.innerHTML = `
+    <select id="editStatus" style="padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;">
+      <option ${currentStatus === "Open" ? "selected" : ""}>Open</option>
+      <option ${currentStatus === "Closed" ? "selected" : ""}>Closed</option>
+    </select>`;
+
+  // What the form showed when editing began, so Save can tell what changed.
+  editBaseline = readEditForm();
+
   const editBtn = document.getElementById('editTrailBtn');
   editBtn.textContent = '💾 Save Changes';
   editBtn.onclick = saveEdit;
+}
+
+// The edit form's fields: trails/{id} field -> input id.
+const EDIT_FIELDS = {
+  Trail: 'editName',
+  Description: 'editDesc',
+  "Approximate Distance": 'editDist',
+  Duration: 'editDur',
+  Elevation: 'editElev',
+  Municipality: 'editMunicipality',
+  Type: 'editType',
+  EntryType: 'editEntryType',
+  Difficulty: 'editDiff',
+  PublishDate: 'editPublishDate',
+  Status: 'editStatus'
+};
+let editBaseline = null;
+
+function readEditForm() {
+  const values = {};
+  for (const [field, id] of Object.entries(EDIT_FIELDS)) {
+    values[field] = document.getElementById(id)?.value ?? '';
+  }
+  return values;
 }
 
 async function saveEdit() {
   const t = getSelected();
   if (!t) return;
 
-    const updated = {
-    Trail: document.getElementById('editName').value,
-    Description: document.getElementById('editDesc').value,
-    "Approximate Distance": document.getElementById('editDist').value,
-    Duration: document.getElementById('editDur').value,
-    Elevation: document.getElementById('editElev').value,
-    Municipality: document.getElementById('editMunicipality').value,
-    Type: document.getElementById('editType').value,
-    EntryType: document.getElementById('editEntryType').value,
-    Difficulty: document.getElementById('editDiff').value,
-    // Clearing the field removes the date rather than storing a blank.
-    PublishDate: fromDateInputValue(document.getElementById('editPublishDate').value),
-    UpdatedAt: serverTimestamp()
-  };
+  // Only what the admin actually changed is saved, and Last Updated
+  // (UpdatedAt) moves only then: saving an untouched form changes nothing.
+  const current = readEditForm();
+  const changed = Object.keys(EDIT_FIELDS).filter((field) => current[field] !== editBaseline?.[field]);
+  if (!changed.length) {
+    editing = false;
+    editBaseline = null;
+    renderDetail();
+    return;
+  }
+
+  const updated = { UpdatedAt: serverTimestamp() };
+  for (const field of changed) {
+    // Clearing the date removes it rather than storing a blank.
+    updated[field] = field === 'PublishDate' ? fromDateInputValue(current[field]) : current[field];
+  }
+  // StatusUpdatedAt still records when the status itself last changed.
+  if (changed.includes('Status')) updated.StatusUpdatedAt = serverTimestamp();
 
   try {
     await updateDoc(doc(db, "trails", t.id), updated);
     editing = false;
+    editBaseline = null;
   } catch (err) {
     console.error(err);
     alert("Failed to save changes: " + err.message);
   }
 }
-
-// ---- STATUS UPDATE (separate panel) ----
-document.getElementById('updateStatusBtn').addEventListener('click', async () => {
-  const t = getSelected();
-  const select = document.getElementById('statusUpdateSelect');
-  if (!t || !select.value || select.value === 'Select Status') return;
-  try {
-    await updateDoc(doc(db, "trails", t.id), {
-  Status: select.value,
-  StatusUpdatedAt: serverTimestamp()
-});
-  } catch (err) {
-    console.error(err);
-    alert("Failed to update status: " + err.message);
-  }
-});
 
 document.getElementById('viewMapBtn').addEventListener('click', showSelectedTrailOnMap);
 

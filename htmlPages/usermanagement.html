@@ -83,7 +83,10 @@
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 14px;
-        margin: 12px 0 18px;
+        /* No top margin: this page lays its content out as a flex column,
+           where margins do not overlap, so the tabs' 18px gap is the whole
+           gap -- the same as on User Reports, whose margins do overlap. */
+        margin: 0 0 18px;
     }
 
     .hero-card {
@@ -303,6 +306,48 @@
         font-size: 11.5px;
         line-height: 1.45;
         color: var(--dm-text-2, #93a199);
+    }
+    /* Add User: verify the email by code before the account can be made. */
+    .verify-row {
+        display: flex;
+        gap: 8px;
+    }
+    .verify-row[hidden] {
+        display: none;
+    }
+    .verify-row + .verify-row {
+        margin-top: 8px;
+    }
+    .verify-row input {
+        flex: 1;
+        min-width: 0;
+    }
+    .verify-btn {
+        flex-shrink: 0;
+        padding: 0 14px;
+        border: 1px solid var(--accent, #2f8f4e);
+        border-radius: 6px;
+        background: var(--dm-surface, #fff);
+        color: var(--accent-dark, #1f6b39);
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .verify-btn:hover:not(:disabled) {
+        background: var(--accent-light, #e3f2e6);
+    }
+    .verify-btn:disabled {
+        opacity: .6;
+        cursor: not-allowed;
+    }
+    .verify-status.is-ok {
+        color: var(--accent-dark, #1f6b39);
+        font-weight: 600;
+    }
+    .verify-status.is-error {
+        color: var(--danger, #c8402f);
     }
     /* Reads as an end date, not a passing hint, once a length is typed. */
     .field-hint.is-set {
@@ -1072,6 +1117,11 @@
         background: #2f8f4e;
         color: #fff;
     }
+    /* e.g. Add User until the email is verified. */
+    .modal-save:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+    }
 
     /* ---- View Profile dialog ----
          Brand-green header band over the portal's own surface tokens, so it reads
@@ -1646,7 +1696,7 @@
           <div class="hero-icon green"><i class="fa-solid fa-user-check"></i></div>
         </div>
         <div class="card-content">
-          <h3>Active Hikers Today</h3>
+          <h3>Active Users Today</h3>
           <span class="hero-trend" id="activeUsersTrend">—</span>
         </div>
       </div>
@@ -1823,7 +1873,15 @@
     </div>
     <div class="field">
       <label for="addUserEmail">Email</label>
-      <input id="addUserEmail" name="email" type="email" required>
+      <div class="verify-row">
+        <input id="addUserEmail" name="email" type="email" autocomplete="off" aria-describedby="addUserEmailStatus" required>
+        <button type="button" class="verify-btn" id="sendEmailCodeBtn">Send code</button>
+      </div>
+      <div class="verify-row" id="emailCodeRow" hidden>
+        <input id="addUserEmailCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code from the email" aria-label="Verification code">
+        <button type="button" class="verify-btn" id="confirmEmailCodeBtn">Verify</button>
+      </div>
+      <p id="addUserEmailStatus" class="field-hint verify-status">The email must be verified: send a code to it, then enter the code the user receives.</p>
     </div>
     <div class="field">
       <label for="addUserPassword">Password</label>
@@ -1929,6 +1987,7 @@
 
 <script type="module">
   import { auth, db } from '../jsPages/firebase-config.js';
+  import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
   import { escapeHtml, normalizeText } from '../jsPages/utils.js';
   import { formatPortalDate, formatPortalDateTime, formatPortalTime, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
   // The same rule login.js and dashboard-guard.js enforce, and the one the
@@ -2569,9 +2628,10 @@
   // Modals
   // ---------------------------------------------------------------------
   const closeAddUserModal = () => {
-    if (saveAddUserBtn.disabled) return;
+    if (saveAddUserBtn.textContent === 'Adding...') return;
     addUserModal.classList.remove('open');
     addUserForm.reset();
+    resetEmailVerification();
   };
   const closeViewProfileModal = () => viewProfileModal.classList.remove('open');
 
@@ -2610,6 +2670,7 @@
 
   addUserBtn.addEventListener('click', () => {
     addUserForm.reset();
+    resetEmailVerification();
     // Every team starts unticked; a full team is still
     // shown as full and cannot be picked.
     renderTeamPicker(
@@ -2708,11 +2769,166 @@
     await Promise.all(writes);
   };
 
+  /* ---- Add User: email verification ----
+     The address must receive a code and the code must be typed back
+     (sendSignupVerificationCode / confirmSignupVerificationCode in
+     functions/index.js) before Add User is enabled. firestore.rules check
+     the same record, so a profile for an unverified email is refused. */
+  const functionsApi = getFunctions(auth.app);
+  const sendSignupCode = httpsCallable(functionsApi, 'sendSignupVerificationCode');
+  const confirmSignupCode = httpsCallable(functionsApi, 'confirmSignupVerificationCode');
+  const emailInput = document.getElementById('addUserEmail');
+  const emailCodeInput = document.getElementById('addUserEmailCode');
+  const emailCodeRow = document.getElementById('emailCodeRow');
+  const sendEmailCodeBtn = document.getElementById('sendEmailCodeBtn');
+  const confirmEmailCodeBtn = document.getElementById('confirmEmailCodeBtn');
+  const emailStatus = document.getElementById('addUserEmailStatus');
+  const EMAIL_HINT = 'The email must be verified: send a code to it, then enter the code the user receives.';
+  let verifiedEmail = null;
+  let resendTimer = null;
+
+  const currentEmail = () => emailInput.value.trim().toLowerCase();
+  const setEmailStatus = (text, tone = '') => {
+    emailStatus.textContent = text;
+    emailStatus.className = `field-hint verify-status${tone ? ` is-${tone}` : ''}`;
+  };
+  const refreshAddUserButton = () => {
+    const ok = verifiedEmail && verifiedEmail === currentEmail();
+    saveAddUserBtn.disabled = !ok;
+    saveAddUserBtn.title = ok ? '' : 'Verify the email first';
+  };
+  const startResendCountdown = (seconds) => {
+    clearInterval(resendTimer);
+    let left = seconds;
+    sendEmailCodeBtn.disabled = true;
+    sendEmailCodeBtn.textContent = `Resend (${left}s)`;
+    resendTimer = setInterval(() => {
+      left -= 1;
+      if (left <= 0) {
+        clearInterval(resendTimer);
+        sendEmailCodeBtn.disabled = false;
+        sendEmailCodeBtn.textContent = 'Resend code';
+      } else {
+        sendEmailCodeBtn.textContent = `Resend (${left}s)`;
+      }
+    }, 1000);
+  };
+  const resetEmailVerification = () => {
+    verifiedEmail = null;
+    clearInterval(resendTimer);
+    sendEmailCodeBtn.disabled = false;
+    sendEmailCodeBtn.textContent = 'Send code';
+    emailInput.readOnly = false;
+    emailCodeRow.hidden = true;
+    emailCodeInput.value = '';
+    setEmailStatus(EMAIL_HINT);
+    refreshAddUserButton();
+  };
+  const describeCallError = (error, fallback) => {
+    // A function that was never deployed arrives as "not-found" with no message of ours.
+    if (error?.code === 'functions/not-found' || error?.code === 'functions/internal' && !error.message) {
+      return 'Email verification is not set up yet: deploy the Cloud Functions (firebase deploy --only functions).';
+    }
+    return error?.message || fallback;
+  };
+
+  // Changing the address undoes any verification of the old one.
+  emailInput.addEventListener('input', () => {
+    if (verifiedEmail || !emailCodeRow.hidden) resetEmailVerification();
+    else refreshAddUserButton();
+  });
+
+  sendEmailCodeBtn.addEventListener('click', async () => {
+    const email = currentEmail();
+    if (!hasValidEmail(email)) {
+      setEmailStatus('Enter a valid email address first.', 'error');
+      emailInput.focus();
+      return;
+    }
+    sendEmailCodeBtn.disabled = true;
+    sendEmailCodeBtn.textContent = 'Checking…';
+    setEmailStatus(`Sending a code to ${email} and checking that the address exists… this can take up to 30 seconds.`);
+    try {
+      const { data } = await sendSignupCode({ email });
+      emailCodeRow.hidden = false;
+      emailCodeInput.value = '';
+      emailCodeInput.focus();
+      setEmailStatus(`Code sent to ${email}. Ask the user for the 6-digit code; it expires in ${Math.round((data?.expiresInSeconds || 600) / 60)} minutes.`);
+      startResendCountdown(data?.resendAfterSeconds || 60);
+    } catch (error) {
+      console.error('Sending the verification code failed:', error);
+      const retry = error?.details?.retryAfter;
+      if (retry) startResendCountdown(retry);
+      else {
+        sendEmailCodeBtn.disabled = false;
+        sendEmailCodeBtn.textContent = 'Send code';
+      }
+      const reason = error?.details?.reason;
+      const isGmail = /@(gmail|googlemail)\.com$/.test(email);
+      if (reason === 'invalid') {
+        setEmailStatus(`${email} is not a valid ${isGmail ? 'Gmail' : 'email'} address. Check it for typos.`, 'error');
+      } else if (reason === 'not-existing') {
+        setEmailStatus(`${email} does not exist. ${isGmail ? 'This Gmail account was not found.' : 'No mailbox was found for it.'} Check it for typos.`, 'error');
+      } else {
+        setEmailStatus(describeCallError(error, 'Could not send the code. Try again.'), 'error');
+      }
+      emailInput.focus();
+    }
+  });
+
+  const confirmEmailCode = async () => {
+    const email = currentEmail();
+    const code = emailCodeInput.value.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setEmailStatus('Enter the 6-digit code from the email.', 'error');
+      emailCodeInput.focus();
+      return;
+    }
+    confirmEmailCodeBtn.disabled = true;
+    confirmEmailCodeBtn.textContent = 'Checking…';
+    try {
+      await confirmSignupCode({ email, code });
+      verifiedEmail = email;
+      clearInterval(resendTimer);
+      emailInput.readOnly = true; // edit it and verification starts over
+      emailCodeRow.hidden = true;
+      sendEmailCodeBtn.disabled = true;
+      sendEmailCodeBtn.textContent = 'Verified ✓';
+      setEmailStatus(`${email} is verified. You can add the user now.`, 'ok');
+    } catch (error) {
+      console.error('Verifying the code failed:', error);
+      setEmailStatus(describeCallError(error, 'Could not verify the code. Try again.'), 'error');
+    } finally {
+      confirmEmailCodeBtn.disabled = false;
+      confirmEmailCodeBtn.textContent = 'Verify';
+      refreshAddUserButton();
+    }
+  };
+  confirmEmailCodeBtn.addEventListener('click', confirmEmailCode);
+  emailCodeInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      confirmEmailCode();
+    }
+  });
+  // A verified address can be changed by clicking it: that starts over.
+  emailInput.addEventListener('click', () => {
+    if (verifiedEmail && emailInput.readOnly) {
+      emailInput.readOnly = false;
+      resetEmailVerification();
+      emailInput.focus();
+    }
+  });
+
   addUserForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (saveAddUserBtn.disabled || !addUserForm.reportValidity()) return;
+    if (!verifiedEmail || verifiedEmail !== currentEmail()) {
+      setEmailStatus('Verify the email before adding the user.', 'error');
+      return;
+    }
     const formData = new FormData(addUserForm);
-    const email = normalizeText(formData.get('email'));
+    const email = normalizeText(formData.get('email')).toLowerCase();
     const username = String(formData.get('username') || '').trim();
     const password = String(formData.get('password') || '');
     if (!hasValidEmail(email) || password.length < 6) return;
@@ -2798,7 +3014,7 @@
           'auth/operation-not-allowed': 'Email/password account creation is not enabled in Firebase.',
           'auth/network-request-failed': 'Network error. Check your connection and try again.',
           'auth/too-many-requests': 'Too many attempts. Please try again later.',
-          'permission-denied': 'Firestore refused to save the profile. Check that the latest firestore.rules are deployed.'
+          'permission-denied': 'Firestore refused to save the profile. The email may not be verified any more (verification lasts an hour); verify it again. If this keeps happening, check that the latest firestore.rules are deployed.'
         };
         addUserStatusMessage.textContent = rollbackFailed
           ? 'The sign-in account was created, but its profile could not be saved or the account removed. Resolve this account in Firebase before trying again.'
@@ -2812,6 +3028,7 @@
       saveAddUserBtn.disabled = false;
       saveAddUserBtn.textContent = 'Add User';
       if (profileSaved) closeAddUserModal();
+      else refreshAddUserButton();
     }
   });
 
@@ -3100,11 +3317,12 @@
      hiking. */
   watchActiveHikers({
     db,
-    onUpdate: ({ hikedToday, onlineNow }) => {
+    live: true,
+    onUpdate: ({ hikedToday }) => {
       document.getElementById('activeUsersValue').textContent = hikedToday.toLocaleString();
       setTrend('activeUsersTrend', hikedToday
-        ? `${onlineNow} online now`
-        : 'No hikers checked in');
+        ? `${hikedToday} user${hikedToday === 1 ? '' : 's'} signed in to the app`
+        : 'No users signed in');
     },
     onError: (message) => {
       document.getElementById('activeUsersValue').textContent = '—';

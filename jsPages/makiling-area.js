@@ -52,17 +52,19 @@ export function addSatelliteLayer(map, options = {}) {
   }).addTo(map);
 }
 
-// The same colours as the page behind the map in each theme (pages.css).
-const maskColor = () =>
-  (document.documentElement.getAttribute('data-theme') === 'dark' ? '#111410' : '#e8edf0');
+/* A Mount Makiling map only, shown as a plain rectangle: the box around the
+   6 km area (the same box as MAKILING_BOUNDS). Imagery is loaded only inside
+   it, panning is locked to it, and the map can never zoom out past the
+   point where its whole view is inside the box, so the map is always filled
+   with the mountain and nothing beyond it. Returns the map, the locked
+   bounds, which pages use to keep markers and views inside the mountain,
+   and trailLines, a promise of what addTrailLines returns.
+   `trailLineOptions` is passed to addTrailLines (colorFor / onClick).
+   `center` is where the map opens (and recentres when a resize forces it
+   out to a wider zoom); the middle of the area by default. */
+export const PEAK_2 = [14.13574, 121.19387];
 
-/* A Mount Makiling map only: everything outside the 6 km radius is greyed
-   out, and panning/zooming is locked to that area so the view can never
-   wander off the mountain. Returns the map, the locked bounds, which pages
-   use to keep markers and views inside the mountain, and trailLines, a
-   promise of what addTrailLines returns. `trailLineOptions` is passed to
-   addTrailLines (colorFor / onClick). */
-export function createMakilingMap(element, { trailLineOptions } = {}) {
+export function createMakilingMap(element, { trailLineOptions, center = MAKILING_CENTER } = {}) {
   const bounds = L.latLngBounds(MAKILING_RING);
 
   const map = L.map(element, {
@@ -73,33 +75,22 @@ export function createMakilingMap(element, { trailLineOptions } = {}) {
     maxBounds: bounds,
     maxBoundsViscosity: 1
   });
-  addSatelliteLayer(map, { minZoom: 13, bounds });
+  addSatelliteLayer(map, { minZoom: 12, bounds });
 
-  // Grey out everything beyond the mountain: one polygon covering the world
-  // with the Makiling ring punched out of it as a hole. Leaflet draws it in
-  // SVG with a colour given here, so CSS dark mode cannot reach it; it reads
-  // the theme itself instead.
-  const mask = L.polygon([
-    [[-90, -180], [-90, 180], [90, 180], [90, -180]],
-    MAKILING_RING
-  ], {
-    stroke: false,
-    fillColor: maskColor(),
-    fillOpacity: 0.94,
-    interactive: false
-  }).addTo(map);
-
-  // sidebar.js flips data-theme on <html> when the theme changes in
-  // another tab or the computer switches (System); follow it without a reload.
-  new MutationObserver(() => mask.setStyle({ fillColor: maskColor() }))
-    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-  L.polygon(MAKILING_RING, {
-    fill: false,
-    color: '#2f8f4e',
-    weight: 2,
-    dashArray: '6 6',
-    interactive: false
-  }).addTo(map);
+  /* The furthest out the map may zoom: where its view just fits inside the
+     box. It depends on the map's size on screen, so it is worked out again
+     whenever the map is resized (the pages already tell Leaflet when that
+     happens). A map with no size yet (a hidden tab) keeps the default. */
+  const fitBox = () => {
+    const size = map.getSize();
+    if (!size.x || !size.y) return;
+    const fill = map.getBoundsZoom(bounds, true);
+    map.setMinZoom(fill);
+    if (map.getZoom() < fill) map.setView(center, fill, { animate: false });
+  };
+  fitBox();
+  map.setView(center, map.getMinZoom(), { animate: false });
+  map.on('resize', fitBox);
 
   // Every Mount Makiling map shows the trails. A missing file only costs
   // the lines, never the map.

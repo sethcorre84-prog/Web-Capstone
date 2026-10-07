@@ -878,6 +878,34 @@
 
     /* Profile Information: a wider card with the logo, name and role on top and
        the fields in two columns. */
+    /* Role & Permission Settings dialogs */
+    .rm { display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: var(--text-primary, #1c231c); }
+    .rm-muted { color: var(--text-secondary, #5b6b60); font-size: 12px; }
+    .rm-me { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .rm-role { display: inline-block; padding: 2px 9px; border-radius: 20px; background: var(--accent-light, #e3f2e6); color: var(--accent-dark, #1f6b39); font-size: 12px; font-weight: 700; }
+    .rm-you { padding: 1px 6px; border-radius: 6px; background: #eef1ec; color: #5b6b60; font-size: 10.5px; font-weight: 700; }
+    .rm-table-wrap { overflow-x: auto; border: 1px solid var(--border, #e4e7e1); border-radius: 10px; }
+    .rm-table { width: 100%; border-collapse: collapse; }
+    .rm-table th { padding: 9px 12px; background: var(--dm-surface-2, #f6f8f5); text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-secondary, #5b6b60); white-space: nowrap; }
+    .rm-table td { padding: 9px 12px; border-top: 1px solid var(--border, #e4e7e1); vertical-align: middle; }
+    .rm-table:not(.rm-matrix) td:first-child { min-width: 150px; }
+    .rm-role-select { padding: 5px 8px; border: 1px solid var(--border, #e4e7e1); border-radius: 7px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 12.5px; }
+    .rm-remove { padding: 5px 10px; border: 1px solid #f1c9c3; border-radius: 7px; background: var(--dm-surface, #fff); color: #c8402f; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .rm-remove.is-armed { background: #c8402f; border-color: #c8402f; color: #fff; }
+    .rm-status { min-height: 16px; margin: 0; font-size: 12.5px; }
+    .rm-status.is-ok { color: var(--accent-dark, #1f6b39); }
+    .rm-status.is-error, .rm-error { color: var(--danger, #c8402f); }
+    .rm-add, .rm-history { padding: 12px; border-radius: 10px; background: var(--dm-surface-2, #f6f8f5); }
+    .rm-add-title { margin-bottom: 8px; font-weight: 700; font-size: 12.5px; }
+    .rm-add-grid { display: grid; grid-template-columns: 1fr 1.2fr auto auto; gap: 8px; margin-bottom: 6px; }
+    .rm-add-grid input, .rm-add-grid select { min-width: 0; padding: 8px 10px; border: 1px solid var(--border, #e4e7e1); border-radius: 8px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 13px; }
+    .rm-history-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; }
+    .rm-matrix td:first-child { font-weight: 600; }
+    .rm-level { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+    .rm-level-edit, .rm-level-manage { background: #e7f5eb; color: #1f6b39; }
+    .rm-level-view, .rm-level-view-export { background: #eef1ec; color: #5b6b60; }
+    @media (max-width: 640px) { .rm-add-grid { grid-template-columns: 1fr; } }
+
     .modal-card.profile-wide {
         width: min(600px, 100%);
     }
@@ -1299,7 +1327,7 @@
             <div class="setting-icon">🧑‍🤝‍🧑</div>
             <div class="setting-text">
               <div class="label">Role Management</div>
-              <div class="desc">Manage roles and permissions.</div>
+              <div class="desc">Admins, their roles, and who changed what.</div>
             </div>
           </div>
           <div class="setting-right"><span class="chevron">›</span></div>
@@ -1310,7 +1338,7 @@
             <div class="setting-icon">🛡️</div>
             <div class="setting-text">
               <div class="label">Access Control</div>
-              <div class="desc">Manage module access and restrictions.</div>
+              <div class="desc">What each role can see and change.</div>
             </div>
           </div>
           <div class="setting-right"><span class="chevron">›</span></div>
@@ -1538,11 +1566,12 @@
 <script type="module">
   import { auth, db, storage } from '../jsPages/firebase-config.js';
   import { escapeHtml as escapeHTML, sortByReportId } from '../jsPages/utils.js';
-  import { collection, deleteDoc, getDoc, getDocs, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { collection, deleteDoc, getDoc, getDocs, limit, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   import { ref as storageRef, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
   import { planReportIds } from '../jsPages/report-ids.js';
   import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-  import { DEFAULT_ADMIN_ROLE, renderAdminIdentity, updateAdminProfile } from '../jsPages/admin-identity.js';
+  import { ADMIN_ROLES, DEFAULT_ADMIN_ROLE, renderAdminIdentity, updateAdminProfile } from '../jsPages/admin-identity.js';
+  import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
   import { DATE_FORMATS, TIME_FORMATS, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
   import { openExportMenu } from '../jsPages/export-table.js';
   import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, setWeatherLocationKey } from '../jsPages/weather-locations.js';
@@ -2744,6 +2773,194 @@
     });
   }
 
+  /* ---- Role & Permission Settings ----
+     Roles are on admins/{uid}.role and changed only through the listAdmins /
+     setAdminRole / addAdmin / removeAdmin Cloud Functions (functions/index.js),
+     which only a Super Administrator may call; firestore.rules enforce what
+     each role may write. */
+  // [module, Super Administrator, Administrator, Viewer]
+  const ROLE_PERMISSIONS = [
+    ['Dashboard, GeoMap & Analytics', 'View & export', 'View & export', 'View & export'],
+    ['Trail Management (trails, stations, checkpoints)', 'Edit', 'Edit', 'View'],
+    ['Hazard Reports (verify, resolve, archive)', 'Edit', 'Edit', 'View'],
+    ['Advisories & Announcements', 'Edit', 'Edit', 'View'],
+    ['Emergency Monitoring (respond, resolve)', 'Edit', 'Edit', 'View'],
+    ['User Management & User Reports', 'Edit', 'Edit', 'View'],
+    ['Settings: archives', 'Edit', 'Edit', 'View'],
+    ['Settings: own profile & password', 'Edit', 'Edit', 'Edit'],
+    ['Role & Permission Settings', 'Manage', 'View', 'View']
+  ];
+  const ROLE_HINTS = {
+    'Super Administrator': 'Everything, and manages admins and their roles.',
+    'Administrator': 'Day-to-day operations: trails, hazards, advisories, emergencies, users.',
+    'Viewer': 'Read-only: can see everything and export, cannot change anything.'
+  };
+  const roleFunctions = getFunctions(auth.app);
+  const callListAdmins = httpsCallable(roleFunctions, 'listAdmins');
+  const callSetAdminRole = httpsCallable(roleFunctions, 'setAdminRole');
+  const callAddAdmin = httpsCallable(roleFunctions, 'addAdmin');
+  const callRemoveAdmin = httpsCallable(roleFunctions, 'removeAdmin');
+
+  const roleCallError = (error, fallback) => (error?.code === 'functions/not-found' && !error?.details
+    ? 'Role management is not set up yet: deploy the Cloud Functions (listAdmins, setAdminRole, addAdmin, removeAdmin).'
+    : error?.message || fallback);
+
+  async function bindRoleManagement() {
+    const box = document.getElementById('roleMgmt');
+    if (!box) return;
+    let data;
+    try {
+      ({ data } = await callListAdmins());
+    } catch (error) {
+      console.error('Loading admins failed:', error);
+      box.innerHTML = `<p class="rm-error">${escapeHTML(roleCallError(error, 'Could not load the admins.'))}</p>`;
+      return;
+    }
+    if (!document.body.contains(box)) return; // closed meanwhile
+    const me = data.admins.find((admin) => admin.uid === data.me);
+    const myRole = me?.role || DEFAULT_ADMIN_ROLE;
+    const isSuper = myRole === 'Super Administrator';
+    const roleOptions = (current) => ADMIN_ROLES.map((role) => `<option${role === current ? ' selected' : ''}>${escapeHTML(role)}</option>`).join('');
+    const when = (iso) => (iso ? formatPortalDateTime(new Date(iso)) : 'Never');
+
+    box.innerHTML = `
+      <div class="rm-me">
+        Your role: <span class="rm-role">${escapeHTML(myRole)}</span>
+        <span class="rm-muted">${escapeHTML(ROLE_HINTS[myRole] || '')}</span>
+      </div>
+      ${isSuper ? '' : '<p class="rm-muted">Only a Super Administrator can change roles or add and remove admins.</p>'}
+      <div class="rm-table-wrap">
+        <table class="rm-table">
+          <thead><tr><th>Admin</th><th>Email</th><th>Role</th><th>Last sign-in</th>${isSuper ? '<th></th>' : ''}</tr></thead>
+          <tbody>${data.admins.map((admin) => {
+            const self = admin.uid === data.me;
+            return `<tr data-uid="${escapeHTML(admin.uid)}">
+              <td><strong>${escapeHTML(admin.name || 'Unnamed admin')}</strong>${self ? ' <span class="rm-you">You</span>' : ''}${admin.username ? `<div class="rm-muted">@${escapeHTML(admin.username)}</div>` : ''}</td>
+              <td>${escapeHTML(admin.email || '—')}</td>
+              <td>${isSuper && !self
+                ? `<select class="rm-role-select" aria-label="Role of ${escapeHTML(admin.name || admin.email)}">${roleOptions(admin.role)}</select>`
+                : `<span class="rm-role">${escapeHTML(admin.role)}</span>`}</td>
+              <td>${escapeHTML(when(admin.lastSignIn))}</td>
+              ${isSuper ? `<td>${self ? '' : '<button type="button" class="rm-remove">Remove</button>'}</td>` : ''}
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+      <p class="rm-status" id="rmStatus" role="status"></p>
+      ${isSuper ? `
+        <form class="rm-add" id="rmAddForm" novalidate>
+          <div class="rm-add-title">Add an admin</div>
+          <div class="rm-add-grid">
+            <input id="rmAddName" type="text" maxlength="80" placeholder="Full name" aria-label="Full name">
+            <input id="rmAddEmail" type="email" placeholder="Email address" aria-label="Email address" required>
+            <select id="rmAddRole" aria-label="Role">${roleOptions('Administrator')}</select>
+            <button type="submit" class="primary-btn">Add Admin</button>
+          </div>
+          <p class="rm-muted">An email with no PeakPath account gets one, and is emailed a link to set their password.</p>
+        </form>` : ''}
+      <div class="rm-history">
+        <div class="rm-add-title">Recent role changes</div>
+        <ul id="rmHistory" class="rm-history-list"><li class="rm-muted">Loading…</li></ul>
+      </div>`;
+
+    const status = document.getElementById('rmStatus');
+    const say = (text, tone = '') => { status.textContent = text; status.className = `rm-status${tone ? ` is-${tone}` : ''}`; };
+
+    box.querySelectorAll('.rm-role-select').forEach((select) => {
+      const previous = select.value;
+      select.addEventListener('change', async () => {
+        const uid = select.closest('tr').dataset.uid;
+        select.disabled = true;
+        say('Saving…');
+        try {
+          await callSetAdminRole({ uid, role: select.value });
+          say('Role updated.', 'ok');
+          loadRoleHistory();
+        } catch (error) {
+          select.value = previous;
+          say(roleCallError(error, 'Could not change the role.'), 'error');
+        } finally {
+          select.disabled = false;
+        }
+      });
+    });
+
+    box.querySelectorAll('.rm-remove').forEach((button) => {
+      let armed = null;
+      button.addEventListener('click', async () => {
+        // Two clicks: the first asks, the second removes.
+        if (!armed) {
+          button.textContent = 'Click to confirm';
+          button.classList.add('is-armed');
+          armed = setTimeout(() => { armed = null; button.textContent = 'Remove'; button.classList.remove('is-armed'); }, 4000);
+          return;
+        }
+        clearTimeout(armed);
+        const row = button.closest('tr');
+        button.disabled = true;
+        button.textContent = 'Removing…';
+        try {
+          await callRemoveAdmin({ uid: row.dataset.uid });
+          say('Admin access removed.', 'ok');
+          bindRoleManagement();
+        } catch (error) {
+          button.disabled = false;
+          button.textContent = 'Remove';
+          button.classList.remove('is-armed');
+          armed = null;
+          say(roleCallError(error, 'Could not remove this admin.'), 'error');
+        }
+      });
+    });
+
+    document.getElementById('rmAddForm')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const email = document.getElementById('rmAddEmail').value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say('Enter a valid email address.', 'error'); return; }
+      const submit = event.target.querySelector('button[type="submit"]');
+      submit.disabled = true;
+      submit.textContent = 'Adding…';
+      try {
+        const { data: result } = await callAddAdmin({
+          email,
+          name: document.getElementById('rmAddName').value.trim(),
+          role: document.getElementById('rmAddRole').value
+        });
+        say(result.created
+          ? (result.emailed ? `Admin added. ${email} was emailed a link to set their password.` : `Admin added, but the password email could not be sent. Use Forgot Password on the login page for ${email}.`)
+          : 'Admin added. They can sign in with their existing account.', 'ok');
+        bindRoleManagement();
+      } catch (error) {
+        say(roleCallError(error, 'Could not add the admin.'), 'error');
+        submit.disabled = false;
+        submit.textContent = 'Add Admin';
+      }
+    });
+
+    loadRoleHistory();
+  }
+
+  async function loadRoleHistory() {
+    const list = document.getElementById('rmHistory');
+    if (!list) return;
+    try {
+      const snap = await getDocs(query(collection(db, 'adminRoleLog'), orderBy('at', 'desc'), limit(15)));
+      const who = (entry) => entry.targetName || entry.targetEmail || 'an admin';
+      list.innerHTML = snap.empty
+        ? '<li class="rm-muted">No role changes yet.</li>'
+        : snap.docs.map((d) => {
+          const entry = d.data();
+          const text = entry.action === 'add' ? `added ${who(entry)} as ${entry.to}`
+            : entry.action === 'remove' ? `removed ${who(entry)} (${entry.from})`
+            : `changed ${who(entry)} from ${entry.from} to ${entry.to}`;
+          const at = entry.at?.toDate ? formatPortalDateTime(entry.at.toDate()) : '';
+          return `<li><strong>${escapeHTML(entry.byName || 'An admin')}</strong> ${escapeHTML(text)}<span class="rm-muted"> · ${escapeHTML(at)}</span></li>`;
+        }).join('');
+    } catch (error) {
+      list.innerHTML = `<li class="rm-muted">Could not load the change history${error?.code === 'permission-denied' ? ' (deploy the latest firestore.rules)' : ''}.</li>`;
+    }
+  }
+
   function openModal(action) {
     const actionMap = {
       profile: {
@@ -2918,47 +3135,31 @@
       },
       roleManagement: {
         title: 'Role Management',
+        // Filled in by bindRoleManagement() from the listAdmins function.
         content: `
-          <div class="form-grid">
-            <div class="field">
-              <label for="rolePreset">Current Access Level</label>
-              <select id="rolePreset">
-                <option selected>Super Administrator</option>
-                <option>Administrator</option>
-                <option>Analyst</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="permissionNote">Permission Summary</label>
-              <textarea id="permissionNote" rows="4">Full access to dashboard, reports, user management, and emergency monitoring.</textarea>
-            </div>
-          </div>
+          <div id="roleMgmt" class="rm"><p class="rm-muted">Loading admins…</p></div>
           <div class="modal-actions">
-            <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
-            <button type="button" class="primary-btn" data-save-modal="roleManagement">Apply</button>
+            <button type="button" class="ghost-btn" data-close-modal>Close</button>
           </div>
         `
       },
       accessControl: {
         title: 'Access Control',
         content: `
-          <div class="form-grid">
-            <div class="field">
-              <label for="moduleAccess">Module Access</label>
-              <select id="moduleAccess">
-                <option selected>All modules enabled</option>
-                <option>Restricted mode</option>
-                <option>Read-only mode</option>
-              </select>
+          <div class="rm">
+            <p class="rm-muted">What each admin role can do in the portal. The database enforces it (firestore.rules), so a Viewer's changes are refused even if attempted, and the pages show a view-only banner and turn the change buttons off.</p>
+            <div class="rm-table-wrap">
+              <table class="rm-table rm-matrix">
+                <thead><tr><th>Module</th>${ADMIN_ROLES.map((role) => `<th>${escapeHTML(role)}</th>`).join('')}</tr></thead>
+                <tbody>${ROLE_PERMISSIONS.map(([module, ...levels]) => `
+                  <tr><td>${escapeHTML(module)}</td>${levels.map((level) => `<td><span class="rm-level rm-level-${level.toLowerCase().replace(/[^a-z]+/g, '-')}">${escapeHTML(level)}</span></td>`).join('')}</tr>`).join('')}
+                </tbody>
+              </table>
             </div>
-            <div class="field">
-              <label for="accessNote">Notes</label>
-              <textarea id="accessNote" rows="4">Limit access to sensitive admin functions for selected roles.</textarea>
-            </div>
+            <p class="rm-muted">Change an admin's role in Role Management. Admins with no role set are Super Administrators.</p>
           </div>
           <div class="modal-actions">
-            <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
-            <button type="button" class="primary-btn" data-save-modal="accessControl">Update Access</button>
+            <button type="button" class="ghost-btn" data-close-modal>Close</button>
           </div>
         `
       },
@@ -3038,7 +3239,7 @@
       ['archivedHazardReports', 'archivedResolvedReports', 'expiredAdvisoryArchive'].includes(action)
     );
     modalCard.classList.toggle('preference-theme', ['profile', 'password', 'timezone'].includes(action));
-    modalCard.classList.toggle('profile-wide', action === 'profile');
+    modalCard.classList.toggle('profile-wide', ['profile', 'roleManagement', 'accessControl'].includes(action));
     modalTitle.textContent = config.title;
     modalBody.innerHTML = config.content;
     modal.classList.add('visible');
@@ -3076,6 +3277,9 @@
     }
     if (action === 'timezone') {
       bindDateTimeForm();
+    }
+    if (action === 'roleManagement') {
+      bindRoleManagement();
     }
 
     modalBody.querySelectorAll('[data-close-modal]').forEach((button) => {

@@ -14,6 +14,17 @@
 // filename    without extension or date, e.g. "archived-hazard-reports"
 // countLabel  optional, e.g. "12 report(s)", shown under the PDF title
 //
+// A report of several lists (the Dashboard's View Reports) passes sections
+// instead of headers/rows:
+//   { title, filename, sections: [{ title, headers, rows, note? }] }
+// The PDF then has one heading and table per section, one after another;
+// the Excel workbook has one sheet per section.
+//
+// A section that is a chart on the page can carry it, drawn beside its table
+// (to the right in the PDF, next to the table on its Excel sheet):
+//   chart: { type: 'donut', items: [{ label, value, color }], centerLabel, centerValue }
+//   chart: { type: 'bar',   items: [{ label, value }], color }
+//
 // The PDF looks like the archive exports always have: landscape, PeakPath
 // green header row, a "Generated ..." line. The Excel file gets the same
 // green header row, so the column names stand out from the data. jsPDF, its
@@ -63,7 +74,241 @@ const today = () => {
 
 const cellText = (value) => (value === null || value === undefined ? '' : String(value));
 
+/* ---------- Charts, drawn on a canvas as a PNG ---------- */
+
+const CHART_W = 800;
+const CHART_H = 480;
+const FONT = '"Segoe UI", Arial, sans-serif';
+const INK = '#1b211b';
+const MUTED = '#5b6b60';
+
+function fitText(ctx, text, width) {
+  let value = String(text);
+  if (ctx.measureText(value).width <= width) return value;
+  while (value.length > 1 && ctx.measureText(`${value}…`).width > width) value = value.slice(0, -1);
+  return `${value}…`;
+}
+
+function drawDonut(ctx, chart) {
+  const items = chart.items.filter((item) => item.value > 0);
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+  const cx = 210;
+  const cy = chart.title ? CHART_H / 2 + 18 : CHART_H / 2;
+  const outer = 170;
+  const inner = 105;
+  let angle = -Math.PI / 2;
+  items.forEach((item) => {
+    const sweep = (item.value / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outer, angle, angle + sweep);
+    ctx.arc(cx, cy, inner, angle + sweep, angle, true);
+    ctx.closePath();
+    ctx.fillStyle = item.color;
+    ctx.fill();
+    // A thin white gap between slices, as on the Dashboard.
+    if (items.length > 1) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+    angle += sweep;
+  });
+  ctx.textAlign = 'center';
+  ctx.fillStyle = MUTED;
+  ctx.font = `24px ${FONT}`;
+  ctx.fillText(chart.centerLabel || 'Total', cx, cy - 12);
+  ctx.fillStyle = INK;
+  ctx.font = `bold 44px ${FONT}`;
+  ctx.fillText(String(chart.centerValue ?? total), cx, cy + 34);
+
+  // Legend: swatch, name, share and count.
+  ctx.textAlign = 'left';
+  const rowH = 62;
+  let y = cy - ((chart.items.length - 1) * rowH) / 2 - 12;
+  chart.items.forEach((item) => {
+    ctx.fillStyle = item.value > 0 ? item.color : '#c9d1cb';
+    ctx.fillRect(420, y - 14, 22, 22);
+    ctx.fillStyle = item.value > 0 ? INK : '#93a199';
+    ctx.font = `bold 24px ${FONT}`;
+    ctx.fillText(fitText(ctx, item.label, CHART_W - 460), 456, y + 4);
+    ctx.fillStyle = item.value > 0 ? MUTED : '#93a199';
+    ctx.font = `22px ${FONT}`;
+    const share = total ? Math.round((item.value / total) * 100) : 0;
+    ctx.fillText(`${share}% (${item.value.toLocaleString()})`, 456, y + 32);
+    y += rowH;
+  });
+}
+
+// A round step for the count axis and the top it reaches, with headroom
+// above the tallest bar so equal small counts do not fill the whole chart.
+function countScale(max) {
+  const raw = Math.max(1, max) / 4;
+  const power = 10 ** Math.floor(Math.log10(raw));
+  const step = Math.max(1, [1, 2, 5, 10].map((m) => m * power).find((v) => v >= raw));
+  return { step, top: Math.ceil((max * 1.25) / step) * step || step };
+}
+
+function drawBars(ctx, chart) {
+  const items = chart.items;
+  const { step, top } = countScale(Math.max(...items.map((item) => item.value)));
+  const left = 70;
+  const right = CHART_W - 30;
+  const plotTop = chart.title ? 80 : 40;
+  const base = CHART_H - 80;
+  const scaleY = (value) => base - ((base - plotTop) * value) / top;
+
+  // Count axis: light gridlines, small labels on the left.
+  ctx.font = `20px ${FONT}`;
+  ctx.textAlign = 'right';
+  for (let value = 0; value <= top; value += step) {
+    const y = scaleY(value);
+    ctx.strokeStyle = value === 0 ? '#cfd8cc' : '#edf1eb';
+    ctx.lineWidth = value === 0 ? 2 : 1.5;
+    ctx.beginPath();
+    ctx.moveTo(left, y);
+    ctx.lineTo(right, y);
+    ctx.stroke();
+    ctx.fillStyle = '#93a199';
+    ctx.fillText(String(value), left - 12, y + 7);
+  }
+
+  // Slim bars, centred in their slots, rounded only at the top.
+  const slot = (right - left) / items.length;
+  const barW = Math.min(56, slot * 0.42);
+  items.forEach((item, index) => {
+    const x = left + slot * index + (slot - barW) / 2;
+    const y = scaleY(item.value);
+    const h = Math.max(3, base - y);
+    const r = Math.min(6, barW / 2, h);
+    ctx.beginPath();
+    ctx.moveTo(x, base);
+    ctx.lineTo(x, base - h + r);
+    ctx.quadraticCurveTo(x, base - h, x + r, base - h);
+    ctx.lineTo(x + barW - r, base - h);
+    ctx.quadraticCurveTo(x + barW, base - h, x + barW, base - h + r);
+    ctx.lineTo(x + barW, base);
+    ctx.closePath();
+    ctx.fillStyle = chart.color || '#2f8f4e';
+    ctx.fill();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = INK;
+    ctx.font = `bold 22px ${FONT}`;
+    ctx.fillText(String(item.value), x + barW / 2, base - h - 10);
+
+    // Category label under the bar, on up to two lines.
+    ctx.fillStyle = MUTED;
+    ctx.font = `19px ${FONT}`;
+    const lines = [''];
+    String(item.label).split(/\s+/).forEach((word) => {
+      const next = lines[lines.length - 1] ? `${lines[lines.length - 1]} ${word}` : word;
+      if (ctx.measureText(next).width > slot - 10 && lines[lines.length - 1]) lines.push(word);
+      else lines[lines.length - 1] = next;
+    });
+    lines.slice(0, 2).forEach((line, i) => {
+      const text = i === 1 && lines.length > 2 ? `${line}…` : line;
+      ctx.fillText(fitText(ctx, text, slot - 10), x + barW / 2, base + 28 + i * 23);
+    });
+  });
+}
+
+// A small heading at the top-left of a chart.
+function drawTitle(ctx, title) {
+  if (!title) return;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = INK;
+  ctx.font = `600 24px ${FONT}`;
+  ctx.fillText(title, 24, 42);
+}
+
+// The chart as a data URL (PNG for Excel; JPEG for the PDF, where jsPDF
+// stores a PNG uncompressed and a page of charts runs to megabytes), or null
+// when there is nothing to draw.
+function chartImage(chart, type = 'image/png') {
+  if (!chart?.items?.length || !chart.items.some((item) => item.value > 0)) return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = CHART_W;
+  canvas.height = CHART_H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, CHART_W, CHART_H);
+  if (chart.type === 'donut') drawDonut(ctx, chart);
+  else drawBars(ctx, chart);
+  drawTitle(ctx, chart.title);
+  return canvas.toDataURL(type, 0.92);
+}
+
+const TABLE_STYLE = {
+  styles: { fontSize: 8, cellPadding: 3 },
+  headStyles: { fillColor: [47, 143, 78] },
+  alternateRowStyles: { fillColor: [247, 249, 247] }
+};
+
+async function saveSectionsPdf(table) {
+  await loadPdfLibraries();
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape' });
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  pdf.setFontSize(14);
+  pdf.text(`PeakPath — ${table.title}`, 14, 15);
+  pdf.setFontSize(10);
+  pdf.setTextColor(100);
+  pdf.text(`Generated ${formatPortalDateTime(new Date())}`, 14, 21);
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const MARGIN = 14;
+  const CHART_MM_W = 120;
+  const CHART_MM_H = CHART_MM_W * (CHART_H / CHART_W);
+  let y = 30;
+  table.sections.forEach((section) => {
+    const image = chartImage(section.chart, 'image/jpeg');
+    // A heading never sits alone at the foot of a page, and a chart is
+    // never cut by one.
+    if (y > pageHeight - 40 || (image && y + CHART_MM_H + 14 > pageHeight - 10)) {
+      pdf.addPage();
+      y = 18;
+    }
+    pdf.setFontSize(12);
+    pdf.setTextColor(31, 107, 57);
+    pdf.text(section.title, 14, y);
+    y += 3;
+    if (section.note) {
+      pdf.setFontSize(9);
+      pdf.setTextColor(110);
+      pdf.text(section.note, 14, y + 3);
+      y += 5;
+    }
+    const startY = y + 2;
+    const startPage = pdf.internal.getCurrentPageInfo().pageNumber;
+    // With a chart, the table takes the left part and the chart sits beside it.
+    const tableWidth = image ? pageWidth - MARGIN * 2 - CHART_MM_W - 8 : 'auto';
+    pdf.autoTable({
+      startY,
+      head: [section.headers],
+      body: section.rows.length
+        ? section.rows.map((row) => row.map(cellText))
+        : [[{ content: 'Nothing to show.', colSpan: section.headers.length, styles: { textColor: 130, fontStyle: 'italic' } }]],
+      tableWidth,
+      margin: { left: MARGIN, right: MARGIN },
+      ...TABLE_STYLE
+    });
+    let bottom = pdf.lastAutoTable.finalY;
+    if (image) {
+      pdf.addImage(image, 'JPEG', pageWidth - MARGIN - CHART_MM_W, startY, CHART_MM_W, CHART_MM_H);
+      // A table that ran onto the next page leaves the chart behind on this one.
+      if (pdf.internal.getCurrentPageInfo().pageNumber === startPage) {
+        bottom = Math.max(bottom, startY + CHART_MM_H);
+      }
+    }
+    y = bottom + 12;
+  });
+
+  pdf.save(`${table.filename}-${today()}.pdf`);
+}
+
 async function savePdf(table) {
+  if (table.sections) return saveSectionsPdf(table);
   await loadPdfLibraries();
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ orientation: 'landscape' });
@@ -91,14 +336,36 @@ const HEADER_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F8
 const ZEBRA_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7F9F7' } };
 const RULE = { style: 'thin', color: { argb: 'FFDCE6DF' } };
 
+// Excel limits sheet names to 31 characters and a few symbols, and each
+// must be unique in the workbook.
+function sheetName(book, title) {
+  const base = String(title).replace(/[\\/?*[\]:]/g, '').slice(0, 31) || 'Export';
+  let name = base;
+  for (let n = 2; book.getWorksheet(name); n += 1) name = `${base.slice(0, 28)} ${n}`;
+  return name;
+}
+
 async function saveExcel(table) {
   await loadExcelLibrary();
   const book = new window.ExcelJS.Workbook();
   book.creator = 'PeakPath Admin';
   book.created = new Date();
-  // Excel limits sheet names to 31 characters and a few symbols. The header
-  // row stays in view while scrolling.
-  const sheet = book.addWorksheet(table.title.replace(/[\\/?*[\]:]/g, '').slice(0, 31) || 'Export', {
+  const sections = table.sections || [table];
+  sections.forEach((section) => addSheet(book, section));
+
+  const buffer = await book.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const link = Object.assign(document.createElement('a'), { href: url, download: `${table.filename}-${today()}.xlsx` });
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// One table as a worksheet. The header row stays in view while scrolling.
+function addSheet(book, table) {
+  const sheet = book.addWorksheet(sheetName(book, table.title), {
     views: [{ state: 'frozen', ySplit: 1 }]
   });
 
@@ -128,15 +395,17 @@ async function saveExcel(table) {
       cell.alignment = { vertical: 'top', wrapText: true };
     });
   });
-
-  const buffer = await book.xlsx.writeBuffer();
-  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = URL.createObjectURL(blob);
-  const link = Object.assign(document.createElement('a'), { href: url, download: `${table.filename}-${today()}.xlsx` });
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  if (!rows.length) sheet.addRow(['Nothing to show.']).getCell(1).font = { italic: true, color: { argb: 'FF8A948C' } };
+  const image = chartImage(table.chart);
+  if (image) {
+    // One empty column after the table, then the chart.
+    const id = book.addImage({ base64: image, extension: 'png' });
+    sheet.addImage(id, { tl: { col: table.headers.length + 1, row: 0 }, ext: { width: CHART_W * 0.5, height: CHART_H * 0.5 } });
+  }
+  if (table.note) {
+    sheet.addRow([]);
+    sheet.addRow([table.note]).getCell(1).font = { italic: true, color: { argb: 'FF6B7A70' } };
+  }
 }
 
 /* ---------- The menu ---------- */

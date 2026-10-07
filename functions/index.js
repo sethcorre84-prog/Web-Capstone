@@ -48,6 +48,8 @@ const { getAuth } = require("firebase-admin/auth");
 const { getFirestore, Timestamp, FieldValue } = require("firebase-admin/firestore");
 const crypto = require("node:crypto");
 const nodemailer = require("nodemailer");
+const dns = require("node:dns").promises;
+const { ImapFlow } = require("imapflow");
 
 initializeApp();
 const db = getFirestore();
@@ -272,6 +274,448 @@ exports.resetPasswordWithCode = onCall(async (request) => {
   await ref.delete();
   await getAuth().revokeRefreshTokens(uid);
   return { ok: true };
+});
+
+/* ---------- Email verification for User Management > Add User ----------
+   An address is only proven to exist by mail reaching it, so before an admin
+   can create an account, a 6-digit code is sent to the address and has to be
+   typed back. Confirming it marks emailVerifications/{email} verified for
+   VERIFIED_WINDOW_MS, and firestore.rules only let an admin create a
+   users/{uid} profile whose email has such a record. The records are written
+   here only (the rules deny clients), and hold a hash of the code, never the
+   code itself. */
+const VERIFIED_WINDOW_MS = 60 * 60 * 1000;
+
+// Only a signed-in admin (admins/{uid} exists) may send or confirm codes.
+async function requireAdmin(request) {
+  const uid = request.auth?.uid;
+  if (!uid || !(await db.collection("admins").doc(uid).get()).exists) {
+    throw new HttpsError("permission-denied", "Only PeakPath admins can verify new users' emails.");
+  }
+  return uid;
+}
+
+async function sendSignupCodeEmail(to, code) {
+  const transporter = mailTransport();
+  const minutes = CODE_TTL_MS / 60000;
+  const sender = GMAIL_USER.value();
+  // Same plain format as the password reset email, to stay out of spam.
+  await transporter.sendMail({
+    from: { name: "PeakPath", address: sender },
+    replyTo: sender,
+    to,
+    subject: "Your PeakPath email verification code",
+    text:
+      "Hello,\n\n" +
+      "A PeakPath admin is creating an account for you with this email address.\n\n" +
+      `Your verification code is: ${code}\n\n` +
+      `Give this code to the admin to confirm your email. It expires in ${minutes} minutes.\n\n` +
+      "If you didn't expect a PeakPath account, you can ignore this email and no account will be created.\n\n" +
+      "PeakPath Admin Portal",
+    html: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Your PeakPath email verification code</title></head>
+<body style="margin:0;padding:0;background:#ffffff">
+  <div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:460px;margin:0 auto;padding:28px 24px;color:#1c231c">
+    <h2 style="margin:0 0 16px;font-size:20px;color:#1f6b39">PeakPath</h2>
+    <p style="margin:0 0 12px;font-size:14px">Hello,</p>
+    <p style="margin:0 0 12px;font-size:14px">A PeakPath admin is creating an account for you with this email address. Your verification code is:</p>
+    <p style="margin:0 0 20px;padding:14px;border-radius:10px;background:#e7f5eb;text-align:center;font-size:28px;font-weight:700;letter-spacing:4px;color:#1f6b39">${code}</p>
+    <p style="margin:0 0 12px;font-size:14px">Give this code to the admin to confirm your email. It expires in ${minutes} minutes.</p>
+    <p style="margin:0 0 20px;font-size:13px;color:#5b6b60">If you didn't expect a PeakPath account, you can ignore this email and no account will be created.</p>
+    <p style="margin:0;font-size:12px;color:#93a199">PeakPath Admin Portal</p>
+  </div>
+</body>
+</html>`
+  });
+}
+
+/* Whether an address can exist, before and after the code is sent.
+   1. Format: Gmail usernames are 6-30 letters, numbers and dots (a +tag is
+      allowed after them).
+   2. Domain: the part after @ must accept mail (MX records), which catches
+      typos like gmial.com.
+   3. Bounce: Gmail accepts a message to an address that does not exist and
+      only then mails an "Address not found" bounce back to the sender, within
+      seconds. So after sending, the sender's inbox is watched for that bounce
+      for BOUNCE_WAIT_MS (IMAP, with the same app password). If IMAP cannot
+      be reached, this step is skipped rather than blocking every send. */
+const GMAIL_DOMAINS = ["gmail.com", "googlemail.com"];
+const BOUNCE_WAIT_MS = 25 * 1000;
+const BOUNCE_POLL_MS = 4 * 1000;
+
+function checkAddressFormat(email) {
+  const [local, domain] = email.split("@");
+  if (GMAIL_DOMAINS.includes(domain)) {
+    const name = local.split("+")[0].replace(/\./g, "");
+    if (!/^[a-z0-9.+]+$/.test(local) || !/^[a-z0-9]{6,30}$/.test(name) || /^\.|\.$|\.\./.test(local.split("+")[0])) {
+      throw new HttpsError("invalid-argument", "This isn't a valid Gmail address.", { reason: "invalid" });
+    }
+  }
+}
+
+async function checkDomainReceivesMail(email) {
+  const domain = email.split("@")[1];
+  if (GMAIL_DOMAINS.includes(domain)) return;
+  try {
+    const records = await dns.resolveMx(domain);
+    if (records.length) return;
+  } catch (error) {
+    if (!["ENOTFOUND", "ENODATA", "ESERVFAIL", "ENOTIMP"].includes(error.code)) {
+      logger.warn(`MX lookup for ${domain} failed; not blocking the send`, error);
+      return;
+    }
+  }
+  throw new HttpsError("not-found", "This email doesn't exist: its domain does not receive mail.", { reason: "not-existing" });
+}
+
+// True when Gmail bounced the message to `email` sent at `sentAt`.
+async function bouncedSince(email, sentAt) {
+  const client = new ImapFlow({
+    host: "imap.gmail.com",
+    port: 993,
+    secure: true,
+    auth: { user: GMAIL_USER.value(), pass: GMAIL_APP_PASSWORD.value() },
+    logger: false
+  });
+  try {
+    await client.connect();
+    const deadline = Date.now() + BOUNCE_WAIT_MS;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, BOUNCE_POLL_MS));
+      const lock = await client.getMailboxLock("INBOX");
+      try {
+        // Gmail's own search: delivery-failure notices that name the address.
+        const uids = await client.search({ gmraw: `from:mailer-daemon newer_than:1d "${email}"` }, { uid: true });
+        if (uids?.length) {
+          for await (const message of client.fetch(uids, { envelope: true, internalDate: true }, { uid: true })) {
+            const when = (message.internalDate || message.envelope?.date || new Date(0)).getTime();
+            if (when >= sentAt - 5000) return true;
+          }
+        }
+      } finally {
+        lock.release();
+      }
+    }
+    return false;
+  } catch (error) {
+    logger.warn("Could not check the inbox for a bounce; treating the address as deliverable", error);
+    return false;
+  } finally {
+    await client.logout().catch(() => {});
+  }
+}
+
+exports.sendSignupVerificationCode = onCall(
+  { secrets: [GMAIL_USER, GMAIL_APP_PASSWORD], timeoutSeconds: 90 },
+  async (request) => {
+    const adminUid = await requireAdmin(request);
+    const email = normalizeEmail(request.data?.email);
+    checkAddressFormat(email);
+    await checkDomainReceivesMail(email);
+
+    // An address that already has an account cannot get a second one.
+    try {
+      await getAuth().getUserByEmail(email);
+      throw new HttpsError("already-exists", "This email already has a PeakPath account.");
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      if (error.code !== "auth/user-not-found") throw error;
+    }
+
+    const ref = db.collection("emailVerifications").doc(email);
+    const now = Date.now();
+    const existing = await ref.get();
+    if (existing.exists) {
+      const wait = RESEND_COOLDOWN_MS - (now - existing.get("sentAt").toMillis());
+      if (wait > 0) {
+        const seconds = Math.ceil(wait / 1000);
+        throw new HttpsError(
+          "resource-exhausted",
+          `Please wait ${seconds} seconds before sending another code.`,
+          { retryAfter: seconds }
+        );
+      }
+    }
+
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
+    const salt = crypto.randomBytes(16).toString("hex");
+    await ref.set({
+      email,
+      salt,
+      codeHash: hashCode(code, salt),
+      attempts: 0,
+      verified: false,
+      requestedBy: adminUid,
+      sentAt: Timestamp.fromMillis(now),
+      expiresAt: Timestamp.fromMillis(now + CODE_TTL_MS)
+    });
+
+    try {
+      await sendSignupCodeEmail(email, code);
+    } catch (error) {
+      logger.error("Could not send the email verification code", error);
+      // Gmail refused it outright (e.g. a malformed or blocked address).
+      await ref.delete();
+      throw new HttpsError("unavailable", "We couldn't send a code to this email. Check the address and try again.");
+    }
+
+    // Gmail bounces mail for an address that does not exist a few seconds
+    // later; if that happens, the code is withdrawn and the admin told.
+    if (await bouncedSince(email, now)) {
+      await ref.delete();
+      throw new HttpsError("not-found", "This email address doesn't exist. Check it for typos.", { reason: "not-existing" });
+    }
+
+    return {
+      expiresInSeconds: CODE_TTL_MS / 1000,
+      resendAfterSeconds: RESEND_COOLDOWN_MS / 1000
+    };
+  }
+);
+
+exports.confirmSignupVerificationCode = onCall(async (request) => {
+  await requireAdmin(request);
+  const email = normalizeEmail(request.data?.email);
+  const code = String(request.data?.code ?? "").trim();
+  if (!/^\d{6}$/.test(code)) {
+    throw new HttpsError("invalid-argument", "Enter the 6-digit code from the email.", { field: "code" });
+  }
+
+  const ref = db.collection("emailVerifications").doc(email);
+  // A transaction, so two quick guesses cannot both slip past the limit.
+  const outcome = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return { status: "missing" };
+    const record = snap.data();
+    if (record.verified) return { status: "ok" };
+    if (record.expiresAt.toMillis() < Date.now()) {
+      tx.delete(ref);
+      return { status: "expired" };
+    }
+    if (codesMatch(code, record)) {
+      tx.update(ref, {
+        verified: true,
+        verifiedAt: FieldValue.serverTimestamp(),
+        verifiedUntil: Timestamp.fromMillis(Date.now() + VERIFIED_WINDOW_MS),
+        codeHash: FieldValue.delete(),
+        salt: FieldValue.delete()
+      });
+      return { status: "ok" };
+    }
+    const attempts = record.attempts + 1;
+    if (attempts >= MAX_ATTEMPTS) tx.delete(ref);
+    else tx.update(ref, { attempts });
+    return { status: "wrong", remaining: MAX_ATTEMPTS - attempts };
+  });
+
+  switch (outcome.status) {
+    case "missing":
+      throw new HttpsError("failed-precondition", "There is no active code for this email. Send a new one.");
+    case "expired":
+      throw new HttpsError("deadline-exceeded", "This code has expired. Send a new one.");
+    case "wrong":
+      if (outcome.remaining <= 0) {
+        throw new HttpsError("resource-exhausted", "Too many wrong codes. Send a new one.");
+      }
+      throw new HttpsError(
+        "permission-denied",
+        `That code is incorrect. ${outcome.remaining} ${outcome.remaining === 1 ? "try" : "tries"} left.`,
+        { field: "code", remaining: outcome.remaining }
+      );
+  }
+  return { verified: true, validForSeconds: VERIFIED_WINDOW_MS / 1000 };
+});
+
+/* ---------- Settings > Role & Permission Settings ----------
+   Admin roles live on admins/{uid}.role (firestore.rules: adminRole()):
+     Super Administrator  everything, and manages the other admins here
+     Administrator        day-to-day operations
+     Viewer               read-only
+   An admin with no role is a Super Administrator, as every admin was before
+   roles existed. Only these functions add admins, remove them or change a
+   role (the rules deny it to every client), and only for a Super
+   Administrator. No one changes their own role or removes themself, and the
+   last Super Administrator can never be demoted or removed, so the portal
+   cannot be locked. Every change is written to adminRoleLog. */
+const ADMIN_ROLES = ["Super Administrator", "Administrator", "Viewer"];
+const SUPER_ROLE = "Super Administrator";
+const roleOf = (data) => (ADMIN_ROLES.includes(data?.role) ? data.role : SUPER_ROLE);
+
+async function requireSuperAdmin(request) {
+  const uid = request.auth?.uid;
+  const snap = uid ? await db.collection("admins").doc(uid).get() : null;
+  if (!snap?.exists) {
+    throw new HttpsError("permission-denied", "Only PeakPath admins can manage admin roles.");
+  }
+  if (roleOf(snap.data()) !== SUPER_ROLE) {
+    throw new HttpsError("permission-denied", "Only a Super Administrator can manage admin roles.");
+  }
+  return { uid, name: snap.get("name") || request.auth.token?.name || request.auth.token?.email || "An admin" };
+}
+
+const checkRole = (role) => {
+  if (!ADMIN_ROLES.includes(role)) {
+    throw new HttpsError("invalid-argument", `Choose one of: ${ADMIN_ROLES.join(", ")}.`);
+  }
+  return role;
+};
+
+async function superAdminCount() {
+  const all = await db.collection("admins").get();
+  return all.docs.filter((d) => roleOf(d.data()) === SUPER_ROLE).length;
+}
+
+function logRoleChange(entry) {
+  return db.collection("adminRoleLog").add({ ...entry, at: FieldValue.serverTimestamp() });
+}
+
+// The admin list for Role Management, with each admin's email and last
+// sign-in from Firebase Auth (the admins records do not always hold them).
+// Any admin may see it; only a Super Administrator may change it.
+exports.listAdmins = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid || !(await db.collection("admins").doc(uid).get()).exists) {
+    throw new HttpsError("permission-denied", "Only PeakPath admins can see the admin list.");
+  }
+  const snaps = await db.collection("admins").get();
+  const ids = snaps.docs.map((d) => ({ uid: d.id }));
+  const users = new Map();
+  for (let i = 0; i < ids.length; i += 100) {
+    const result = await getAuth().getUsers(ids.slice(i, i + 100));
+    result.users.forEach((u) => users.set(u.uid, u));
+  }
+  return {
+    me: uid,
+    admins: snaps.docs.map((d) => {
+      const data = d.data();
+      const user = users.get(d.id);
+      return {
+        uid: d.id,
+        name: data.name || user?.displayName || "",
+        username: data.username || "",
+        email: data.email || user?.email || "",
+        role: roleOf(data),
+        lastSignIn: user?.metadata?.lastSignInTime || null
+      };
+    }).sort((a, b) => ADMIN_ROLES.indexOf(a.role) - ADMIN_ROLES.indexOf(b.role) || a.name.localeCompare(b.name))
+  };
+});
+
+exports.setAdminRole = onCall(async (request) => {
+  const caller = await requireSuperAdmin(request);
+  const uid = String(request.data?.uid || "");
+  const role = checkRole(request.data?.role);
+  if (!uid) throw new HttpsError("invalid-argument", "Choose an admin.");
+  if (uid === caller.uid) {
+    throw new HttpsError("failed-precondition", "You can't change your own role. Ask another Super Administrator.");
+  }
+  const ref = db.collection("admins").doc(uid);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError("not-found", "That admin no longer exists.");
+  const from = roleOf(snap.data());
+  if (from === role) return { role };
+  if (from === SUPER_ROLE && (await superAdminCount()) <= 1) {
+    throw new HttpsError("failed-precondition", "There must always be at least one Super Administrator.");
+  }
+  await ref.update({ role, roleUpdatedAt: FieldValue.serverTimestamp(), roleUpdatedBy: caller.uid });
+  await logRoleChange({
+    action: "role", targetUid: uid, targetName: snap.get("name") || "", targetEmail: snap.get("email") || "",
+    from, to: role, byUid: caller.uid, byName: caller.name
+  });
+  return { role };
+});
+
+exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (request) => {
+  const caller = await requireSuperAdmin(request);
+  const email = normalizeEmail(request.data?.email);
+  const role = checkRole(request.data?.role);
+  const name = String(request.data?.name || "").trim().slice(0, 80);
+
+  // An existing sign-in account is promoted; otherwise one is created and
+  // the new admin is emailed a link to choose their password.
+  let user;
+  let created = false;
+  try {
+    user = await getAuth().getUserByEmail(email);
+  } catch (error) {
+    if (error.code !== "auth/user-not-found") throw error;
+    user = await getAuth().createUser({ email, displayName: name || undefined });
+    created = true;
+  }
+  const ref = db.collection("admins").doc(user.uid);
+  if ((await ref.get()).exists) {
+    throw new HttpsError("already-exists", "This email is already a PeakPath admin.");
+  }
+  await ref.set({
+    name: name || user.displayName || "",
+    email,
+    role,
+    createdAt: FieldValue.serverTimestamp(),
+    addedBy: caller.uid
+  });
+  await db.collection("adminEmails").doc(email).set({ uid: user.uid, email, updatedAt: FieldValue.serverTimestamp() });
+
+  let emailed = false;
+  if (created) {
+    try {
+      const link = await getAuth().generatePasswordResetLink(email);
+      const sender = GMAIL_USER.value();
+      await mailTransport().sendMail({
+        from: { name: "PeakPath", address: sender },
+        replyTo: sender,
+        to: email,
+        subject: "You've been added as a PeakPath admin",
+        text:
+          `Hello${name ? ` ${name}` : ""},\n\n` +
+          `${caller.name} added you to the PeakPath Admin Portal as ${role}.\n\n` +
+          `Choose your password here: ${link}\n\nThen sign in at the PeakPath Admin Portal with this email.\n\nPeakPath Admin Portal`,
+        html: `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>PeakPath admin access</title></head>
+<body style="margin:0;padding:0;background:#ffffff"><div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:460px;margin:0 auto;padding:28px 24px;color:#1c231c">
+<h2 style="margin:0 0 16px;font-size:20px;color:#1f6b39">PeakPath</h2>
+<p style="margin:0 0 12px;font-size:14px">Hello${name ? ` ${escapeHtml(name)}` : ""},</p>
+<p style="margin:0 0 12px;font-size:14px">${escapeHtml(caller.name)} added you to the PeakPath Admin Portal as <strong>${escapeHtml(role)}</strong>.</p>
+<p style="margin:0 0 20px;font-size:14px"><a href="${link}" style="color:#1f6b39;font-weight:700">Choose your password</a>, then sign in with this email.</p>
+<p style="margin:0;font-size:12px;color:#93a199">PeakPath Admin Portal</p></div></body></html>`
+      });
+      emailed = true;
+    } catch (error) {
+      logger.error("Could not email the new admin their password link", error);
+    }
+  }
+
+  await logRoleChange({
+    action: "add", targetUid: user.uid, targetName: name || user.displayName || "", targetEmail: email,
+    from: null, to: role, byUid: caller.uid, byName: caller.name
+  });
+  return { uid: user.uid, created, emailed };
+});
+
+exports.removeAdmin = onCall(async (request) => {
+  const caller = await requireSuperAdmin(request);
+  const uid = String(request.data?.uid || "");
+  if (!uid) throw new HttpsError("invalid-argument", "Choose an admin.");
+  if (uid === caller.uid) {
+    throw new HttpsError("failed-precondition", "You can't remove your own admin access.");
+  }
+  const ref = db.collection("admins").doc(uid);
+  const snap = await ref.get();
+  if (!snap.exists) return { removed: false };
+  const from = roleOf(snap.data());
+  if (from === SUPER_ROLE && (await superAdminCount()) <= 1) {
+    throw new HttpsError("failed-precondition", "There must always be at least one Super Administrator.");
+  }
+  // Their sign-in account stays (it may also be a hiker's); it just stops
+  // being an admin, and any open portal session is signed out.
+  await ref.delete();
+  const email = String(snap.get("email") || "").toLowerCase();
+  if (email) await db.collection("adminEmails").doc(email).delete().catch(() => {});
+  await getAuth().revokeRefreshTokens(uid).catch(() => {});
+  await logRoleChange({
+    action: "remove", targetUid: uid, targetName: snap.get("name") || "", targetEmail: email,
+    from, to: null, byUid: caller.uid, byName: caller.name
+  });
+  return { removed: true };
 });
 
 /* ==========================================================================

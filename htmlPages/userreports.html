@@ -153,96 +153,101 @@
         border-bottom-color: var(--accent-dark);
     }
 
-    /* ---------------- Stat cards ---------------- */
-    .stats {
+    /* ---------------- Stat cards ----------------
+         The same summary cards as User Management (usermanagement.html):
+         figure top-left, square icon top-right, label and trend below, so
+         the two tabs of this feature look alike. */
+    .hero-grid {
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 14px;
-        margin-bottom: 18px;
+        margin: 12px 0 18px;
     }
-    /* 128px, the portal-wide summary card height (see trail.html). This one
-         lays its icon out beside the figure, so the content centres in it. */
-    .stat-card {
+    .hero-card {
+        background: var(--dm-surface, #ffffff);
+        border: 1px solid var(--dm-border, #e4e7e1);
+        border-radius: 12px;
+        padding: 16px 18px;
         display: flex;
-        align-items: center;
-        gap: 16px;
-        min-width: 0;
+        flex-direction: column;
+        gap: 10px;
+        /* 128px, the portal-wide summary card height (see trail.html). */
         min-height: 128px;
-        padding: 18px 20px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        background: var(--card);
+        justify-content: space-between;
+        min-width: 0;
         box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
-        transition:
-            transform 0.2s ease,
-            box-shadow 0.2s ease;
+        transition: all 0.2s ease;
     }
-    .stat-card:hover {
-        transform: translateY(-2px);
+    .hero-card:hover {
         box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+        transform: translateY(-2px);
     }
-    .stat-icon {
-        width: 52px;
-        height: 52px;
-        border-radius: 50%;
+    .hero-card .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+    .hero-card .card-content {
+        min-width: 0;
+    }
+    .hero-icon {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
         display: grid;
         place-items: center;
-        flex-shrink: 0;
-        font-size: 21px;
+        border-radius: 8px;
+        font-size: 14px;
     }
-    .stat-icon.red {
-        background: #fde8e5;
-        color: #c8402f;
-    }
-    .stat-icon.amber {
-        background: #fdf0dc;
-        color: #e39a2c;
-    }
-    .stat-icon.blue {
-        background: #e3edfb;
+    .hero-icon.blue {
+        background: #e6f0ff;
         color: #2a63b5;
     }
-    .stat-icon.green {
-        background: var(--dm-surface-3, #e3f3e7);
+    .hero-icon.green {
+        background: #e7f5eb;
         color: #2f8f4e;
     }
-    .stat-body {
-        min-width: 0;
+    .hero-icon.amber {
+        background: #fbf1e2;
+        color: #b9791b;
     }
-    .stat-label {
+    .hero-icon.red {
+        background: #fbe9e7;
+        color: #c8402f;
+    }
+    .hero-icon.purple {
+        background: #f1eafb;
+        color: #6b4cc9;
+    }
+    .hero-card h3 {
+        margin: 0;
         font-size: 12px;
-        font-weight: 600;
-        color: var(--text-600);
-        margin-bottom: 2px;
+        line-height: 1.4;
+        color: #5b6b60;
+        font-weight: 400;
     }
-    .stat-value {
+    .hero-card p {
+        margin: 0;
         font-size: 24px;
         font-weight: 700;
+        color: var(--dm-text, #1c231c);
         line-height: 1.2;
-        color: var(--text-900);
     }
-    .stat-meta {
-        display: flex;
-        align-items: center;
-        gap: 5px;
+    .hero-trend {
+        display: block;
         margin-top: 4px;
         font-size: 11px;
-        color: var(--text-600);
+        color: #5b6b60;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    .stat-meta i {
-        font-size: 10px;
+    .hero-trend.up {
+        color: #2f8f4e;
     }
-    .stat-meta.up i {
-        color: var(--green-text);
-    }
-    .stat-meta.down i {
-        color: var(--red-text);
-    }
-    .stat-meta.flat i {
-        color: var(--icon-muted);
+    .hero-trend.down {
+        color: #c8402f;
     }
 
     /* ---------------- Content layout ---------------- */
@@ -1588,14 +1593,18 @@
         background: var(--red-text);
     }
 
-    @media (max-width: 1100px) {
-        .stats {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-    }
+    /* The cards collapse at User Management's widths. */
     @media (max-width: 1150px) {
+        .hero-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
         .content-grid {
             grid-template-columns: minmax(0, 1fr);
+        }
+    }
+    @media (max-width: 980px) {
+        .hero-grid {
+            grid-template-columns: repeat(2, 1fr);
         }
     }
     @media (max-width: 700px) {
@@ -1603,8 +1612,8 @@
             flex-direction: column;
             gap: 14px;
         }
-        .stats {
-            grid-template-columns: minmax(0, 1fr);
+        .hero-grid {
+            grid-template-columns: 1fr;
         }
         .table-footer {
             grid-template-columns: 1fr;
@@ -1703,45 +1712,55 @@
     </div>
 
     <!-- Stat cards -->
-    <section class="stats" aria-label="Report totals">
-      <div class="stat-card">
-        <div class="stat-icon red"><i class="fa-solid fa-flag"></i></div>
-        <div class="stat-body">
-          <div class="stat-label">Total Reports</div>
-          <div class="stat-value" id="totalReportsValue">0</div>
-          <div class="stat-meta flat" id="totalReportsTrend"><i class="fa-solid fa-minus"></i><span>Loading…</span></div>
+    <section class="hero-grid" aria-label="Report totals">
+      <div class="hero-card">
+        <div class="card-top">
+          <p id="totalReportsValue">0</p>
+          <div class="hero-icon red"><i class="fa-solid fa-flag" aria-hidden="true"></i></div>
+        </div>
+        <div class="card-content">
+          <h3>Total Reports</h3>
+          <span class="hero-trend" id="totalReportsTrend">Loading…</span>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon amber"><i class="fa-regular fa-clock"></i></div>
-        <div class="stat-body">
-          <div class="stat-label">Pending Review</div>
-          <div class="stat-value" id="pendingReportsValue">0</div>
-          <div class="stat-meta flat" id="pendingReportsTrend"><i class="fa-solid fa-minus"></i><span>Loading…</span></div>
+      <div class="hero-card">
+        <div class="card-top">
+          <p id="pendingReportsValue">0</p>
+          <div class="hero-icon amber"><i class="fa-regular fa-clock" aria-hidden="true"></i></div>
+        </div>
+        <div class="card-content">
+          <h3>Pending Review</h3>
+          <span class="hero-trend" id="pendingReportsTrend">Loading…</span>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon blue"><i class="fa-solid fa-eye"></i></div>
-        <div class="stat-body">
-          <div class="stat-label">Under Review</div>
-          <div class="stat-value" id="underReviewValue">0</div>
-          <div class="stat-meta flat" id="underReviewTrend"><i class="fa-solid fa-minus"></i><span>Loading…</span></div>
+      <div class="hero-card">
+        <div class="card-top">
+          <p id="underReviewValue">0</p>
+          <div class="hero-icon blue"><i class="fa-solid fa-eye" aria-hidden="true"></i></div>
+        </div>
+        <div class="card-content">
+          <h3>Under Review</h3>
+          <span class="hero-trend" id="underReviewTrend">Loading…</span>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
-        <div class="stat-body">
-          <div class="stat-label">Resolved</div>
-          <div class="stat-value" id="resolvedReportsValue">0</div>
-          <div class="stat-meta flat" id="resolvedReportsTrend"><i class="fa-solid fa-minus"></i><span>Loading…</span></div>
+      <div class="hero-card">
+        <div class="card-top">
+          <p id="resolvedReportsValue">0</p>
+          <div class="hero-icon green"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+        </div>
+        <div class="card-content">
+          <h3>Resolved</h3>
+          <span class="hero-trend" id="resolvedReportsTrend">Loading…</span>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon green"><i class="fa-solid fa-unlock" aria-hidden="true"></i></div>
-        <div class="stat-body">
-          <div class="stat-label">Lifted Accounts</div>
-          <div class="stat-value" id="liftedAccountsValue">0</div>
-          <div class="stat-meta flat"><span>Accounts with suspensions lifted</span></div>
+      <div class="hero-card">
+        <div class="card-top">
+          <p id="liftedAccountsValue">0</p>
+          <div class="hero-icon purple"><i class="fa-solid fa-unlock" aria-hidden="true"></i></div>
+        </div>
+        <div class="card-content">
+          <h3>Lifted Accounts</h3>
+          <span class="hero-trend">Accounts with suspensions lifted</span>
         </div>
       </div>
     </section>
@@ -2624,8 +2643,9 @@
       text = `${Math.abs(change)}% vs last month`;
     }
 
-    element.className = `stat-meta ${tone}`;
-    element.innerHTML = `<i class="fa-solid ${icon}"></i><span>${escapeHtml(text)}</span>`;
+    // Plain text coloured by direction, as on User Management's cards.
+    element.className = `hero-trend ${tone}`;
+    element.textContent = `${tone === 'up' ? '▲ ' : tone === 'down' ? '▼ ' : ''}${text}`;
   };
 
   const renderStats = () => {

@@ -6,7 +6,9 @@
 //
 // Each station is stations/{trailID}_station_{NN} with
 //   trailID, stationNumber, name ("Station 11 · Agila Base"), landmark,
-//   description, tags, section, status ("open" / "closed"), createdAt, updatedAt
+//   description, tags, section, status ("open" / "closed"), lat, lng,
+//   coordsEstimated (true while lat/lng are the estimates from
+//   STATION_COORDS rather than a GPS reading), createdAt, updatedAt
 // The station number is part of the document id, so it is fixed once a
 // station exists; to renumber, delete the station and add it again.
 // Only admins can write stations (firestore.rules).
@@ -18,9 +20,10 @@ import {
   onSnapshot,
   serverTimestamp,
   setDoc,
-  updateDoc
+  updateDoc,
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { REFERENCE_STATIONS, TAGS } from "./trail-stations.js";
+import { REFERENCE_STATIONS, STATION_COORDS, TAGS, referenceKeyFor } from "./trail-stations.js";
 
 const CSS = `
 .se-field { display:block; margin-bottom:10px; font-size:12px; color:var(--text-secondary); }
@@ -52,7 +55,28 @@ const CSS = `
 .se-empty { padding:12px; border:1px dashed var(--border); border-radius:10px; margin-bottom:10px;
   font-size:12.5px; line-height:1.5; color:var(--text-secondary); }
 .se-sub { margin:-4px 0 12px; font-size:12px; color:var(--text-secondary); }
+.se-fill { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  margin-bottom:12px; padding:9px 12px; border-radius:10px; background:var(--dm-surface-2,#f5f8f3);
+  font-size:12px; color:var(--text-secondary); }
+.se-fill button { border:1px solid var(--accent); background:var(--dm-surface,#fff); color:var(--accent-dark);
+  border-radius:7px; padding:5px 10px; font-size:12px; font-weight:600; }
 [data-se][disabled] { opacity:.6; cursor:wait; }
+/* Confirmation popups (unsaved changes, delete), styled like the page's
+   Add Checkpoint popup. */
+.se-modal { position:fixed; inset:0; z-index:1100; display:flex; align-items:center; justify-content:center;
+  padding:16px; background:rgba(0,0,0,.5); }
+.se-dialog { width:min(400px,100%); padding:24px; border-radius:12px; background:var(--dm-surface,#fff);
+  color:var(--text-primary); box-shadow:0 18px 40px rgba(0,0,0,.25); }
+.se-dialog h3 { display:flex; align-items:center; gap:10px; margin:0 0 8px; font-size:17px; }
+.se-dialog h3 i { display:grid; place-items:center; width:34px; height:34px; border-radius:50%;
+  background:#fdf3e1; color:#b9791b; font-size:15px; }
+.se-dialog.is-danger h3 i { background:var(--danger-light,#fbe9e7); color:var(--danger,#c8402f); }
+.se-dialog p { margin:0 0 20px; font-size:13px; line-height:1.5; color:var(--text-secondary); }
+.se-dialog .se-dialog-actions { display:flex; gap:10px; }
+.se-dialog .se-dialog-actions button { flex:1; padding:10px; border-radius:8px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.se-dialog .se-keep { border:1px solid var(--border); background:var(--dm-surface,#fff); color:var(--text-primary); }
+.se-dialog .se-go { border:0; background:var(--accent); color:#fff; }
+.se-dialog.is-danger .se-go { background:var(--danger,#c8402f); }
 `;
 
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
@@ -75,9 +99,51 @@ function fromStored(d) {
     description: data.description || '',
     section: data.section || '',
     tags: Array.isArray(data.tags) ? data.tags : [],
-    open: isOpen(data.status)
+    open: isOpen(data.status),
+    lat: typeof data.lat === 'number' ? data.lat : null,
+    lng: typeof data.lng === 'number' ? data.lng : null,
+    coordsEstimated: data.coordsEstimated === true
   };
 }
+
+/* A confirmation popup; resolves true for the main button, false for the
+   other one, a click outside or Escape. */
+function askDialog({ icon, title, text, confirmLabel, cancelLabel = 'Cancel', danger = false }) {
+  return new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.className = 'se-modal';
+    modal.innerHTML = `
+      <div class="se-dialog${danger ? ' is-danger' : ''}" role="alertdialog" aria-modal="true" aria-labelledby="seDialogTitle" aria-describedby="seDialogText">
+        <h3 id="seDialogTitle"><i class="fa-solid ${icon}" aria-hidden="true"></i>${escapeHtml(title)}</h3>
+        <p id="seDialogText">${escapeHtml(text)}</p>
+        <div class="se-dialog-actions">
+          <button type="button" class="se-keep">${escapeHtml(cancelLabel)}</button>
+          <button type="button" class="se-go">${escapeHtml(confirmLabel)}</button>
+        </div>
+      </div>`;
+    const finish = (answer) => {
+      modal.remove();
+      document.removeEventListener('keydown', onKey, true);
+      resolve(answer);
+    };
+    const onKey = (event) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        finish(false);
+      }
+    };
+    modal.addEventListener('click', (event) => { if (event.target === modal) finish(false); });
+    modal.querySelector('.se-keep').addEventListener('click', () => finish(false));
+    modal.querySelector('.se-go').addEventListener('click', () => finish(true));
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(modal);
+    // The safe choice has the focus, so Enter keeps the edits.
+    modal.querySelector('.se-keep').focus();
+  });
+}
+
+// Coordinates as typed: a number, or null when the field is empty.
+const coordValue = (text) => (String(text).trim() === '' ? null : Number(text));
 
 /*
   db     Firestore
@@ -152,6 +218,15 @@ export function initStationEditor({ db, root }) {
         <input type="text" id="seSection" maxlength="60" list="seSections" value="${escapeHtml(station.section)}" placeholder="e.g. Forest trail">
         <datalist id="seSections">${sections.map((s) => `<option value="${escapeHtml(s)}">`).join('')}</datalist>
       </label>
+      <div class="se-row">
+        <label class="se-field">Latitude
+          <input type="number" id="seLat" step="any" min="-90" max="90" value="${station.lat ?? ''}" placeholder="e.g. 14.13279">
+        </label>
+        <label class="se-field">Longitude
+          <input type="number" id="seLng" step="any" min="-180" max="180" value="${station.lng ?? ''}" placeholder="e.g. 121.20849">
+        </label>
+      </div>
+      ${station.coordsEstimated ? '<span class="se-hint" style="margin:-6px 0 10px">Estimated from the trail line. Replace with a GPS reading taken at the marker.</span>' : ''}
       <label class="se-field">Description
         <textarea id="seDescription" maxlength="1000" placeholder="What hikers find at this station">${escapeHtml(station.description)}</textarea>
       </label>
@@ -189,7 +264,7 @@ export function initStationEditor({ db, root }) {
     }
 
     const list = stations();
-    const blank = { number: 0, landmark: '', description: '', section: '', tags: [], open: true };
+    const blank = { number: 0, landmark: '', description: '', section: '', tags: [], open: true, lat: null, lng: null, coordsEstimated: false };
 
     if (!list.length && !adding) {
       root.innerHTML = `
@@ -207,6 +282,11 @@ export function initStationEditor({ db, root }) {
 
     root.innerHTML = `
       <p class="se-sub">${escapeHtml(trail.Trail || 'Untitled Trail')} · ${list.length} station${list.length === 1 ? '' : 's'}</p>
+      ${fillableCount(list) && !adding ? `
+        <div class="se-fill">
+          <span>${fillableCount(list)} station${fillableCount(list) === 1 ? ' has' : 's have'} no coordinates.</span>
+          <button type="button" data-se="fill"${busy ? ' disabled' : ''}>Add estimated coordinates</button>
+        </div>` : ''}
       ${adding ? '<div class="se-field" style="font-weight:600;color:var(--text-primary)">New station</div>' : `
         <label class="se-field">Station
           <select id="seStation">
@@ -216,12 +296,54 @@ export function initStationEditor({ db, root }) {
       ${formHtml(station, list)}`;
   }
 
+  // Saved stations of this trail with no coordinates that STATION_COORDS has.
+  function fillable(list) {
+    const coords = STATION_COORDS[referenceKeyFor(trail)];
+    if (!coords) return [];
+    return list.filter((s) => (s.lat === null || s.lng === null) && coords[s.number]);
+  }
+  const fillableCount = (list) => fillable(list).length;
+
+  async function fillCoordinates() {
+    const targets = fillable(stations());
+    if (!targets.length) return;
+    const coords = STATION_COORDS[referenceKeyFor(trail)];
+    await run(async () => {
+      try {
+        const batch = writeBatch(db);
+        targets.forEach((s) => {
+          const [lat, lng] = coords[s.number];
+          batch.update(doc(db, 'stations', s.id), { lat, lng, coordsEstimated: true, updatedAt: serverTimestamp() });
+        });
+        await batch.commit();
+      } catch (error) {
+        error.userMessage = denied(error, 'update');
+        throw error;
+      }
+    }, `Added estimated coordinates to ${targets.length} station${targets.length === 1 ? '' : 's'}.`);
+  }
+
+  // The form's coordinates, or an error message when they are not valid.
+  function readCoords() {
+    const lat = coordValue(root.querySelector('#seLat').value);
+    const lng = coordValue(root.querySelector('#seLng').value);
+    if ((lat === null) !== (lng === null)) return { error: 'Enter both latitude and longitude, or leave both empty.' };
+    if (lat !== null && (!Number.isFinite(lat) || lat < -90 || lat > 90)) return { error: 'Latitude must be between -90 and 90.' };
+    if (lng !== null && (!Number.isFinite(lng) || lng < -180 || lng > 180)) return { error: 'Longitude must be between -180 and 180.' };
+    return { lat, lng };
+  }
+
   // The form's values, as the fields saved on the station document.
   function readForm(number) {
     const landmark = root.querySelector('#seLandmark').value.trim();
     const current = stations().find((s) => s.number === number);
-    // Keep any tags this form doesn't know, so editing never drops them.
-    const unknownTags = (current?.tags || []).filter((t) => !TAGS[t]);
+    const { lat, lng } = readCoords();
+    // Still the estimate only while the admin left it exactly as it was.
+    const coordsEstimated = Boolean(current?.coordsEstimated && lat === current.lat && lng === current.lng);
+    // Keep any tags this form doesn't know, so editing never drops them,
+    // except retired ones ("hazard" was removed), which a save clears.
+    const RETIRED_TAGS = ['hazard'];
+    const unknownTags = (current?.tags || []).filter((t) => !TAGS[t] && !RETIRED_TAGS.includes(t));
     return {
       stationNumber: number,
       name: stationName(number, landmark),
@@ -230,8 +352,21 @@ export function initStationEditor({ db, root }) {
       description: root.querySelector('#seDescription').value.trim(),
       tags: [...[...root.querySelectorAll('input[name="seTag"]:checked')].map((i) => i.value), ...unknownTags],
       status: root.querySelector('#seStatus').value,
+      lat,
+      lng,
+      coordsEstimated,
       updatedAt: serverTimestamp()
     };
+  }
+
+  // Shows a form error without redrawing over what the admin typed.
+  function formError(text) {
+    message = { text, error: true };
+    const el = root.querySelector('.se-msg');
+    if (el) {
+      el.textContent = text;
+      el.className = 'se-msg is-error';
+    }
   }
 
   function denied(error, action) {
@@ -257,6 +392,8 @@ export function initStationEditor({ db, root }) {
   async function save() {
     const station = stations().find((s) => s.number === activeNumber);
     if (!station) return;
+    const coordsCheck = readCoords();
+    if (coordsCheck.error) return formError(coordsCheck.error);
     const data = readForm(station.number);
     await run(async () => {
       try {
@@ -280,6 +417,8 @@ export function initStationEditor({ db, root }) {
       draw();
       return;
     }
+    const coordsCheck = readCoords();
+    if (coordsCheck.error) return formError(coordsCheck.error);
     const data = readForm(number);
     const trailID = trail.id;
     await run(async () => {
@@ -301,7 +440,14 @@ export function initStationEditor({ db, root }) {
   async function remove() {
     const station = stations().find((s) => s.number === activeNumber);
     if (!station) return;
-    if (!confirm(`Delete ${stationName(station.number, station.landmark)}? Hikers will no longer see it in the app.`)) return;
+    const sure = await askDialog({
+      icon: 'fa-trash',
+      title: `Delete ${stationName(station.number, station.landmark)}?`,
+      text: 'Hikers will no longer see this station in the app. This cannot be undone.',
+      confirmLabel: 'Delete Station',
+      danger: true
+    });
+    if (!sure) return;
     await run(async () => {
       try {
         await deleteDoc(doc(db, 'stations', station.id));
@@ -313,9 +459,27 @@ export function initStationEditor({ db, root }) {
     }, `Station ${station.number} deleted.`);
   }
 
-  root?.addEventListener('change', (event) => {
+  /* Unsaved edits are only thrown away after the admin says so. Resolves
+     true when there is nothing to lose or they chose to discard. */
+  function confirmDiscard() {
+    if (!dirty) return Promise.resolve(true);
+    return askDialog({
+      icon: 'fa-triangle-exclamation',
+      title: 'Discard unsaved changes?',
+      text: `You have changes to ${adding ? 'the new station' : `Station ${activeNumber}`} that are not saved yet. Discard them, or keep editing and press Save Changes.`,
+      confirmLabel: 'Discard Changes',
+      cancelLabel: 'Keep Editing'
+    });
+  }
+
+  root?.addEventListener('change', async (event) => {
     if (event.target.id === 'seStation') {
-      activeNumber = Number(event.target.value);
+      const picked = Number(event.target.value);
+      if (!(await confirmDiscard())) {
+        event.target.value = String(activeNumber); // stay on the station being edited
+        return;
+      }
+      activeNumber = picked;
       message = null;
       draw();
       return;
@@ -336,10 +500,14 @@ export function initStationEditor({ db, root }) {
     if (action === 'save') save();
     if (action === 'create') create();
     if (action === 'delete') remove();
+    if (action === 'fill') fillCoordinates();
     if (action === 'add' || action === 'cancel') {
-      adding = action === 'add';
-      message = null;
-      draw();
+      confirmDiscard().then((discard) => {
+        if (!discard) return;
+        adding = action === 'add';
+        message = null;
+        draw();
+      });
     }
   });
 
@@ -354,9 +522,10 @@ export function initStationEditor({ db, root }) {
       draw();
     },
     // Opens a station in the form, e.g. when it is clicked in the Trail Stations panel.
-    select(number) {
+    async select(number) {
       if (busy || !stations().some((s) => s.number === number)) return;
-      if (dirty && !confirm('Discard your unsaved changes to this station?')) return;
+      if (number === activeNumber && !adding) return;
+      if (!(await confirmDiscard())) return;
       activeNumber = number;
       adding = false;
       message = null;

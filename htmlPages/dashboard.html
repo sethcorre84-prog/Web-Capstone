@@ -686,11 +686,16 @@
             color: var(--blue-text);
         }
 
-        /* ---- Trail Summary: four tiles ---- */
+        /* ---- Trail Summary: three tiles ----
+           Three equal columns and rows at every width, and every line of a
+           tile kept to one line with its height reserved, so the tiles never
+           shift when a figure loads or changes (e.g. the closed-trails
+           caption appearing, or a longer distance). */
         .summary-tiles {
             flex: 1;
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-auto-rows: 1fr;
             gap: 8px;
         }
         .summary-tile {
@@ -700,10 +705,33 @@
             justify-content: center;
             gap: 2px;
             min-width: 0;
-            padding: 8px 6px;
+            min-height: calc(112px * var(--ui-scale, 1));
+            padding: 10px 8px;
             border: 1px solid var(--border);
             border-radius: 12px;
             text-align: center;
+        }
+        .summary-tile strong,
+        .summary-tile span,
+        .summary-tile small {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.35;
+        }
+        .summary-tile small {
+            min-height: 1.35em;
+        }
+        /* The figure itself is never cut off: it shrinks with its tile. */
+        .summary-tile {
+            container-type: inline-size;
+        }
+        .summary-tile strong {
+            overflow: visible;
+            text-overflow: clip;
+            font-size: clamp(12px, 15cqi, calc(16px * var(--ui-scale, 1)));
         }
         .summary-tile i {
             margin-bottom: 2px;
@@ -890,7 +918,9 @@
             background: var(--card-bg);
             font-size: calc(13px * var(--ui-scale, 1));
             font-weight: 600;
+            font-family: inherit;
             color: var(--text-primary);
+            cursor: pointer;
             transition:
                 background 0.15s ease,
                 border-color 0.15s ease;
@@ -1019,9 +1049,14 @@
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
+        /* Narrow phones: still three across (two would leave one tile alone
+           on a row), with a little less padding. */
         @media (max-width: 560px) {
             .summary-tiles {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 6px;
+            }
+            .summary-tile {
+                padding: 8px 4px;
             }
         }
         @media (max-width: 760px) {
@@ -1217,10 +1252,9 @@
                 <div class="card">
                     <div class="card-top"><h2>Trail Summary <small>(Right Now)</small></h2></div>
                     <div class="summary-tiles">
-                        <div class="summary-tile tone-green"><i class="fa-solid fa-people-group" aria-hidden="true"></i><strong id="summaryOnMountain">—</strong><span>Hikers Online</span><small>Signed in to the app now</small></div>
-                        <div class="summary-tile tone-blue"><i class="fa-solid fa-ruler-horizontal" aria-hidden="true"></i><strong id="summaryDistance">—</strong><span>Total Trail Distance</span><small>Estimated, all trails</small></div>
-                        <div class="summary-tile tone-red"><i class="fa-solid fa-ban" aria-hidden="true"></i><strong id="summaryClosed">—</strong><span>Closed Trails</span><small id="summaryClosedMeta">&nbsp;</small></div>
-                        <div class="summary-tile tone-purple"><i class="fa-solid fa-route" aria-hidden="true"></i><strong id="summaryTrails">—</strong><span>Total Trails</span><small>In Trail Management</small></div>
+                        <div class="summary-tile tone-blue"><i class="fa-solid fa-ruler-horizontal" aria-hidden="true"></i><strong id="summaryDistance">—</strong><span title="Total Trail Distance">Total Trail Distance</span><small title="Estimated, all trails">Estimated, all trails</small></div>
+                        <div class="summary-tile tone-red"><i class="fa-solid fa-ban" aria-hidden="true"></i><strong id="summaryClosed">—</strong><span title="Closed Trails">Closed Trails</span><small id="summaryClosedMeta">&nbsp;</small></div>
+                        <div class="summary-tile tone-purple"><i class="fa-solid fa-route" aria-hidden="true"></i><strong id="summaryTrails">—</strong><span title="Total Trails">Total Trails</span><small title="In Trail Management">In Trail Management</small></div>
                     </div>
                 </div>
 
@@ -1248,7 +1282,7 @@
                         <a class="button button-primary" href="trail.html" data-quick-action="add-trail"><i class="fa-solid fa-plus" aria-hidden="true"></i>Add Trail</a>
                         <a class="button button-primary" href="trail.html?add=checkpoint"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>Add Checkpoint</a>
                         <a class="button button-blue" href="A&amp;A.html" data-quick-action="post-advisory"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i>Post Announcement</a>
-                        <a class="button button-purple" href="hazardreport.html"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>View Reports</a>
+                        <button type="button" class="button button-purple" id="viewReportsBtn" title="Export the lists on this Dashboard as a PDF or Excel file"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>View Reports</button>
                         <a class="button button-wide" href="geomap.html"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>Open Geomap Monitoring</a>
                     </div>
                 </div>
@@ -1264,6 +1298,11 @@
         import { createMakilingMap } from "../jsPages/makiling-area.js";
         import { watchActiveHikers } from "../jsPages/active-hikers.js";
         import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, weatherUrlFor } from "../jsPages/weather-locations.js";
+        import { openExportMenu } from "../jsPages/export-table.js";
+
+        /* What each Dashboard list is showing right now, recorded by the code
+           that draws it, so View Reports exports exactly the lists on screen. */
+        const dashboardExport = {};
 
         // Follows Settings > Date & Time (datetime-prefs.js).
         const formatReportDate = (timestamp) => formatPortalDate(timestamp) || 'Date unavailable';
@@ -1366,6 +1405,7 @@
             const container = document.getElementById('hazardTrends');
             const sorted = [...counts].sort((a, b) => b[1] - a[1]);
             if (!sorted.length) {
+                dashboardExport.hazardTrends = { period: period.label, rows: [], note: `${previousTotal} in the ${period.previous}` };
                 container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><strong>No hazard reports ${escapeHtml(period.empty)}</strong><span>${previousTotal ? `${previousTotal} in the ${escapeHtml(period.previous)}. ` : ''}Bars appear here as reports come in.</span></div>`;
                 return;
             }
@@ -1377,6 +1417,12 @@
             const bars = sorted.slice(0, 5);
             const others = sorted.slice(5).reduce((sum, [, value]) => sum + value, 0);
             if (others) bars.push(['Others', others]);
+            dashboardExport.hazardTrends = {
+                period: period.label,
+                rows: bars.map(([type, value]) => [type, value, `${Math.round((value / total) * 100)}%`]),
+                note: `${total} report(s) · ${previousTotal} in the ${period.previous}`,
+                chart: { type: 'bar', title: 'Reports by hazard type', items: bars.map(([type, value]) => ({ label: type, value })), color: '#2f8f4e' }
+            };
             const max = Math.max(...bars.map(([, value]) => value));
 
             // "Others" is several types, so it opens the unfiltered list.
@@ -1413,9 +1459,9 @@
             return /^m/i.test(match[3] || '') ? km / 1000 : km;
         }
 
-        /* Mount Makiling only: the same 6 km area as the Geomap page, from
-           makiling-area.js. Everything past it is greyed out and the view
-           cannot be panned or zoomed off the mountain. */
+        /* Mount Makiling only: the same rectangle as the Geomap page, from
+           makiling-area.js. The view cannot be panned or zoomed off the
+           mountain. */
         const { map: dashboardMap, bounds: makilingBounds } = createMakilingMap('dashboardMap');
         L.marker([14.136, 121.197])
             .bindPopup('<strong>Mount Makiling</strong><br>1,096 m')
@@ -1438,13 +1484,12 @@
         watchActiveHikers({
             db,
             live: true,
-            onUpdate: ({ hikedToday, onlineNow }) => {
-                document.getElementById('summaryOnMountain').textContent = onlineNow;
+            onUpdate: ({ hikedToday }) => {
                 document.getElementById('activeHikersValue').textContent = hikedToday;
-                // Describes the number above it: hikers checked in right now.
+                // Describes the number above it: users signed in to the app now.
                 document.getElementById('activeHikersMeta').textContent = hikedToday
-                    ? `${hikedToday} hiker${hikedToday === 1 ? '' : 's'} checked in`
-                    : 'No hikers checked in';
+                    ? `${hikedToday} user${hikedToday === 1 ? '' : 's'} signed in to the app`
+                    : 'No users signed in';
             },
             onError: (message) => {
                 document.getElementById('activeHikersValue').textContent = '—';
@@ -1453,6 +1498,9 @@
         });
 
         function renderTrailStatusList(trails) {
+            dashboardExport.trails = trails.map((trail) => [
+                trail.Trail || 'Untitled Trail', trail.Municipality || '', trail['Approximate Distance'] || '', trail.Status || 'Open'
+            ]);
             document.getElementById('trailStatusList').innerHTML = trails.length
                 ? trails.map(trail => {
                     const status = trail.Status || 'Open';
@@ -1507,6 +1555,11 @@
 
             const allVisitors = new Set();
             visitors.forEach((uids) => uids.forEach((uid) => allVisitors.add(uid)));
+            const visitTotal = rows.reduce((sum, row) => sum + row.count, 0);
+            dashboardExport.visitors = {
+                rows: rows.map((row) => [row.name, row.count, visitTotal ? `${Math.round((row.count / visitTotal) * 100)}%` : '0%', row.teams]),
+                note: `${allVisitors.size} hiker(s) in total this month, counted from teams formed for each trail`
+            };
             if (!rows.length) {
                 container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-chart-bar" aria-hidden="true"></i><strong>No trails yet</strong><span>Add trails in Trail Management.</span></div>';
                 return;
@@ -1520,6 +1573,16 @@
                 .sort((a, b) => String(a.Trail || '').localeCompare(String(b.Trail || '')))
                 .map((trail, index) => [trail.Trail || 'Untitled Trail', index < 4 ? `var(--visit-${index + 1})` : 'var(--visit-other)']));
             rows.forEach((row) => { row.color = colorOf.get(row.name) || 'var(--visit-other)'; });
+            // The donut for the export, in the light-theme colours (the file is
+            // printed on white, whatever theme the page is in).
+            const LIGHT_VISIT = { 'var(--visit-1)': '#2f8f4e', 'var(--visit-2)': '#c98a12', 'var(--visit-3)': '#2a63b5', 'var(--visit-4)': '#b04a8f', 'var(--visit-other)': '#8a948c' };
+            dashboardExport.visitors.chart = {
+                type: 'donut',
+                title: 'Hikers per trail',
+                items: rows.map((row) => ({ label: row.name, value: row.count, color: LIGHT_VISIT[row.color] || '#8a948c' })),
+                centerLabel: 'Total',
+                centerValue: allVisitors.size.toLocaleString()
+            };
 
             // A trail's share of visits: the sum of every trail's hikers, so a
             // hiker on two trails counts on both and the slices add up to 100%.
@@ -1675,6 +1738,12 @@
                 .sort((first, second) => String(second.reportId || '')
                     .localeCompare(String(first.reportId || ''), undefined, { numeric: true, sensitivity: 'base' }))
                 .slice(0, 4);
+            dashboardExport.hazards = recentReports.map((report) => {
+                const when = toPortalDate(report.timestamp || report.createdAt);
+                return [report.reportId || '', report.hazardType || 'Unknown hazard', report.reportedBy || 'Anonymous',
+                    report.location || 'N/A', report.trail || '', report.status || 'pending',
+                    when ? `${formatPortalDate(when)} ${formatPortalTime(when)}` : 'Date unavailable'];
+            });
             document.getElementById('activeHazardsValue').textContent = activeHazards.length;
             document.getElementById('recentHazardsList').innerHTML = recentReports.length
                 ? recentReports.map(report => {
@@ -1703,6 +1772,41 @@
             renderHazardTrends();
         });
 
+        /* View Reports: the lists on this Dashboard as one PDF or Excel file
+           (export-table.js), the same rows as on screen. The stat cards are
+           read from the page itself, so they match what is shown exactly. */
+        const textOf = (el) => (el?.textContent || '').replace(/\s+/g, ' ').trim();
+        function dashboardReport() {
+            const summary = [
+                ...[...document.querySelectorAll('.hero-grid .hero-card')].map((card) => [
+                    textOf(card.querySelector('h3')), textOf(card.querySelector('p')), textOf(card.querySelector('p + span'))
+                ]),
+                ...[...document.querySelectorAll('.summary-tile')].map((tile) => [
+                    textOf(tile.querySelector('span')), textOf(tile.querySelector('strong')), textOf(tile.querySelector('small'))
+                ])
+            ];
+            const hz = dashboardExport.hazardTrends;
+            const vis = dashboardExport.visitors;
+            const em = dashboardExport.emergencies;
+            return {
+                title: 'Dashboard Report',
+                filename: 'dashboard-report',
+                sections: [
+                    { title: 'Overview', headers: ['Item', 'Value', 'Details'], rows: summary },
+                    { title: 'Visitors per Trail (This Month)', headers: ['Trail', 'Hikers', 'Share', 'Teams'], rows: vis?.rows || [], note: vis?.note, chart: vis?.chart },
+                    { title: 'Recent Hazard Reports', headers: ['Report ID', 'Hazard', 'Reported By', 'Location', 'Trail', 'Status', 'Date'], rows: dashboardExport.hazards || [] },
+                    { title: 'Trail Status Overview', headers: ['Trail', 'Location', 'Distance', 'Status'], rows: dashboardExport.trails || [] },
+                    { title: 'Recent Announcements', headers: ['Title', 'Type', 'Description', 'Date'], rows: dashboardExport.announcements || [] },
+                    { title: 'Active Emergency Alerts', headers: ['Hiker', 'Location', 'Time', 'Status', 'Phone'], rows: em?.rows || [], note: em?.note || undefined },
+                    { title: `Hazard Trends (${hz?.period || 'This Month'})`, headers: ['Hazard Type', 'Reports', 'Share'], rows: hz?.rows || [], note: hz?.note, chart: hz?.chart }
+                ]
+            };
+        }
+        document.getElementById('viewReportsBtn').addEventListener('click', (event) => {
+            event.stopPropagation();
+            openExportMenu(event.currentTarget, { getTable: dashboardReport });
+        });
+
         // Rows in the dashboard tables open their record.
         document.addEventListener('click', (event) => {
             const row = event.target.closest('tr[data-href]');
@@ -1723,6 +1827,10 @@
                 })
                 .sort((first, second) => getRecordDate(second.createdAt) - getRecordDate(first.createdAt))
                 .slice(0, 3);
+            dashboardExport.announcements = advisories.map((advisory) => [
+                advisory.title || 'Untitled advisory', advisory.type || '', advisory.desc || '',
+                formatReportDate(advisory.effectiveDate || advisory.createdAt || advisory.publishedAt)
+            ]);
             document.getElementById('recentAnnouncementsList').innerHTML = advisories.length
                 ? advisories.map(advisory => `<li><a href="A&amp;A.html?advisory=${encodeURIComponent(advisory.id)}">
                     <strong>${escapeHtml(advisory.title || 'Untitled advisory')}</strong>
@@ -1773,6 +1881,16 @@
             document.getElementById('emergencyTotal').textContent = open.length
                 ? `Total active alerts: ${open.length}`
                 : '';
+            dashboardExport.emergencies = {
+                rows: open.slice(0, 3).map(({ data, status, when }) => [
+                    String(data.hikerName ?? data.userName ?? data.name ?? data.reportedBy ?? data.email ?? '').trim() || 'Unknown hiker',
+                    emergencyPlace(data),
+                    when ? `${formatPortalDate(when)} ${formatPortalTime(when)}` : '—',
+                    status === 'responding' ? 'Responding' : emergencyType(data),
+                    String(data.phone ?? data.phoneNumber ?? data.contactNumber ?? data.mobile ?? '').trim() || '—'
+                ]),
+                note: open.length > 3 ? `Showing the latest 3 of ${open.length} active alerts` : ''
+            };
             document.getElementById('emergencyList').innerHTML = open.length
                 ? open.slice(0, 3).map(({ data, status, when }) => {
                     const name = String(data.hikerName ?? data.userName ?? data.name ?? data.reportedBy ?? data.email ?? '').trim() || 'Unknown hiker';
