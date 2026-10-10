@@ -532,15 +532,16 @@ exports.confirmSignupVerificationCode = onCall(async (request) => {
      Super Administrator  everything, and manages the other admins here
      Administrator        day-to-day operations
      Viewer               read-only
-   An admin with no role is a Super Administrator, as every admin was before
-   roles existed. Only these functions add admins, remove them or change a
+   An admin with no role has no access until a Super Administrator assigns
+   one (it shows as "No role assigned" here). Only these functions add admins, remove them or change a
    role (the rules deny it to every client), and only for a Super
    Administrator. No one changes their own role or removes themself, and the
    last Super Administrator can never be demoted or removed, so the portal
    cannot be locked. Every change is written to adminRoleLog. */
 const ADMIN_ROLES = ["Super Administrator", "Administrator", "Viewer"];
 const SUPER_ROLE = "Super Administrator";
-const roleOf = (data) => (ADMIN_ROLES.includes(data?.role) ? data.role : SUPER_ROLE);
+// The admin's role, or null when none is set (no access).
+const roleOf = (data) => (ADMIN_ROLES.includes(data?.role) ? data.role : null);
 
 async function requireSuperAdmin(request) {
   const uid = request.auth?.uid;
@@ -575,8 +576,9 @@ function logRoleChange(entry) {
 // Any admin may see it; only a Super Administrator may change it.
 exports.listAdmins = onCall(async (request) => {
   const uid = request.auth?.uid;
-  if (!uid || !(await db.collection("admins").doc(uid).get()).exists) {
-    throw new HttpsError("permission-denied", "Only PeakPath admins can see the admin list.");
+  const caller = uid ? await db.collection("admins").doc(uid).get() : null;
+  if (!caller?.exists || !roleOf(caller.data())) {
+    throw new HttpsError("permission-denied", "Only PeakPath admins with a role can see the admin list.");
   }
   const snaps = await db.collection("admins").get();
   const ids = snaps.docs.map((d) => ({ uid: d.id }));
@@ -598,7 +600,7 @@ exports.listAdmins = onCall(async (request) => {
         role: roleOf(data),
         lastSignIn: user?.metadata?.lastSignInTime || null
       };
-    }).sort((a, b) => ADMIN_ROLES.indexOf(a.role) - ADMIN_ROLES.indexOf(b.role) || a.name.localeCompare(b.name))
+    }).sort((a, b) => (a.role ? ADMIN_ROLES.indexOf(a.role) : ADMIN_ROLES.length) - (b.role ? ADMIN_ROLES.indexOf(b.role) : ADMIN_ROLES.length) || a.name.localeCompare(b.name))
   };
 });
 

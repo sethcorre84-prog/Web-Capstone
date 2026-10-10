@@ -363,6 +363,7 @@ body {
      trail.html / A&A.html   .pagination (footer row) > .page-btns | #pageControls > button.page-btn
      hazardreport.html /
      userreports.html        .table-footer (row) > .pagination > button
+     usermanagement.html     .pager > button
    Style the buttons here, not in a page's inline <style>, or the pages drift
    apart again.
    ========================================================================== */
@@ -379,29 +380,42 @@ body {
 
 /* The button group. */
 .page-btns,
-#pageControls {
+#pageControls,
+.pager {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
 }
 
-/* The buttons themselves. */
+/* The buttons themselves: 28px rounded squares with a light border; the
+   current page filled dark green with bold white text; the ‹ › arrows soft
+   until there is somewhere to go. */
 .page-btn,
-.pagination button {
-    width: 26px;
-    height: 26px;
+.pagination button,
+.pager button {
+    min-width: 28px;
+    width: auto;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 7px;
     background: var(--card-bg);
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 12.5px;
+    font-weight: 500;
     font-family: inherit;
     line-height: 1;
-    padding: 0;
+    padding: 0 7px;
     cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.page-btn:hover:not(:disabled):not(.active):not(.current),
+.pagination button:hover:not(:disabled):not(.active):not(.current),
+.pager button:hover:not(:disabled):not(.active) {
+    background: var(--dm-surface-2, #f3f6f1);
+    border-color: #cfd8cc;
 }
 
 /* Current page. `.current` is A&A's class name, `.active` everywhere else.
@@ -411,6 +425,8 @@ body {
 .page-btn.current,
 .pagination button.active,
 .pagination button.current,
+.pager button.active,
+:root[data-theme="dark"] .pager button.active,
 :root[data-theme="dark"] .page-btn.active,
 :root[data-theme="dark"] .page-btn.current,
 :root[data-theme="dark"] .pagination button.active,
@@ -424,14 +440,23 @@ body {
 .page-btn:disabled,
 .page-btn[disabled],
 .pagination button:disabled,
-.pagination button[disabled] {
+.pagination button[disabled],
+.pager button:disabled {
     opacity: 0.4;
     cursor: default;
 }
 
-.pagination .dots {
+/* The "…" standing for skipped pages (pagination.js). */
+.pagination .dots,
+.page-btns .dots,
+#pageControls .dots,
+.pager .dots,
+[id$="Pagination"] .dots,
+.pager .pager-gap {
     color: var(--text-muted);
     padding: 0 2px;
+    font-size: 12.5px;
+    user-select: none;
 }
 
 /* ==========================================================================
@@ -1471,8 +1496,9 @@ input[type="password"]::-ms-clear {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--accent-light);
-    color: var(--accent);
+    /* Red, like the Log out button below it. */
+    background: #fbe9e7;
+    color: #c8402f;
 }
 .logout-modal h3 {
     margin: 0 0 6px;
@@ -1521,13 +1547,13 @@ input[type="password"]::-ms-clear {
     background: var(--accent-light);
 }
 .logout-modal-confirm {
-    border: 1px solid var(--accent);
-    background: var(--accent);
+    border: 1px solid #c8402f;
+    background: #c8402f;
     color: #fff;
 }
 .logout-modal-confirm:hover {
-    background: var(--accent-dark);
-    border-color: var(--accent-dark);
+    background: #a8331f;
+    border-color: #a8331f;
 }
 .logout-modal-confirm:disabled {
     opacity: 0.7;

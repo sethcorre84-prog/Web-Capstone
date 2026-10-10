@@ -346,6 +346,40 @@ service cloud.firestore {
     // ===================================================================
     // Content and housekeeping
     // ===================================================================
+    match /faqs/{faqId} {
+      function canManageFaqs() {
+        return isAdmin() && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('role', '')
+          in ['Super Administrator', 'Administrator'];
+      }
+      function validFaq() {
+        return request.resource.data.keys().hasOnly([
+            'question', 'answer', 'order', 'createdAt', 'updatedAt', 'updatedBy'
+          ])
+          && request.resource.data.question is string
+          && request.resource.data.question.size() > 0
+          && request.resource.data.question.size() <= 200
+          && request.resource.data.answer is string
+          && request.resource.data.answer.size() > 0
+          && request.resource.data.answer.size() <= 2000
+          && request.resource.data.order is int
+          && request.resource.data.order > 0
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.updatedAt is timestamp
+          && request.resource.data.updatedBy is string;
+      }
+      allow read: if signedIn();
+      allow create: if canManageFaqs() && validFaq()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid;
+      allow update: if canManageFaqs() && validFaq()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && (changedKeys().hasOnly(['order'])
+          || (request.resource.data.updatedAt == request.time
+            && request.resource.data.updatedBy == request.auth.uid));
+      allow delete: if canManageFaqs();
+    }
+
     /* An expired advisory is read-only: past its expiry date, or marked
        Expired (by End Advisory or the A&A page catching up on a lapsed
        date). The writes still allowed are the ones that file it away:

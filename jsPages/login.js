@@ -15,6 +15,13 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { isAccountBlocked } from "./account-status.js";
+import { SESSION_ENDED_REASON, beginNewSession } from "./admin-sessions.js";
+
+// Kept in step with ADMIN_ROLES in admin-identity.js (not imported here, as
+// that module also runs the signed-in page header code). An admin record
+// whose role is not one of these has no access.
+const ADMIN_ROLES = ["Super Administrator", "Administrator", "Viewer"];
+const hasAdminRole = (role) => ADMIN_ROLES.includes(role);
 
 // Remember me: the last admin email is kept in this browser and filled in
 // the next time the login page opens. Only the email, never the password.
@@ -100,6 +107,20 @@ const ALERTS = {
     eyebrow: "Account deactivated",
     title: "Your access has been turned off",
     message: DEACTIVATED_MESSAGE
+  },
+  noRole: {
+    variant: "danger",
+    icon: "fa-user-shield",
+    eyebrow: "No role assigned",
+    title: "Your admin account has no role yet",
+    message: "A Super Administrator needs to give your account a role in Settings > Role & Permission Settings before you can sign in."
+  },
+  sessionEnded: {
+    variant: "danger",
+    icon: "fa-right-from-bracket",
+    eyebrow: "Signed out",
+    title: "This session was ended",
+    message: "Your session on this device was ended from Settings > Login Sessions on another device. Sign in again to continue."
   },
   signedOut: {
     variant: "danger",
@@ -222,6 +243,14 @@ function login() {
       const adminDocRef = doc(db, "admins", user.uid);
       const adminDocSnap = await getDoc(adminDocRef);
 
+      if (adminDocSnap.exists() && !hasAdminRole(adminDocSnap.data().role)) {
+        // An admin record with no role has no access until one is assigned.
+        await signOut(auth);
+        setSigningIn(false);
+        showErrorModal("noRole");
+        return;
+      }
+
       if (adminDocSnap.exists()) {
         // An admin — but not one that User Management has deactivated.
         // A failed status read lets them through; the admins check above
@@ -240,6 +269,7 @@ function login() {
         // User is a verified admin — proceed
         console.log("Admin verified:", user.email);
         saveRememberedEmail(email, document.getElementById("rememberMe").checked);
+        beginNewSession(); // the first protected page records it
 
         // Registers this admin's address for Forgot Password. A failure only
         // means the reset check misses them until the next sign-in, so it
@@ -616,8 +646,10 @@ function setToggleIcon(toggle, visible) {
 document.addEventListener("DOMContentLoaded", () => {
   // dashboard-guard.js sends a deactivated admin here; say why, once.
   const params = new URLSearchParams(window.location.search);
-  if (params.get("reason") === "deactivated") {
-    showErrorModal("signedOut");
+  const reason = params.get("reason");
+  const REASON_MODALS = { deactivated: "signedOut", "no-role": "noRole", [SESSION_ENDED_REASON]: "sessionEnded" };
+  if (REASON_MODALS[reason]) {
+    showErrorModal(REASON_MODALS[reason]);
     params.delete("reason");
     const query = params.toString();
     history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : "") + window.location.hash);

@@ -868,6 +868,50 @@
             outline: 2px solid var(--accent);
             outline-offset: 2px;
         }
+        /* As on Analytics: the bar under the pointer stays solid while the
+           rest fade, and a hover card (below) says what it counts. */
+        .bars a.bar-col {
+            transition: opacity 0.12s;
+        }
+        .bars:hover a.bar-col {
+            opacity: 0.55;
+        }
+        .bars:hover a.bar-col:hover {
+            opacity: 1;
+        }
+        .hover-card {
+            position: fixed;
+            z-index: 1000;
+            max-width: 280px;
+            padding: 9px 11px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+            font-size: 11.5px;
+            line-height: 1.5;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(2px);
+            transition:
+                opacity 0.1s,
+                transform 0.1s;
+        }
+        .hover-card.is-visible {
+            opacity: 1;
+            transform: none;
+        }
+        .hover-card strong {
+            display: block;
+            margin-bottom: 3px;
+            color: var(--text-primary);
+            font-size: 12px;
+        }
+        .hover-card span {
+            display: block;
+            overflow-wrap: anywhere;
+        }
 
         /* ---- Quick actions: coloured buttons in two columns ---- */
         .action-grid {
@@ -1390,6 +1434,7 @@
 
             const now = new Date();
             const counts = new Map();
+            const reportsByType = new Map();
             let previousTotal = 0;
             reports.forEach((report) => {
                 if ((report.status || 'pending') === 'rejected') return;
@@ -1400,6 +1445,8 @@
                 if (which !== 'current') return;
                 const type = String(report.hazardType || 'Other').trim() || 'Other';
                 counts.set(type, (counts.get(type) || 0) + 1);
+                if (!reportsByType.has(type)) reportsByType.set(type, []);
+                reportsByType.get(type).push({ report, date });
             });
 
             const container = document.getElementById('hazardTrends');
@@ -1425,6 +1472,35 @@
             };
             const max = Math.max(...bars.map(([, value]) => value));
 
+            /* The hover card for one bar: its count and share, then how its
+               reports stand, where they were, and the latest one. */
+            const otherTypes = sorted.slice(5).map(([type]) => type);
+            const topOf = (items, count = 3) => {
+                const tally = new Map();
+                items.forEach((item) => { if (item) tally.set(item, (tally.get(item) || 0) + 1); });
+                return [...tally].sort((a, b) => b[1] - a[1]).slice(0, count)
+                    .map(([label, n]) => `${label} ${n}`).join(' · ');
+            };
+            const tipFor = (type, value) => {
+                const items = type === 'Others'
+                    ? otherTypes.flatMap((name) => reportsByType.get(name) || [])
+                    : reportsByType.get(type) || [];
+                const status = (item) => {
+                    const raw = String(item.report.status || 'pending').toLowerCase();
+                    return raw.charAt(0).toUpperCase() + raw.slice(1);
+                };
+                const latest = items.reduce((best, item) => (!best || item.date > best.date ? item : best), null);
+                const lines = [
+                    `${value} report${value === 1 ? '' : 's'} · ${Math.round((value / total) * 100)}% of ${total}`,
+                    type === 'Others' ? `Includes: ${otherTypes.join(', ')}` : '',
+                    items.length ? `Status: ${topOf(items.map(status), 4)}` : '',
+                    items.length ? `Trails: ${topOf(items.map((item) => String(item.report.trail || '').trim()))}` : '',
+                    latest ? `Latest: ${formatPortalDate(latest.date)} ${formatPortalTime(latest.date)}` : '',
+                    'Click to view these reports'
+                ].filter(Boolean);
+                return ` data-tip-title="${escapeHtml(`${type} · ${period.label}`)}" data-tip="${escapeHtml(lines.join('\n'))}"`;
+            };
+
             // "Others" is several types, so it opens the unfiltered list.
             const reportsLink = (type) => type === 'Others'
                 ? 'hazardreport.html'
@@ -1433,13 +1509,65 @@
             container.innerHTML = `
                 <div class="bar-legend">Number of Reports · ${total} total${change}</div>
                 <div class="bars">${bars.map(([type, value]) => `
-                    <a class="bar-col" href="${reportsLink(type)}" title="${escapeHtml(type)}: ${value} (${Math.round((value / total) * 100)}%) · View reports" aria-label="${escapeHtml(type)}: ${value} report${value === 1 ? '' : 's'}. View reports">
+                    <a class="bar-col" href="${reportsLink(type)}"${tipFor(type, value)} aria-label="${escapeHtml(type)}: ${value} report${value === 1 ? '' : 's'}. View reports">
                         <span class="bar-value">${value}</span>
                         <span class="bar" style="height:${Math.max(4, (value / max) * 100)}%"></span>
                     </a>`).join('')}
                 </div>
                 <div class="bar-labels">${bars.map(([type]) => `<span>${escapeHtml(type)}</span>`).join('')}</div>`;
         }
+
+        /* Hover cards, as on Analytics: one floating card moved to whichever
+           [data-tip] element the pointer is over. Delegated, so bars redrawn
+           by a period change or a live update need no rebinding. */
+        const hoverCard = document.createElement('div');
+        hoverCard.className = 'hover-card';
+        hoverCard.setAttribute('role', 'tooltip');
+        document.body.appendChild(hoverCard);
+        let hoverTarget = null;
+
+        const placeHoverCard = (event) => {
+            const gap = 14;
+            const { offsetWidth: width, offsetHeight: height } = hoverCard;
+            let left = event.clientX + gap;
+            let top = event.clientY + gap;
+            // Flip to the other side of the pointer rather than run off the screen.
+            if (left + width > window.innerWidth - 8) left = event.clientX - gap - width;
+            if (top + height > window.innerHeight - 8) top = event.clientY - gap - height;
+            hoverCard.style.left = `${Math.max(8, left)}px`;
+            hoverCard.style.top = `${Math.max(8, top)}px`;
+        };
+
+        document.addEventListener('pointerover', (event) => {
+            const target = event.target.closest?.('[data-tip]');
+            if (target === hoverTarget) return;
+            hoverTarget = target;
+            if (!target) {
+                hoverCard.classList.remove('is-visible');
+                return;
+            }
+            const title = document.createElement('strong');
+            title.textContent = target.dataset.tipTitle || '';
+            const lines = target.dataset.tip.split('\n').map((line) => {
+                const row = document.createElement('span');
+                row.textContent = line;
+                return row;
+            });
+            hoverCard.replaceChildren(title, ...lines);
+            hoverCard.classList.add('is-visible');
+            placeHoverCard(event);
+        });
+        document.addEventListener('pointermove', (event) => {
+            if (hoverTarget) placeHoverCard(event);
+        });
+        document.documentElement.addEventListener('pointerleave', () => {
+            hoverTarget = null;
+            hoverCard.classList.remove('is-visible');
+        });
+        window.addEventListener('scroll', () => {
+            hoverTarget = null;
+            hoverCard.classList.remove('is-visible');
+        }, { passive: true, capture: true });
 
         /* One trail's length in km from its free-text "Approximate Distance".
            The first figure written is used (the one-way / end-to-end length,
@@ -1463,9 +1591,8 @@
            makiling-area.js. The view cannot be panned or zoomed off the
            mountain. */
         const { map: dashboardMap, bounds: makilingBounds } = createMakilingMap('dashboardMap');
-        L.marker([14.136, 121.197])
-            .bindPopup('<strong>Mount Makiling</strong><br>1,096 m')
-            .addTo(dashboardMap);
+        // Peak 2 is the summit badge drawn with the trail lines
+        // (makiling-area.js), as on GeoMap.
         const trailLayer = L.layerGroup().addTo(dashboardMap);
         // The map fills its row, whose height follows the cards beside it, so
         // Leaflet is told whenever that box changes size.

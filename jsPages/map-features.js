@@ -53,11 +53,9 @@ export const FACILITIES = [
   { tag: 'peak', label: 'Summit', icon: 'fa-mountain', color: '#1f3a28', hint: 'Stations tagged Summit' }
 ];
 
-/* A station tagged Campsite is not a badge icon: it gets the same brown
-   campsite pin as the campsites placed with "+ Add Campsites"
-   (trail-points.js), so the map and legend have one kind of campsite. */
+// "campsite" is no longer a station tag (campsites are only the pins added
+// with + Add Campsites); a station saved with it does not show it.
 const CAMPSITE_TAG = 'campsite';
-const CAMPSITE_COLOR = '#8a5a1f';
 
 // The facilities of a station's tags, in FACILITIES order; unknown tags
 // that TAGS knows come last with TAGS' label and icon.
@@ -74,10 +72,6 @@ const CSS = `
   background:#fff; border:2px solid #1f3a28; box-shadow:0 1px 4px rgba(0,0,0,.4); }
 .mf-facility i { font-size:11px; color:#1f3a28; }
 .mf-facility.is-closed { opacity:.55; }
-/* The campsite pin, the same as trail-points.js draws (.tp-pin). */
-.mf-pin { display:grid; place-items:center; width:28px; height:28px; border-radius:50% 50% 50% 0;
-  transform:rotate(-45deg); border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.35); }
-.mf-pin i { transform:rotate(45deg); color:#fff; font-size:12px; }
 /* A station with several facilities: one badge, an icon for each. */
 .mf-facilities { display:inline-flex; align-items:center; gap:3px; padding:2px; border-radius:16px;
   background:#fff; border:2px solid #1f3a28; box-shadow:0 1px 4px rgba(0,0,0,.4); transform:translate(-50%, -50%); }
@@ -149,14 +143,13 @@ export function mappedStations(stationDocs, trails) {
 // (trail-points.js render).
 const hasPosition = (point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lng));
 
-/* How many checkpoint and campsite pins the GeoMap shows: the pins on the
-   trails, plus a campsite pin for every station tagged Campsite. */
-export function countMapPoints(trails, stationDocs) {
+/* How many checkpoint and campsite pins the maps show: the pins added with
+   + Add Checkpoints / + Add Campsites (and Suggested Checkpoints) that have
+   a position. */
+export function countMapPoints(trails) {
   const pins = (type) => trails.reduce((sum, trail) =>
     sum + (Array.isArray(trail[type]) ? trail[type].filter(hasPosition).length : 0), 0);
-  const stationCampsites = mappedStations(stationDocs, trails)
-    .filter(({ data }) => Array.isArray(data.tags) && data.tags.includes(CAMPSITE_TAG)).length;
-  return { checkpoints: pins('checkpoints'), campsites: pins('campsites') + stationCampsites };
+  return { checkpoints: pins('checkpoints'), campsites: pins('campsites') };
 }
 
 /*
@@ -164,13 +157,10 @@ export function countMapPoints(trails, stationDocs) {
   db            Firestore
   trails        () => the trails/{id} documents (with id), for station
                 popups and for trails whose stations are not saved yet
-  campsitesOnMap  false to leave the station campsites off the map, for a
-                page that groups them with its own campsite pins
-  Returns { contours, waterways, stations, campsites } layer groups for a
-  layers control, and render() to redraw the stations after the trail names
-  change.
+  Returns { contours, waterways, stations } layer groups for a layers
+  control, and render() to redraw the stations after the trail names change.
 */
-export function addMapFeatures({ map, db, trails = () => [], campsitesOnMap = true }) {
+export function addMapFeatures({ map, db, trails = () => [] }) {
   const trailById = (trailID) => trails().find((t) => t.id === trailID);
   const trailName = (trailID) => trailById(trailID)?.Trail || '';
   const style = document.createElement('style');
@@ -186,16 +176,6 @@ export function addMapFeatures({ map, db, trails = () => [], campsitesOnMap = tr
   const contours = L.layerGroup().addTo(map);
   const waterways = L.layerGroup().addTo(map);
   const stations = L.layerGroup().addTo(map);
-  // Stations tagged Campsite, drawn as campsite pins.
-  const campsites = L.layerGroup();
-  if (campsitesOnMap) campsites.addTo(map);
-  const campsiteIcon = L.divIcon({
-    className: '',
-    html: `<div class="mf-pin" style="background:${CAMPSITE_COLOR}"><i class="fa-solid fa-campground" aria-hidden="true"></i></div>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 28],
-    popupAnchor: [0, -26]
-  });
 
   loadJson('makiling-contours.geojson').then((data) => {
     L.geoJSON(data, {
@@ -300,7 +280,6 @@ export function addMapFeatures({ map, db, trails = () => [], campsitesOnMap = tr
 
   function render() {
     stations.clearLayers();
-    campsites.clearLayers();
     mappedStations(stationDocs, trails()).forEach(({ data, position }) => {
       const { lat, lng } = position;
       data = { ...data, coordsEstimated: position.estimated };
@@ -313,19 +292,6 @@ export function addMapFeatures({ map, db, trails = () => [], campsitesOnMap = tr
           radius: 5, color: '#1f3a28', weight: 2, fillColor: '#ffffff', fillOpacity: open ? 1 : 0.5
         });
       marker.bindPopup(popupHtml(data, lat, lng, facilities)).addTo(stations);
-
-      if (tags.includes(CAMPSITE_TAG)) {
-        const number = Number(data.stationNumber) || '';
-        const name = data.landmark || data.name || `Station ${number}`;
-        L.marker([lat, lng], { icon: campsiteIcon, title: name, zIndexOffset: 300 })
-          .bindPopup(`<div class="mf-popup">
-            <strong>${escapeHtml(name)}</strong>
-            <div class="mf-sub">Campsite · Station ${number}${trailName(data.trailID) ? ` · ${escapeHtml(trailName(data.trailID))}` : ''}${open ? '' : ' · Closed'}</div>
-            ${data.description ? `<div>${escapeHtml(data.description)}</div>` : ''}
-            <div class="mf-coords">${lat.toFixed(5)}, ${lng.toFixed(5)}${data.coordsEstimated ? ' · estimated' : ''}</div>
-          </div>`)
-          .addTo(campsites);
-      }
     });
   }
 
@@ -334,5 +300,5 @@ export function addMapFeatures({ map, db, trails = () => [], campsitesOnMap = tr
     render();
   }, (error) => console.warn('Could not load the trail stations:', error.message));
 
-  return { contours, waterways, stations, campsites, render };
+  return { contours, waterways, stations, render };
 }

@@ -1469,7 +1469,8 @@
           <span class="detail-section-label">Trail Specifications</span>
           <div class="detail-rows">
             <div class="detail-row"><span><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>Elevation Gain</span><span id="detailElev">1,200 m</span></div>
-            <div class="detail-row"><span><i class="fa-solid fa-mountain" aria-hidden="true"></i>Highest Point</span><span id="detailPeak">1,096 m (Peak 2)</span></div>
+            <div class="detail-row"><span><i class="fa-solid fa-location-dot" aria-hidden="true"></i>Location</span><span id="detailPeak">—</span></div>
+            <div class="detail-row"><span><i class="fa-solid fa-mountain" aria-hidden="true"></i>Highest Point</span><span id="detailHighest">—</span></div>
             <div class="detail-row"><span><i class="fa-solid fa-signs-post" aria-hidden="true"></i>Trail Type</span><span id="detailType">—</span></div>
             <div class="detail-row"><span><i class="fa-solid fa-door-open" aria-hidden="true"></i>Entry Type</span><span id="detailEntryType">—</span></div>
             <div class="detail-row"><span><i class="fa-regular fa-calendar-plus" aria-hidden="true"></i>Publish Date</span><span id="detailPublishDate">—</span></div>
@@ -1678,6 +1679,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getDownloadURL, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { createMakilingMap, trailLineKey } from "../jsPages/makiling-area.js";
+import { pageList, pageGap, PAGE_GAP } from "../jsPages/pagination.js";
 import { initTrailPoints, openSuggestedCheckpointsDialog } from "../jsPages/trail-points.js";
 import { countMapPoints } from "../jsPages/map-features.js";
 import { initStationsPanel } from "../jsPages/trail-stations.js";
@@ -1708,9 +1710,8 @@ const { map: trailMap, trailLines: trailLinesLoaded } = createMakilingMap('trail
     }
   }
 });
-L.marker(makilingCenter)
-  .bindPopup('<strong>Mount Makiling</strong><br>1,096 m')
-  .addTo(trailMap);
+// Peak 2 is the summit badge drawn with the trail lines (makiling-area.js),
+// as on GeoMap.
 let selectedTrailMarker = null;
 
 const trailLinesReady = trailLinesLoaded.then((lines) => {
@@ -1943,7 +1944,9 @@ function renderPagination(totalPages) {
   prevBtn.addEventListener('click', () => { currentPage--; render(); });
   wrap.appendChild(prevBtn);
 
-  for (let p = 1; p <= totalPages; p++) {
+  // A long run of pages is shortened with "…" (pagination.js).
+  for (const p of pageList(currentPage, totalPages)) {
+    if (p === PAGE_GAP) { wrap.appendChild(pageGap()); continue; }
     const btn = document.createElement('button');
     btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
     btn.textContent = p;
@@ -1959,13 +1962,6 @@ function renderPagination(totalPages) {
   wrap.appendChild(nextBtn);
 }
 
-// The stations, for the campsite total; recounted whenever they change.
-let statsStationDocs = [];
-onSnapshot(collection(db, 'stations'), (snapshot) => {
-  statsStationDocs = snapshot.docs.map((d) => d.data());
-  updateStats();
-}, (error) => console.warn('Could not load stations for the campsite total:', error.message));
-
 function updateStats() {
   const total = trails.length;
   const open = trails.filter(t => (t.Status || "Open") === "Open").length;
@@ -1980,10 +1976,10 @@ function updateStats() {
   document.getElementById('statOpenLabel').textContent = `Open Trails · ${openPct}%`;
   document.getElementById('statClosedLabel').textContent = `Closed Trails · ${closedPct}%`;
 
-  // Exactly the checkpoint and campsite pins the GeoMap shows (countMapPoints
+  // Exactly the checkpoint and campsite pins the maps show (countMapPoints
   // in map-features.js): the pins added with + Add Checkpoints / + Add
-  // Campsites, plus a campsite for every trail station tagged Campsite.
-  const { checkpoints, campsites } = countMapPoints(trails, statsStationDocs);
+  // Campsites, each removable from its pin.
+  const { checkpoints, campsites } = countMapPoints(trails);
   document.getElementById('statCheckpoints').textContent = checkpoints;
   document.getElementById('statCampsites').textContent = campsites;
 
@@ -2008,7 +2004,15 @@ function renderDetail() {
   document.getElementById('detailDur').textContent = t.Duration || "—";
   document.getElementById('detailDesc').textContent = t.Description || "";
   document.getElementById('detailElev').textContent = t.Elevation || "—";
+  // "Location" is the municipality (this row's id is a leftover name).
   document.getElementById('detailPeak').textContent = t.Municipality || "—";
+  // Highest point: the summit, Peak 2 at 1,090 MASL, for the trails that
+  // reach it (they end there, see makiling-trails.geojson); otherwise the
+  // trail's own HighestPoint field, if one was saved.
+  const reachesSummit = ['mariang', 'sipit', 'traverse'].includes(trailLineKey(t.Trail));
+  document.getElementById('detailHighest').textContent = reachesSummit
+    ? '1,090 m (Peak 2, summit)'
+    : (t.HighestPoint || '—');
   document.getElementById('detailType').textContent = t.Type || "Undefined";
   document.getElementById('detailEntryType').textContent = t.EntryType || "Undefined";
   document.getElementById('detailStatus').textContent = status;

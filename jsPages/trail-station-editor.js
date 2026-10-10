@@ -341,8 +341,9 @@ export function initStationEditor({ db, root }) {
     // Still the estimate only while the admin left it exactly as it was.
     const coordsEstimated = Boolean(current?.coordsEstimated && lat === current.lat && lng === current.lng);
     // Keep any tags this form doesn't know, so editing never drops them,
-    // except retired ones ("hazard" was removed), which a save clears.
-    const RETIRED_TAGS = ['hazard'];
+    // except retired ones, which a save clears: "hazard", and "campsite"
+    // (campsites are only the pins added with + Add Campsites).
+    const RETIRED_TAGS = ['hazard', 'campsite'];
     const unknownTags = (current?.tags || []).filter((t) => !TAGS[t] && !RETIRED_TAGS.includes(t));
     return {
       stationNumber: number,

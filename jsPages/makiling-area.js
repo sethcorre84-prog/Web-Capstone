@@ -136,7 +136,16 @@ export function trailLineKey(name) {
   return null;
 }
 
-const TRAIL_COLOR = '#ffb020';
+const TRAIL_COLOR = '#2f8f4e';
+// Side trails (Mud Spring, Flat Rocks): yellow, like the maps' legends.
+const SIDE_TRAIL_COLOR = '#ffb020';
+
+/* The summit badge: the same white disc, dark green ring and mountain icon
+   as the GeoMap's Summit station marker (.mf-facility in map-features.js),
+   styled inline so every map shows it without map-features.js loaded. */
+const PEAK_ICON_HTML = '<div style="display:grid;place-items:center;width:24px;height:24px;'
+  + 'border-radius:50%;background:#fff;border:2px solid #1f3a28;box-shadow:0 1px 4px rgba(0,0,0,.4);'
+  + 'box-sizing:border-box"><i class="fa-solid fa-mountain" style="font-size:11px;color:#1f3a28" aria-hidden="true"></i></div>';
 
 /* Draws every trail line on a map. Each line is a white casing under a
    coloured stroke, which keeps it readable on both forest and cloud.
@@ -157,14 +166,16 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
     const { key, name, kind, lengthKm, elevation } = feature.properties;
     if (feature.geometry.type === 'Point') {
       const [lng, lat] = feature.geometry.coordinates;
-      peaks.push(L.circleMarker([lat, lng], {
-        radius: 6, color: '#fff', weight: 2, fillColor: '#c8402f', fillOpacity: 1
-      }).bindTooltip(`${name}${elevation ? ` · ${elevation}` : ''}`, { direction: 'top' }));
+      peaks.push(L.marker([lat, lng], {
+        icon: L.divIcon({ className: '', html: PEAK_ICON_HTML, iconSize: [24, 24], iconAnchor: [12, 12] }),
+        title: name,
+        keyboard: false
+      }).bindTooltip(`${name}${elevation ? ` · ${elevation}` : ''}`, { direction: 'top', offset: [0, -12] }));
       continue;
     }
     const latLngs = feature.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-    const color = colorFor?.(key) || TRAIL_COLOR;
     const side = kind === 'side';
+    const color = colorFor?.(key) || (side ? SIDE_TRAIL_COLOR : TRAIL_COLOR);
     const casing = L.polyline(latLngs, {
       color: '#fff', weight: side ? 5 : 7, opacity: 0.85, interactive: false
     }).addTo(group);
@@ -175,7 +186,8 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
     lines.set(key, { casing, stroke, side, name });
   }
 
-  // Added after the lines so Peak 2 sits on top of the trails that end there.
+  // Markers draw above every line, so Peak 2 sits on top of the trails that
+  // end there.
   peaks.forEach((peak) => peak.addTo(group));
 
   map.attributionControl?.addAttribution('Trails &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors');
@@ -188,11 +200,10 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
       line.stroke.setStyle({ weight: active ? 6 : (line.side ? 3 : 4), opacity: dim ? 0.45 : 1 });
       if (active) { line.casing.bringToFront(); line.stroke.bringToFront(); }
     });
-    peaks.forEach((peak) => peak.bringToFront());
   }
 
   function recolor() {
-    lines.forEach((line, key) => line.stroke.setStyle({ color: colorFor?.(key) || TRAIL_COLOR }));
+    lines.forEach((line, key) => line.stroke.setStyle({ color: colorFor?.(key) || (line.side ? SIDE_TRAIL_COLOR : TRAIL_COLOR) }));
   }
 
   return { lines, highlight, recolor, group };

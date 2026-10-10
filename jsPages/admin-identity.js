@@ -16,9 +16,11 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { doc, getDoc, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-// What every page's markup already shows, so an admin doc with no `role`
-// reads the same in the Profile dialog as in the sidebar.
-export const DEFAULT_ADMIN_ROLE = 'Super Administrator';
+// An admin record with no valid `role` has no access: the page guard and the
+// login page sign it out, and firestore.rules (isAdmin()) refuse it. A Super
+// Administrator assigns the role in Role Management. This is what such an
+// account's role reads as wherever it is shown.
+export const NO_ROLE_LABEL = 'No role assigned';
 
 export function adminInitials(name) {
   const words = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -69,7 +71,7 @@ function applyIdentity(cleanName, cleanRole) {
 /* ---------- Profile card ---------- */
 
 // What the card shows. Filled on sign-in; Settings updates it after a save.
-const profile = { name: '', role: DEFAULT_ADMIN_ROLE, username: '', email: '', phone: '', gender: '' };
+const profile = { name: '', role: '', username: '', email: '', phone: '', gender: '' };
 
 export function updateAdminProfile(changes = {}) {
   Object.assign(profile, changes);
@@ -88,7 +90,7 @@ const PROFILE_ROWS = [
 
 function fillProfileCard() {
   document.getElementById('adminProfileName').textContent = profile.name || 'Admin';
-  document.getElementById('adminProfileRole').textContent = profile.role || DEFAULT_ADMIN_ROLE;
+  document.getElementById('adminProfileRole').textContent = profile.role || NO_ROLE_LABEL;
   document.getElementById('adminProfileRows').innerHTML = PROFILE_ROWS.map(([key, label, icon]) => `
     <div class="admin-profile-row">
       <span class="admin-profile-row-icon"><i class="fa-solid ${icon}" aria-hidden="true"></i></span>
@@ -165,7 +167,9 @@ document.querySelectorAll('.topbar-right .avatar-logo, .avatar-logo.topbar-logo'
    The role is put on <html data-admin-role> and announced with a
    "peakpath:admin-role" event for any page that wants it. */
 export const ADMIN_ROLES = ['Super Administrator', 'Administrator', 'Viewer'];
-export const roleOf = (role) => (ADMIN_ROLES.includes(role) ? role : DEFAULT_ADMIN_ROLE);
+// The role if it is one of ADMIN_ROLES, otherwise '' (no role: no access).
+export const roleOf = (role) => (ADMIN_ROLES.includes(role) ? role : '');
+export const hasAdminRole = (role) => ADMIN_ROLES.includes(role);
 
 // Buttons and links that change data, across the portal.
 const EDIT_CONTROLS = [

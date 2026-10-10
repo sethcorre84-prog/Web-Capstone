@@ -494,20 +494,21 @@
         font-size: 13px;
     }
 
-    /* Every page of the list is exactly the same size: fixed column widths
-         (the <colgroup>), one row height, cell text cut to two lines (full text
-         on hover), and blank filler rows topping short pages up to a full page. */
+    /* Fixed column widths (the <colgroup>) and blank filler rows topping short
+         pages up to a full page. Rows are 64px, the same as the other main
+         lists in the portal; a row whose text needs more room grows to fit
+         instead of cutting it off. */
     .list-card table {
         table-layout: fixed;
         min-width: 700px;
     }
     .list-card tbody tr {
-        height: 80px;
+        height: 64px;
     }
     .list-card td {
         padding: 14px 8px;
         line-height: 1.35;
-        overflow: hidden;
+        overflow-wrap: anywhere;
     }
     .list-card th {
         padding: 8px;
@@ -517,12 +518,9 @@
     .list-card td.center-cell {
         text-align: center;
     }
+    /* Cell text wraps in full (the row grows), rather than being cut. */
     .list-card .clamp-2 {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        overflow: hidden;
+        display: block;
         overflow-wrap: anywhere;
     }
     .list-card .hazard-cell {
@@ -554,7 +552,7 @@
     .pagination {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
     }
     /* Pagination buttons are styled in pages.css so every table matches. */
 
@@ -1347,6 +1345,18 @@
             min-width: 760px;
         }
     }
+
+    /* One row height for the portal's main lists: the Hazard Reports list,
+       Advisories & Announcements, the User list, Reports About User Behavior
+       and Active Emergencies all use 64px rows. A table cell's height is a
+       minimum, so a row whose content needs more room (a long title, a
+       wrapped name) still grows to fit. Phones keep their own layouts. */
+    @media (min-width: 701px) {
+        #reportsTable > tr > td {
+            height: 64px;
+            vertical-align: middle;
+        }
+    }
 </style>
 </head>
 <body>
@@ -1734,6 +1744,7 @@
 <!-- Firebase -->
 <script type="module">
 import { auth, db } from "../jsPages/firebase-config.js";
+import { pageList, pageGap, PAGE_GAP } from "../jsPages/pagination.js";
 import { escapeHtml, sortByReportId } from "../jsPages/utils.js";
 import { planReportIds, reportYear as yearOfReport } from "../jsPages/report-ids.js";
 import { formatPortalDate, formatPortalTime, toPortalDate as toJsDate } from "../jsPages/datetime-prefs.js";
@@ -1749,7 +1760,7 @@ let pendingArchiveIds = [];
 // Which panel opened the archive confirmation modal: 'rejected' or 'resolved'.
 let archiveMode = 'rejected';
 let currentPage = 1;
-const itemsPerPage = 7;
+const itemsPerPage = 8;
 let currentFilteredReports = [];
 let rejectedPage = 1;
 const rejectedPageSize = 5;
@@ -1904,8 +1915,11 @@ function renderPagination(totalItems) {
 
   // Prev / numbered / next, the same as A&A.html's list.
   let html = `<button class="page-btn" id="prevPageBtn" aria-label="Previous page" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
-  for (let i = 1; i <= totalPages; i++) {
-    html += `<button class="page-btn${i === currentPage ? ' active current' : ''}" data-page="${i}">${i}</button>`;
+  // A long run of pages is shortened with "…" (pagination.js).
+  for (const i of pageList(currentPage, totalPages)) {
+    html += i === PAGE_GAP
+      ? `<span class="dots" aria-hidden="true">${PAGE_GAP}</span>`
+      : `<button class="page-btn${i === currentPage ? ' active current' : ''}" data-page="${i}">${i}</button>`;
   }
   html += `<button class="page-btn" id="nextPageBtn" aria-label="Next page" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
 
@@ -2045,8 +2059,9 @@ function renderPanelPagination(wrapId, totalPages, currentPage, goToPage) {
   };
 
   addButton('&lsaquo;', currentPage - 1, { disabled: currentPage === 1 });
-  for (let page = 1; page <= totalPages; page++) {
-    addButton(String(page), page, { active: page === currentPage });
+  for (const page of pageList(currentPage, totalPages)) {
+    if (page === PAGE_GAP) wrap.appendChild(pageGap());
+    else addButton(String(page), page, { active: page === currentPage });
   }
   addButton('&rsaquo;', currentPage + 1, { disabled: currentPage === totalPages });
 }
@@ -2776,6 +2791,14 @@ async function confirmStatusUpdate() {
     };
 
     if (newStatus === 'verified') updateData.riskLevel = verifyRiskLevel;
+    // Who and when, for Settings > Audit Logs. Sent separately below so a
+    // database whose rules do not list these fields yet still saves the
+    // status change itself.
+    const auditFields = newStatus === 'verified'
+      ? { verifiedAt: serverTimestamp(), verifiedBy: auth.currentUser?.uid || null }
+      : newStatus === 'rejected'
+        ? { rejectedAt: serverTimestamp(), rejectedBy: auth.currentUser?.uid || null }
+        : null;
 
     if (newStatus === 'resolved') {
       /* The questionnaire's answers, turned into the paragraph the hiker
@@ -2872,6 +2895,9 @@ async function confirmStatusUpdate() {
     }
 
     await batch.commit();
+    // Who and when, for Audit Logs. Best effort: refused (and ignored) until
+    // firestore.rules list these fields for reports.
+    if (auditFields) updateDoc(reportRef, auditFields).catch(() => {});
 
     closeStatusModal();
 

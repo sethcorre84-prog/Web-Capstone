@@ -186,7 +186,9 @@
       }
       #makilingMap {
           width: 100%;
-          height: 320px;
+          /* About the height it had when it matched the legend plus Alerts
+             Overview; the legend now stretches to it instead (syncLegendToMap). */
+          height: 460px;
           border-radius: 8px;
           overflow: hidden;
           /* Matches the mask drawn over everything outside Mount Makiling, so the
@@ -214,12 +216,12 @@
           /* Flex-wrap instead of a fixed grid: as space runs out, cards drop to
                2 per row then 1, and a lone leftover card stretches to fill its
                row instead of leaving an empty grid cell. Extended past the
-               left column's own width (same +320px right-column +12px gap trick
-               as .emergency-alerts-panel below) so the three cards get the same
-               real estate as the full page width, not just the left column's. */
+               left column's own width (+320px right column +12px gap) so the
+               cards get the full page width, not just the left column's. */
           display: flex;
           flex-wrap: wrap;
           align-items: stretch;
+          gap: 12px;
           width: calc(100% + 332px);
       }
       .status-pair > .info-panel {
@@ -245,8 +247,7 @@
           align-items: center;
       }
       /* Panel headings match trail.html's .panel-title: brand green, 15/700. */
-      .info-panel-header strong,
-      .alerts > strong {
+      .info-panel-header strong {
           font-size: 15px;
           font-weight: 700;
           color: var(--accent-dark);
@@ -433,6 +434,14 @@
           .trail-row-bar {
               display: none;
           }
+      }
+      /* Stretched to the map's height (syncLegendToMap) on wide layouts. The
+         list gets the height that is left (set in the same function), and
+         column-fill:auto fills the left column all the way down before any row
+         moves to the right one, so the columns need not be equal. */
+      .legend.is-sized .legend-list {
+          column-fill: auto;
+          overflow: hidden;
       }
       .legend-title {
           /* The sidebar's forest green rather than near-black, so the dark band
@@ -660,6 +669,26 @@
       .legend-row .hiker-pin::after {
           display: none;
       }
+      /* A size up for the Map Legend's rows: larger text and swatches, now
+         that the legend is as tall as the map and has the room. */
+      .legend-list .legend-row {
+          gap: 10px;
+          padding: 6px 3px;
+          font-size: 13.5px;
+      }
+      .legend-list .legend-line { width: 20px; height: 6px; }
+      .legend-list .legend-pin { width: 20px; height: 20px; }
+      .legend-list .legend-pin i { font-size: 9px; }
+      .legend-list .hazard-dot { width: 15px; height: 15px; }
+      .legend-list .hiker-pin { width: 20px; height: 20px; }
+      .legend-list .hiker-pin i { font-size: 10px; }
+      .legend-list .legend-station { width: 15px; height: 15px; }
+      .legend-list .legend-facility { width: 22px; height: 22px; }
+      .legend-list .legend-facility i { font-size: 10.5px; }
+      .legend-list .legend-river { width: 32px; height: 20px; }
+      .legend-list .legend-river svg { width: 20px; height: 10px; }
+      .legend-list .legend-map-swatch { width: 26px; height: 18px; }
+      .legend-list .legend-map-swatch svg { width: 20px; height: 10px; }
       /* Clickable rows (Active Alerts, and Recent Hazards that are on the map)
              highlight as a whole on hover instead of underlining the title. The
              negative margin lets the tint reach past the text without shifting it. */
@@ -685,11 +714,7 @@
           outline: 2px solid var(--accent);
           outline-offset: -2px;
       }
-      .emergency-alerts-panel {
-          width: calc(100% + 300px);
-      }
-      .legend,
-      .alerts {
+      .legend {
           background: var(--card-bg);
           border: 1px solid var(--border);
           border-radius: 10px;
@@ -698,17 +723,50 @@
       .legend {
           /* Darker, heavier outline than the neighbouring cards, per the legend
                design. 2px, not 1.5 — Chromium rounds sub-pixel border widths down
-               to 1px. box-sizing:border-box keeps the outer width identical, so it
-               stays aligned with the Alerts Overview card below it. */
+               to 1px. */
           border: 2px solid var(--sidebar-bg-light);
           padding: 10px;
       }
-      /* The four High/Moderate/Low/Total tiles inside Alerts Overview. */
+      .info-panel-sub {
+          margin-top: 2px;
+          font-size: 12.5px;
+          color: var(--text-secondary);
+      }
+      /* The four High/Moderate/Low/Total tiles inside Alerts Overview: two by
+         two, each a compact row (icon, count, label), so the card fits a third
+         of the row beside Trail Status Overview and Active Alerts. */
       .risk-tiles {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 10px;
-          margin-top: 12px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+          margin-top: 10px;
+      }
+      .risk-tile {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          grid-template-rows: auto auto;
+          column-gap: 10px;
+          align-items: center;
+          padding: 10px 12px;
+          border-radius: 10px;
+      }
+      .risk-tile > i {
+          grid-row: span 2;
+          font-size: 16px;
+      }
+      .risk-count {
+          font-size: 19px;
+          font-weight: 700;
+          line-height: 1.1;
+          color: var(--dm-text, #232823);
+      }
+      .risk-label {
+          font-size: 11.5px;
+          line-height: 1.3;
+          color: var(--text-secondary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
       }
 
       /* ==========================================
@@ -727,9 +785,6 @@
           }
           /* Both of these widen themselves past the left column to line up with
                the right column, which only makes sense while there are two. */
-          .emergency-alerts-panel {
-              width: 100%;
-          }
           .status-pair {
               width: 100%;
           }
@@ -745,9 +800,6 @@
                falls back to this CSS height, so give it a phone-friendly one. */
           #makilingMap {
               height: 260px;
-          }
-          .risk-tiles {
-              grid-template-columns: repeat(2, minmax(0, 1fr));
           }
       }
       @media (max-width: 560px) {
@@ -875,24 +927,54 @@
             <div id="mapCaption" style="font-size:12px;color:var(--text-secondary);margin-top:8px">Mount Makiling · Trail and verified hazard markers come from Firestore</div>
           </div>
 
-          <div class="status-pair" style="gap:12px">
-            <div class="panel info-panel" style="padding:14px 16px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
-              <div class="info-panel-header"><strong>Active Alerts</strong><a href="A&A.html">View All</a></div>
-              <div id="activeAlertsList" class="info-panel-list"></div>
+          <!-- Alerts Overview, Trail Status Overview and Active Alerts in one
+               row; Recent Hazards and Active Emergency Alerts in the next. -->
+          <div class="status-pair">
+            <div class="panel info-panel" id="alertsOverviewPanel" style="padding:14px 16px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
+              <div class="info-panel-header"><strong>Alerts Overview</strong></div>
+              <div class="info-panel-sub">Summary of current alerts in the area.</div>
+            <div class="risk-tiles">
+              <div class="risk-tile" style="background:var(--red-bg)">
+                <i class="fa-solid fa-triangle-exclamation" style="color:var(--red-text)"></i>
+                <div id="highRiskCount" class="risk-count">0</div>
+                <div class="risk-label">High Risk</div>
+              </div>
+              <div class="risk-tile" style="background:var(--amber-bg)">
+                <i class="fa-solid fa-triangle-exclamation" style="color:var(--amber-icon)"></i>
+                <div id="moderateRiskCount" class="risk-count">0</div>
+                <div class="risk-label">Moderate Risk</div>
+              </div>
+              <div class="risk-tile" style="background:var(--blue-bg)">
+                <i class="fa-solid fa-triangle-exclamation" style="color:var(--blue-text)"></i>
+                <div id="lowRiskCount" class="risk-count">0</div>
+                <div class="risk-label">Low Risk</div>
+              </div>
+              <div class="risk-tile" style="background:var(--green-bg)">
+                <i class="fa-solid fa-circle-info" style="color:var(--green-text)"></i>
+                <div id="totalRiskCount" class="risk-count">0</div>
+                <div class="risk-label">Total Risks</div>
+              </div>
+            </div>
             </div>
             <div class="panel info-panel" style="padding:14px 16px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
               <div class="info-panel-header"><strong>Trail Status Overview</strong><a href="trail.html">View All</a></div>
               <div id="trailStatusList" class="info-panel-list"></div>
             </div>
             <div class="panel info-panel" style="padding:14px 16px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
-              <div class="info-panel-header"><strong>Recent Hazards</strong><a href="hazardreport.html">View All</a></div>
-              <div id="recentHazardsList" class="info-panel-list"></div>
+              <div class="info-panel-header"><strong>Active Alerts</strong><a href="A&A.html">View All</a></div>
+              <div id="activeAlertsList" class="info-panel-list"></div>
             </div>
           </div>
 
-          <div class="panel info-panel emergency-alerts-panel" style="padding:14px 16px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;margin-top:12px;">
-            <div class="info-panel-header"><strong>Active Emergency Alerts</strong><a href="emergency.html">View All</a></div>
-            <div id="emergencyAlertsList" class="info-panel-list" style="max-height:none"></div>
+          <div class="status-pair">
+            <div class="panel info-panel" style="padding:14px 16px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
+              <div class="info-panel-header"><strong>Recent Hazards</strong><a href="hazardreport.html">View All</a></div>
+              <div id="recentHazardsList" class="info-panel-list"></div>
+            </div>
+            <div class="panel info-panel emergency-alerts-panel" style="padding:14px 16px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;">
+              <div class="info-panel-header"><strong>Active Emergency Alerts</strong><a href="emergency.html">View All</a></div>
+              <div id="emergencyAlertsList" class="info-panel-list"></div>
+            </div>
           </div>
         </div>
 
@@ -904,7 +986,7 @@
               <div class="legend-row"><span class="legend-line" style="background:#c8402f" aria-hidden="true"></span><span>Closed Trail</span></div>
               <div class="legend-row"><span class="legend-line is-dashed" style="color:#ffb020" aria-hidden="true"></span><span>Side Trail</span></div>
               <div class="legend-row"><span class="legend-pin" style="background:#2f6b45" aria-hidden="true"><i class="fa-solid fa-flag"></i></span><span>Checkpoint</span></div>
-              <div class="legend-row" title="Placed with + Add Campsites, or a trail station tagged Campsite"><span class="legend-pin" style="background:#8a5a1f" aria-hidden="true"><i class="fa-solid fa-campground"></i></span><span>Campsite</span></div>
+              <div class="legend-row" title="Placed with + Add Campsites in Trail Management"><span class="legend-pin" style="background:#8a5a1f" aria-hidden="true"><i class="fa-solid fa-campground"></i></span><span>Campsite</span></div>
               <div class="legend-row"><span class="hazard-dot high" aria-hidden="true"></span><span>High Risk Hazard</span></div>
               <div class="legend-row"><span class="hazard-dot moderate" aria-hidden="true"></span><span>Moderate Risk Hazard</span></div>
               <div class="legend-row"><span class="hazard-dot low" aria-hidden="true"></span><span>Low Risk Hazard</span></div>
@@ -915,35 +997,6 @@
               <div class="legend-row"><span class="legend-station" aria-hidden="true"></span><span>Trail Station</span></div>
               <!-- One row per station tag, from FACILITIES in map-features.js. -->
               <div id="stationTagLegend" style="display:contents"></div>
-            </div>
-          </div>
-
-          <div class="alerts" id="alertsOverviewPanel" style="line-height:1.5">
-            <strong>Alerts Overview</strong>
-            <div style="font-size:12.5px;color:var(--text-secondary);margin-top:2px">Summary of current alerts in the area.</div>
-            <!-- Class, not an inline grid: inline styles cannot be overridden
-                 by the responsive rules that reflow these four tiles. -->
-            <div class="risk-tiles">
-              <div style="background:var(--red-bg);border-radius:10px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-                <i class="fa-solid fa-triangle-exclamation" style="color:var(--red-text);font-size:17px"></i>
-                <div id="highRiskCount" style="font-weight:700;font-size:19px;color:var(--dm-text, #232823)">0</div>
-                <div style="font-size:11.5px;color:var(--text-secondary)">High Risk</div>
-              </div>
-              <div style="background:var(--amber-bg);border-radius:10px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-                <i class="fa-solid fa-triangle-exclamation" style="color:var(--amber-icon);font-size:17px"></i>
-                <div id="moderateRiskCount" style="font-weight:700;font-size:19px;color:var(--dm-text, #232823)">0</div>
-                <div style="font-size:11.5px;color:var(--text-secondary)">Moderate Risk</div>
-              </div>
-              <div style="background:var(--blue-bg);border-radius:10px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-                <i class="fa-solid fa-triangle-exclamation" style="color:var(--blue-text);font-size:17px"></i>
-                <div id="lowRiskCount" style="font-weight:700;font-size:19px;color:var(--dm-text, #232823)">0</div>
-                <div style="font-size:11.5px;color:var(--text-secondary)">Low Risk</div>
-              </div>
-              <div style="background:var(--green-bg);border-radius:10px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-                <i class="fa-solid fa-circle-info" style="color:var(--green-text);font-size:17px"></i>
-                <div id="totalRiskCount" style="font-weight:700;font-size:19px;color:var(--dm-text, #232823)">0</div>
-                <div style="font-size:11.5px;color:var(--text-secondary)">Total Alerts</div>
-              </div>
             </div>
           </div>
 
@@ -976,7 +1029,7 @@
        shared with the dashboard map. */
     /* Trail lines are coloured by their trail's status, the same as Trail
        Management (trail.html): green open, red closed. Lines for trails not
-       in Firestore (the side trails) keep the default amber. */
+       in Firestore (the side trails) keep the default yellow. */
     let mapTrails = [];
     // Opens on the summit, Peak 2.
     const { map, bounds: makilingBounds, trailLines } = createMakilingMap('makilingMap', {
@@ -995,9 +1048,8 @@
     const hikerLayer = L.layerGroup().addTo(map);
 
     // Checkpoint and campsite pins added in Trail Management, shown read-only.
-    // Not added on its own: grouped below with the station campsites, so
-    // "Checkpoints & campsites" in the layers control covers every campsite.
-    const pointLayer = L.layerGroup();
+    // The checkpoint and campsite pins added in Trail Management.
+    const pointLayer = L.layerGroup().addTo(map);
     const trailPoints = initTrailPoints({ map, readOnly: true, layer: pointLayer });
 
     // Contour lines, rivers and creeks, and the trail stations with their
@@ -1005,12 +1057,8 @@
     const mapFeatures = addMapFeatures({
       map,
       db,
-      trails: () => mapTrails,
-      campsitesOnMap: false
+      trails: () => mapTrails
     });
-    // Campsites placed by hand and stations tagged Campsite are one kind of
-    // place: one pin, one legend row, one layer switch.
-    const pointsAndCampsites = L.layerGroup([pointLayer, mapFeatures.campsites]).addTo(map);
 
     const getCoordinates = (data) => {
       const latitude = Number(data.latitude ?? data.lat ?? data.coordinates?.latitude);
@@ -1518,7 +1566,7 @@
 
     L.control.layers(null, {
       'Trails': trailLayer,
-      'Checkpoints & campsites': pointsAndCampsites,
+      'Checkpoints & campsites': pointLayer,
       'Trail stations': mapFeatures.stations,
       'Verified hazards': hazardLayer,
       'Hikers': hikerLayer,
@@ -1526,44 +1574,46 @@
       'Rivers & creeks': mapFeatures.waterways
     }).addTo(map);
 
-    // Match the map's bottom edge to the bottom of the Alerts Overview
-    // panel in the right column (legend + alerts, not Recent Hazards below
-    // it), so the two columns end at the same line on wide layouts.
+    // The map keeps its own (CSS) height, and the Map Legend beside it is
+    // stretched to the same height, so the two columns end on one line and
+    // the rows of cards below start level.
     const mapArea = document.querySelector('.map-area');
-    const mapCaption = document.getElementById('mapCaption');
-    const alertsOverviewPanel = document.getElementById('alertsOverviewPanel');
-    const mapEl = document.getElementById('makilingMap');
+    const legend = document.querySelector('.right-column .legend');
+    const legendList = legend?.querySelector('.legend-list');
 
-    function syncMapHeightToAlerts() {
-      if (!mapArea || !mapCaption || !alertsOverviewPanel || !mapEl) return;
+    function syncLegendToMap() {
+      if (!mapArea || !legend || !legendList) return;
 
-      // Below the responsive breakpoint the columns stack, so the map goes
-      // back to its own natural (CSS) height instead of matching a panel
-      // it's no longer sitting next to.
+      // Below the breakpoint the columns stack, so the legend keeps its own
+      // natural height under the map.
       if (window.matchMedia('(max-width: 980px)').matches) {
-        mapEl.style.height = '';
+        legend.style.height = '';
+        legendList.style.height = '';
+        legend.classList.remove('is-sized');
         map.invalidateSize();
         return;
       }
 
-      const areaStyle = getComputedStyle(mapArea);
-      const chrome = parseFloat(areaStyle.paddingTop) + parseFloat(areaStyle.paddingBottom)
-        + parseFloat(getComputedStyle(mapCaption).marginTop) + mapCaption.offsetHeight;
-
-      const desiredAreaHeight = alertsOverviewPanel.getBoundingClientRect().bottom - mapArea.getBoundingClientRect().top;
-      const mapHeight = Math.round(desiredAreaHeight - chrome);
-
-      mapEl.style.height = Math.max(240, mapHeight) + 'px';
+      legend.style.height = `${mapArea.offsetHeight}px`;
+      // The list takes the rest of the legend's height, down to its padding.
+      const legendBox = legend.getBoundingClientRect();
+      const legendStyle = getComputedStyle(legend);
+      const listHeight = legendBox.bottom - parseFloat(legendStyle.borderBottomWidth)
+        - parseFloat(legendStyle.paddingBottom) - legendList.getBoundingClientRect().top;
+      legendList.style.height = `${Math.max(0, Math.floor(listHeight))}px`;
+      legend.classList.add('is-sized');
       map.invalidateSize();
     }
 
-    syncMapHeightToAlerts();
-    window.addEventListener('load', syncMapHeightToAlerts);
+    syncLegendToMap();
+    window.addEventListener('load', syncLegendToMap);
+    // The station-tag rows are added to the legend later (map-features.js).
+    if (legendList) new MutationObserver(syncLegendToMap).observe(legendList, { childList: true, subtree: true });
 
     let resizeTimer = null;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(syncMapHeightToAlerts, 150);
+      resizeTimer = setTimeout(syncLegendToMap, 150);
     });
 
     /* Active Hikers Today — counted in active-hikers.js, the same call the

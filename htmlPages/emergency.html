@@ -297,23 +297,21 @@
         flex-direction: column;
         gap: 12px;
     }
+    /* Legend chips in the map header, using the same round type icons as the
+       table and the map markers. */
     .map-legend {
         display: flex;
         flex-wrap: wrap;
-        gap: 12px;
-        justify-content: center;
+        align-items: center;
+        gap: 6px 14px;
         font-size: 12px;
         color: var(--text-secondary);
     }
     .legend-item {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 6px;
-    }
-    .legend-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
+        white-space: nowrap;
     }
     .trends-panel {
         margin-top: 14px;
@@ -344,9 +342,6 @@
     }
     .activity-icon.sos {
         background: #c8402f;
-    }
-    .activity-icon.med {
-        background: #2a63b5;
     }
     .activity-icon.search {
         background: #c9821f;
@@ -474,21 +469,8 @@
     .map-panel .panel-header {
         margin-bottom: 0;
     }
-    .panel-header-right {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    .weather-chip {
-        padding: 4px 10px;
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        font-size: 12px;
-        color: var(--text-secondary);
-        white-space: nowrap;
-    }
     #emergencyMap {
-        height: 320px;
+        height: 360px;
         border: 1px solid var(--border);
         border-radius: 14px;
         overflow: hidden;
@@ -500,48 +482,81 @@
     }
 
     /* ---- Trends ---- */
-    .trend-chart {
-        display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-        gap: 10px;
-        height: 200px;
-        padding-top: 6px;
-    }
-    .trend-col {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 6px;
-        min-width: 0;
-    }
-    .trend-bar {
-        width: 100%;
-        max-width: 38px;
-        border-radius: 8px 8px 0 0;
-        background: var(--accent);
-        opacity: 0.75;
-    }
-    .trend-col.today .trend-bar {
-        opacity: 1;
-    }
-    .trend-value {
-        font-size: 11.5px;
-        font-weight: 700;
+    .trend-period {
+        padding: 5px 8px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--dm-surface, #fff);
         color: var(--text-primary);
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
     }
-    .trend-label {
-        font-size: 11.5px;
+    .trend-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 16px;
+        margin-bottom: 6px;
+        font-size: 12px;
         color: var(--text-secondary);
     }
-    .trend-col.today .trend-label {
-        font-weight: 700;
-        color: var(--text-primary);
+    .trend-key {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    /* A short line with a dot on it, like the chart's own lines. */
+    .trend-key i {
+        position: relative;
+        width: 16px;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--key);
+    }
+    .trend-key i::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--key);
+        transform: translate(-50%, -50%);
+    }
+    .trend-chart svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+    }
+    .trend-chart .grid-line {
+        stroke: var(--dm-border, #edf0ec);
+        stroke-width: 1;
+    }
+    .trend-chart .axis-text {
+        fill: var(--text-muted);
+        font-size: 11px;
+        font-family: inherit;
+    }
+    .trend-chart .series-line {
+        fill: none;
+        stroke-width: 2;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+    }
+    .trend-chart .series-dot {
+        stroke: var(--card-bg);
+        stroke-width: 1.5;
     }
     .trend-summary {
-        margin-top: 10px;
+        margin-top: 8px;
         font-size: 13px;
         color: var(--text-secondary);
+    }
+    .trend-summary .trend-change {
+        font-weight: 700;
+        color: var(--accent);
     }
 
     /* ---- Activity ---- */
@@ -581,6 +596,128 @@
     }
     .alert-banner.warning .alert-button {
         color: var(--amber-text);
+    }
+
+    /* ---- Type icons: table, map legend, map markers, activity ---- */
+    .type-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: inline-grid;
+        place-items: center;
+        flex-shrink: 0;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1;
+    }
+    .type-icon .sos-text {
+        font-size: 9px;
+        letter-spacing: 0.02em;
+    }
+    .type-icon.sos { background: #c8402f; }
+    .type-icon.lost { background: #e0962a; }
+    .type-icon.sm {
+        width: 18px;
+        height: 18px;
+        font-size: 9px;
+    }
+    .type-icon.sm .sos-text {
+        font-size: 6px;
+    }
+    .count-badge {
+        display: inline-block;
+        min-width: 22px;
+        margin-left: 6px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: var(--red-bg);
+        color: var(--red-text);
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+        vertical-align: 1px;
+    }
+
+    /* ---- Table footer ---- */
+    .emergency-footer {
+        margin-top: 14px;
+    }
+
+    /* ---- Map frame: markers, weather, full screen ---- */
+    .map-frame {
+        position: relative;
+    }
+    .map-frame:fullscreen {
+        background: #000;
+    }
+    .map-frame:fullscreen #emergencyMap {
+        height: 100%;
+        border: none;
+        border-radius: 0;
+    }
+    .map-fullscreen {
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--dm-surface, #fff);
+        color: var(--text-secondary);
+        cursor: pointer;
+    }
+    .map-fullscreen:hover {
+        color: var(--accent-dark);
+    }
+    .emergency-pin {
+        background: none;
+        border: none;
+    }
+    .emergency-pin .type-icon {
+        border: 2px solid #fff;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+    }
+    .emergency-pin .type-icon.is-closed {
+        opacity: 0.55;
+    }
+    .weather-card {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        z-index: 500;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.94);
+        color: #1d2a20;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+        pointer-events: none;
+    }
+    .weather-card > i {
+        font-size: 24px;
+        color: #2a63b5;
+    }
+    .weather-card strong {
+        display: block;
+        font-size: 18px;
+    }
+    .weather-card span,
+    .weather-card small {
+        display: block;
+        font-size: 11.5px;
+        color: #4b5a4f;
+    }
+
+    /* ---- Activity footer ---- */
+    .activity-more {
+        width: 100%;
+        justify-content: center;
+        margin-top: 10px;
+        color: var(--accent-dark);
+    }
+    .activity-icon.team {
+        background: #2f6b45;
     }
 
     /* ---- Details dialog ---- */
@@ -736,8 +873,17 @@
        cards step down 5 -> 3 -> 2 -> 1 instead of collapsing straight to one
        column, so a tablet still gets a usable row.
     ========================================== */
+    /* Trends keeps its own height when View All Activities makes the
+       activity panel beside it taller. */
+    .grid-2.grid-bottom {
+        align-items: start;
+    }
+    .grid-2.grid-top {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    }
     @media (max-width: 1150px) {
-        .grid-2 {
+        .grid-2,
+        .grid-2.grid-top {
             grid-template-columns: minmax(0, 1fr);
         }
         .map-panel {
@@ -779,6 +925,18 @@
         /* Hold the table at a legible width and let .table-wrap scroll it. */
         .table-wrap table {
             min-width: 620px;
+        }
+    }
+
+    /* One row height for the portal's main lists: the Hazard Reports list,
+       Advisories & Announcements, the User list, Reports About User Behavior
+       and Active Emergencies all use 64px rows. A table cell's height is a
+       minimum, so a row whose content needs more room (a long title, a
+       wrapped name) still grows to fit. Phones keep their own layouts. */
+    @media (min-width: 701px) {
+        #emergencyTableBody > tr > td {
+            height: 64px;
+            vertical-align: middle;
         }
     }
 </style>
@@ -882,16 +1040,15 @@
       <button class="alert-button" id="alertBannerButton" type="button"></button>
     </div>
 
-    <div class="grid-2">
+    <div class="grid-2 grid-top">
       <div class="panel" id="emergencyTablePanel">
         <div class="panel-header">
-          <h2 id="emergencyTableTitle">Active Emergencies</h2>
-          <button class="link-btn" id="toggleClosedBtn" type="button" aria-pressed="false">Show resolved</button>
+          <h2><span id="emergencyTableTitle">Active Emergencies</span><span class="count-badge" id="openCountBadge" hidden>0</span></h2>
+          <button class="link-btn" id="toggleClosedBtn" type="button" aria-pressed="false">View All</button>
         </div>
         <div class="tabs" role="tablist" aria-label="Filter by emergency type">
           <button class="tab active" type="button" role="tab" data-type="all" aria-selected="true">All (<span data-count="all">0</span>)</button>
           <button class="tab" type="button" role="tab" data-type="sos" aria-selected="false">SOS Alerts (<span data-count="sos">0</span>)</button>
-          <button class="tab" type="button" role="tab" data-type="medical" aria-selected="false">Medical (<span data-count="medical">0</span>)</button>
           <button class="tab" type="button" role="tab" data-type="lost" aria-selected="false">Lost / Missing (<span data-count="lost">0</span>)</button>
         </div>
         <div class="table-wrap">
@@ -904,36 +1061,52 @@
             </tbody>
           </table>
         </div>
+        <div class="table-footer emergency-footer" id="emergencyFooter" hidden>
+          <span id="emergencyRange"></span>
+          <button class="btn" id="showAllRowsBtn" type="button">View All Emergencies</button>
+        </div>
       </div>
 
       <div class="panel map-panel">
         <div class="panel-header">
           <h2>Live Emergency Map</h2>
-          <div class="panel-header-right">
-            <span class="weather-chip" id="weatherChip">Loading weather…</span>
-            <a href="geomap.html">Geomap →</a>
+          <div class="map-legend">
+            <span class="legend-item"><span class="type-icon sm sos"><span class="sos-text">SOS</span></span>SOS Alert</span>
+            <span class="legend-item"><span class="type-icon sm lost"><i class="fa-solid fa-person-walking"></i></span>Lost / Missing</span>
+            <button class="map-fullscreen" id="mapFullscreenBtn" type="button" title="Full screen" aria-label="Show the map full screen"><i class="fa-solid fa-expand"></i></button>
           </div>
         </div>
-        <div id="emergencyMap" aria-label="Map of emergency locations on Mount Makiling"></div>
-        <div class="map-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:#c8402f"></div>SOS Alert</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#2a63b5"></div>Medical</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#c9821f"></div>Lost / Missing</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#5b6b60"></div>Other</div>
+        <div class="map-frame" id="mapFrame">
+          <div id="emergencyMap" aria-label="Map of emergency locations on Mount Makiling"></div>
+          <div class="weather-card" id="weatherCard" hidden>
+            <i class="fa-solid fa-cloud" id="weatherIcon" aria-hidden="true"></i>
+            <div><strong id="weatherTemp"></strong><span id="weatherCondition"></span><small id="weatherPlace"></small><small id="weatherUpdated"></small></div>
+          </div>
         </div>
         <div class="map-caption" id="mapCaption">Loading emergency locations…</div>
       </div>
     </div>
 
-    <div class="grid-2">
+    <div class="grid-2 grid-bottom">
       <div class="panel trends-panel">
-        <div class="panel-header"><h2>Emergency Trends</h2><div class="meta">Last 7 days</div></div>
-        <div class="trend-chart" id="trendChart" aria-label="Emergencies per day over the last seven days"></div>
+        <div class="panel-header">
+          <h2>Emergency Trends</h2>
+          <select class="trend-period" id="trendPeriod" aria-label="Emergency Trends period">
+            <option value="7" selected>This Week</option>
+            <option value="30">Last 30 Days</option>
+          </select>
+        </div>
+        <div class="trend-legend" id="trendLegend"></div>
+        <div class="trend-chart" id="trendChart" role="img" aria-label="Emergencies per day"></div>
         <div class="trend-summary" id="trendSummary">Loading…</div>
       </div>
       <div class="panel activity-panel">
-        <div class="panel-header"><h2>Recent Emergency Activities</h2></div>
+        <div class="panel-header">
+          <h2>Recent Emergency Activities</h2>
+          <button class="link-btn" id="activityAllBtn" type="button" hidden>View All</button>
+        </div>
         <div id="activityList"><div class="activity-empty">Loading…</div></div>
+        <button class="btn activity-more" id="activityMoreBtn" type="button" hidden>View All Activities</button>
       </div>
     </div>
   </main>
@@ -973,7 +1146,6 @@
 
     <div class="modal-actions" id="emModalActions">
       <button class="btn" id="emLocateBtn" type="button"><i class="fa-solid fa-location-crosshairs"></i>Show on map</button>
-      <a class="btn" id="emCallBtn"><i class="fa-solid fa-phone"></i>Call hiker</a>
       <button class="btn btn-warn" id="emRespondBtn" type="button"><i class="fa-solid fa-person-running"></i>Mark responding</button>
       <button class="btn btn-primary" id="emResolveBtn" type="button"><i class="fa-solid fa-check"></i>Mark resolved</button>
     </div>
@@ -985,6 +1157,7 @@
   import { collection, doc, onSnapshot, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   import { formatPortalDate, formatPortalDateTime, formatPortalTime, portalTimeZone, toPortalDate } from '../jsPages/datetime-prefs.js';
   import { createMakilingMap } from '../jsPages/makiling-area.js';
+  import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, weatherUrlFor } from '../jsPages/weather-locations.js';
 
   const $ = (id) => document.getElementById(id);
 
@@ -1001,20 +1174,42 @@
     }
     return undefined;
   };
+  // pick() skips objects, and a Firestore Timestamp is one, so dates are
+  // picked as the first alias that converts to a real date.
+  const pickDate = (record, keys) => {
+    for (const key of keys) {
+      const date = toPortalDate(record?.[key]);
+      if (date) return date;
+    }
+    return null;
+  };
 
   // ---------------------------------------------------------------------
   // Reading an emergency record
   //
-  // The mobile app writes these and their shape is not fixed yet, so every
+  // Alerts come from the mobile app (lib/features/sos/sos_service.dart):
+  //   emergency   every alert, and the only collection read. The SOS button writes { type: 'SOS', status:
+  //               'active', userId, hikerName, email, phone, trailID,
+  //               trailName, message, latitude, longitude, accuracy,
+  //               createdAt, updatedAt }, moves latitude/longitude while the
+  //               hiker's SOS screen is open, and sets status 'cancelled'
+  //               (cancelledAt) if the hiker cancels.
+  // The portal only receives them: an admin marks one as responding and
+  // then resolved, written back to the alert; the app shows the hiker that
+  // status. Every
   // field is read through the same aliases geomap.html, analytics.html and
-  // usermanagement.html already use for this collection.
+  // usermanagement.html already use for the emergency collection.
   // ---------------------------------------------------------------------
+  const SOURCES = ['emergency'];
   const TYPES = {
-    sos: { label: 'SOS', badge: 'SOS', color: '#c8402f', activity: 'sos' },
-    medical: { label: 'Medical', badge: '+ Medical', color: '#2a63b5', activity: 'med' },
-    lost: { label: 'Lost / Missing', badge: 'Lost', color: '#c9821f', activity: 'search' },
-    other: { label: 'Emergency', badge: 'Other', color: '#5b6b60', activity: 'sos' }
+    sos: { label: 'SOS', badge: 'SOS', color: '#c8402f', activity: 'sos', glyph: null },
+    lost: { label: 'Lost / Missing', badge: 'Lost', color: '#e0962a', activity: 'search', glyph: 'fa-person-walking' }
   };
+  // The round type icon used in the table, map markers and activity feed.
+  const typeIconInner = (type) => (TYPES[type].glyph
+    ? `<i class="fa-solid ${TYPES[type].glyph}" aria-hidden="true"></i>`
+    : '<span class="sos-text">SOS</span>');
+  const typeIcon = (type, extra = '') => `<span class="type-icon ${type}${extra ? ` ${extra}` : ''}" title="${escapeHtml(TYPES[type].label)}">${typeIconInner(type)}</span>`;
 
   const STATUSES = {
     active: { label: 'Awaiting response', badge: 'active' },
@@ -1026,10 +1221,10 @@
 
   const typeOf = (data) => {
     const raw = text(pick(data, ['type', 'Type', 'category', 'emergencyType', 'title', 'Title'])).toLowerCase();
-    if (/sos|panic|distress/.test(raw)) return 'sos';
-    if (/medic|injur|hurt|sick|first aid|health|bleed|faint/.test(raw)) return 'medical';
+    // Lost / Missing when it says so; every other alert is an SOS, which is
+    // all the PeakPath app sends.
     if (/lost|missing|search|stray/.test(raw)) return 'lost';
-    return 'other';
+    return 'sos';
   };
 
   // Same closed words as analytics.html's CLOSED_EMERGENCY_STATUS, so the two
@@ -1070,6 +1265,13 @@
     if (coords) return `${coords[0].toFixed(5)}, ${coords[1].toFixed(5)}`;
     return 'Location not shared';
   };
+  // The trail, said plainly, when the app sent no GPS position with it.
+  const locationNoteOf = (data, coords) => {
+    if (coords) return '';
+    return text(pick(data, ['trailName', 'trail', 'Trail']))
+      ? 'Trail the hiker was viewing in the app. No GPS position was sent.'
+      : 'The app sent no trail or GPS position.';
+  };
 
   // Hikers, so a record carrying only a user id still shows a name and phone.
   const usersById = new Map();
@@ -1081,7 +1283,7 @@
     return null;
   };
 
-  const normalize = (snapshot) => {
+  const normalize = ({ source, snapshot }) => {
     const data = snapshot.data() || {};
     const user = userFor(data) || {};
     const coords = coordinatesOf(data);
@@ -1091,11 +1293,15 @@
       || [text(user.firstName), text(user.lastName)].filter(Boolean).join(' ');
 
     return {
-      id: snapshot.id,
+      // One id across both collections, so the table, map and dialog can
+      // tell apart two alerts that happen to share a document id.
+      id: `${source}/${snapshot.id}`,
+      source,
+      docId: snapshot.id,
       type: typeOf(data),
       status: statusOf(data),
       title: text(pick(data, ['title', 'Title'])),
-      name: text(pick(data, ['hikerName', 'userName', 'name', 'reportedBy'])) || userName
+      name: text(pick(data, ['hikerName', 'userName', 'username', 'name', 'reportedBy'])) || userName
         || text(data.email) || text(user.email) || 'Unknown hiker',
       groupSize: Number.isFinite(group) && group > 0 ? Math.round(group) : 1,
       phone: text(pick(data, ['phone', 'phoneNumber', 'contactNumber', 'mobile']))
@@ -1105,14 +1311,18 @@
       message: text(pick(data, ['message', 'description', 'details', 'notes'])),
       coords,
       location: locationTextOf(data, coords),
-      created: toPortalDate(pick(data, ['timestamp', 'createdAt', 'reportedAt', 'date', 'time'])),
+      locationNote: locationNoteOf(data, coords),
+      created: pickDate(data, ['timestamp', 'createdAt', 'reportedAt', 'date', 'time']),
       respondedAt: toPortalDate(data.respondedAt),
-      resolvedAt: toPortalDate(pick(data, ['resolvedAt', 'closedAt'])) ,
+      resolvedAt: pickDate(data, ['resolvedAt', 'closedAt']),
       updatedAt: toPortalDate(data.updatedAt),
       respondedBy: text(data.respondedBy),
       resolvedBy: text(data.resolvedBy),
       peopleAssisted: Number.isFinite(assisted) && assisted >= 0 ? assisted : null,
-      resolutionNote: text(data.resolutionNote)
+      resolutionNote: text(data.resolutionNote),
+      // GPS accuracy in metres, from the phone.
+      accuracy: Number.isFinite(Number(data.accuracy)) && Number(data.accuracy) > 0 ? Number(data.accuracy) : null,
+      cancelledAt: toPortalDate(data.cancelledAt)
     };
   };
 
@@ -1121,11 +1331,6 @@
   // ---------------------------------------------------------------------
   // The day a date falls on in the Settings > Date & Time zone, as YYYY-MM-DD.
   const dayKey = (date) => date.toLocaleDateString('en-CA', { timeZone: portalTimeZone() });
-
-  const telHref = (number) => {
-    const digits = text(number).replace(/[^\d+]/g, '');
-    return digits.length >= 7 ? `tel:${digits}` : '';
-  };
 
   const formatDuration = (ms) => {
     const totalSeconds = Math.max(0, Math.round(ms / 1000));
@@ -1148,11 +1353,19 @@
   // ---------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------
-  let emergencySnaps = null;   // null = still loading
+  // Per collection: null = still loading. emergencySnaps is all of them,
+  // tagged with their collection, once every collection has loaded.
+  const snapsBySource = new Map();
+  const errorsBySource = new Map();
+  let emergencySnaps = null;
   let loadError = null;
   let records = [];
   let activeTab = 'all';
   let showClosed = false;
+  let showAllRows = false;      // table: first TABLE_LIMIT rows, or all
+  let showAllActivity = false;  // activity feed: first ACTIVITY_LIMIT, or all
+  const TABLE_LIMIT = 5;
+  const ACTIVITY_LIMIT = 5;
   let modalId = null;
   let weather = null;
   const knownIds = new Set();
@@ -1175,15 +1388,26 @@
       if (!record.coords) { noPosition += 1; return; }
       if (!makilingBounds.contains(record.coords)) { offMountain += 1; return; }
       const type = TYPES[record.type];
-      const marker = L.circleMarker(record.coords, {
-        radius: 9,
-        color: '#ffffff',
-        weight: 2,
-        fillColor: type.color,
-        fillOpacity: isOpen(record) ? 0.95 : 0.45
+      // Where the hiker may be: the phone's GPS accuracy, for open alerts.
+      if (isOpen(record) && record.accuracy && record.accuracy <= 2000) {
+        L.circle(record.coords, {
+          radius: record.accuracy, color: type.color, weight: 1, opacity: 0.7,
+          fillColor: type.color, fillOpacity: 0.12, interactive: false
+        }).addTo(markerLayer);
+      }
+      const marker = L.marker(record.coords, {
+        icon: L.divIcon({
+          className: 'emergency-pin',
+          html: typeIcon(record.type, isOpen(record) ? '' : 'is-closed'),
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
+          popupAnchor: [0, -14]
+        }),
+        zIndexOffset: isOpen(record) ? 1000 : 0
       }).bindPopup(`
         <strong>${escapeHtml(type.label)}: ${escapeHtml(record.name)}</strong><br>
         ${escapeHtml(record.location)}<br>
+        ${record.accuracy ? `<small>GPS accuracy ± ${escapeHtml(Math.round(record.accuracy))} m</small><br>` : ''}
         <small>${escapeHtml(STATUSES[record.status].label)}${record.created ? ` · ${escapeHtml(formatPortalDateTime(record.created))}` : ''}</small><br>
         <a href="#" data-open="${escapeHtml(record.id)}">View details</a>
       `).addTo(markerLayer);
@@ -1197,13 +1421,27 @@
     $('mapCaption').textContent = visible.length ? caption.join(' · ') : 'No emergencies to show on the map.';
   };
 
-  // "View details" inside a marker popup.
+  // "View details" inside a marker popup. The dialog lives outside the map,
+  // so full screen is left first or the dialog would open out of sight.
   map.on('popupopen', (event) => {
     const link = event.popup.getElement()?.querySelector('[data-open]');
     link?.addEventListener('click', (click) => {
       click.preventDefault();
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       openModal(link.dataset.open);
     });
+  });
+
+  // Full screen: the map and its weather card, not the whole page.
+  $('mapFullscreenBtn').addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else $('mapFrame').requestFullscreen?.().catch(() => {});
+  });
+  document.addEventListener('fullscreenchange', () => {
+    const full = document.fullscreenElement === $('mapFrame');
+    $('mapFullscreenBtn').innerHTML = `<i class="fa-solid ${full ? 'fa-compress' : 'fa-expand'}"></i>`;
+    $('mapFullscreenBtn').title = full ? 'Exit full screen' : 'Full screen';
+    map.invalidateSize();
   });
 
   // ---------------------------------------------------------------------
@@ -1266,7 +1504,7 @@
   const visibleRecords = () => records.filter((r) => showClosed || isOpen(r));
 
   const renderTabs = (base) => {
-    const counts = { all: base.length, sos: 0, medical: 0, lost: 0 };
+    const counts = { all: base.length, sos: 0, lost: 0 };
     base.forEach((r) => { if (r.type in counts) counts[r.type] += 1; });
     document.querySelectorAll('[data-count]').forEach((el) => { el.textContent = counts[el.dataset.count]; });
     document.querySelectorAll('.tabs .tab').forEach((tab) => {
@@ -1285,7 +1523,13 @@
   const renderTable = (base) => {
     const body = $('emergencyTableBody');
     $('emergencyTableTitle').textContent = showClosed ? 'All Emergencies' : 'Active Emergencies';
-    $('toggleClosedBtn').textContent = showClosed ? 'Hide resolved' : 'Show resolved';
+    $('toggleClosedBtn').textContent = showClosed ? 'Active Only' : 'View All';
+    $('toggleClosedBtn').title = showClosed ? 'Hide resolved and cancelled alerts' : 'Include resolved and cancelled alerts';
+    const openCount = records.filter(isOpen).length;
+    $('openCountBadge').hidden = emergencySnaps === null || !!loadError;
+    $('openCountBadge').textContent = showClosed ? base.length : openCount;
+    const footer = $('emergencyFooter');
+    footer.hidden = true;
     $('toggleClosedBtn').setAttribute('aria-pressed', String(showClosed));
 
     if (loadError) {
@@ -1306,22 +1550,23 @@
       return;
     }
 
-    body.innerHTML = rows.map((r) => {
-      const type = TYPES[r.type];
+    const shown = showAllRows ? rows : rows.slice(0, TABLE_LIMIT);
+    footer.hidden = false;
+    $('emergencyRange').textContent = `Showing 1 to ${shown.length} of ${plural(rows.length, 'emergency', 'emergencies')}`;
+    $('showAllRowsBtn').hidden = rows.length <= TABLE_LIMIT;
+    $('showAllRowsBtn').textContent = showAllRows ? 'Show Fewer' : 'View All Emergencies';
+
+    body.innerHTML = shown.map((r) => {
       const status = STATUSES[r.status];
-      const tel = telHref(r.phone);
       return `
         <tr data-id="${escapeHtml(r.id)}" class="${freshIds.has(r.id) ? 'is-new' : ''}" tabindex="0">
-          <td><span class="type-badge" style="background:${type.color}">${escapeHtml(type.badge)}</span></td>
+          <td>${typeIcon(r.type)}</td>
           <td><span class="cell-name">${escapeHtml(r.name)}</span>${r.groupSize > 1 ? `<span class="cell-sub">Group of ${r.groupSize}</span>` : ''}</td>
           <td>${escapeHtml(r.location)}</td>
           <td>${timeCell(r.created)}</td>
           <td><span class="status-badge ${status.badge}">${escapeHtml(status.label)}</span></td>
           <td class="actions-cell">
             <button class="action-btn" type="button" data-view title="View details" aria-label="View details for ${escapeHtml(r.name)}"><i class="fa-solid fa-eye"></i></button>
-            ${tel
-              ? `<a class="action-btn" href="${escapeHtml(tel)}" title="Call ${escapeHtml(r.phone)}" aria-label="Call ${escapeHtml(r.name)}"><i class="fa-solid fa-phone"></i></a>`
-              : '<button class="action-btn" type="button" disabled title="No phone number on record" aria-label="No phone number on record"><i class="fa-solid fa-phone"></i></button>'}
           </td>
         </tr>
       `;
@@ -1329,7 +1574,6 @@
   };
 
   $('emergencyTableBody').addEventListener('click', (event) => {
-    if (event.target.closest('a')) return; // the call link does its own thing
     const row = event.target.closest('tr[data-id]');
     if (row) openModal(row.dataset.id);
   });
@@ -1351,52 +1595,106 @@
     showClosed = !showClosed;
     render();
   });
+  $('showAllRowsBtn').addEventListener('click', () => {
+    showAllRows = !showAllRows;
+    render();
+  });
 
   // ---------------------------------------------------------------------
-  // Trends: alerts per day for the last 7 days, against the 7 before
+  // Trends: alerts per day by type, plus resolutions, over the chosen period
+  // (7 or 30 days) and against the period before it
   // ---------------------------------------------------------------------
   const DAY_MS = 24 * 60 * 60 * 1000;
+  const TREND_SERIES = [
+    { key: 'sos', label: 'SOS Alerts', color: '#c8402f' },
+    { key: 'lost', label: 'Lost / Missing', color: '#e5a823' },
+    { key: 'resolved', label: 'Resolved', color: '#2f8f4e' }
+  ];
+  let trendDays = 7;
+  $('trendPeriod').addEventListener('change', (event) => {
+    trendDays = Number(event.target.value) || 7;
+    renderTrends();
+  });
+
+  const niceCeil = (value) => {
+    if (value <= 5) return 5;
+    const step = 10 ** Math.floor(Math.log10(value));
+    for (const m of [1, 2, 2.5, 5, 10]) if (m * step >= value) return m * step;
+    return 10 * step;
+  };
+
   const renderTrends = () => {
     const now = Date.now();
-    const counts = new Map();
-    records.forEach((r) => {
-      if (!r.created) return;
-      const key = dayKey(r.created);
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
-
     const days = [];
-    for (let back = 6; back >= 0; back -= 1) {
+    for (let back = trendDays - 1; back >= 0; back -= 1) {
       const date = new Date(now - back * DAY_MS);
       days.push({
         key: dayKey(date),
-        label: date.toLocaleDateString('en-US', { timeZone: portalTimeZone(), weekday: 'short' }),
-        today: back === 0
+        label: date.toLocaleDateString('en-US', { timeZone: portalTimeZone(), month: 'short', day: 'numeric' })
       });
     }
-    days.forEach((day) => { day.count = counts.get(day.key) || 0; });
+    const index = new Map(days.map((d, i) => [d.key, i]));
+    const counts = Object.fromEntries(TREND_SERIES.map((s) => [s.key, days.map(() => 0)]));
+
+    const previousKeys = new Set();
+    for (let back = 2 * trendDays - 1; back >= trendDays; back -= 1) previousKeys.add(dayKey(new Date(now - back * DAY_MS)));
+    let thisPeriod = 0;
     let previous = 0;
-    for (let back = 13; back >= 7; back -= 1) previous += counts.get(dayKey(new Date(now - back * DAY_MS))) || 0;
 
-    const peak = Math.max(1, ...days.map((d) => d.count));
-    $('trendChart').innerHTML = days.map((day) => `
-      <div class="trend-col${day.today ? ' today' : ''}" title="${escapeHtml(`${day.label}: ${plural(day.count, 'emergency', 'emergencies')}`)}">
-        <div class="trend-value">${day.count}</div>
-        <div class="trend-bar" style="height:${Math.max(3, Math.round((day.count / peak) * 100))}%"></div>
-        <div class="trend-label">${escapeHtml(day.today ? 'Today' : day.label)}</div>
-      </div>
-    `).join('');
+    records.forEach((r) => {
+      if (r.created) {
+        const key = dayKey(r.created);
+        if (index.has(key)) { counts[r.type][index.get(key)] += 1; thisPeriod += 1; }
+        else if (previousKeys.has(key)) previous += 1;
+      }
+      if (r.resolvedAt) {
+        const key = dayKey(r.resolvedAt);
+        if (index.has(key)) counts.resolved[index.get(key)] += 1;
+      }
+    });
 
-    const thisWeek = days.reduce((sum, d) => sum + d.count, 0);
+    const series = TREND_SERIES;
+    $('trendLegend').innerHTML = series.map((s) =>
+      `<span class="trend-key" style="--key:${s.color}"><i></i>${escapeHtml(s.label)}</span>`).join('');
+
+    // Chart geometry, in viewBox units; the SVG scales to the panel width.
+    const W = 640, H = 230, left = 30, right = 12, top = 10, bottom = 26;
+    const plotW = W - left - right, plotH = H - top - bottom;
+    const peak = Math.max(0, ...series.flatMap((s) => counts[s.key]));
+    const yMax = niceCeil(peak);
+    const x = (i) => left + (days.length === 1 ? plotW / 2 : (i / (days.length - 1)) * plotW);
+    const y = (v) => top + plotH - (v / yMax) * plotH;
+
+    const ticks = 5;
+    const grid = Array.from({ length: ticks + 1 }, (_, i) => {
+      const value = (yMax / ticks) * i;
+      const label = Number.isInteger(value) ? value : value.toFixed(1);
+      return `<line class="grid-line" x1="${left}" x2="${W - right}" y1="${y(value)}" y2="${y(value)}"></line>
+        <text class="axis-text" x="${left - 8}" y="${y(value) + 4}" text-anchor="end">${label}</text>`;
+    }).join('');
+    const labelEvery = trendDays > 10 ? 5 : 1;
+    const xLabels = days.map((d, i) => ((days.length - 1 - i) % labelEvery === 0
+      ? `<text class="axis-text" x="${x(i)}" y="${H - 6}" text-anchor="middle">${escapeHtml(d.label)}</text>` : '')).join('');
+    const lines = series.map((s) => {
+      const points = counts[s.key].map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+      const dots = trendDays > 10 ? '' : counts[s.key].map((v, i) => `<circle class="series-dot" cx="${x(i)}" cy="${y(v)}" r="4" fill="${s.color}"><title>${escapeHtml(`${days[i].label} · ${s.label}: ${v}`)}</title></circle>`).join('');
+      return `<polyline class="series-line" stroke="${s.color}" points="${points}"></polyline>${dots}`;
+    }).join('');
+
+    $('trendChart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${grid}${xLabels}${lines}</svg>`;
+    $('trendChart').setAttribute('aria-label', `Emergencies per day over the last ${trendDays} days: ${thisPeriod} in total`);
+
+    const span = trendDays === 7 ? 'last week' : `the ${trendDays} days before`;
     let summary;
-    if (!thisWeek && !previous) summary = 'No emergencies in the last two weeks.';
-    else if (!previous) summary = `${plural(thisWeek, 'emergency', 'emergencies')} this week, none the week before.`;
+    if (!thisPeriod && !previous) summary = `No emergencies in this period or ${span}.`;
+    else if (!previous) summary = `${escapeHtml(plural(thisPeriod, 'emergency', 'emergencies'))} in this period, none ${span}.`;
     else {
-      const change = Math.round(((thisWeek - previous) / previous) * 100);
-      summary = `${plural(thisWeek, 'emergency', 'emergencies')} this week vs ${previous} the week before`
-        + (change ? ` (${Math.abs(change)}% ${change > 0 ? 'more' : 'fewer'}).` : ' (no change).');
+      const change = Math.round(((thisPeriod - previous) / previous) * 100);
+      summary = change
+        ? `<span class="trend-change">${change > 0 ? '▲' : '▼'} ${Math.abs(change)}%</span> ${change > 0 ? 'more' : 'fewer'} emergencies compared to ${span}.`
+        : `Same number of emergencies as ${span} (${previous}).`;
     }
-    $('trendSummary').textContent = summary;
+    $('trendSummary').innerHTML = summary;
   };
 
   // ---------------------------------------------------------------------
@@ -1406,17 +1704,24 @@
     const events = [];
     records.forEach((r) => {
       const who = r.groupSize > 1 ? `${r.name} (group of ${r.groupSize})` : r.name;
-      if (r.created) events.push({ when: r.created, icon: TYPES[r.type].activity, glyph: 'fa-bell', title: `New ${TYPES[r.type].label} alert from ${who}`, sub: r.location });
-      if (r.respondedAt) events.push({ when: r.respondedAt, icon: 'search', glyph: 'fa-person-running', title: `Response started for ${who}`, sub: r.respondedBy ? `by ${r.respondedBy}` : r.location });
+      if (r.created) events.push({ when: r.created, type: r.type, title: `New ${TYPES[r.type].label} alert from ${who}`, sub: r.location });
+      if (r.respondedAt) events.push({ when: r.respondedAt, icon: 'team', glyph: 'fa-people-group', title: `Response started for ${who}`, sub: r.respondedBy ? `by ${r.respondedBy}` : r.location });
+      if (r.status === 'cancelled' && r.cancelledAt) events.push({ when: r.cancelledAt, icon: 'resolved', glyph: 'fa-xmark', title: `${TYPES[r.type].label} alert cancelled by ${who}`, sub: r.location });
       if (r.resolvedAt) events.push({ when: r.resolvedAt, icon: 'resolved', glyph: 'fa-check', title: `Emergency resolved: ${who}`, sub: r.resolutionNote || (r.peopleAssisted !== null ? `${plural(r.peopleAssisted, 'person', 'people')} assisted` : r.location) });
     });
     events.sort((a, b) => b.when - a.when);
 
+    const more = events.length > ACTIVITY_LIMIT;
+    $('activityAllBtn').hidden = !more;
+    $('activityMoreBtn').hidden = !more;
+    $('activityAllBtn').textContent = showAllActivity ? 'Show Less' : 'View All';
+    $('activityMoreBtn').textContent = showAllActivity ? 'Show Less' : 'View All Activities';
+
     $('activityList').innerHTML = events.length
-      ? events.slice(0, 6).map((e) => `
+      ? (showAllActivity ? events : events.slice(0, ACTIVITY_LIMIT)).map((e) => `
           <div class="activity-item">
             <div class="activity-main">
-              <div class="activity-icon ${e.icon}"><i class="fa-solid ${e.glyph}"></i></div>
+              ${e.type ? typeIcon(e.type) : `<div class="activity-icon ${e.icon}"><i class="fa-solid ${e.glyph}"></i></div>`}
               <div>
                 <div class="activity-title">${escapeHtml(e.title)}</div>
                 <div class="activity-sub">${escapeHtml(e.sub)}</div>
@@ -1427,6 +1732,11 @@
         `).join('')
       : '<div class="activity-empty">No emergency activity yet.</div>';
   };
+
+  ['activityAllBtn', 'activityMoreBtn'].forEach((id) => $(id).addEventListener('click', () => {
+    showAllActivity = !showAllActivity;
+    renderActivities();
+  }));
 
   // ---------------------------------------------------------------------
   // Banner: alerts nobody has picked up come first, then bad weather
@@ -1453,7 +1763,7 @@
     if (weather && weather.code >= 51) {
       banner.hidden = false;
       banner.classList.add('warning');
-      $('alertBannerTitle').textContent = `${weather.condition} on Mount Makiling`;
+      $('alertBannerTitle').textContent = `${weather.condition} at ${weather.place}`;
       $('alertBannerText').textContent = 'Trails may be slippery. Keep advisories up to date for hikers on the mountain.';
       button.textContent = 'View advisories';
       button.onclick = () => { window.location.href = 'A&A.html'; };
@@ -1486,30 +1796,21 @@
     $('emModalDetails').innerHTML = [
       detailRow('Hiker', r.name),
       detailRow('Group size', r.groupSize > 1 ? String(r.groupSize) : ''),
-      detailRow('Phone', r.phone || 'Not on record'),
+      detailRow('Phone', r.phone),
       detailRow('Emergency contact', r.emergencyContact),
       detailRow('Location', r.location),
+      detailRow('Location note', r.locationNote),
       detailRow('Coordinates', r.coords ? `${r.coords[0].toFixed(5)}, ${r.coords[1].toFixed(5)}` : ''),
+      detailRow('GPS accuracy', r.accuracy ? `± ${Math.round(r.accuracy)} m` : ''),
+      detailRow('Location updated', r.coords && r.updatedAt && isOpen(r) ? `${formatPortalDateTime(r.updatedAt)} (live while the hiker's SOS screen is open)` : ''),
       detailRow('Raised', r.created ? formatPortalDateTime(r.created) : 'Not recorded'),
       detailRow('Response started', r.respondedAt ? `${formatPortalDateTime(r.respondedAt)}${r.respondedBy ? ` by ${r.respondedBy}` : ''}` : ''),
+      detailRow('Cancelled', r.status === 'cancelled' ? `${r.cancelledAt ? formatPortalDateTime(r.cancelledAt) : 'Yes'} by the hiker` : ''),
       detailRow('Resolved', r.resolvedAt ? `${formatPortalDateTime(r.resolvedAt)}${r.resolvedBy ? ` by ${r.resolvedBy}` : ''}` : ''),
       detailRow('People assisted', r.peopleAssisted !== null ? String(r.peopleAssisted) : ''),
       detailRow('Message', r.message),
       detailRow('Resolution note', r.resolutionNote)
     ].join('');
-
-    const tel = telHref(r.phone);
-    const call = $('emCallBtn');
-    call.classList.toggle('is-disabled', !tel);
-    if (tel) {
-      call.href = tel;
-      call.removeAttribute('aria-disabled');
-      call.title = `Call ${r.phone}`;
-    } else {
-      call.removeAttribute('href');
-      call.setAttribute('aria-disabled', 'true');
-      call.title = 'No phone number on record';
-    }
 
     const onMap = r.coords && makilingBounds.contains(r.coords);
     $('emLocateBtn').disabled = !onMap;
@@ -1553,8 +1854,14 @@
   });
 
   const writeError = (error) => (error?.code === 'permission-denied'
-    ? 'Your account is not allowed to update emergencies. The Firestore rules for the emergency collection need to allow admin writes.'
+    ? 'Your account is not allowed to update emergencies. Only Super Administrators and Administrators can (Viewers cannot).'
     : 'Could not save the change. Check your connection and try again.');
+
+  // The emergency document an alert came from.
+  const recordRef = (id) => {
+    const record = records.find((item) => item.id === id);
+    return doc(db, record?.source || 'emergency', record?.docId || id);
+  };
 
   const adminName = () => auth.currentUser?.displayName || auth.currentUser?.email || 'Admin';
 
@@ -1567,7 +1874,7 @@
     modalError.textContent = '';
     setBusy(true);
     try {
-      await updateDoc(doc(db, 'emergency', modalId), {
+      await updateDoc(recordRef(modalId), {
         status: 'responding',
         respondedAt: serverTimestamp(),
         respondedBy: adminName(),
@@ -1613,7 +1920,7 @@
     modalError.textContent = '';
     setBusy(true);
     try {
-      await updateDoc(doc(db, 'emergency', modalId), {
+      await updateDoc(recordRef(modalId), {
         status: 'resolved',
         resolvedAt: serverTimestamp(),
         resolvedBy: adminName(),
@@ -1644,32 +1951,89 @@
     renderTrends();
     renderActivities();
     renderBanner();
+    updateTitle();
     if (modalId) fillModal();
   }
 
-  onSnapshot(collection(db, 'emergency'), (snapshot) => {
-    const firstLoad = emergencySnaps === null;
-    emergencySnaps = snapshot.docs;
-    loadError = null;
+  /* Both collections, live. The page waits for both before drawing, so the
+     counts never flash a partial total; a collection that cannot be read is
+     left out with a note, and only if neither can be read does the page show
+     an error. */
+  function combine() {
+    if (SOURCES.some((source) => !snapsBySource.has(source) && !errorsBySource.has(source))) return;
+    emergencySnaps = SOURCES.flatMap((source) => (snapsBySource.get(source) || []).map((snapshot) => ({ source, snapshot })));
+    const failed = SOURCES.filter((source) => errorsBySource.has(source));
+    loadError = failed.length === SOURCES.length
+      ? (errorsBySource.get('emergency')?.code === 'permission-denied'
+        ? 'Emergency alerts are blocked by the Firestore rules for this account.'
+        : 'Unable to load emergency alerts. Check your connection and refresh.')
+      : null;
+    if (failed.length) console.warn('Emergency alerts not loaded from:', failed.join(', '));
+    render();
+    if (loadError) $('mapCaption').textContent = loadError;
+  }
 
-    // Highlight alerts that arrive while the page is open, not the backlog.
-    snapshot.docs.forEach((snap) => {
-      if (!firstLoad && !knownIds.has(snap.id)) {
-        freshIds.add(snap.id);
-        setTimeout(() => { freshIds.delete(snap.id); render(); }, 12000);
-      }
-      knownIds.add(snap.id);
+  let firstLoadDone = false;
+  SOURCES.forEach((source) => {
+    onSnapshot(collection(db, source), (snapshot) => {
+      snapsBySource.set(source, snapshot.docs);
+      errorsBySource.delete(source);
+
+      // Highlight and announce alerts that arrive while the page is open,
+      // not the backlog already there when it loaded.
+      const arrived = [];
+      snapshot.docs.forEach((snap) => {
+        const id = `${source}/${snap.id}`;
+        if (firstLoadDone && !knownIds.has(id)) {
+          freshIds.add(id);
+          arrived.push(id);
+          setTimeout(() => { freshIds.delete(id); render(); }, 12000);
+        }
+        knownIds.add(id);
+      });
+      combine();
+      if (!firstLoadDone && emergencySnaps !== null) firstLoadDone = true;
+      if (arrived.some((id) => records.find((r) => r.id === id && isOpen(r)))) announceNewAlert();
+    }, (error) => {
+      console.error(`Error loading ${source}:`, error);
+      errorsBySource.set(source, error);
+      combine();
     });
-    render();
-  }, (error) => {
-    console.error('Error loading emergencies:', error);
-    loadError = error?.code === 'permission-denied'
-      ? 'Emergency alerts are blocked by the Firestore rules for this account.'
-      : 'Unable to load emergency alerts. Check your connection and refresh.';
-    emergencySnaps = [];
-    render();
-    $('mapCaption').textContent = loadError;
   });
+
+  // ---------------------------------------------------------------------
+  // A new alert while the page is open: a short alarm tone, and the count of
+  // alerts awaiting response in the tab title so it shows from another tab.
+  // ---------------------------------------------------------------------
+  const BASE_TITLE = document.title;
+  let audio = null;
+  function announceNewAlert() {
+    try {
+      audio ||= new (window.AudioContext || window.webkitAudioContext)();
+      const now = audio.currentTime;
+      [0, 0.28, 0.56].forEach((offset) => {
+        const tone = audio.createOscillator();
+        const gain = audio.createGain();
+        tone.type = 'square';
+        tone.frequency.value = 880;
+        gain.gain.setValueAtTime(0.0001, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.18, now + offset + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.2);
+        tone.connect(gain).connect(audio.destination);
+        tone.start(now + offset);
+        tone.stop(now + offset + 0.22);
+      });
+    } catch { /* the browser blocks sound until the page has been clicked */ }
+  }
+  // Browsers allow sound only after a click on the page; unlock it then.
+  document.addEventListener('pointerdown', () => {
+    try { audio ||= new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch { /* no sound */ }
+  }, { once: true });
+
+  function updateTitle() {
+    const awaiting = records.filter((r) => r.status === 'active').length;
+    document.title = awaiting ? `(${awaiting}) Emergency alert${awaiting === 1 ? '' : 's'} · ${BASE_TITLE}` : BASE_TITLE;
+  }
 
   // Hiker names and phone numbers for records that only carry a user id.
   onSnapshot(collection(db, 'users'), (snapshot) => {
@@ -1694,25 +2058,56 @@
     82: 'Heavy showers', 95: 'Thunderstorm', 96: 'Thunderstorm with hail', 99: 'Severe thunderstorm'
   };
 
+  const weatherGlyph = (code) => {
+    if (code >= 95) return 'fa-cloud-bolt';
+    if (code >= 80 || code === 65 || code === 63) return 'fa-cloud-showers-heavy';
+    if (code >= 51) return 'fa-cloud-rain';
+    if (code >= 45) return 'fa-smog';
+    if (code === 3) return 'fa-cloud';
+    if (code >= 1) return 'fa-cloud-sun';
+    return 'fa-sun';
+  };
+
+  // The place chosen in Settings > System Settings > Dashboard Weather, the
+  // same reading the Dashboard's weather card shows.
+  let weatherRequest = 0;
   async function updateWeather() {
+    const locationKey = getWeatherLocationKey();
+    const place = WEATHER_LOCATIONS[locationKey];
+    // A slow reply for a place that is no longer selected is dropped.
+    const request = ++weatherRequest;
     try {
-      const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=14.136&longitude=121.197&current=temperature_2m,weather_code&timezone=Asia%2FManila', { cache: 'no-store' });
+      const response = await fetch(weatherUrlFor(locationKey), { cache: 'no-store' });
       if (!response.ok) throw new Error(`Weather request failed with ${response.status}`);
       const { current } = await response.json();
+      if (request !== weatherRequest) return;
       weather = {
         code: Number(current.weather_code),
-        condition: WEATHER_CODES[current.weather_code] || 'Current conditions'
+        condition: WEATHER_CODES[current.weather_code] || 'Current conditions',
+        place: place.name
       };
-      $('weatherChip').textContent = `${Number(current.temperature_2m).toFixed(1)}°C · ${weather.condition}`;
+      $('weatherTemp').textContent = `${Number(current.temperature_2m).toFixed(1)}°C`;
+      $('weatherCondition').textContent = weather.condition;
+      $('weatherPlace').textContent = place.name;
+      // Open-Meteo gives Manila local time without an offset.
+      const readAt = toPortalDate(`${current.time}:00+08:00`) || new Date();
+      $('weatherUpdated').textContent = `Updated ${formatPortalTime(readAt)}`;
+      $('weatherIcon').className = `fa-solid ${weatherGlyph(weather.code)}`;
+      $('weatherCard').hidden = false;
     } catch (error) {
-      console.error('Error loading Mount Makiling weather:', error);
+      if (request !== weatherRequest) return;
+      console.error(`Error loading ${place.name} weather:`, error);
       weather = null;
-      $('weatherChip').textContent = 'Weather unavailable';
+      $('weatherCard').hidden = true;
     }
     renderBanner();
   }
   updateWeather();
-  setInterval(updateWeather, 10 * 60 * 1000);
+  setInterval(updateWeather, 5 * 60 * 1000);
+  // Changed in Settings in another tab.
+  window.addEventListener('storage', (event) => {
+    if (event.key === WEATHER_STORAGE_KEY) updateWeather();
+  });
 </script>
 <!-- A module so it can import the Settings > Date & Time zone; nothing else
      on the page calls updateEmergencyClock, so module scope costs nothing. -->

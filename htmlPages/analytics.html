@@ -2041,9 +2041,21 @@
     (item) => !CLOSED_EMERGENCY_STATUS.includes(normalizeText(item?.status ?? item?.Status ?? item?.state ?? 'active').toLowerCase())
   );
 
-  const activeAdvisories = () => (state.advisories || [])
-    .filter((item) => item?.visible !== false)
-    .filter((item) => !['expired', 'archived'].includes(normalizeText(item?.status ?? 'Active').toLowerCase()));
+  /* Active exactly as Advisories & Announcements (A&A.html) shows it:
+     visible, status Active (not Scheduled, Expired or Archived), and not past
+     its expiresAt -- A&A only writes "Expired" while someone has it open. */
+  const activeAdvisories = () => (state.advisories || []).filter((item) => {
+    if (item?.visible === false) return false;
+    if ((normalizeText(item?.status) || 'active').toLowerCase() !== 'active') return false;
+    const expires = toDate(item?.expiresAt);
+    return !expires || expires.getTime() > Date.now();
+  });
+
+  /* Hiker accounts only: users/{uid} also holds the guides and other roles
+     added in User Management. Accounts from the app's sign-up are 'hiker'. */
+  const hikers = () => (state.users || []).filter(
+    (user) => (normalizeText(user?.role || user?.Role) || 'hiker').toLowerCase() === 'hiker'
+  );
 
   const trailName = (trail) =>
     normalizeText(trail?.Trail || trail?.name || trail?.trailName) || 'Unnamed trail';
@@ -2081,7 +2093,13 @@
   /* Reports carry a Firestore createdAt and a human-readable timestamp string;
      either will do, whichever the record has. */
   const reportDate = (report) => toDate(report?.createdAt) || toDate(report?.timestamp);
-  const reportStatusOf = (report) => normalizeText(report?.status ?? report?.Status ?? 'pending').toLowerCase();
+  /* Hazard Reports only gives a report the status 'archived' when it archives
+     a REJECTED one (a resolved report keeps 'resolved' and gets
+     archived: true), so 'archived' is read as the rejection it is. */
+  const reportStatusOf = (report) => {
+    const status = normalizeText(report?.status ?? report?.Status ?? 'pending').toLowerCase();
+    return status === 'archived' ? 'rejected' : status;
+  };
   const isRejectedReport = (report) => reportStatusOf(report) === 'rejected';
 
   const riskLevelKey = (report) => {
@@ -2221,21 +2239,23 @@
     });
   };
 
-  /* Hiker activity by weekday. Accounts rarely carry a last-active timestamp,
-     so when none do, hazard report submissions stand in as the activity signal
-     and the panel says which source it used. */
+  /* Hiker activity by weekday, from users/{uid}.lastHikeAt: the app stamps
+     it when a hiker ends a hike (HikeSessionService), so it is a real day on
+     the mountain -- unlike updatedAt, which any profile edit changes. It holds
+     each hiker's latest hike only. With no hikes recorded yet, hazard report
+     submissions stand in, and the panel says which source it used. */
   const usageByWeekday = () => {
     const counts = [0, 0, 0, 0, 0, 0, 0];
     let sampled = 0;
 
-    (state.users || []).forEach((user) => {
-      const date = toDate(user.lastActive || user.lastLogin || user.lastSeen || user.updatedAt || user.lastUpdated);
+    hikers().forEach((user) => {
+      const date = toDate(user.lastHikeAt);
       if (!date) return;
       counts[date.getDay()] += 1;
       sampled += 1;
     });
 
-    if (sampled) return { counts, sampled, source: 'hiker accounts with recorded activity' };
+    if (sampled) return { counts, sampled, source: "hikers' most recent hikes" };
 
     const reportCounts = [0, 0, 0, 0, 0, 0, 0];
     let reportSampled = 0;
@@ -2254,7 +2274,7 @@
   const availableInputs = () => [
     { key: 'hazards', ready: Array.isArray(state.hazards) && state.hazards.length > 0 },
     { key: 'trails', ready: Array.isArray(state.trails) && state.trails.length > 0 },
-    { key: 'users', ready: Array.isArray(state.users) && state.users.length > 0 },
+    { key: 'users', ready: hikers().length > 0 },
     { key: 'advisories', ready: Array.isArray(state.advisories) && state.advisories.length > 0 },
     { key: 'emergencies', ready: Array.isArray(state.emergencies) && state.emergencies.length > 0 },
     { key: 'forecast', ready: Array.isArray(state.forecast) && state.forecast.length > 0 }
@@ -2262,8 +2282,10 @@
 
   /* ---------------- Descriptive ---------------- */
 
+  // The date A&A.html dates an advisory by; a scheduled one dated ahead is
+  // not counted until that day comes (inWindow ignores future dates).
   const advisoryDate = (advisory) =>
-    toDate(advisory?.createdAt) || toDate(advisory?.effectiveDate) || toDate(advisory?.publishedAt);
+    toDate(advisory?.effectiveDate) || toDate(advisory?.publishedAt) || toDate(advisory?.createdAt);
   const emergencyDate = (item) =>
     toDate(item?.createdAt) || toDate(item?.timestamp) || toDate(item?.reportedAt) || toDate(item?.date);
   const accountDate = (user) =>
@@ -2309,15 +2331,19 @@
     const previous = reports.filter((report) => inWindow(reportDate(report), periodDays, periodDays));
 
     const isReviewed = (report) => reportStatusOf(report) !== 'pending';
-    const isAccepted = (report) => ['verified', 'resolved', 'archived'].includes(reportStatusOf(report));
+    const isAccepted = (report) => ['verified', 'resolved'].includes(reportStatusOf(report));
 
-    /* Review time = submitted → the admin's decision. Verifying, rejecting and
-       resolving all stamp updatedAt, so it stands in for the decision time. */
+    /* Review time = submitted → the admin's verify or reject decision, which
+       Hazard Reports stamps as verifiedAt / rejectedAt. updatedAt is only a
+       fallback for older records still at that decision: resolving also
+       stamps updatedAt, so on a resolved report it would be the resolve time. */
+    const decidedAt = (report) => toDate(report.verifiedAt) || toDate(report.rejectedAt)
+      || (['verified', 'rejected'].includes(reportStatusOf(report)) ? toDate(report.updatedAt) : null);
     const reviewHours = (list) => list
       .filter(isReviewed)
       .map((report) => {
         const from = reportDate(report);
-        const to = toDate(report.updatedAt);
+        const to = decidedAt(report);
         if (!from || !to) return null;
         const hours = (to.getTime() - from.getTime()) / (60 * 60 * 1000);
         return hours >= 0 ? hours : null;
@@ -2374,7 +2400,7 @@
       byRisk: countBy(submitted, (report) => riskLevelKey(report)),
       advisories: (state.advisories || []).filter((item) => inWindow(advisoryDate(item), periodDays)).length,
       emergencies: (state.emergencies || []).filter((item) => inWindow(emergencyDate(item), periodDays)).length,
-      newAccounts: (state.users || []).filter((user) => inWindow(accountDate(user), periodDays)).length
+      newAccounts: hikers().filter((user) => inWindow(accountDate(user), periodDays)).length
     };
   };
 
@@ -2678,7 +2704,7 @@
     const data = describe();
 
     const statusCount = (status) => data.submitted.filter((report) => reportStatusOf(report) === status).length;
-    const acceptedCount = data.submitted.filter((report) => ['verified', 'resolved', 'archived'].includes(reportStatusOf(report))).length;
+    const acceptedCount = data.submitted.filter((report) => ['verified', 'resolved'].includes(reportStatusOf(report))).length;
     const previousLabel = `Previous ${periodDays} days`;
 
     const cards = [
@@ -2705,7 +2731,7 @@
         tip: {
           title: 'Reports accepted as genuine',
           lines: [
-            `${acceptedCount} of ${data.submitted.length} report${data.submitted.length === 1 ? '' : 's'} verified, resolved or archived`,
+            `${acceptedCount} of ${data.submitted.length} report${data.submitted.length === 1 ? '' : 's'} verified or resolved`,
             `Rejected: ${statusCount('rejected')} · Still pending: ${statusCount('pending')}`,
             data.acceptedSharePrevious === null ? '' : `${previousLabel}: ${Math.round(data.acceptedSharePrevious)}%`
           ]
@@ -2834,7 +2860,7 @@
       : '<div class="empty-state">No hazard reports in this period.</div>';
 
     // Status split
-    const statusOrder = ['pending', 'verified', 'resolved', 'rejected', 'archived'];
+    const statusOrder = ['pending', 'verified', 'resolved', 'rejected'];
     const statusList = document.getElementById('statusBreakdown');
     const statusRows = data.byStatus
       .slice()
@@ -2913,7 +2939,7 @@
       },
       users: {
         title: `New hiker accounts · last ${periodDays} days`,
-        lines: [`${data.newAccounts} new of ${(state.users || []).length} total accounts`]
+        lines: [`${data.newAccounts} new of ${hikers().length} hiker accounts`]
       },
       rain: {
         title: 'Rainfall, last 3 days',
@@ -3019,7 +3045,7 @@
       setText('congestionHint', 'Loading hiker activity…');
     } else if (!usage.sampled) {
       setValueCard('congestionValue', 'No data', true);
-      setText('congestionHint', 'No hiker activity timestamps recorded yet.');
+      setText('congestionHint', 'No finished hikes or hazard reports recorded yet.');
     } else {
       const weekend = usage.counts[0] + usage.counts[6];
       const weekdayAverage = (usage.counts[1] + usage.counts[2] + usage.counts[3] + usage.counts[4] + usage.counts[5]) / 5;
@@ -3222,7 +3248,7 @@
 
     if (!usage.sampled) {
       chart.innerHTML = '';
-      note.textContent = 'No hiker activity recorded yet. Usage predictions appear once accounts carry a last-active timestamp or hazard reports start coming in.';
+      note.textContent = 'No hiker activity recorded yet. Usage predictions appear once hikers finish a hike in the app (Start Hike) or hazard reports start coming in.';
       return;
     }
 
@@ -3569,7 +3595,7 @@
           priority: 'med',
           kind: 'visitors',
         title: `Plan visitor control for ${formatDay(peak.date)} (${formatDate(peak.date)}).`,
-          meta: `${peak.count} hikers were recorded active on this weekday, against an average of ${average.toFixed(1)}.`
+          meta: `${peak.count} of ${usage.sampled} ${usage.source} fell on a ${peak.date.toLocaleDateString('en-US', { weekday: 'long' })}, against an average of ${average.toFixed(1)} per day.`
         });
       }
     }
@@ -3600,17 +3626,7 @@
       });
     }
 
-    /* Data quality — these block the rest of the portal from working. */
-    const missingRisk = pending.filter((report) => riskLevelKey(report) === 'unknown');
-    if (missingRisk.length) {
-      actions.push({
-        priority: 'low',
-        kind: 'risk',
-        title: `Set a risk level on ${missingRisk.length} pending report${missingRisk.length === 1 ? '' : 's'}.`,
-        meta: 'A report cannot be verified or rejected until it carries Low, Moderate or High.'
-      });
-    }
-
+    /* Data quality: hazards responders cannot find on the map. */
     const unmappable = hazards.filter(
       (report) => !/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(normalizeText(report.location))
     );
@@ -4002,7 +4018,7 @@
     const inputs = [
       plural((state.hazards || []).length, 'hazard report'),
       plural(trails.length, 'trail'),
-      plural((state.users || []).length, 'hiker'),
+      plural(hikers().length, 'hiker'),
       plural((state.advisories || []).length, 'advisory', 'advisories'),
       plural((state.emergencies || []).length, 'emergency alert'),
       forecast.length ? `${forecast.length}-day weather forecast` : 'weather forecast (unavailable)'
@@ -4108,7 +4124,7 @@
       counts: { total: actions.length, high: countOf('high'), med: countOf('med'), low: countOf('low') },
       riskScore: today.score,
       riskLevel: bucketLabel(today.bucket),
-      inputs: Object.fromEntries(RECORD_SOURCES.map((key) => [key, state[key].length])),
+      inputs: Object.fromEntries(RECORD_SOURCES.map((key) => [key, key === 'users' ? hikers().length : state[key].length])),
       // Sources that failed to load, so a thin record can be told apart from a quiet day.
       unavailableInputs: Object.keys(state.errors),
       trigger: auto ? 'auto' : 'manual',

@@ -417,41 +417,8 @@
         color: #5b6b60;
     }
 
-    .pager {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .pager button {
-        min-width: 30px;
-        height: 30px;
-        padding: 0 8px;
-        border: 1px solid var(--dm-border, #e4e7e1);
-        background: var(--dm-surface, #ffffff);
-        color: var(--dm-text-2, #5b6b60);
-        border-radius: 7px;
-        font-size: 12.5px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-
-    .pager button:hover:not(:disabled):not(.active) {
-        background: var(--dm-surface-2, #eef1ec);
-    }
-    .pager button.active {
-        background: #2f8f4e;
-        border-color: #2f8f4e;
-        color: #ffffff;
-    }
-    .pager button:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-    }
-    .pager .pager-gap {
-        color: #93a199;
-        padding: 0 2px;
-    }
+    /* The page buttons (.pager) are styled in pages.css, the same as every
+       other paginated list. */
 
     .topbar-right {
         display: flex;
@@ -744,6 +711,22 @@
         overflow: visible;
     }
 
+    /* The Suspended until row (an end date, or "Lifted ... (was until ...)")
+       wraps onto a second line instead of being cut off with an ellipsis. */
+    .detail-value.wrap-value {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    .detail-value .lifted-was {
+        display: block;
+        margin-top: 2px;
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--text-secondary, #5b6b60);
+    }
+
     .detail-value.team-value .team-chips {
         justify-content: flex-end;
     }
@@ -913,6 +896,13 @@
         flex-direction: column;
         gap: 2px;
         margin-bottom: 16px;
+    }
+
+    /* display:flex below would otherwise beat the hidden attribute, and the
+       Suspended until row showed on every user, keeping the last suspended
+       user's text. */
+    .detail-row[hidden] {
+        display: none;
     }
 
     .detail-row {
@@ -1618,6 +1608,18 @@
             width: 100%;
         }
     }
+
+    /* One row height for the portal's main lists: the Hazard Reports list,
+       Advisories & Announcements, the User list, Reports About User Behavior
+       and Active Emergencies all use 64px rows. A table cell's height is a
+       minimum, so a row whose content needs more room (a long title, a
+       wrapped name) still grows to fit. Phones keep their own layouts. */
+    @media (min-width: 701px) {
+        #usersTableBody > tr > td {
+            height: 64px;
+            vertical-align: middle;
+        }
+    }
 </style>
 </head>
 <body>
@@ -1914,7 +1916,8 @@
       </div>
       <div class="field">
         <label for="addUserPhone">Phone</label>
-        <input id="addUserPhone" name="phone" type="text">
+        <input id="addUserPhone" name="phone" type="tel" inputmode="tel" autocomplete="off" maxlength="17" placeholder="09XX XXX XXXX or +63 9XX XXX XXXX" aria-describedby="addUserPhoneHint" required>
+        <p id="addUserPhoneHint" class="field-hint">Philippine mobile number only (+63).</p>
       </div>
     </div>
     <p id="addUserStatusMessage" class="action-status" role="status" aria-live="polite"></p>
@@ -1995,6 +1998,7 @@
   import { suspensionState } from '../jsPages/account-status.js';
   // The Dashboard and Geomap count active hikers from this too.
   import { watchActiveHikers, watchLastSeen } from '../jsPages/active-hikers.js';
+  import { pageList, pageGap, PAGE_GAP } from '../jsPages/pagination.js';
   import { openExportMenu } from '../jsPages/export-table.js';
   import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
   import { initializeAuth, inMemoryPersistence, createUserWithEmailAndPassword, deleteUser, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
@@ -2010,7 +2014,7 @@
     updateDoc
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-  const PAGE_SIZE = 9;
+  const PAGE_SIZE = 10;
 
   const usersTableBody = document.getElementById('usersTableBody');
   const searchInput = document.getElementById('userSearchInput');
@@ -2057,6 +2061,8 @@
   const state = {
     users: [],
     teams: [],
+    // trails/{id} -> trail name, for each team's trailID (Assigned Area).
+    trailNames: new Map(),
     hazardReports: [],
     emergencies: [],
     userReports: [],
@@ -2130,9 +2136,16 @@
     const phone = normalizeText(data.phone || data.phoneNumber || data.contactNumber || '—');
     const emergencyContact = normalizeText(data.emergencyContact || data.emergencyPhone || data.emergency_number || '—');
     const memberSince = data.memberSince || data.createdAt || data.registeredOn || data.registeredAt || data.joinedAt;
-    const lastActive = data.lastActive || data.lastLogin || data.lastSeen || data.updatedAt || data.lastUpdated;
-    const totalHikes = normalizeText(data.totalHikes ?? data.hikesCount ?? data.hikeCount ?? '—');
-    const totalDistance = normalizeText(data.totalDistance ?? data.distance ?? data.totalDistanceKm ?? '—');
+    /* Before the app's check-in heartbeat (applyLastSeen) is known: the end of
+       their latest hike. updatedAt is not used -- any profile edit, by the
+       hiker or an admin, changes it. */
+    const lastActive = data.lastActive || data.lastLogin || data.lastSeen || data.lastHikeAt;
+    /* What the app's Profile page shows (HikeSessionService.watchTotals):
+       completedHikes and hikeTotalKm, kept up to date as hikes end. */
+    const hikes = Number(data.completedHikes ?? data.hikeCount ?? data.totalHikes);
+    const totalHikes = Number.isFinite(hikes) ? String(Math.floor(hikes)) : '—';
+    const km = Number(data.hikeTotalKm ?? data.totalDistanceKm ?? data.totalDistance);
+    const totalDistance = Number.isFinite(km) ? `${km.toFixed(km < 10 ? 2 : 1)} km` : '—';
     const area = normalizeText(data.assignedArea || data.area || data.trailArea || data.location || '—');
 
     return {
@@ -2143,6 +2156,8 @@
       suspendedUntil: data.suspendedUntil ?? null,
       suspensionReason: normalizeText(data.suspensionReason || ''),
       name: fullName || 'Unnamed user',
+      // Hazard reports name their reporter by username only (reportedBy).
+      username: normalizeText(data.username),
       email,
       role: role || 'Hiker',
       status: status || 'Active',
@@ -2220,6 +2235,19 @@
     return user?.team && user.team !== '—' ? [user.team] : [];
   };
 
+  /* Assigned Area: the trail of every team the user is in (teams/{id}.trailID
+     -> trails/{id}.Trail), so a hiker or guide on a team shows where that
+     team is hiking. Someone in no team keeps the area stored on their own
+     profile, if any. */
+  const userAreaNames = (user) => {
+    const names = [...new Set(teamsForUser(user)
+      .map(team => state.trailNames.get(team.trailId))
+      .filter(Boolean))];
+    if (names.length) return names;
+    return user?.area && user.area !== '—' ? [user.area] : [];
+  };
+  const userAreaText = (user) => userAreaNames(user).join(', ') || '—';
+
   const teamChipsHtml = (user) => {
     const teams = teamsForUser(user);
     if (teams.length) {
@@ -2238,7 +2266,7 @@
 
   const identityKeys = (user) => {
     const keys = new Set();
-    [user.id, user.uid, user.email, user.name].forEach((value) => {
+    [user.id, user.uid, user.email, user.name, user.username].forEach((value) => {
       const key = normalizeText(value).toLowerCase();
       if (key && key !== 'no email' && key !== 'unnamed user') keys.add(key);
     });
@@ -2297,7 +2325,8 @@
           icon: 'fa-triangle-exclamation',
           tone: 'red',
           title: `Submitted hazard report: ${normalizeText(record.hazardType || record.title) || 'Hazard'}`,
-          date: pickDate(record, ['timestamp', 'createdAt', 'reportedAt', 'date', 'updatedAt'])
+          // createdAt first: timestamp is the app's display text, not a date.
+          date: pickDate(record, ['createdAt', 'timestamp', 'reportedAt', 'date'])
         });
       });
 
@@ -2308,7 +2337,7 @@
           icon: 'fa-tower-broadcast',
           tone: 'amber',
           title: `Emergency alert: ${normalizeText(record.title || record.Title || record.type || record.Type) || 'Alert raised'}`,
-          date: pickDate(record, ['timestamp', 'createdAt', 'reportedAt', 'date', 'updatedAt'])
+          date: pickDate(record, ['createdAt', 'timestamp', 'reportedAt', 'date'])
         });
       });
 
@@ -2417,20 +2446,10 @@
 
     addButton('&lsaquo;', state.page - 1, { disabled: state.page === 1 });
 
-    const shown = [...new Set([1, state.page - 1, state.page, state.page + 1, totalPages])]
-      .filter(page => page >= 1 && page <= totalPages)
-      .sort((a, b) => a - b);
-
-    let previous = 0;
-    shown.forEach((page) => {
-      if (previous && page - previous > 1) {
-        const gap = document.createElement('span');
-        gap.className = 'pager-gap';
-        gap.textContent = '…';
-        userPager.appendChild(gap);
-      }
-      addButton(String(page), page, { active: page === state.page });
-      previous = page;
+    // The same shortening as every other list (pagination.js).
+    pageList(state.page, totalPages).forEach((page) => {
+      if (page === PAGE_GAP) userPager.appendChild(pageGap());
+      else addButton(String(page), page, { active: page === state.page });
     });
 
     addButton('&rsaquo;', state.page + 1, { disabled: state.page === totalPages });
@@ -2581,13 +2600,30 @@
       : effectiveStatus;
     statusBadge.className = `status-pill ${getUserStatusClass(effectiveStatus)}`;
 
+    /* While suspended: the end date. Lifted before that date: says so, with
+       the date it was lifted and the one it would have ended on, rather than
+       the row simply disappearing. */
     const suspensionRow = document.getElementById('detailSuspensionRow');
-    suspensionRow.hidden = !suspension.active;
+    const liftedAt = !suspension.active ? toDate(user.raw?.suspensionLiftedAt) : null;
+    suspensionRow.hidden = !suspension.active && !liftedAt;
+    const suspendedUntilEl = document.getElementById('detailSuspendedUntil');
+    // Shown whole, never cut off with an ellipsis, while suspended or lifted.
+    suspendedUntilEl.classList.toggle('wrap-value', suspension.active || !!liftedAt);
+    // Nothing to show: clear it, so no other user's suspension lingers.
+    if (suspensionRow.hidden) suspendedUntilEl.textContent = '—';
     if (suspension.active) {
-      document.getElementById('detailSuspendedUntil').textContent = suspension.until
+      suspendedUntilEl.textContent = suspension.until
         ? formatDisplayDateTime(suspension.until)
         : 'No end date';
+    } else if (liftedAt) {
+      // Two lines: when it was lifted, then the end date it would have had.
+      const wasUntil = toDate(user.raw?.liftedSuspensionUntil);
+      suspendedUntilEl.innerHTML = `Lifted ${escapeHtml(formatDisplayDateTime(liftedAt))}`
+        + `<span class="lifted-was">${escapeHtml(wasUntil ? `Was until ${formatDisplayDateTime(wasUntil)}` : 'Had no end date')}</span>`;
     }
+    // Set inline as well as by class, so no other rule can cut it short.
+    suspendedUntilEl.style.whiteSpace = suspension.active || liftedAt ? 'normal' : '';
+    suspendedUntilEl.style.overflow = suspension.active || liftedAt ? 'visible' : '';
 
     const alerts = getUserAlerts(user);
 
@@ -2600,7 +2636,7 @@
     document.getElementById('detailTotalHikes').textContent = user.totalHikes || '—';
     document.getElementById('detailDistance').textContent = user.totalDistance || '—';
     document.getElementById('detailAlertCount').textContent = String(alerts.length);
-    document.getElementById('detailArea').textContent = user.area || '—';
+    document.getElementById('detailArea').textContent = userAreaText(user);
 
     detailActionButtons.forEach(button => { if (button) button.disabled = false; });
     resetPasswordBtn.disabled = !hasValidEmail(user.email);
@@ -2627,11 +2663,24 @@
   // ---------------------------------------------------------------------
   // Modals
   // ---------------------------------------------------------------------
+  /* Add User keeps an unfinished entry. Clicking outside the dialog or
+     pressing Escape only hides it (hideAddUserModal), and Add User brings
+     the same entry back. Only Cancel, or adding the user, discards it
+     (closeAddUserModal). */
+  let addUserDraft = false;
+  addUserForm.addEventListener('input', () => { addUserDraft = true; });
+  addUserForm.addEventListener('change', () => { addUserDraft = true; });
+
+  const hideAddUserModal = () => {
+    if (saveAddUserBtn.textContent === 'Adding...') return;
+    addUserModal.classList.remove('open');
+  };
   const closeAddUserModal = () => {
     if (saveAddUserBtn.textContent === 'Adding...') return;
     addUserModal.classList.remove('open');
     addUserForm.reset();
     resetEmailVerification();
+    addUserDraft = false;
   };
   const closeViewProfileModal = () => viewProfileModal.classList.remove('open');
 
@@ -2649,7 +2698,7 @@
     document.getElementById('profileModalTeam').textContent = userTeamNames(user).join(', ') || '—';
     document.getElementById('profileModalPhone').textContent = user.phone;
     document.getElementById('profileModalEmergencyContact').textContent = user.emergencyContact;
-    document.getElementById('profileModalArea').textContent = user.area;
+    document.getElementById('profileModalArea').textContent = userAreaText(user);
     document.getElementById('profileModalMemberSince').textContent = formatDisplayDate(user.memberSince);
     document.getElementById('profileModalLastActive').textContent = formatDisplayDateTime(user.lastActive);
     document.getElementById('profileModalTotalHikes').textContent = user.totalHikes;
@@ -2669,6 +2718,14 @@
   });
 
   addUserBtn.addEventListener('click', () => {
+    // An entry left unfinished comes back exactly as it was.
+    if (addUserDraft) {
+      addUserStatusMessage.textContent = 'Continuing the user you started adding. Click Cancel to start over.';
+      addUserStatusMessage.className = 'action-status';
+      addUserModal.classList.add('open');
+      document.getElementById('addUserName').focus();
+      return;
+    }
     addUserForm.reset();
     resetEmailVerification();
     // Every team starts unticked; a full team is still
@@ -2686,13 +2743,13 @@
 
   cancelAddUserBtn.addEventListener('click', closeAddUserModal);
   addUserModal.addEventListener('click', (event) => {
-    if (event.target === addUserModal) closeAddUserModal();
+    if (event.target === addUserModal) hideAddUserModal();
   });
 
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
     closeViewProfileModal();
-    closeAddUserModal();
+    hideAddUserModal();
   });
 
   contactUserBtn.addEventListener('click', () => {
@@ -2792,11 +2849,43 @@
     emailStatus.textContent = text;
     emailStatus.className = `field-hint verify-status${tone ? ` is-${tone}` : ''}`;
   };
-  const refreshAddUserButton = () => {
-    const ok = verifiedEmail && verifiedEmail === currentEmail();
-    saveAddUserBtn.disabled = !ok;
-    saveAddUserBtn.title = ok ? '' : 'Verify the email first';
+  /* Philippine mobile numbers only: 09XXXXXXXXX, 9XXXXXXXXX, 639XXXXXXXXX or
+     +639XXXXXXXXX, with spaces, dashes or brackets allowed. Returns the number
+     the way the app stores it -- phone "09XXXXXXXXX" and phoneE164
+     "+639XXXXXXXXX" (AuthService._toE164) -- or null. */
+  const parsePhilippinePhone = (raw) => {
+    const compact = String(raw || '').replace(/[\s\-().]/g, '');
+    const match = /^(?:\+?63|0)?(9\d{9})$/.exec(compact);
+    if (!match) return null;
+    return { local: `0${match[1]}`, e164: `+63${match[1]}` };
   };
+  const addUserPhoneInput = document.getElementById('addUserPhone');
+  const addUserPhoneHint = document.getElementById('addUserPhoneHint');
+  const PHONE_HINT = 'Philippine mobile number only (+63).';
+  const PHONE_ERROR = 'Not a Philippine mobile number. Use 09XX XXX XXXX or +63 9XX XXX XXXX.';
+  const addUserPhoneOk = () => Boolean(parsePhilippinePhone(addUserPhoneInput.value));
+  // Marks the field (and says why in red) once something is typed.
+  const checkAddUserPhone = () => {
+    const typed = addUserPhoneInput.value.trim();
+    const bad = typed && !addUserPhoneOk();
+    addUserPhoneInput.setCustomValidity(bad ? PHONE_ERROR : '');
+    addUserPhoneHint.textContent = bad ? PHONE_ERROR : PHONE_HINT;
+    addUserPhoneHint.className = `field-hint verify-status${bad ? ' is-error' : ''}`;
+  };
+
+  /* Add User only works with a verified email AND a Philippine mobile
+     number; the button says which one is missing. */
+  const refreshAddUserButton = () => {
+    const emailOk = verifiedEmail && verifiedEmail === currentEmail();
+    const phoneOk = addUserPhoneOk();
+    saveAddUserBtn.disabled = !(emailOk && phoneOk);
+    saveAddUserBtn.title = !emailOk ? 'Verify the email first'
+      : !phoneOk ? 'Enter a Philippine mobile number (+63)' : '';
+  };
+  addUserPhoneInput.addEventListener('input', () => {
+    checkAddUserPhone();
+    if (saveAddUserBtn.textContent !== 'Adding...') refreshAddUserButton();
+  });
   const startResendCountdown = (seconds) => {
     clearInterval(resendTimer);
     let left = seconds;
@@ -2822,6 +2911,7 @@
     emailCodeRow.hidden = true;
     emailCodeInput.value = '';
     setEmailStatus(EMAIL_HINT);
+    checkAddUserPhone();  // after a form reset: back to the plain hint
     refreshAddUserButton();
   };
   const describeCallError = (error, fallback) => {
@@ -2922,6 +3012,13 @@
 
   addUserForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    checkAddUserPhone();
+    if (!addUserPhoneOk()) {
+      addUserStatusMessage.textContent = 'Enter a Philippine mobile number (+63) before adding the user.';
+      addUserStatusMessage.className = 'action-status error';
+      addUserPhoneInput.focus();
+      return;
+    }
     if (saveAddUserBtn.disabled || !addUserForm.reportValidity()) return;
     if (!verifiedEmail || verifiedEmail !== currentEmail()) {
       setEmailStatus('Verify the email before adding the user.', 'error');
@@ -2964,8 +3061,10 @@
       // capital H) written from the new account's session would be refused.
       const accountDb = db;
       const usernameRef = doc(accountDb, 'usernames', username);
-      const phone = normalizeText(formData.get('phone'));
-      const phoneE164 = phone.startsWith('0') ? '+63' + phone.slice(1) : phone;
+      // Validated on submit (checkAddUserPhone), so this always parses.
+      const parsedPhone = parsePhilippinePhone(formData.get('phone'));
+      const phone = parsedPhone.local;
+      const phoneE164 = parsedPhone.e164;
       await runTransaction(accountDb, async (transaction) => {
         if ((await transaction.get(usernameRef)).exists()) {
           const error = new Error('Username already taken');
@@ -3111,6 +3210,11 @@
     try {
       await updateDoc(doc(db, 'users', user.id), {
         status: 'Active',
+        // Kept so the details panel can say it was lifted early, and from
+        // what end date.
+        suspensionLiftedAt: serverTimestamp(),
+        suspensionLiftedBy: auth.currentUser?.uid || null,
+        liftedSuspensionUntil: userSuspension(user).until || null,
         suspendedUntil: null,
         suspendedAt: null,
         suspendedBy: null,
@@ -3168,7 +3272,11 @@
         suspendedAt: serverTimestamp(),
         suspendedBy: auth.currentUser?.uid || null,
         suspensionDays: Math.floor(days),
-        suspensionReason: normalizeText(suspendUserReason.value) || null
+        suspensionReason: normalizeText(suspendUserReason.value) || null,
+        // A new suspension replaces any earlier "lifted" note.
+        suspensionLiftedAt: null,
+        suspensionLiftedBy: null,
+        liftedSuspensionUntil: null
       });
       closeSuspendModal();
       setResetPasswordStatus(
@@ -3406,6 +3514,18 @@
     refreshAll();
   }, (error) => {
     console.error('Error loading teams:', error);
+  });
+
+  // Trail names for each team's trailID, live, so renaming a trail in Trail
+  // Management updates Assigned Area too.
+  onSnapshot(collection(db, 'trails'), (snapshot) => {
+    state.trailNames = new Map(snapshot.docs.map(trailDoc => {
+      const data = trailDoc.data() || {};
+      return [trailDoc.id, normalizeText(data.Trail || data.name || data.trailName)];
+    }));
+    renderSelectedUser();
+  }, (error) => {
+    console.error('Error loading trails:', error);
   });
 
   watchCollection('reports', 'hazardReports');

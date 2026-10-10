@@ -3,6 +3,12 @@ import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { isAccountBlocked, watchAccountStatus } from "./account-status.js";
+import { endCurrentSession, signOutEndedSession, startSession } from "./admin-sessions.js";
+
+// Kept in step with ADMIN_ROLES in admin-identity.js. An admin record whose
+// role is not one of these has no access.
+const ADMIN_ROLES = ["Super Administrator", "Administrator", "Viewer"];
+const hasAdminRole = (role) => ADMIN_ROLES.includes(role);
 
 // Signs a deactivated admin out and tells them why on the login page.
 const signOutDeactivated = async () => {
@@ -47,6 +53,7 @@ function buildLogoutModal() {
     confirmBtn.textContent = "Logging out...";
     errorBox.textContent = "";
     try {
+      await endCurrentSession();
       await signOut(auth);
       window.location.href = "Home.html";
     } catch (error) {
@@ -114,6 +121,14 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
+  // An admin record with no role has no access until a Super Administrator
+  // assigns one in Settings > Role & Permission Settings.
+  if (!hasAdminRole(adminDocSnap.data().role)) {
+    await signOut(auth);
+    window.location.href = "Home.html?reason=no-role";
+    return;
+  }
+
   // An admin, but one that User Management may have deactivated.
   // If the users collection cannot be read, fall through rather than lock
   // every admin out: the admins check above is still the gate.
@@ -128,6 +143,10 @@ onAuthStateChanged(auth, async (user) => {
 
   // User is a verified admin — safe to show the page
   console.log("Access granted:", user.email);
+
+  // Settings > Login Sessions: record this browser's session, and sign out
+  // if it is ended from another device.
+  startSession(user, signOutEndedSession);
 
   // Deactivated by another admin while this page is open: sign out now,
   // not on the next page load.

@@ -4,7 +4,8 @@
 //
 // Each point belongs to a trail and is saved on that trail's own document,
 // trails/{id}, in a `checkpoints` or `campsites` array of
-//   { id, name, note, lat, lng, createdAt (ISO string), createdBy }
+//   { id, name, note, lat, lng, createdAt (ISO string), createdBy, updatedAt }
+// A pin's popup has Edit (name, notes, coordinates) and Remove.
 // Admins can already write trails (firestore.rules), so no new rules are
 // needed. Arrays rather than a collection because a trail has a handful of
 // these at most, and they then arrive with the trail snapshot the page
@@ -202,6 +203,7 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
 }[c]));
 
 const CSS = `
+.tp-true-spot { pointer-events:none; }
 .tp-pin { display:grid; place-items:center; width:28px; height:28px; border-radius:50% 50% 50% 0;
   transform:rotate(-45deg); border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.35); }
 .tp-pin i { transform:rotate(45deg); color:#fff; font-size:12px; }
@@ -218,8 +220,15 @@ const CSS = `
 .tp-popup .tp-type { color:#5b6b60; font-size:11.5px; margin-bottom:4px; }
 .tp-popup .tp-note { margin:4px 0 6px; }
 .tp-popup .tp-coords { color:#93a199; font-size:11px; }
-.tp-popup button { margin-top:8px; border:0; background:#fbe9e7; color:#c8402f; border-radius:6px;
+.tp-popup .tp-popup-actions { display:flex; gap:6px; margin-top:8px; }
+.tp-popup button { display:inline-flex; align-items:center; gap:5px; border:0; border-radius:6px;
   padding:5px 10px; font-size:12px; font-weight:600; cursor:pointer; }
+.tp-popup .tp-edit { background:#e3f2e6; color:#1f6b39; }
+.tp-popup .tp-edit:hover { background:#cfe8d5; }
+.tp-popup .tp-remove { background:#fbe9e7; color:#c8402f; }
+.tp-popup .tp-remove:hover { background:#f6d5d0; }
+.tp-dialog .tp-coord-fields { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.tp-dialog .tp-coord-fields[hidden] { display:none; }
 .tp-modal { display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.5);
   align-items:center; justify-content:center; padding:16px; }
 .tp-modal.open { display:flex; }
@@ -241,6 +250,11 @@ const CSS = `
 .tp-dialog .tp-cancel { border:1px solid var(--border); background:var(--dm-surface,#fff); color:var(--text-primary); }
 .tp-dialog .tp-save { border:0; background:var(--accent); color:#fff; }
 .tp-dialog .tp-save[disabled] { opacity:.6; cursor:wait; }
+/* Remove confirmation: the same dialog, red. */
+.tp-dialog.is-danger h3 i { color:#c8402f; }
+.tp-dialog .tp-danger { border:0; background:#c8402f; color:#fff; }
+.tp-dialog .tp-danger:hover:not([disabled]) { background:#a8331f; }
+.tp-dialog .tp-danger[disabled] { opacity:.6; cursor:wait; }
 .tp-dialog .tp-list { margin:0 0 14px; padding:0; list-style:none; display:flex; flex-direction:column; gap:10px; }
 .tp-dialog .tp-list > li { padding:10px 12px; border-radius:8px; background:var(--dm-surface-2,#f3f5f2); }
 .tp-dialog .tp-list strong { display:block; margin-bottom:4px; font-size:13px; color:var(--text-primary); }
@@ -260,6 +274,10 @@ const MODAL = `
   <div class="tp-where"></div>
   <label>Name <input type="text" id="tpName" maxlength="80"></label>
   <label>Notes (optional) <textarea id="tpNote" maxlength="500" placeholder="e.g. water refill, ranger post, space for 10 tents"></textarea></label>
+  <div class="tp-coord-fields" hidden>
+    <label>Latitude <input type="text" id="tpLat" inputmode="decimal" autocomplete="off"></label>
+    <label>Longitude <input type="text" id="tpLng" inputmode="decimal" autocomplete="off"></label>
+  </div>
   <div class="tp-error" role="alert"></div>
   <div class="tp-actions">
     <button type="button" class="tp-cancel">Cancel</button>
@@ -317,6 +335,13 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
   let pending = null; // { type, trail, latlng, snapped }
   let saving = false;
   let knownTrails = []; // the trails last drawn, for matching a click to a trail line
+  // Overlapping pins (spreadPins below):
+  const PIN_GAP = 30; // px: pins closer than this count as overlapping
+  const RING_GAP = 36; // px between neighbouring pins once fanned out
+  const RING_MIN_RADIUS = 40; // px from the group's middle to each fanned-out pin
+  let placed = []; // [{ latlng, marker }] from the last render
+  const spreadLayer = L.layerGroup().addTo(layer);
+  let spreadBound = false;
 
   if (readOnly) return { render };
 
@@ -337,10 +362,72 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
     });
   }
 
+  /* Pins that would sit on top of each other at the current zoom are fanned
+     out in a small ring around their middle, each with a thin line to a dot
+     on its real spot, so every pin stays visible and clickable even where
+     the map cannot zoom in far enough to separate them. Redone after every
+     zoom: pins far enough apart stay exactly where they are. */
+
+  function spreadPins() {
+    spreadLayer.clearLayers();
+    if (!map._loaded) return;
+    const pts = placed.map((p) => map.latLngToLayerPoint(p.latlng));
+    // Group pins chained together by overlaps (union-find).
+    const parent = pts.map((_, i) => i);
+    const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+    for (let i = 0; i < pts.length; i += 1) {
+      for (let j = i + 1; j < pts.length; j += 1) {
+        if (pts[i].distanceTo(pts[j]) < PIN_GAP) parent[find(i)] = find(j);
+      }
+    }
+    const groups = new Map();
+    pts.forEach((_, i) => {
+      const root = find(i);
+      if (!groups.has(root)) groups.set(root, []);
+      groups.get(root).push(i);
+    });
+
+    for (const members of groups.values()) {
+      if (members.length === 1) {
+        placed[members[0]].marker.setLatLng(placed[members[0]].latlng);
+        continue;
+      }
+      const n = members.length;
+      const cx = members.reduce((sum, i) => sum + pts[i].x, 0) / n;
+      const cy = members.reduce((sum, i) => sum + pts[i].y, 0) / n;
+      // Neighbouring pins on the ring are at least RING_GAP apart, and the
+      // ring is wide enough that the lines to the real spots show.
+      const radius = Math.max(RING_MIN_RADIUS, RING_GAP / (2 * Math.sin(Math.PI / n)));
+      // Keep the pins' real order around the middle (same spot: list order).
+      const order = members
+        .map((i) => ({ i, a: Math.atan2(pts[i].y - cy, pts[i].x - cx) }))
+        .sort((a, b) => a.a - b.a || a.i - b.i);
+      order.forEach(({ i }, k) => {
+        const angle = -Math.PI / 2 + (2 * Math.PI * k) / n;
+        const shown = map.layerPointToLatLng(L.point(cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)));
+        placed[i].marker.setLatLng(shown);
+        L.polyline([placed[i].latlng, shown], {
+          color: '#ffffff', weight: 1.5, opacity: 0.9, dashArray: '3 3', interactive: false
+        }).addTo(spreadLayer);
+        L.circleMarker(placed[i].latlng, {
+          radius: 3, color: '#1f3a28', weight: 1.5, fillColor: '#ffffff', fillOpacity: 1,
+          interactive: false, className: 'tp-true-spot'
+        }).addTo(spreadLayer);
+      });
+    }
+  }
+
   // Redraws every trail's checkpoints and campsites.
   function render(trails) {
     knownTrails = trails || [];
     layer.clearLayers();
+    spreadLayer.addTo(layer);
+    placed = [];
+    if (!spreadBound) {
+      spreadBound = true;
+      map.on('zoomend', spreadPins);
+      map.whenReady(spreadPins);
+    }
     for (const trail of trails || []) {
       for (const type of Object.keys(POINT_TYPES)) {
         const points = Array.isArray(trail[type]) ? trail[type] : [];
@@ -357,30 +444,78 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
               <div class="tp-type">${POINT_TYPES[type].label} · ${escapeHtml(trail.Trail || 'Trail')}</div>
               ${point.note ? `<div class="tp-note">${escapeHtml(point.note)}</div>` : ''}
               <div class="tp-coords">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
-              ${readOnly ? '' : '<button type="button">Remove</button>'}`;
-            el.querySelector('button')?.addEventListener('click', () => removePoint(trail.id, type, point.id, el));
+              ${readOnly ? '' : `<div class="tp-popup-actions">
+                <button type="button" class="tp-edit"><i class="fa-solid fa-pen" aria-hidden="true"></i>Edit</button>
+                <button type="button" class="tp-remove"><i class="fa-solid fa-trash" aria-hidden="true"></i>Remove</button>
+              </div>`}`;
+            el.querySelector('.tp-edit')?.addEventListener('click', () => openEdit(trail, type, point));
+            el.querySelector('.tp-remove')?.addEventListener('click', () => removePoint(trail, type, point));
             return el;
           });
           marker.addTo(layer);
+          placed.push({ latlng: L.latLng(lat, lng), marker });
         }
       }
     }
+    spreadPins();
   }
 
-  async function removePoint(trailId, type, pointId, popupEl) {
-    const label = POINT_TYPES[type].label.toLowerCase();
-    if (!window.confirm(`Remove this ${label}?`)) return;
-    try {
-      // Read the latest list so a point added meanwhile is not lost.
-      const ref = doc(db, 'trails', trailId);
-      const snap = await getDoc(ref);
-      const list = Array.isArray(snap.data()?.[type]) ? snap.data()[type] : [];
-      await updateDoc(ref, { [type]: list.filter((p) => p?.id !== pointId) });
-      map.closePopup();
-    } catch (error) {
-      const btn = popupEl.querySelector('button');
-      if (btn) btn.textContent = error?.code === 'permission-denied' ? 'Not allowed' : 'Could not remove';
-    }
+  // Asks in a popup (styled like Add Checkpoint), then removes the point.
+  function removePoint(trail, type, point) {
+    const t = POINT_TYPES[type];
+    const label = t.label.toLowerCase();
+    map.closePopup();
+    const confirmModal = document.createElement('div');
+    confirmModal.className = 'tp-modal open';
+    confirmModal.innerHTML = `
+      <div class="tp-dialog is-danger" role="alertdialog" aria-modal="true" aria-labelledby="tpRemoveTitle" aria-describedby="tpRemoveText">
+        <h3 id="tpRemoveTitle"><i class="fa-solid fa-trash" aria-hidden="true"></i><span>Remove ${escapeHtml(label)}?</span></h3>
+        <p class="tp-sub" id="tpRemoveText"><strong>${escapeHtml(point.name || t.label)}</strong> on ${escapeHtml(trail.Trail || 'this trail')} will be taken off the map and out of the ${escapeHtml(label)} total. This can't be undone.</p>
+        <div class="tp-error" role="alert"></div>
+        <div class="tp-actions">
+          <button type="button" class="tp-cancel">Cancel</button>
+          <button type="button" class="tp-danger">Remove ${escapeHtml(t.label)}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(confirmModal);
+    const cancel = confirmModal.querySelector('.tp-cancel');
+    const confirm = confirmModal.querySelector('.tp-danger');
+    let busy = false;
+    const close = () => {
+      if (busy) return;
+      confirmModal.remove();
+      document.removeEventListener('keydown', onKey, true);
+    };
+    const onKey = (event) => {
+      if (event.key === 'Escape') { event.stopPropagation(); close(); }
+    };
+    document.addEventListener('keydown', onKey, true);
+    confirmModal.addEventListener('click', (event) => { if (event.target === confirmModal) close(); });
+    cancel.addEventListener('click', close);
+    cancel.focus(); // the safe choice has the focus
+
+    confirm.addEventListener('click', async () => {
+      if (busy) return;
+      busy = true;
+      confirm.disabled = cancel.disabled = true;
+      confirm.textContent = 'Removing…';
+      try {
+        // Read the latest list so a point added meanwhile is not lost.
+        const ref = doc(db, 'trails', trail.id);
+        const snap = await getDoc(ref);
+        const list = Array.isArray(snap.data()?.[type]) ? snap.data()[type] : [];
+        await updateDoc(ref, { [type]: list.filter((p) => p?.id !== point.id) });
+        busy = false;
+        close();
+      } catch (error) {
+        busy = false;
+        confirm.disabled = cancel.disabled = false;
+        confirm.textContent = `Remove ${t.label}`;
+        confirmModal.querySelector('.tp-error').textContent = error?.code === 'permission-denied'
+          ? `Firebase denied this. Only admins (not Viewers) can remove ${label}s.`
+          : `Could not remove the ${label}: ${error?.message || 'Unknown error'}`;
+      }
+    });
   }
 
   function stopPlacing() {
@@ -452,10 +587,31 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
     $('.tp-where').textContent = `${next.latlng.lat.toFixed(5)}, ${next.latlng.lng.toFixed(5)}${next.snapped ? ' · placed on the trail line' : ''}`;
     $('#tpName').value = `${t.label} ${existing + 1}`;
     $('#tpNote').value = '';
+    $('.tp-where').hidden = false;
+    $('.tp-coord-fields').hidden = true;
     $('.tp-error').textContent = '';
     modal.classList.add('open');
     $('#tpName').focus();
     $('#tpName').select();
+  }
+
+  // The same dialog, filled in with the pin's details, to change them.
+  function openEdit(trail, type, point) {
+    map.closePopup();
+    const t = POINT_TYPES[type];
+    pending = { type, trail, editing: point };
+    $('#tpTitle i').className = 'fa-solid fa-pen';
+    $('#tpTitle span').textContent = `Edit ${t.label}`;
+    $('.tp-sub').textContent = `On ${trail.Trail || 'this trail'}`;
+    $('.tp-where').hidden = true;
+    $('.tp-coord-fields').hidden = false;
+    $('#tpName').value = point.name || '';
+    $('#tpNote').value = point.note || '';
+    $('#tpLat').value = Number(point.lat).toFixed(6);
+    $('#tpLng').value = Number(point.lng).toFixed(6);
+    $('.tp-error').textContent = '';
+    modal.classList.add('open');
+    $('#tpName').focus();
   }
 
   function closeForm() {
@@ -469,6 +625,10 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
     const name = $('#tpName').value.trim();
     if (!name) {
       $('.tp-error').textContent = 'Give it a name.';
+      return;
+    }
+    if (pending.editing) {
+      await saveEdit(name);
       return;
     }
     const { type, trail, latlng } = pending;
@@ -500,10 +660,61 @@ export function initTrailPoints({ map, db, getSelected, lineFor, buttons, notify
     }
   }
 
+  // Saves an edited pin: name, notes and coordinates, on the latest list so
+  // a point added or removed meanwhile is kept as it is.
+  async function saveEdit(name) {
+    const { type, trail, editing } = pending;
+    const label = POINT_TYPES[type].label.toLowerCase();
+    const lat = Number($('#tpLat').value.trim());
+    const lng = Number($('#tpLng').value.trim());
+    const area = map.options.maxBounds;
+    if (!$('#tpLat').value.trim() || !$('#tpLng').value.trim() || !Number.isFinite(lat) || !Number.isFinite(lng)
+        || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      $('.tp-error').textContent = 'Enter the latitude and longitude as numbers, e.g. 14.13574 and 121.19387.';
+      return;
+    }
+    if (area && !area.contains([lat, lng])) {
+      $('.tp-error').textContent = 'Those coordinates are outside the Mount Makiling map. Check the numbers.';
+      return;
+    }
+    saving = true;
+    $('.tp-save').disabled = true;
+    $('.tp-save').textContent = 'Saving…';
+    try {
+      const ref = doc(db, 'trails', trail.id);
+      const snap = await getDoc(ref);
+      const list = Array.isArray(snap.data()?.[type]) ? snap.data()[type] : [];
+      if (!list.some((p) => p?.id === editing.id)) {
+        throw new Error(`this ${label} was removed meanwhile`);
+      }
+      await updateDoc(ref, {
+        [type]: list.map((p) => (p?.id === editing.id ? {
+          ...p,
+          name,
+          note: $('#tpNote').value.trim(),
+          lat: Number(lat.toFixed(6)),
+          lng: Number(lng.toFixed(6)),
+          updatedAt: new Date().toISOString()
+        } : p))
+      });
+      saving = false;
+      closeForm();
+      // The trails snapshot redraws the pin with its new details.
+    } catch (error) {
+      saving = false;
+      $('.tp-error').textContent = error?.code === 'permission-denied'
+        ? `Firebase denied this. Only admins (not Viewers) can edit ${label}s.`
+        : `Could not save: ${error.message || 'Unknown error'}`;
+    } finally {
+      $('.tp-save').disabled = false;
+      $('.tp-save').textContent = 'Save';
+    }
+  }
+
   $('.tp-cancel').addEventListener('click', closeForm);
   $('.tp-save').addEventListener('click', save);
   modal.addEventListener('click', (e) => { if (e.target === modal) closeForm(); });
-  $('#tpName').addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+  ['#tpName', '#tpLat', '#tpLng'].forEach((sel) => $(sel).addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); }));
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (modal.classList.contains('open')) closeForm();

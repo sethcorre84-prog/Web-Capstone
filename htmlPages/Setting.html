@@ -302,26 +302,6 @@
         transform: translateX(18px);
     }
 
-    /* Footer bar */
-    .settings-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 18px;
-        padding: 14px 18px;
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-card);
-    }
-    .settings-toolbar .status {
-        font-size: 12px;
-        color: var(--text-600);
-    }
-    .settings-toolbar .status strong {
-        color: var(--accent-dark);
-    }
     .primary-btn {
         border: none;
         background: var(--accent);
@@ -373,13 +353,34 @@
     .modal-backdrop.visible {
         display: flex;
     }
+    /* Never taller than the screen: the title bar stays put and the body
+       scrolls, so a long dialog (Audit Logs, Data & Backup) is reachable on a
+       laptop screen too. */
     .modal-card {
         width: min(460px, 100%);
+        max-height: calc(100vh - 40px);
+        max-height: calc(100dvh - 40px);
+        display: flex;
+        flex-direction: column;
         background: var(--dm-surface, #fff);
         border-radius: 16px;
         border: 1px solid var(--border);
         box-shadow: 0 18px 40px rgba(22, 34, 24, 0.2);
         overflow: hidden;
+    }
+    .modal-card > .modal-header {
+        flex-shrink: 0;
+    }
+    .modal-card > .modal-body {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    /* Tables need room: Role Management, Access Control, Data & Backup and
+       Audit Logs open wide, shrinking with the window. */
+    .modal-card.dialog-wide {
+        width: min(960px, 100%);
     }
     .modal-header {
         display: flex;
@@ -905,6 +906,87 @@
     .rm-level-edit, .rm-level-manage { background: #e7f5eb; color: #1f6b39; }
     .rm-level-view, .rm-level-view-export { background: #eef1ec; color: #5b6b60; }
     @media (max-width: 640px) { .rm-add-grid { grid-template-columns: 1fr; } }
+    /* Help & Support > FAQs */
+    .faq-tools { display: flex; gap: 8px; align-items: center; }
+    .faq-tools input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--border, #e4e7e1); border-radius: 8px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 13px; }
+    .faq-form { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 10px; background: var(--dm-surface-2, #f6f8f5); }
+    .faq-form label { font-size: 12px; font-weight: 700; color: var(--text-secondary, #5b6b60); }
+    .faq-form input, .faq-form textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border, #e4e7e1); border-radius: 8px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 13px; }
+    .faq-form textarea { min-height: 96px; resize: vertical; }
+    .faq-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .faq-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .faq-item { border: 1px solid var(--border, #e4e7e1); border-radius: 10px; background: var(--dm-surface, #fff); }
+    .faq-item summary { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; font-weight: 600; list-style: none; }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after { content: '+'; margin-left: auto; color: var(--accent-dark, #1f6b39); font-size: 16px; font-weight: 700; }
+    .faq-item[open] summary::after { content: '−'; }
+    .faq-num { flex-shrink: 0; min-width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--accent-light, #e3f2e6); color: var(--accent-dark, #1f6b39); font-size: 11px; font-weight: 700; }
+    .faq-answer { padding: 0 14px 12px 46px; color: var(--text-secondary, #5b6b60); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .faq-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 12px 46px; }
+    .faq-actions button { padding: 4px 10px; border: 1px solid var(--border, #e4e7e1); border-radius: 7px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .faq-actions button:disabled { opacity: .45; cursor: default; }
+    .faq-actions .rm-remove { color: #c8402f; border-color: #f1c9c3; }
+    .faq-actions .rm-remove.is-armed { background: #c8402f; border-color: #c8402f; color: #fff; }
+    /* Login Sessions */
+    .session-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; }
+    .session-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border, #e4e7e1); border-radius: 10px; background: var(--dm-surface, #fff); }
+    .session-item.is-current { border-color: var(--accent, #2f8f4e); background: var(--accent-light, #e3f2e6); }
+    .session-icon { flex-shrink: 0; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 9px; background: var(--bg, #f3f5f1); color: var(--accent-dark, #1f6b39); font-size: 16px; }
+    .session-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
+    .session-text strong { font-size: 13.5px; }
+    .session-text small { font-size: 12px; color: var(--text-secondary, #5b6b60); }
+    .session-badge { flex-shrink: 0; padding: 3px 9px; border-radius: 999px; background: var(--accent, #2f8f4e); color: #fff; font-size: 11.5px; font-weight: 600; }
+    @media (max-width: 480px) {
+        .session-item { flex-wrap: wrap; }
+        .session-item .rm-remove, .session-badge { margin-left: 48px; }
+    }
+    /* Data & Backup format buttons */
+    .backup-formats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .backup-format { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border, #e4e7e1); border-radius: 10px; background: var(--dm-surface, #fff); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+    .backup-format:hover:not(:disabled) { border-color: var(--accent, #2f8f4e); background: var(--accent-light, #e3f2e6); }
+    .backup-format:disabled { opacity: .6; cursor: wait; }
+    .backup-format i { margin-top: 2px; font-size: 18px; }
+    .backup-format .fa-file-code { color: #2a63b5; }
+    .backup-format .fa-file-excel { color: #1f7a45; }
+    .backup-format .fa-file-csv { color: #b9791b; }
+    .backup-format span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .backup-format strong { font-size: 13px; }
+    .backup-format small { font-size: 11.5px; line-height: 1.4; color: var(--text-secondary, #5b6b60); }
+    @media (max-width: 640px) { .backup-formats { grid-template-columns: 1fr; } }
+    /* Audit Logs */
+    .audit-filters { display: grid; grid-template-columns: 1.6fr 1fr 1fr auto; gap: 8px; }
+    .audit-filters input, .audit-filters select { min-width: 0; padding: 8px 10px; border: 1px solid var(--border, #e4e7e1); border-radius: 8px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 13px; }
+    .audit-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    /* Audit table columns: the date on one line, the category chip and action
+       kept short, Details taking the room that is left. */
+    @media (min-width: 561px) {
+        .audit-table { table-layout: fixed; }
+        .audit-table th:nth-child(1) { width: 158px; }
+        .audit-table th:nth-child(2) { width: 120px; }
+        .audit-table th:nth-child(3) { width: 130px; }
+        .audit-table th:nth-child(5) { width: 140px; }
+        .audit-table td { overflow-wrap: anywhere; vertical-align: top; }
+    }
+    @media (max-width: 640px) { .audit-filters { grid-template-columns: 1fr 1fr; } }
+    /* Phones: the dialog tables (admins, permissions, audit log) turn into one
+       card per row, each value beside its column's name, so nothing needs
+       sideways scrolling. */
+    @media (max-width: 560px) {
+        .rm-stack thead { display: none; }
+        .rm-stack, .rm-stack tbody, .rm-stack tr, .rm-stack td { display: block; width: 100%; }
+        .rm-table-wrap:has(.rm-stack) { border: 0; overflow: visible; }
+        .rm-stack tr { margin-bottom: 8px; padding: 10px 12px; border: 1px solid var(--border, #e4e7e1); border-radius: 10px; background: var(--dm-surface, #fff); }
+        .rm-stack td { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 5px 0; border: 0; text-align: right; overflow-wrap: anywhere; }
+        .rm-stack td[data-label]::before { content: attr(data-label); flex-shrink: 0; color: var(--text-secondary, #5b6b60); font-size: 11.5px; font-weight: 600; text-align: left; }
+        .rm-stack td[data-label="Admin"], .rm-stack .rm-card-title { display: block; text-align: left; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--border, #e4e7e1); font-weight: 600; }
+        .rm-stack td[data-label="Admin"]::before { content: none; }
+        .rm-stack .rm-actions { justify-content: flex-end; padding-top: 8px; }
+        .rm-stack .rm-actions:empty { display: none; }
+        .rm-stack td[colspan] { display: block; text-align: center; }
+        .rm-table:not(.rm-matrix) td:first-child { min-width: 0; }
+        .audit-filters { grid-template-columns: 1fr; }
+        .audit-footer { flex-direction: column; align-items: flex-start; }
+    }
 
     .modal-card.profile-wide {
         width: min(600px, 100%);
@@ -1146,16 +1228,33 @@
             padding: 14px;
         }
     }
+    /* Rows never push past the screen: the text takes the room left over and
+       wraps, the control or › keeps its own size. */
+    .setting-left {
+        flex: 1;
+        min-width: 0;
+    }
     @media (max-width: 560px) {
-        /* Label and control stop competing for one line; the toggle moves under
-           its description instead of squeezing the text to a few characters. */
-        .setting-row {
+        /* A row with a dropdown or a switch stacks: label and control stop
+           competing for one line, and the control sits under its description.
+           A row with only the › keeps it on the right, on the same line. */
+        .setting-row:has(.setting-right select),
+        .setting-row:has(.setting-right .switch),
+        .setting-row:has(.setting-right input) {
             flex-direction: column;
             align-items: flex-start;
             gap: 10px;
         }
-        .setting-left {
-            min-width: 0;
+        .setting-row:has(.setting-right select) .setting-right,
+        .setting-row:has(.setting-right select) .setting-right select {
+            width: 100%;
+        }
+        .setting-row {
+            gap: 10px;
+            padding: 12px 2px;
+        }
+        .panel-title {
+            font-size: 15px;
         }
     }
 </style>
@@ -1214,10 +1313,6 @@
       </div>
     </section>
 
-    <div class="settings-toolbar">
-      <div class="status"><strong>Preferences active:</strong> <span id="settingsStatusText">Saved locally</span></div>
-      <button class="primary-btn" id="saveSettingsBtn">Save Settings</button>
-    </div>
 
     <!-- Row 1: General + Notification -->
     <div class="settings-grid">
@@ -1354,7 +1449,7 @@
             <div class="setting-icon">🌦️</div>
             <div class="setting-text">
               <div class="label" id="weatherLocationLabel">Dashboard Weather</div>
-              <div class="desc">Choose where the Dashboard's weather card reads the live temperature (°C).</div>
+              <div class="desc">Choose where the Dashboard's weather card and the Emergency map read the live temperature (°C).</div>
             </div>
           </div>
           <div class="setting-right">
@@ -1374,7 +1469,7 @@
             <div class="setting-icon">🗄️</div>
             <div class="setting-text">
               <div class="label">Data &amp; Backup</div>
-              <div class="desc">Manage backups and data.</div>
+              <div class="desc">Record counts and a downloadable backup.</div>
             </div>
           </div>
           <div class="setting-right"><span class="chevron">›</span></div>
@@ -1385,7 +1480,7 @@
             <div class="setting-icon">📄</div>
             <div class="setting-text">
               <div class="label">Audit Logs</div>
-              <div class="desc">View system logs and activities.</div>
+              <div class="desc">Who did what, and when, across the portal.</div>
             </div>
           </div>
           <div class="setting-right"><span class="chevron">›</span></div>
@@ -1393,8 +1488,8 @@
       </div>
     </div>
 
-    <!-- Row 3: Security (full width) -->
-    <div class="settings-grid full">
+    <!-- Row 3: Security and Help & Support -->
+    <div class="settings-grid">
       <div class="panel">
         <div class="panel-title">Security Settings</div>
 
@@ -1419,7 +1514,34 @@
             <div class="setting-icon">🖥️</div>
             <div class="setting-text">
               <div class="label">Login Sessions</div>
-              <div class="desc">Manage your active sessions.</div>
+              <div class="desc">See where you're signed in and sign out other devices.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Help &amp; Support</div>
+
+        <button type="button" class="setting-row" data-action="helpGuide" style="width:100%;background:transparent;border-top:0;border-left:0;border-right:0;text-align:left;color:inherit">
+          <span class="setting-left">
+            <span class="setting-icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span>
+            <span class="setting-text">
+              <span class="label" style="display:block">Admin Guide &amp; Troubleshooting</span>
+              <span class="desc">Learn the main workflows and what to include when requesting help.</span>
+            </span>
+          </span>
+          <span class="setting-right"><i class="fa-solid fa-chevron-right chevron" aria-hidden="true"></i></span>
+        </button>
+
+        <!-- FAQs live in the Firestore "faqs" collection (bindFaqs). -->
+        <div class="setting-row" data-action="faqs">
+          <div class="setting-left">
+            <div class="setting-icon">❓</div>
+            <div class="setting-text">
+              <div class="label">FAQs</div>
+              <div class="desc" id="faqRowDesc">Answers to common questions about PeakPath.</div>
             </div>
           </div>
           <div class="setting-right"><span class="chevron">›</span></div>
@@ -1566,14 +1688,16 @@
 <script type="module">
   import { auth, db, storage } from '../jsPages/firebase-config.js';
   import { escapeHtml as escapeHTML, sortByReportId } from '../jsPages/utils.js';
-  import { collection, deleteDoc, getDoc, getDocs, limit, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { collection, deleteDoc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { pageList, pageGap, PAGE_GAP } from '../jsPages/pagination.js';
   import { ref as storageRef, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
   import { planReportIds } from '../jsPages/report-ids.js';
   import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-  import { ADMIN_ROLES, DEFAULT_ADMIN_ROLE, renderAdminIdentity, updateAdminProfile } from '../jsPages/admin-identity.js';
+  import { ADMIN_ROLES, NO_ROLE_LABEL, renderAdminIdentity, roleOf, updateAdminProfile } from '../jsPages/admin-identity.js';
   import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
   import { DATE_FORMATS, TIME_FORMATS, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
   import { openExportMenu } from '../jsPages/export-table.js';
+  import { endOtherSessions, endSession, listSessions } from '../jsPages/admin-sessions.js';
   import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, setWeatherLocationKey } from '../jsPages/weather-locations.js';
 
   const STORAGE_KEY = 'peakpath-settings';
@@ -1584,8 +1708,9 @@
   const storedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
   const settings = { ...defaultSettings, ...storedSettings };
 
-  const saveButton = document.getElementById('saveSettingsBtn');
-  const statusText = document.getElementById('settingsStatusText');
+  /* Every setting saves the moment it changes (toggles, theme, Dashboard
+     Weather) or with its own dialog's Save (profile, password, date & time),
+     and each says so in a toast; there is no separate Save Settings step. */
   const modal = document.getElementById('settingsModal');
   const modalBody = document.getElementById('modalBody');
   const modalTitle = document.getElementById('modalTitle');
@@ -1593,7 +1718,6 @@
 
   function persistSettings() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    statusText.textContent = 'Changes saved locally';
   }
 
   // Longer messages (like the email-verification notice) pass more time.
@@ -1616,8 +1740,6 @@
     document.querySelectorAll('[data-setting-toggle]').forEach((input) => {
       settings[input.dataset.settingToggle] = input.checked;
     });
-
-    statusText.textContent = 'Preferences updated';
   }
 
   function closeModal() {
@@ -2557,7 +2679,6 @@
         form.reset();
         closeModal();
         showToast('Password updated successfully');
-        statusText.textContent = 'Password updated';
       } catch (error) {
         console.error('Failed to change password:', error);
         fail(
@@ -2630,8 +2751,8 @@
 
     nameInput.value = saved.name;
     emailInput.value = saved.email;
-    roleInput.value = DEFAULT_ADMIN_ROLE;
-    renderSummary(DEFAULT_ADMIN_ROLE);
+    roleInput.value = roleOf(document.documentElement.dataset.adminRole) || NO_ROLE_LABEL;
+    renderSummary(roleInput.value);
 
     // Fields stay locked until the admin doc is in, so a save can never write
     // over details the admin has not been shown yet.
@@ -2648,7 +2769,7 @@
         usernameInput.value = saved.username;
         phoneInput.value = saved.phone;
         genderInput.value = saved.gender;
-        roleInput.value = data.role || DEFAULT_ADMIN_ROLE;
+        roleInput.value = roleOf(data.role) || NO_ROLE_LABEL;
         renderSummary(roleInput.value);
       })
       .catch((error) => {
@@ -2709,7 +2830,6 @@
           updateAdminProfile({ name, username, phone, gender });
         }
         closeModal();
-        statusText.textContent = 'Profile updated';
         if (changingEmail) {
           showToast(`Sign-in email changed to ${email}. Use it the next time you sign in.`, 6000);
         } else {
@@ -2768,7 +2888,6 @@
         return;
       }
       closeModal();
-      statusText.textContent = 'Date & time updated';
       showToast('Date & time settings saved');
     });
   }
@@ -2818,9 +2937,11 @@
     }
     if (!document.body.contains(box)) return; // closed meanwhile
     const me = data.admins.find((admin) => admin.uid === data.me);
-    const myRole = me?.role || DEFAULT_ADMIN_ROLE;
+    const myRole = me?.role || NO_ROLE_LABEL;
     const isSuper = myRole === 'Super Administrator';
-    const roleOptions = (current) => ADMIN_ROLES.map((role) => `<option${role === current ? ' selected' : ''}>${escapeHTML(role)}</option>`).join('');
+    // An admin with no role gets a "choose a role" placeholder until one is set.
+    const roleOptions = (current) => (ADMIN_ROLES.includes(current) ? '' : `<option value="" selected disabled>${escapeHTML(NO_ROLE_LABEL)}</option>`)
+      + ADMIN_ROLES.map((role) => `<option${role === current ? ' selected' : ''}>${escapeHTML(role)}</option>`).join('');
     const when = (iso) => (iso ? formatPortalDateTime(new Date(iso)) : 'Never');
 
     box.innerHTML = `
@@ -2830,18 +2951,18 @@
       </div>
       ${isSuper ? '' : '<p class="rm-muted">Only a Super Administrator can change roles or add and remove admins.</p>'}
       <div class="rm-table-wrap">
-        <table class="rm-table">
+        <table class="rm-table rm-stack">
           <thead><tr><th>Admin</th><th>Email</th><th>Role</th><th>Last sign-in</th>${isSuper ? '<th></th>' : ''}</tr></thead>
           <tbody>${data.admins.map((admin) => {
             const self = admin.uid === data.me;
             return `<tr data-uid="${escapeHTML(admin.uid)}">
-              <td><strong>${escapeHTML(admin.name || 'Unnamed admin')}</strong>${self ? ' <span class="rm-you">You</span>' : ''}${admin.username ? `<div class="rm-muted">@${escapeHTML(admin.username)}</div>` : ''}</td>
-              <td>${escapeHTML(admin.email || '—')}</td>
-              <td>${isSuper && !self
+              <td data-label="Admin"><strong>${escapeHTML(admin.name || 'Unnamed admin')}</strong>${self ? ' <span class="rm-you">You</span>' : ''}${admin.username ? `<div class="rm-muted">@${escapeHTML(admin.username)}</div>` : ''}</td>
+              <td data-label="Email">${escapeHTML(admin.email || '—')}</td>
+              <td data-label="Role">${isSuper && !self
                 ? `<select class="rm-role-select" aria-label="Role of ${escapeHTML(admin.name || admin.email)}">${roleOptions(admin.role)}</select>`
-                : `<span class="rm-role">${escapeHTML(admin.role)}</span>`}</td>
-              <td>${escapeHTML(when(admin.lastSignIn))}</td>
-              ${isSuper ? `<td>${self ? '' : '<button type="button" class="rm-remove">Remove</button>'}</td>` : ''}
+                : `<span class="rm-role">${escapeHTML(admin.role || NO_ROLE_LABEL)}</span>`}</td>
+              <td data-label="Last sign-in">${escapeHTML(when(admin.lastSignIn))}</td>
+              ${isSuper ? `<td class="rm-actions">${self ? '' : '<button type="button" class="rm-remove">Remove</button>'}</td>` : ''}
             </tr>`;
           }).join('')}</tbody>
         </table>
@@ -2951,14 +3072,755 @@
         : snap.docs.map((d) => {
           const entry = d.data();
           const text = entry.action === 'add' ? `added ${who(entry)} as ${entry.to}`
-            : entry.action === 'remove' ? `removed ${who(entry)} (${entry.from})`
-            : `changed ${who(entry)} from ${entry.from} to ${entry.to}`;
+            : entry.action === 'remove' ? `removed ${who(entry)} (${entry.from || 'no role'})`
+            : `changed ${who(entry)} from ${entry.from || 'no role'} to ${entry.to}`;
           const at = entry.at?.toDate ? formatPortalDateTime(entry.at.toDate()) : '';
           return `<li><strong>${escapeHTML(entry.byName || 'An admin')}</strong> ${escapeHTML(text)}<span class="rm-muted"> · ${escapeHTML(at)}</span></li>`;
         }).join('');
     } catch (error) {
       list.innerHTML = `<li class="rm-muted">Could not load the change history${error?.code === 'permission-denied' ? ' (deploy the latest firestore.rules)' : ''}.</li>`;
     }
+  }
+
+  /* ---- Data & Backup ----
+     A live count of each collection, and a backup download: every document
+     of those collections in one JSON file (Firestore timestamps written as
+     ISO dates), for a Super Administrator only, since it holds users'
+     personal details. A full, restorable backup of the whole project is
+     Firebase's own scheduled export (Blaze plan); this is the download an
+     admin can make any time from here. */
+  const BACKUP_COLLECTIONS = [
+    ['trails', 'Trails'], ['stations', 'Trail stations'], ['reports', 'Hazard reports'],
+    ['Advisory', 'Advisories & announcements'], ['emergency', 'Emergency alerts'],
+    ['users', 'Users'], ['teams', 'Teams'], ['reportedUser', 'Reports about users'],
+    ['checkIns', 'App check-ins'], ['adminRoleLog', 'Admin role changes']
+  ];
+  const BACKUP_KEY = 'peakpath-last-backup';
+  const isSuperAdmin = () => document.documentElement.dataset.adminRole === 'Super Administrator';
+
+  // Firestore values as plain JSON: timestamps as ISO strings, refs as paths.
+  const toPlain = (value) => {
+    if (value === null || value === undefined) return value ?? null;
+    if (typeof value.toDate === 'function') return value.toDate().toISOString();
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value.latitude === 'number' && typeof value.longitude === 'number' && Object.keys(value).length <= 3) {
+      return { latitude: value.latitude, longitude: value.longitude };
+    }
+    if (typeof value.path === 'string' && typeof value.id === 'string') return value.path;
+    if (Array.isArray(value)) return value.map(toPlain);
+    if (typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, toPlain(v)]));
+    return value;
+  };
+
+  /* ---- Login Sessions ----
+     Every browser this admin is signed in on (admin-sessions.js records one
+     per sign-in). Signing a session out marks it ended; that browser leaves
+     at once if a page is open, or the next time one loads. */
+  const ACTIVE_NOW_MS = 10 * 60 * 1000;
+  function sessionActivity(session) {
+    if (session.current) return 'Active now · this device';
+    const at = session.lastActiveAt?.toDate?.();
+    if (!at) return 'Activity unknown';
+    if (Date.now() - at.getTime() < ACTIVE_NOW_MS) return 'Active now';
+    return `Last active ${formatPortalDateTime(at)}`;
+  }
+
+  /* ---------------- Help & Support: FAQs ----------------
+     Stored in the Firestore "faqs" collection, one document per question:
+       question   text
+       answer     text (line breaks kept)
+       order      number, lowest first
+       createdAt / updatedAt / updatedBy
+     Everyone can read them; Super Administrators and Administrators can add,
+     edit, reorder and delete them (Viewers read only). Listened to live, so
+     the dialog and the row's count follow every change. */
+  const FAQ_STARTERS = [
+    ['How do I report a trail hazard?', 'Open the Report tab, choose a hazard type (Rockfall, Landslide, Mud Path/Slippery Area, Damaged Signage, or Flooded Area), add a photo and description, then submit. Verified reports show up on the Trails and Map screens for other hikers.'],
+    ['Why is the map showing "offline" data?', 'PeakPath fetches live trail geometry from OpenStreetMap when it can. If that fetch fails it falls back to the built-in hand-drawn routes, so the map still works without a connection.'],
+    ['How do I join or create a team?', 'Open a trail and use Join Team. Guides create teams, hikers join them, and the teams you belong to appear under Your Teams on the Home screen.'],
+    ['I forgot my password — what now?', 'On the Sign In screen, tap "Forgot password?" You\'ll verify your identity with a one-time code sent to the Gmail account linked to your account, then set a new password.'],
+    ['What does the SOS button do?', 'It logs an emergency alert (with your current trail, if any) and calls the local emergency hotline. Only use it for genuine emergencies.']
+  ];
+  const faqState = { items: null, error: null, search: '', editing: null };
+  const canEditFaqs = () => {
+    const role = document.documentElement.dataset.adminRole;
+    return ['Super Administrator', 'Administrator'].includes(role);
+  };
+
+  // Wait for the saved sign-in to restore before reading protected FAQs.
+  auth.authStateReady().then(() => onSnapshot(collection(db, 'faqs'), (snapshot) => {
+    faqState.items = snapshot.docs
+      .map((faqDoc) => ({ id: faqDoc.id, ...faqDoc.data() }))
+      .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0)
+        || String(a.question || '').localeCompare(String(b.question || '')));
+    faqState.error = null;
+    renderFaqRow();
+    renderFaqList();
+  }, (error) => {
+    console.error('Could not load FAQs:', error);
+    faqState.error = error;
+    renderFaqRow();
+    renderFaqList();
+  }));
+
+  function renderFaqRow() {
+    const desc = document.getElementById('faqRowDesc');
+    if (!desc || !faqState.items) return;
+    const count = faqState.items.length;
+    desc.textContent = count
+      ? `Answers to common questions about PeakPath · ${count} question${count === 1 ? '' : 's'}.`
+      : 'Answers to common questions about PeakPath. None added yet.';
+  }
+
+  function bindFaqs() {
+    const box = document.getElementById('faqBox');
+    if (!box) return;
+    faqState.editing = null;
+    const editor = canEditFaqs();
+    box.innerHTML = `
+      <p class="rm-muted" style="margin:0">Answers to common questions from hikers and admins.${editor ? ' Add, edit or reorder them here. If the list is empty, use the starter questions to get started.' : ''}</p>
+      <div class="faq-tools">
+        <input type="search" id="faqSearch" placeholder="Search questions and answers…" aria-label="Search FAQs">
+        ${editor ? '<button type="button" class="primary-btn" id="faqAddBtn"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add FAQ</button>' : ''}
+      </div>
+      <div id="faqFormSlot"></div>
+      <div id="faqList"></div>
+      <p class="rm-status" id="faqStatus" role="status"></p>`;
+
+    const search = document.getElementById('faqSearch');
+    search.value = faqState.search;
+    search.addEventListener('input', () => {
+      faqState.search = search.value;
+      renderFaqList();
+    });
+    document.getElementById('faqAddBtn')?.addEventListener('click', () => openFaqForm(null));
+    renderFaqList();
+  }
+
+  const faqStatus = (text, ok = false) => {
+    const status = document.getElementById('faqStatus');
+    if (!status) return;
+    status.className = `rm-status ${ok ? 'is-ok' : 'is-error'}`;
+    status.textContent = text;
+  };
+  const faqWriteError = (error) => (error?.code === 'permission-denied'
+    ? 'Not saved: your role cannot change FAQs, or the Firestore rule for "faqs" has not been deployed yet.'
+    : `Not saved: ${error?.message || 'unknown error'}`);
+
+  function renderFaqList() {
+    const list = document.getElementById('faqList');
+    if (!list) return;
+    const editor = canEditFaqs();
+
+    if (faqState.error) {
+      list.innerHTML = `<p class="rm-error">${escapeHTML(faqState.error.code === 'permission-denied'
+        ? 'FAQ access was denied. Confirm you are signed in, then reload the page. If this continues, contact your administrator to check FAQ permissions.'
+        : `Could not load FAQs: ${faqState.error.message || 'unknown error'}`)}</p>`;
+      return;
+    }
+    if (!faqState.items) {
+      list.innerHTML = '<p class="rm-muted">Loading FAQs…</p>';
+      return;
+    }
+    if (!faqState.items.length) {
+      list.innerHTML = `<p class="rm-muted">No FAQs yet.</p>${editor
+        ? `<button type="button" class="ghost-btn" id="faqStartersBtn">Add the app's ${FAQ_STARTERS.length} starter questions</button>`
+        : ''}`;
+      document.getElementById('faqStartersBtn')?.addEventListener('click', addFaqStarters);
+      return;
+    }
+
+    const term = faqState.search.trim().toLowerCase();
+    const shown = faqState.items.filter((item) => !term
+      || `${item.question || ''} ${item.answer || ''}`.toLowerCase().includes(term));
+    if (!shown.length) {
+      list.innerHTML = '<p class="rm-muted">No FAQ matches your search.</p>';
+      return;
+    }
+
+    // Reordering only makes sense on the full, unfiltered list.
+    const canMove = editor && !term;
+    list.innerHTML = `<ul class="faq-list">${shown.map((item) => {
+      const index = faqState.items.indexOf(item);
+      return `
+        <li>
+          <details class="faq-item" data-faq-id="${escapeHTML(item.id)}">
+            <summary><span class="faq-num">${index + 1}</span><span>${escapeHTML(item.question || 'Untitled question')}</span></summary>
+            <div class="faq-answer">${escapeHTML(item.answer || 'No answer yet.')}</div>
+            ${editor ? `<div class="faq-actions">
+              <button type="button" data-faq-edit>Edit</button>
+              ${canMove ? `<button type="button" data-faq-move="-1" ${index === 0 ? 'disabled' : ''}>Move up</button>
+              <button type="button" data-faq-move="1" ${index === faqState.items.length - 1 ? 'disabled' : ''}>Move down</button>` : ''}
+              <button type="button" class="rm-remove" data-faq-delete>Delete</button>
+            </div>` : ''}
+          </details>
+        </li>`;
+    }).join('')}</ul>`;
+
+    list.querySelectorAll('.faq-item').forEach((itemEl) => {
+      const item = faqState.items.find((faq) => faq.id === itemEl.dataset.faqId);
+      itemEl.querySelector('[data-faq-edit]')?.addEventListener('click', () => openFaqForm(item));
+      itemEl.querySelectorAll('[data-faq-move]').forEach((button) => {
+        button.addEventListener('click', () => moveFaq(item, Number(button.dataset.faqMove)));
+      });
+      const del = itemEl.querySelector('[data-faq-delete]');
+      del?.addEventListener('click', async () => {
+        // Two clicks, like removing an admin: the first arms it.
+        if (!del.classList.contains('is-armed')) {
+          del.classList.add('is-armed');
+          del.textContent = 'Click again to delete';
+          return;
+        }
+        del.disabled = true;
+        try {
+          await deleteDoc(doc(db, 'faqs', item.id));
+          faqStatus('FAQ deleted.', true);
+        } catch (error) {
+          faqStatus(faqWriteError(error));
+          del.disabled = false;
+        }
+      });
+    });
+  }
+
+  function openFaqForm(item) {
+    const slot = document.getElementById('faqFormSlot');
+    if (!slot) return;
+    faqState.editing = item ? item.id : 'new';
+    slot.innerHTML = `
+      <form class="faq-form" id="faqForm" novalidate>
+        <div style="font-weight:700;font-size:12.5px">${item ? 'Edit FAQ' : 'New FAQ'}</div>
+        <label for="faqQuestion">Question</label>
+        <input id="faqQuestion" type="text" maxlength="200" required>
+        <label for="faqAnswer">Answer</label>
+        <textarea id="faqAnswer" maxlength="2000" required></textarea>
+        <div class="faq-form-actions">
+          <button type="button" class="ghost-btn" id="faqCancelBtn">Cancel</button>
+          <button type="submit" class="primary-btn" id="faqSaveBtn">${item ? 'Save changes' : 'Add FAQ'}</button>
+        </div>
+      </form>`;
+    const form = document.getElementById('faqForm');
+    const question = document.getElementById('faqQuestion');
+    const answer = document.getElementById('faqAnswer');
+    question.value = item?.question || '';
+    answer.value = item?.answer || '';
+    question.focus();
+    const closeForm = () => { slot.innerHTML = ''; faqState.editing = null; };
+    document.getElementById('faqCancelBtn').addEventListener('click', closeForm);
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const q = question.value.trim();
+      const a = answer.value.trim();
+      if (!q || !a) {
+        faqStatus('Enter both a question and an answer.');
+        return;
+      }
+      const saveBtn = document.getElementById('faqSaveBtn');
+      saveBtn.disabled = true;
+      try {
+        const stamp = { updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || null };
+        if (item) {
+          await updateDoc(doc(db, 'faqs', item.id), { question: q, answer: a, ...stamp });
+          faqStatus('FAQ updated.', true);
+        } else {
+          const nextOrder = Math.max(0, ...(faqState.items || []).map((faq) => Number(faq.order) || 0)) + 1;
+          await setDoc(doc(collection(db, 'faqs')), { question: q, answer: a, order: nextOrder, createdAt: serverTimestamp(), ...stamp });
+          faqStatus('FAQ added.', true);
+        }
+        closeForm();
+      } catch (error) {
+        faqStatus(faqWriteError(error));
+        saveBtn.disabled = false;
+      }
+    });
+  }
+
+  // Swaps a question with its neighbour. Orders are rewritten 1..n so items
+  // that shared a number (or had none) end up in a clean sequence.
+  async function moveFaq(item, step) {
+    const items = [...(faqState.items || [])];
+    const from = items.indexOf(item);
+    const to = from + step;
+    if (from < 0 || to < 0 || to >= items.length) return;
+    [items[from], items[to]] = [items[to], items[from]];
+    const batch = writeBatch(db);
+    items.forEach((faq, index) => {
+      if (Number(faq.order) !== index + 1) batch.update(doc(db, 'faqs', faq.id), { order: index + 1 });
+    });
+    try {
+      await batch.commit();
+    } catch (error) {
+      faqStatus(faqWriteError(error));
+    }
+  }
+
+  // The five questions the mobile app's Help & Support page has built in.
+  async function addFaqStarters() {
+    const button = document.getElementById('faqStartersBtn');
+    if (button) button.disabled = true;
+    const batch = writeBatch(db);
+    FAQ_STARTERS.forEach(([question, answer], index) => {
+      batch.set(doc(collection(db, 'faqs')), {
+        question, answer, order: index + 1,
+        createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || null
+      });
+    });
+    try {
+      await batch.commit();
+      faqStatus(`Added ${FAQ_STARTERS.length} FAQs.`, true);
+    } catch (error) {
+      faqStatus(faqWriteError(error));
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function bindLoginSessions() {
+    const box = document.getElementById('sessionsBox');
+    const endAllBtn = document.getElementById('endOtherSessionsBtn');
+    if (!box) return;
+    let sessions;
+    try {
+      sessions = await listSessions();
+    } catch (error) {
+      const why = error.code === 'permission-denied'
+        ? 'access is not set up yet (the Firestore rules for sessions still need to be deployed).'
+        : (error.message || 'Unknown error');
+      box.innerHTML = `<p class="rm-error">Could not load your sessions: ${escapeHTML(why)}</p>`;
+      return;
+    }
+    if (!document.body.contains(box)) return; // closed while loading
+
+    const others = sessions.filter((s) => !s.current);
+    endAllBtn.disabled = !others.length;
+    box.innerHTML = `
+      <p class="rm-muted" style="margin:0 0 12px">Signed in on ${sessions.length || 1} ${sessions.length > 1 ? 'devices' : 'device'}. If you don't recognize one, sign it out and change your password.</p>
+      ${sessions.length ? '' : '<p class="rm-muted">This device has not been recorded yet. Reload the page and open this again.</p>'}
+      <ul class="session-list">
+        ${sessions.map((s) => `
+          <li class="session-item${s.current ? ' is-current' : ''}" data-session-id="${escapeHTML(s.id)}">
+            <span class="session-icon" aria-hidden="true"><i class="fa-solid ${s.deviceType === 'Mobile' ? 'fa-mobile-screen' : 'fa-laptop'}"></i></span>
+            <span class="session-text">
+              <strong>${escapeHTML(`${s.browser || 'Browser'} on ${s.os || 'unknown system'}`)}</strong>
+              <small>${escapeHTML(sessionActivity(s))}</small>
+              <small>Signed in ${escapeHTML(s.signedInAt?.toDate ? formatPortalDateTime(s.signedInAt.toDate()) : '—')}${s.timeZone ? ` · ${escapeHTML(s.timeZone)} time zone` : ''}</small>
+            </span>
+            ${s.current ? '<span class="session-badge">This device</span>' : '<button type="button" class="rm-remove" data-end-session>Sign out</button>'}
+          </li>`).join('')}
+      </ul>
+      <p class="rm-status" id="sessionsStatus" role="status"></p>`;
+
+    const status = document.getElementById('sessionsStatus');
+    const fail = (text) => { status.className = 'rm-status is-error'; status.textContent = text; };
+
+    box.querySelectorAll('[data-end-session]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const item = button.closest('.session-item');
+        button.disabled = true;
+        button.textContent = 'Signing out…';
+        try {
+          await endSession(item.dataset.sessionId);
+          showToast('Session signed out');
+          bindLoginSessions();
+        } catch (error) {
+          button.disabled = false;
+          button.textContent = 'Sign out';
+          fail(`Could not sign that session out: ${error.message || 'Unknown error'}`);
+        }
+      });
+    });
+
+    endAllBtn.onclick = async () => {
+      endAllBtn.disabled = true;
+      endAllBtn.textContent = 'Signing out…';
+      try {
+        const count = await endOtherSessions();
+        showToast(count ? `${count} other ${count === 1 ? 'session' : 'sessions'} signed out` : 'No other sessions to sign out');
+        endAllBtn.textContent = 'Sign out all other sessions';
+        bindLoginSessions();
+      } catch (error) {
+        endAllBtn.disabled = false;
+        endAllBtn.textContent = 'Sign out all other sessions';
+        fail(`Could not sign the other sessions out: ${error.message || 'Unknown error'}`);
+      }
+    };
+  }
+
+  async function bindDataBackup() {
+    const box = document.getElementById('backupBox');
+    if (!box) return;
+    const counts = await Promise.all(BACKUP_COLLECTIONS.map(async ([name]) => {
+      try { return (await getCountFromServer(collection(db, name))).data().count; } catch { return null; }
+    }));
+    if (!document.body.contains(box)) return;
+    let last = null;
+    try { last = JSON.parse(localStorage.getItem(BACKUP_KEY) || 'null'); } catch { /* storage blocked */ }
+    const total = counts.reduce((sum, n) => sum + (n || 0), 0);
+    const allowed = isSuperAdmin();
+    box.innerHTML = `
+      <p class="rm-muted">What PeakPath stores in Firebase right now, and a backup you can download and keep.</p>
+      <div class="rm-table-wrap">
+        <table class="rm-table">
+          <thead><tr><th>Data</th><th>Collection</th><th style="text-align:right">Records</th></tr></thead>
+          <tbody>${BACKUP_COLLECTIONS.map(([name, label], i) => `
+            <tr><td>${escapeHTML(label)}</td><td class="rm-muted">${escapeHTML(name)}</td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums">${counts[i] === null ? '<span class="rm-muted">No access</span>' : counts[i].toLocaleString()}</td></tr>`).join('')}
+            <tr><td><strong>Total</strong></td><td></td><td style="text-align:right"><strong>${total.toLocaleString()}</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rm-add">
+        <div class="rm-add-title">Download a backup</div>
+        <p class="rm-muted" style="margin:0 0 10px">Every record above, dated today. Keep it somewhere safe: it includes users' personal details.${last ? ` Last downloaded on this browser: ${escapeHTML(formatPortalDateTime(new Date(last.at)))} (${Number(last.records).toLocaleString()} records, ${escapeHTML(String(last.format || 'json').toUpperCase())}).` : ''}</p>
+        ${allowed ? `
+          <div class="backup-formats">
+            <button type="button" class="backup-format" data-backup-format="json">
+              <i class="fa-solid fa-file-code" aria-hidden="true"></i>
+              <span><strong>JSON</strong><small>Complete backup: every field exactly as stored. The one to keep.</small></span>
+            </button>
+            <button type="button" class="backup-format" data-backup-format="excel">
+              <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
+              <span><strong>Excel</strong><small>Readable: one sheet per collection, one row per record.</small></span>
+            </button>
+            <button type="button" class="backup-format" data-backup-format="csv">
+              <i class="fa-solid fa-file-csv" aria-hidden="true"></i>
+              <span><strong>CSV</strong><small>One file per collection, together in a .zip.</small></span>
+            </button>
+          </div>
+          <p class="rm-muted" style="margin:8px 0 0">Excel and CSV turn lists and nested details (e.g. a trail's checkpoints) into text, so only JSON keeps the data whole.</p>`
+          : '<p class="rm-muted"><i class="fa-solid fa-lock" aria-hidden="true"></i> Only a Super Administrator can download a backup.</p>'}
+        <p class="rm-status" id="backupStatus" role="status"></p>
+      </div>`;
+
+    box.querySelectorAll('[data-backup-format]').forEach((button) => {
+      button.addEventListener('click', () => downloadBackup(button.dataset.backupFormat, box));
+    });
+  }
+
+  // Every backed-up collection, read now: { name: [{ id, ...fields }] } with
+  // Firestore values made plain (toPlain), and the record count.
+  async function readBackupData() {
+    const data = {};
+    let records = 0;
+    for (const [name] of BACKUP_COLLECTIONS) {
+      try {
+        const snap = await getDocs(collection(db, name));
+        data[name] = snap.docs.map((d) => ({ id: d.id, ...toPlain(d.data()) }));
+        records += snap.size;
+      } catch (error) {
+        data[name] = { error: error.code || error.message };
+      }
+    }
+    return { data, records };
+  }
+
+  /* One record as a flat row for Excel / CSV: top-level fields only, with a
+     list or nested object written as readable text. Points with a name and
+     coordinates (checkpoints, campsites) read "Agila Base (14.13279,
+     121.20849)"; anything else is compact JSON. */
+  const MAX_CELL = 32000; // Excel's cell limit is 32,767 characters
+  function cellText(value) {
+    if (value === null || value === undefined) return '';
+    if (Array.isArray(value)) {
+      return value.map((item) => {
+        if (item && typeof item === 'object') {
+          if (item.name && Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng))) {
+            return `${item.name} (${Number(item.lat).toFixed(5)}, ${Number(item.lng).toFixed(5)})`;
+          }
+          return JSON.stringify(item);
+        }
+        return String(item);
+      }).join('; ');
+    }
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  }
+  function flatTable(rows) {
+    if (!Array.isArray(rows)) return { headers: ['error'], rows: [[rows?.error || 'Could not read']] };
+    const keys = ['id', ...[...new Set(rows.flatMap((row) => Object.keys(row)))].filter((k) => k !== 'id').sort((a, b) => a.localeCompare(b))];
+    return {
+      headers: keys,
+      rows: rows.map((row) => keys.map((k) => {
+        const text = cellText(row[k]);
+        return text.length > MAX_CELL ? `${text.slice(0, MAX_CELL)}… (cut: ${text.length} characters)` : text;
+      }))
+    };
+  }
+
+  // Libraries for Excel and the CSV zip, from cdnjs, loaded on first use.
+  const backupLibraries = {};
+  function loadBackupLibrary(src, ready) {
+    if (ready()) return Promise.resolve();
+    backupLibraries[src] ||= new Promise((resolve, reject) => {
+      const script = Object.assign(document.createElement('script'), { src, onload: resolve });
+      script.onerror = () => { delete backupLibraries[src]; reject(new Error('A download library could not be loaded. Check your connection and try again.')); };
+      document.head.appendChild(script);
+    });
+    return backupLibraries[src];
+  }
+
+  function saveBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'), { href: url, download: name }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  const csvEscape = (value) => (/[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
+
+  async function downloadBackup(format, box) {
+    const buttons = box.querySelectorAll('[data-backup-format]');
+    const status = document.getElementById('backupStatus');
+    const button = box.querySelector(`[data-backup-format="${format}"]`);
+    const label = button.querySelector('strong').textContent;
+    buttons.forEach((b) => { b.disabled = true; });
+    button.querySelector('strong').textContent = 'Preparing…';
+    status.className = 'rm-status';
+    status.textContent = '';
+    try {
+      const { data, records } = await readBackupData();
+      const exportedAt = new Date();
+      const stamp = exportedAt.toISOString().slice(0, 10);
+      const labels = Object.fromEntries(BACKUP_COLLECTIONS);
+
+      if (format === 'json') {
+        const file = {
+          app: 'PeakPath Admin Portal',
+          exportedAt: exportedAt.toISOString(),
+          exportedBy: auth.currentUser?.email || auth.currentUser?.uid || null,
+          records,
+          collections: Object.fromEntries(Object.entries(data).map(([name, rows]) => [
+            name, Array.isArray(rows) ? Object.fromEntries(rows.map(({ id, ...rest }) => [id, rest])) : rows
+          ]))
+        };
+        saveBlob(new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' }), `peakpath-backup-${stamp}.json`);
+      } else if (format === 'excel') {
+        await loadBackupLibrary('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js', () => window.ExcelJS);
+        const book = new window.ExcelJS.Workbook();
+        book.creator = 'PeakPath Admin Portal';
+        book.created = exportedAt;
+        // A cover sheet: what this file is, and how many records each sheet has.
+        const cover = book.addWorksheet('Backup');
+        cover.columns = [{ width: 32 }, { width: 22 }, { width: 12 }];
+        cover.addRow(['PeakPath backup']).font = { bold: true, size: 14 };
+        cover.addRow([`Exported ${formatPortalDateTime(exportedAt)} by ${auth.currentUser?.email || 'an admin'}`]);
+        cover.addRow([]);
+        const head = cover.addRow(['Data', 'Collection', 'Records']);
+        head.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F8F4E' } }; });
+        Object.entries(data).forEach(([name, rows]) => cover.addRow([labels[name] || name, name, Array.isArray(rows) ? rows.length : 'No access']));
+        cover.addRow(['Total', '', records]).font = { bold: true };
+
+        for (const [name, rows] of Object.entries(data)) {
+          const table = flatTable(rows);
+          const sheet = book.addWorksheet((labels[name] || name).replace(/[\\/?*[\]:]/g, '').slice(0, 31), { views: [{ state: 'frozen', ySplit: 1 }] });
+          sheet.columns = table.headers.map((h, i) => ({
+            width: Math.min(50, Math.max(10, h.length + 2, ...table.rows.slice(0, 200).map((r) => Math.min(50, r[i].length + 2))))
+          }));
+          const header = sheet.addRow(table.headers);
+          header.eachCell((c) => {
+            c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F8F4E' } };
+          });
+          table.rows.forEach((r) => sheet.addRow(r));
+        }
+        const buffer = await book.xlsx.writeBuffer();
+        saveBlob(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `peakpath-backup-${stamp}.xlsx`);
+      } else {
+        await loadBackupLibrary('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', () => window.JSZip);
+        const zip = new window.JSZip();
+        for (const [name, rows] of Object.entries(data)) {
+          const table = flatTable(rows);
+          const lines = [table.headers, ...table.rows].map((r) => r.map((v) => csvEscape(String(v))).join(','));
+          // The BOM lets Excel open the UTF-8 text (ñ, é, …) correctly.
+          zip.file(`${name}.csv`, '﻿' + lines.join('\r\n'));
+        }
+        zip.file('README.txt', `PeakPath backup, exported ${exportedAt.toISOString()}.\r\nOne CSV per Firestore collection, ${records} records in all.\r\nLists and nested details are written as text; the JSON backup keeps them whole.\r\n`);
+        saveBlob(await zip.generateAsync({ type: 'blob' }), `peakpath-backup-${stamp}-csv.zip`);
+      }
+
+      try { localStorage.setItem(BACKUP_KEY, JSON.stringify({ at: exportedAt.toISOString(), records, format })); } catch { /* not remembered */ }
+      status.className = 'rm-status is-ok';
+      status.textContent = `${label} backup downloaded: ${records.toLocaleString()} records.`;
+    } catch (error) {
+      status.className = 'rm-status is-error';
+      status.textContent = `Could not make the backup: ${error.message || 'Unknown error'}`;
+    } finally {
+      buttons.forEach((b) => { b.disabled = false; });
+      button.querySelector('strong').textContent = label;
+    }
+  }
+
+  /* ---- Audit Logs ----
+     Who did what and when, gathered from what the records already keep:
+     hazard reports (verified, rejected, resolved, archived), advisories
+     (published, edited, archived), users (created, suspended), reports about
+     users (their action log), emergencies (responded, resolved), trails
+     (status changes) and admin role changes. Newest first, filterable,
+     exportable as PDF or Excel. */
+  const AUDIT_PAGE = 12;
+  const auditState = { events: [], category: '', period: '30', search: '', page: 1 };
+
+  const asDate = (value) => {
+    if (!value) return null;
+    const d = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+
+  async function collectAuditEvents() {
+    const read = async (name) => {
+      try { return (await getDocs(collection(db, name))).docs.map((d) => ({ id: d.id, ...d.data() })); } catch { return []; }
+    };
+    const [reports, advisories, users, userReports, emergencies, trails, roleLog, admins] = await Promise.all([
+      read('reports'), read('Advisory'), read('users'), read('reportedUser'), read('emergency'),
+      read('trails'), read('adminRoleLog'), read('admins')
+    ]);
+    const adminName = new Map(admins.map((a) => [a.id, a.name || a.email || 'An admin']));
+    const userName = new Map(users.map((u) => [u.id, u.fullName || u.username || u.email || 'A user']));
+    const by = (value) => (!value ? '—' : adminName.get(value) || userName.get(value) || String(value));
+    const events = [];
+    const add = (at, category, action, details, who) => {
+      const date = asDate(at);
+      if (date) events.push({ at: date, category, action, details: details || '', by: who || '—' });
+    };
+
+    reports.forEach((r) => {
+      const label = `${r.reportId || r.id} · ${r.hazardType || 'Hazard'}${r.location ? ` at ${r.location}` : ''}`;
+      add(r.timestamp || r.createdAt, 'Hazard report', 'Submitted', label, r.reportedBy || '—');
+      if (r.verifiedAt) add(r.verifiedAt, 'Hazard report', 'Verified', `${label}${r.riskLevel ? ` · ${r.riskLevel} risk` : ''}`, by(r.verifiedBy));
+      else if (r.status === 'verified') add(r.updatedAt, 'Hazard report', 'Verified', `${label}${r.riskLevel ? ` · ${r.riskLevel} risk` : ''}`, '—');
+      if (r.rejectedAt) add(r.rejectedAt, 'Hazard report', 'Rejected', label, by(r.rejectedBy));
+      else if (r.status === 'rejected') add(r.updatedAt, 'Hazard report', 'Rejected', label, '—');
+      if (r.resolvedAt) add(r.resolvedAt, 'Hazard report', 'Resolved', label, by(r.resolvedBy));
+      if (r.archivedAt) add(r.archivedAt, 'Hazard report', 'Archived', label, by(r.archivedBy));
+    });
+    advisories.forEach((a) => {
+      const label = `${a.type || 'Advisory'}: ${a.title || 'Untitled'}`;
+      add(a.firstCreatedAt || a.createdAt, 'Advisory', 'Published', label, a.publishedBy || '—');
+      if (a.editedAt) add(a.editedAt, 'Advisory', 'Edited', label, '—');
+      if (a.archivedAt) add(a.archivedAt, 'Advisory', 'Archived', label, by(a.archivedBy));
+      const expires = asDate(a.expiresAt);
+      if (expires && expires <= new Date()) add(expires, 'Advisory', 'Expired', label, 'System');
+    });
+    users.forEach((u) => {
+      const label = `${u.fullName || u.username || 'User'}${u.role ? ` (${u.role})` : ''}`;
+      add(u.createdAt, 'User', 'Account created', label, '—');
+      if (u.suspendedAt) add(u.suspendedAt, 'User', 'Suspended', `${label}${u.suspensionReason ? ` · ${u.suspensionReason}` : ''}`, by(u.suspendedBy));
+    });
+    userReports.forEach((r) => {
+      const label = r.reportId || r.id;
+      add(r.submittedAt || r.createdAt, 'User report', 'Submitted', label, r.reportedBy || '—');
+      (Array.isArray(r.actionLog) ? r.actionLog : []).forEach((entry) => {
+        add(entry?.at, 'User report', entry?.title || entry?.type || 'Action', `${label}${entry?.note ? ` · ${entry.note}` : ''}`, entry?.by || '—');
+      });
+    });
+    emergencies.forEach((e) => {
+      const label = `${e.hikerName || e.userName || e.name || 'Hiker'}${e.location ? ` · ${e.location}` : ''}`;
+      add(e.timestamp || e.createdAt, 'Emergency', 'Alert raised', label, e.hikerName || e.userName || '—');
+      if (e.respondedAt) add(e.respondedAt, 'Emergency', 'Responding', label, by(e.respondedBy));
+      if (e.resolvedAt) add(e.resolvedAt, 'Emergency', 'Resolved', label, by(e.resolvedBy));
+    });
+    trails.forEach((t) => {
+      if (t.StatusUpdatedAt) add(t.StatusUpdatedAt, 'Trail', `Status: ${t.Status || 'Open'}`, t.Trail || 'Trail', '—');
+      if (t.UpdatedAt && String(asDate(t.UpdatedAt)) !== String(asDate(t.StatusUpdatedAt))) add(t.UpdatedAt, 'Trail', 'Information edited', t.Trail || 'Trail', '—');
+    });
+    roleLog.forEach((entry) => {
+      const who = entry.targetName || entry.targetEmail || 'an admin';
+      const action = entry.action === 'add' ? 'Admin added' : entry.action === 'remove' ? 'Admin removed' : 'Role changed';
+      const details = entry.action === 'add' ? `${who} as ${entry.to}` : entry.action === 'remove' ? `${who} (${entry.from || 'no role'})` : `${who}: ${entry.from || 'No role'} → ${entry.to}`;
+      add(entry.at, 'Admin', action, details, entry.byName || '—');
+    });
+    return events.sort((a, b) => b.at - a.at);
+  }
+
+  function filteredAuditEvents() {
+    const { events, category, period, search } = auditState;
+    const since = period === 'all' ? 0 : Date.now() - Number(period) * 86400000;
+    const q = search.trim().toLowerCase();
+    return events.filter((e) => (!category || e.category === category)
+      && e.at.getTime() >= since
+      && (!q || `${e.action} ${e.details} ${e.by}`.toLowerCase().includes(q)));
+  }
+
+  function renderAuditList() {
+    const list = document.getElementById('auditRows');
+    const pager = document.getElementById('auditPager');
+    const summary = document.getElementById('auditSummary');
+    if (!list) return;
+    const rows = filteredAuditEvents();
+    const pages = Math.max(1, Math.ceil(rows.length / AUDIT_PAGE));
+    auditState.page = Math.min(auditState.page, pages);
+    const start = (auditState.page - 1) * AUDIT_PAGE;
+    list.innerHTML = rows.length
+      ? rows.slice(start, start + AUDIT_PAGE).map((e) => `<tr>
+          <td data-label="When" style="white-space:nowrap">${escapeHTML(formatPortalDateTime(e.at))}</td>
+          <td data-label="Category"><span class="rm-level rm-level-view">${escapeHTML(e.category)}</span></td>
+          <td data-label="Action"><strong>${escapeHTML(e.action)}</strong></td>
+          <td data-label="Details">${escapeHTML(e.details)}</td>
+          <td data-label="By">${escapeHTML(e.by)}</td></tr>`).join('')
+      : '<tr><td colspan="5" class="rm-muted" style="text-align:center;padding:18px">No activity matches these filters.</td></tr>';
+    summary.textContent = rows.length
+      ? `Showing ${start + 1} to ${Math.min(start + AUDIT_PAGE, rows.length)} of ${rows.length.toLocaleString()} entries`
+      : 'No entries';
+    pager.innerHTML = '';
+    if (pages > 1) {
+      const button = (label, page, { disabled = false, active = false } = {}) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'page-btn' + (active ? ' active' : '');
+        b.innerHTML = label;
+        b.disabled = disabled;
+        if (!disabled && !active) b.addEventListener('click', () => { auditState.page = page; renderAuditList(); });
+        pager.appendChild(b);
+      };
+      button('&lsaquo;', auditState.page - 1, { disabled: auditState.page === 1 });
+      pageList(auditState.page, pages).forEach((p) => (p === PAGE_GAP ? pager.appendChild(pageGap()) : button(String(p), p, { active: p === auditState.page })));
+      button('&rsaquo;', auditState.page + 1, { disabled: auditState.page === pages });
+    }
+  }
+
+  async function bindAuditLogs() {
+    const box = document.getElementById('auditBox');
+    if (!box) return;
+    auditState.events = await collectAuditEvents();
+    if (!document.body.contains(box)) return;
+    auditState.page = 1;
+    const categories = [...new Set(auditState.events.map((e) => e.category))].sort();
+    box.innerHTML = `
+      <div class="audit-filters">
+        <input type="search" id="auditSearch" placeholder="Search activity, names, reports…" aria-label="Search activity" value="${escapeHTML(auditState.search)}">
+        <select id="auditCategory" aria-label="Category"><option value="">All activity</option>${categories.map((c) => `<option${c === auditState.category ? ' selected' : ''}>${escapeHTML(c)}</option>`).join('')}</select>
+        <select id="auditPeriod" aria-label="Period">
+          ${[['7', 'Last 7 days'], ['30', 'Last 30 days'], ['90', 'Last 90 days'], ['all', 'All time']].map(([v, l]) => `<option value="${v}"${v === auditState.period ? ' selected' : ''}>${l}</option>`).join('')}
+        </select>
+        <button type="button" class="ghost-btn" id="auditExportBtn"><i class="fa-solid fa-file-export" aria-hidden="true"></i> Export</button>
+      </div>
+      <div class="rm-table-wrap">
+        <table class="rm-table rm-stack audit-table">
+          <thead><tr><th>When</th><th>Category</th><th>Action</th><th>Details</th><th>By</th></tr></thead>
+          <tbody id="auditRows"></tbody>
+        </table>
+      </div>
+      <div class="audit-footer"><span class="rm-muted" id="auditSummary"></span><div class="page-btns" id="auditPager"></div></div>
+      <p class="rm-muted">Built from the dates and names each record keeps. "—" means that action does not record who did it.</p>`;
+
+    document.getElementById('auditSearch').addEventListener('input', (e) => { auditState.search = e.target.value; auditState.page = 1; renderAuditList(); });
+    document.getElementById('auditCategory').addEventListener('change', (e) => { auditState.category = e.target.value; auditState.page = 1; renderAuditList(); });
+    document.getElementById('auditPeriod').addEventListener('change', (e) => { auditState.period = e.target.value; auditState.page = 1; renderAuditList(); });
+    document.getElementById('auditExportBtn').addEventListener('click', (event) => {
+      event.stopPropagation();
+      openExportMenu(event.currentTarget, {
+        getTable: () => {
+          const rows = filteredAuditEvents();
+          return {
+            title: 'Audit Log',
+            filename: 'peakpath-audit-log',
+            countLabel: `${rows.length} entr${rows.length === 1 ? 'y' : 'ies'}`,
+            headers: ['When', 'Category', 'Action', 'Details', 'By'],
+            rows: rows.map((e) => [formatPortalDateTime(e.at), e.category, e.action, e.details, e.by])
+          };
+        }
+      });
+    });
+    renderAuditList();
   }
 
   function openModal(action) {
@@ -3149,14 +4011,14 @@
           <div class="rm">
             <p class="rm-muted">What each admin role can do in the portal. The database enforces it (firestore.rules), so a Viewer's changes are refused even if attempted, and the pages show a view-only banner and turn the change buttons off.</p>
             <div class="rm-table-wrap">
-              <table class="rm-table rm-matrix">
+              <table class="rm-table rm-matrix rm-stack">
                 <thead><tr><th>Module</th>${ADMIN_ROLES.map((role) => `<th>${escapeHTML(role)}</th>`).join('')}</tr></thead>
                 <tbody>${ROLE_PERMISSIONS.map(([module, ...levels]) => `
-                  <tr><td>${escapeHTML(module)}</td>${levels.map((level) => `<td><span class="rm-level rm-level-${level.toLowerCase().replace(/[^a-z]+/g, '-')}">${escapeHTML(level)}</span></td>`).join('')}</tr>`).join('')}
+                  <tr><td class="rm-card-title">${escapeHTML(module)}</td>${levels.map((level, i) => `<td data-label="${escapeHTML(ADMIN_ROLES[i])}"><span class="rm-level rm-level-${level.toLowerCase().replace(/[^a-z]+/g, '-')}">${escapeHTML(level)}</span></td>`).join('')}</tr>`).join('')}
                 </tbody>
               </table>
             </div>
-            <p class="rm-muted">Change an admin's role in Role Management. Admins with no role set are Super Administrators.</p>
+            <p class="rm-muted">Change an admin's role in Role Management. An admin account with no role assigned has no access until a Super Administrator gives it one.</p>
           </div>
           <div class="modal-actions">
             <button type="button" class="ghost-btn" data-close-modal>Close</button>
@@ -3165,66 +4027,70 @@
       },
       dataBackup: {
         title: 'Data & Backup',
+        // Filled in by bindDataBackup().
         content: `
-          <div class="form-grid">
-            <div class="field">
-              <label for="backupSchedule">Backup Schedule</label>
-              <select id="backupSchedule">
-                <option selected>Daily at 02:00 AM</option>
-                <option>Weekly on Sundays</option>
-                <option>Monthly on the 1st</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="storageStatus">Storage Status</label>
-              <input id="storageStatus" type="text" value="Healthy - 76% available" readonly>
-            </div>
-          </div>
+          <div id="backupBox" class="rm"><p class="rm-muted">Counting records…</p></div>
           <div class="modal-actions">
-            <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
-            <button type="button" class="primary-btn" data-save-modal="dataBackup">Save Settings</button>
+            <button type="button" class="ghost-btn" data-close-modal>Close</button>
           </div>
         `
       },
       auditLogs: {
         title: 'Audit Logs',
+        // Filled in by bindAuditLogs().
         content: `
-          <div class="form-grid">
-            <div class="field">
-              <label for="logRetention">Retention Period</label>
-              <select id="logRetention">
-                <option selected>180 days</option>
-                <option>90 days</option>
-                <option>365 days</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="lastAudit">Last Audit</label>
-              <input id="lastAudit" type="text" value="May 20, 2025 10:30 AM" readonly>
-            </div>
-          </div>
+          <div id="auditBox" class="rm"><p class="rm-muted">Collecting activity…</p></div>
           <div class="modal-actions">
-            <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
-            <button type="button" class="primary-btn" data-save-modal="auditLogs">Apply</button>
+            <button type="button" class="ghost-btn" data-close-modal>Close</button>
+          </div>
+        `
+      },
+      helpGuide: {
+        title: 'Admin Guide & Troubleshooting',
+        content: `
+          <div class="rm">
+            <p class="rm-muted">Use this guide to manage PeakPath and investigate common issues.</p>
+            <details class="faq-item" open>
+              <summary>Managing trails and hazard reports</summary>
+              <div class="faq-answer">Use Trail Management to maintain trail information and stations. In Hazard Reports, review the location, description and evidence before verifying or rejecting a report. When a hazard has been addressed, record the resolution details. Archived records are available in Settings.</div>
+            </details>
+            <details class="faq-item">
+              <summary>Advisories and emergency monitoring</summary>
+              <div class="faq-answer">Use Advisories &amp; Announcements to publish updates and review expiry dates. Use Emergency Monitoring to review incoming alerts and Geomap Monitoring to check available locations. Follow your team's emergency response procedure when an alert arrives.</div>
+            </details>
+            <details class="faq-item">
+              <summary>Accounts, roles and sign-in</summary>
+              <div class="faq-answer">Update your own details through Profile Information. Use Change Password to change your credentials and Login Sessions to review other sign-ins. Viewers have read-only access. Contact your Super Administrator if you need a role change; role assignments are managed in Role Management.</div>
+            </details>
+            <details class="faq-item">
+              <summary>A page is empty or a change will not save</summary>
+              <div class="faq-answer">Check your internet connection, refresh the page and confirm that you are signed in with the correct admin account. Review any search or filter settings. If a change is refused, check your role in Access Control. If the problem continues, record the exact error and the steps that caused it before contacting your administrator.</div>
+            </details>
+            <details class="faq-item">
+              <summary>Requesting technical support</summary>
+              <div class="faq-answer">Contact your organization's Super Administrator or project maintenance team through your established support channel. Include the affected page, record ID if available, date and time, browser, steps to reproduce, and the exact error message. Share a screenshot with personal information hidden. Never include passwords or verification codes.</div>
+            </details>
+          </div>
+          <div class="modal-actions"><button type="button" class="ghost-btn" data-close-modal>Close</button></div>`
+      },
+      faqs: {
+        title: 'FAQs',
+        // Filled in by bindFaqs(), live from the Firestore "faqs" collection.
+        content: `
+          <div id="faqBox" class="rm"><p class="rm-muted">Loading FAQs…</p></div>
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" data-close-modal>Close</button>
           </div>
         `
       },
       loginSessions: {
         title: 'Login Sessions',
+        // Filled in by bindLoginSessions().
         content: `
-          <div class="form-grid">
-            <div class="field">
-              <label for="sessionDevice">Current Device</label>
-              <input id="sessionDevice" type="text" value="Windows 11 • Chrome" readonly>
-            </div>
-            <div class="field">
-              <label for="sessionLocation">Location</label>
-              <input id="sessionLocation" type="text" value="Cebu City, Philippines" readonly>
-            </div>
-          </div>
+          <div id="sessionsBox" class="rm"><p class="rm-muted">Loading your sessions…</p></div>
           <div class="modal-actions">
-            <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
-            <button type="button" class="primary-btn" data-save-modal="loginSessions">Terminate Session</button>
+            <button type="button" class="ghost-btn" data-close-modal>Close</button>
+            <button type="button" class="primary-btn" id="endOtherSessionsBtn" disabled>Sign out all other sessions</button>
           </div>
         `
       }
@@ -3239,7 +4105,8 @@
       ['archivedHazardReports', 'archivedResolvedReports', 'expiredAdvisoryArchive'].includes(action)
     );
     modalCard.classList.toggle('preference-theme', ['profile', 'password', 'timezone'].includes(action));
-    modalCard.classList.toggle('profile-wide', ['profile', 'roleManagement', 'accessControl'].includes(action));
+    modalCard.classList.toggle('profile-wide', action === 'profile');
+    modalCard.classList.toggle('dialog-wide', ['roleManagement', 'accessControl', 'dataBackup', 'auditLogs', 'faqs', 'helpGuide'].includes(action));
     modalTitle.textContent = config.title;
     modalBody.innerHTML = config.content;
     modal.classList.add('visible');
@@ -3281,6 +4148,18 @@
     if (action === 'roleManagement') {
       bindRoleManagement();
     }
+    if (action === 'dataBackup') {
+      bindDataBackup();
+    }
+    if (action === 'auditLogs') {
+      bindAuditLogs();
+    }
+    if (action === 'loginSessions') {
+      bindLoginSessions();
+    }
+    if (action === 'faqs') {
+      bindFaqs();
+    }
 
     modalBody.querySelectorAll('[data-close-modal]').forEach((button) => {
       button.addEventListener('click', closeModal);
@@ -3321,7 +4200,13 @@
   document.querySelectorAll('[data-setting-toggle]').forEach((input) => {
     input.addEventListener('change', () => {
       updateStatusFromCheckboxes();
-      persistSettings();
+      try {
+        persistSettings();
+        showToast('Setting saved');
+      } catch (error) {
+        console.error('Failed to save the setting:', error);
+        showToast('Your browser blocked saving this setting.');
+      }
     });
   });
 
@@ -3346,7 +4231,7 @@
         showToast('Your browser blocked saving this setting.');
         return;
       }
-      statusText.textContent = `Theme: ${THEME_NAMES[themePicker.value]}`;
+      showToast(`Theme set to ${THEME_NAMES[themePicker.value]}`);
     });
 
     // Switched from another open tab.
@@ -3374,7 +4259,6 @@
         return;
       }
       const name = WEATHER_LOCATIONS[weatherLocationPicker.value].name;
-      statusText.textContent = `Dashboard weather: ${name}`;
       showToast(`Dashboard weather now shows ${name}`);
     });
 
@@ -3382,11 +4266,6 @@
       if (event.key === WEATHER_STORAGE_KEY) syncWeatherPicker();
     });
   }
-
-  saveButton.addEventListener('click', () => {
-    persistSettings();
-    showToast('Settings saved successfully');
-  });
 
   syncInputs();
   persistSettings();

@@ -739,7 +739,7 @@
 	.page-controls {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 5px;
 	}
 	/* Pagination buttons are styled in pages.css so every table matches. */
 	.stats-grid {
@@ -1159,6 +1159,18 @@
 			grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
 		}
 	}
+
+    /* One row height for the portal's main lists: the Hazard Reports list,
+       Advisories & Announcements, the User list, Reports About User Behavior
+       and Active Emergencies all use 64px rows. A table cell's height is a
+       minimum, so a row whose content needs more room (a long title, a
+       wrapped name) still grows to fit. Phones keep their own layouts. */
+    @media (min-width: 701px) {
+        #listBody > tr > td {
+            height: 64px;
+            vertical-align: middle;
+        }
+    }
 </style>
 </head>
 <body>
@@ -1420,6 +1432,7 @@
 		} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 		import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 		import { formatPortalDateTime, toPortalDate as toDate } from "../jsPages/datetime-prefs.js";
+		import { pageList, pageGap, PAGE_GAP } from "../jsPages/pagination.js";
 		import {
 			ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject
 		} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -1643,7 +1656,9 @@ async function syncExpiredAdvisories(){
 			prev.onclick = () => { currentPage--; applyFiltersAndRender(); };
 			wrap.appendChild(prev);
 
-			for (let page = 1; page <= totalPages; page++) {
+			// A long run of pages is shortened with "…" (pagination.js).
+			for (const page of pageList(currentPage, totalPages)) {
+				if (page === PAGE_GAP) { wrap.appendChild(pageGap()); continue; }
 				const btn = el('button','page-btn' + (page === currentPage ? ' active current' : ''));
 				btn.textContent = page;
 				if (page !== currentPage) {
@@ -1887,8 +1902,9 @@ async function syncExpiredAdvisories(){
 			};
 
 			addButton('&lsaquo;', expiredPage - 1, { disabled: expiredPage === 1 });
-			for (let page = 1; page <= totalPages; page++) {
-				addButton(String(page), page, { active: page === expiredPage });
+			for (const page of pageList(expiredPage, totalPages)) {
+				if (page === PAGE_GAP) wrap.appendChild(pageGap());
+				else addButton(String(page), page, { active: page === expiredPage });
 			}
 			addButton('&rsaquo;', expiredPage + 1, { disabled: expiredPage === totalPages });
 		}
@@ -2037,6 +2053,7 @@ onSnapshot(advisoryQuery, (snapshot) => {
     allItems = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     applyFiltersAndRender();
     syncExpiredAdvisories();
+    scheduleNextExpiry();
     if (selectedId) {
         const still = allItems.find(d => d.id === selectedId);
         if (still) {
@@ -2057,12 +2074,46 @@ onSnapshot(advisoryQuery, (snapshot) => {
     document.getElementById('pageInfo').textContent = 'Error loading advisories: ' + err.message;
 });
 
-// Re-check every minute so an advisory flips to Expired on-screen even
-// if nothing else changes in Firestore to trigger onSnapshot.
-setInterval(() => {
+/* An advisory moves to Expired Advisories the moment its expiry passes,
+   without a refresh: a timer is set for the soonest upcoming expiresAt and,
+   when it fires, the lists are redrawn, the advisory is stamped Expired in
+   Firestore, and the timer is set for the next one. If the advisory that
+   expired is open in the detail panel, the panel moves to the first active
+   advisory. Browsers slow timers in background tabs, so coming back to the
+   tab re-checks at once, and a once-a-minute check stays as a backstop. */
+let expiryTimer = null;
+const MAX_TIMER_MS = 60 * 60 * 1000; // re-plan at least hourly (timers cap near 24.8 days)
+
+function refreshExpiry() {
     applyFiltersAndRender();
     syncExpiredAdvisories();
-}, 60000);
+    const selected = selectedId ? allItems.find(d => d.id === selectedId) : null;
+    if (selected && getEffectiveStatus(selected) === 'Expired') {
+        if (currentListItems.length) selectAdvisory(currentListItems[0].id);
+        else { selectedId = null; showEmptyDetail(); }
+    }
+    scheduleNextExpiry();
+}
+
+function scheduleNextExpiry() {
+    clearTimeout(expiryTimer);
+    const now = Date.now();
+    const next = allItems
+        .filter(d => getEffectiveStatus(d) !== 'Expired' && getEffectiveStatus(d) !== 'Archived')
+        .map(d => toDate(d.expiresAt)?.getTime())
+        .filter(t => t && t > now)
+        .sort((a, b) => a - b)[0];
+    if (!next) return;
+    // A moment after the expiry instant, so isPastExpiry() is already true.
+    expiryTimer = setTimeout(refreshExpiry, Math.min(next - now + 250, MAX_TIMER_MS));
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshExpiry();
+});
+
+// Backstop: re-check every minute even if a timer was missed.
+setInterval(refreshExpiry, 60000);
 
 		document.getElementById('search').addEventListener('input', () => { currentPage = 1; applyFiltersAndRender(); });
 		document.getElementById('typeFilter').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
