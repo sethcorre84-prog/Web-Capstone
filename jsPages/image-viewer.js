@@ -15,23 +15,26 @@
    window.openImageViewer(urls, startIndex) directly.
    ========================================================================== */
 (function () {
-    var CSS = '' +
-        '.iv-overlay{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;' +
-        'background:rgba(8,14,10,.88);padding:56px 64px;box-sizing:border-box;}' +
-        '.iv-overlay.open{display:flex;}' +
-        '.iv-overlay img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;' +
-        'box-shadow:0 10px 40px rgba(0,0,0,.5);background:#111;user-select:none;}' +
-        '.iv-btn{position:absolute;border:0;border-radius:50%;width:44px;height:44px;cursor:pointer;' +
-        'background:rgba(255,255,255,.14);color:#fff;font-size:22px;line-height:44px;text-align:center;padding:0;}' +
-        '.iv-btn:hover,.iv-btn:focus-visible{background:rgba(255,255,255,.28);outline:none;}' +
-        '.iv-close{top:12px;right:12px;}' +
-        '.iv-prev{left:12px;top:50%;transform:translateY(-50%);}' +
-        '.iv-next{right:12px;top:50%;transform:translateY(-50%);}' +
-        '.iv-caption{position:absolute;bottom:14px;left:16px;right:16px;text-align:center;color:#e8efe9;' +
-        'font:600 13px/1.4 system-ui,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}' +
-        '.iv-error{color:#e8efe9;font:600 14px system-ui,sans-serif;}' +
-        '[data-lightbox]{cursor:zoom-in;}' +
-        '@media (max-width:560px){.iv-overlay{padding:56px 12px;}.iv-prev,.iv-next{top:auto;bottom:44px;transform:none;}}';
+    var CSS = `
+        .iv-overlay{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(15,25,15,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);padding:20px;box-sizing:border-box;}
+        .iv-overlay.open{display:flex;}
+        .iv-card{width:100%;max-width:1025px;max-height:100%;min-width:0;padding:20px;border-radius:16px;background:#fff;box-sizing:border-box;overflow:auto;font-family:system-ui,sans-serif;box-shadow:0 18px 48px rgba(20,40,25,.22);}
+        .iv-stage{position:relative;display:grid;place-items:center;min-height:260px;height:min(70vh,683px);border-radius:12px;background:#101710;overflow:hidden;}
+        .iv-overlay img{display:block;width:100%;height:100%;min-height:0;max-height:min(70vh,683px);object-fit:contain;user-select:none;}
+        .iv-overlay [hidden]{display:none!important;}
+        .iv-btn{position:absolute;top:50%;transform:translateY(-50%);border:0;border-radius:50%;width:36px;height:36px;cursor:pointer;background:rgba(255,255,255,.88);color:#202820;font-size:22px;line-height:36px;text-align:center;padding:0;}
+        .iv-btn:hover{background:#fff;}
+        .iv-btn:focus-visible,.iv-close:focus-visible{outline:2px solid #52785c;outline-offset:3px;}
+        .iv-prev{left:10px;}.iv-next{right:10px;}
+        .iv-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:14px;}
+        .iv-close{flex-shrink:0;border:0;border-radius:10px;padding:10px 18px;background:#f0f2ef;color:#202820;font:600 14px/1.4 system-ui,sans-serif;cursor:pointer;}
+        .iv-close:hover{background:#e4e9e2;}
+        .iv-caption{min-width:0;color:#617065;font:400 14px/1.4 system-ui,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .iv-error{color:#e8efe9;font:600 14px system-ui,sans-serif;}
+        [data-lightbox]{cursor:zoom-in;}
+        @media(max-width:560px){.iv-overlay{padding:12px;}.iv-card{padding:12px;}.iv-stage{min-height:160px;}.iv-caption{font-size:12px;}}
+        @media(max-height:480px){.iv-stage{min-height:0;height:calc(100dvh - 130px);}.iv-overlay img{max-height:calc(100dvh - 130px);}}
+    `;
 
     var state = { urls: [], captions: [], index: 0, lastFocus: null };
     var overlay, img, caption, prevBtn, nextBtn, errorEl;
@@ -48,12 +51,12 @@
         overlay.setAttribute('aria-modal', 'true');
         overlay.setAttribute('aria-label', 'Image viewer');
         overlay.innerHTML =
-            '<img alt="">' +
+            '<div class="iv-card"><div class="iv-stage"><img alt="">' +
             '<div class="iv-error" hidden>This picture could not be loaded.</div>' +
-            '<button type="button" class="iv-btn iv-close" aria-label="Close">&times;</button>' +
             '<button type="button" class="iv-btn iv-prev" aria-label="Previous picture">&#8249;</button>' +
             '<button type="button" class="iv-btn iv-next" aria-label="Next picture">&#8250;</button>' +
-            '<div class="iv-caption"></div>';
+            '</div><div class="iv-bar"><div class="iv-caption" aria-live="polite"></div>' +
+            '<button type="button" class="iv-close">Close</button></div></div>';
         document.body.appendChild(overlay);
 
         img = overlay.querySelector('img');
@@ -78,7 +81,12 @@
         errorEl.hidden = true;
         img.src = state.urls[state.index];
         var text = state.captions[state.index] || '';
-        caption.textContent = n > 1 ? (state.index + 1) + ' of ' + n + (text ? ' · ' + text : '') : text;
+        if (!text && !/^(data|blob):/i.test(state.urls[state.index])) {
+            try {
+                text = decodeURIComponent(new URL(state.urls[state.index], document.baseURI).pathname).split('/').pop() || '';
+            } catch (e) { text = ''; }
+        }
+        caption.textContent = (state.index + 1) + ' of ' + n + (text ? ' \u00b7 ' + text : '');
         img.alt = text || 'Picture ' + (state.index + 1);
         prevBtn.hidden = nextBtn.hidden = n < 2;
     }

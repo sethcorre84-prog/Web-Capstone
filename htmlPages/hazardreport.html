@@ -313,7 +313,7 @@
     }
     .filters-row {
         display: grid;
-        grid-template-columns: minmax(140px, 1.6fr) repeat(3, minmax(105px, 1fr)) auto;
+        grid-template-columns: minmax(140px, 1.6fr) repeat(4, minmax(105px, 1fr)) auto;
         gap: 10px;
         align-items: center;
     }
@@ -1495,6 +1495,9 @@
                 <span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></span>
                 <input type="text" placeholder="Search reports..." id="searchInput">
               </div>
+              <select class="filter-select" id="trailFilter" aria-label="Filter by trail">
+                <option value="">Trail: All</option>
+              </select>
               <select class="filter-select" id="statusFilter">
                 <option value="">Status: All</option>
                 <option value="pending">Pending</option>
@@ -1968,7 +1971,7 @@ function renderRejectedList() {
   // In ID order, newest first (R-YYYY-0003, 0002, 0001), like Resolved Reports
   // and the Settings archives. The numbers have no gaps (report-ids.js).
   const rejected = sortByReportId(
-    allReports.filter(r => r.status === 'rejected'),
+    allReports.filter(r => r.status === 'rejected' && matchesTrailFilter(r)),
     r => toJsDate(r.updatedAt)
   );
 
@@ -2085,7 +2088,7 @@ function renderResolvedList() {
   // Settings archives. The numbers have no gaps (report-ids.js), so the list
   // ends at 001 and a report unarchived in Settings joins it at the top.
   const resolved = sortByReportId(
-    allReports.filter(r => r.status === 'resolved' && !r.archived),
+    allReports.filter(r => r.status === 'resolved' && !r.archived && matchesTrailFilter(r)),
     r => toJsDate(r.resolvedAt)
   );
 
@@ -2216,7 +2219,7 @@ async function confirmArchiveReports() {
       // Settings > Archived Resolved Reports reads. It moves to the end of
       // that list as AR-YYYY-####, and the Resolved list closes up behind it.
       const resolvedBatch = writeBatch(db);
-      const idPlan = planReportIds(allReports, new Map(ids.map(id => [id, { archived: true }])));
+      const idPlan = planReportIds(numberingReports, new Map(ids.map(id => [id, { archived: true }])));
       ids.forEach(id => {
         resolvedBatch.update(doc(db, 'reports', id), {
           archived: true,
@@ -2241,7 +2244,7 @@ async function confirmArchiveReports() {
     // and the Rejected list closes up behind them (report-ids.js). This
     // used to be "archived count + 1", which reused a number still held by
     // someone once an earlier archived report had been unarchived.
-    const idPlan = planReportIds(allReports, new Map(ids.map(id => [id, { status: 'archived' }])));
+    const idPlan = planReportIds(numberingReports, new Map(ids.map(id => [id, { status: 'archived' }])));
     ids.forEach(id => {
       batch.update(doc(db, 'reports', id), {
         status: 'archived',
@@ -2870,7 +2873,7 @@ async function confirmStatusUpdate() {
     // Rejecting or resolving gives the report the next R- or RES- number
     // (report-ids.js); any change that takes one out of a list closes the
     // gap it leaves there.
-    planReportIds(allReports, new Map([[reportId, { status: newStatus }]])).forEach((newId, id) => {
+    planReportIds(numberingReports, new Map([[reportId, { status: newStatus }]])).forEach((newId, id) => {
       if (id === reportId) updateData.reportId = newId;
       else batch.update(doc(db, 'reports', id), { reportId: newId });
     });
@@ -3113,6 +3116,8 @@ function filterReports(resetPage = true) {
     filtered = filtered.filter(r => r.hazardType === hazardFilter);
   }
 
+  filtered = filtered.filter(matchesTrailFilter);
+
   if (dateFilter) {
     const now = new Date();
     filtered = filtered.filter(r => {
@@ -3137,6 +3142,64 @@ function filterReports(resetPage = true) {
 
   renderReportsTable(filtered);
 }
+
+/* Trail filter: one option per document in the trails collection, kept live,
+   so a trail added in Trail Management shows up here straight away. The app
+   saves a report's trail by name, so reports are matched on that (ignoring
+   case, spacing and punctuation), or on the trail's ID when one is saved. */
+let trailOptions = [];
+const trailKey = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+function reportOnTrail(report, trailId) {
+  const trail = trailOptions.find(t => t.id === trailId);
+  if (!trail) return false;
+  if ([report.trailId, report.trailID].includes(trailId)) return true;
+  const key = trailKey(trail.name);
+  return [report.trail, report.trailName].some(value => value && trailKey(value) === key);
+}
+
+// The trail filter also narrows the Rejected and Resolved panels.
+function matchesTrailFilter(report) {
+  const trailId = document.getElementById('trailFilter').value;
+  return !trailId || reportOnTrail(report, trailId);
+}
+
+function applyTrailFilter(resetPage = true) {
+  if (resetPage) { rejectedPage = 1; resolvedPage = 1; }
+  filterReports(resetPage);
+  renderRejectedList();
+  renderResolvedList();
+}
+
+function populateTrailFilter() {
+  const filter = document.getElementById('trailFilter');
+  const currentValue = filter.value;
+
+  filter.innerHTML = '<option value="">Trail: All</option>';
+  trailOptions.forEach(trail => {
+    const option = document.createElement('option');
+    option.value = trail.id;
+    option.textContent = trail.name;
+    filter.appendChild(option);
+  });
+
+  filter.value = trailOptions.some(t => t.id === currentValue) ? currentValue : '';
+  if (filter.value !== currentValue) applyTrailFilter();
+}
+
+onSnapshot(collection(db, 'trails'), (snapshot) => {
+  trailOptions = snapshot.docs
+    .map(item => {
+      const data = item.data() || {};
+      return { id: item.id, name: String(data.Trail || data.name || data.trailName || 'Untitled Trail').trim() };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+  populateTrailFilter();
+  // Reports may already be filtered by a trail that was just renamed.
+  if (document.getElementById('trailFilter').value) applyTrailFilter(false);
+}, (error) => {
+  console.error('Error loading trails for the filter:', error);
+});
 
 // Load hazard types for filter
 function populateHazardFilter() {
@@ -3197,9 +3260,10 @@ function planActiveHrIds(reports) {
    with 3-digit numbers), or moved by an older copy of a page. Only IDs that
    differ are written, so the snapshot this causes settles straight away. */
 let tidyingReportIds = false;
+let numberingReports = [];
 async function tidyReportIds() {
   if (tidyingReportIds) return;
-  const changes = [...planActiveHrIds(allReports), ...planReportIds(allReports)];
+  const changes = [...planActiveHrIds(numberingReports), ...planReportIds(numberingReports)];
   if (!changes.length) return;
 
   tidyingReportIds = true;
@@ -3224,6 +3288,7 @@ function loadReports() {
   const reportsRef = collection(db, 'reports');
   
   onSnapshot(reportsRef, (snapshot) => {
+    numberingReports = snapshot.docs.map(item => ({ ...item.data(), id: item.id }));
     allReports = [];
     hazardTypes.clear();
 
@@ -3324,12 +3389,14 @@ document.getElementById('searchInput').addEventListener('input', () => filterRep
 document.getElementById('statusFilter').addEventListener('change', () => filterReports());
 document.getElementById('hazardFilter').addEventListener('change', () => filterReports());
 document.getElementById('dateFilter').addEventListener('change', () => filterReports());
+document.getElementById('trailFilter').addEventListener('change', () => applyTrailFilter());
 document.getElementById('clearFiltersBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
   document.getElementById('statusFilter').value = '';
   document.getElementById('hazardFilter').value = '';
   document.getElementById('dateFilter').value = '';
-  filterReports();
+  document.getElementById('trailFilter').value = '';
+  applyTrailFilter();
 });
 
 

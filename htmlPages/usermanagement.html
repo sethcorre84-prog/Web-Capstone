@@ -1620,6 +1620,20 @@
             vertical-align: middle;
         }
     }
+    /* Keep mobile avatars within the existing circular profile frames. */
+    .user-cell .thumb, #detailAvatar, #profileModalAvatar {
+        position: relative;
+        overflow: hidden;
+    }
+    .user-cell .thumb img, #detailAvatar img, #profileModalAvatar img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: inherit;
+    }
+    img[data-user-avatar][hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -1989,7 +2003,8 @@
 </div>
 
 <script type="module">
-  import { auth, db } from '../jsPages/firebase-config.js';
+  import { auth, db, storage } from '../jsPages/firebase-config.js';
+  import { ref, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
   import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
   import { escapeHtml, normalizeText } from '../jsPages/utils.js';
   import { formatPortalDate, formatPortalDateTime, formatPortalTime, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
@@ -2101,6 +2116,47 @@
     return safeName.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join('') || 'U';
   };
 
+  // Mobile profile photos are referenced by the user's Firestore document.
+  // Resolve Storage paths once; download URLs can be displayed directly.
+  const avatarUrls = new Map();
+  const profilePhotoOf = (data) => {
+    const values = [data.photoURL, data.photoUrl, data.profilePhoto, data.profileImage,
+      data.profileImageUrl, data.profileImageURL, data.profilePicture, data.profilePictureUrl,
+      data.profilePictureURL, data.avatarUrl, data.avatarURL, data.avatar, data.imageUrl,
+      data.photoPath, data.profileImagePath, data.profilePicturePath, data.avatarPath];
+    for (const value of values) {
+      const candidate = typeof value === 'string' ? value : value?.url || value?.downloadURL || value?.path;
+      if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+    }
+    return '';
+  };
+
+  const avatarMarkup = (user) => `${escapeHtml(getInitials(user.name))}${user.photo
+    ? `<img data-user-avatar="${escapeHtml(user.id)}" alt="" hidden>` : ''}`;
+
+  const loadAvatars = (root) => {
+    root.querySelectorAll('img[data-user-avatar]').forEach((image) => {
+      const user = state.users.find(item => item.id === image.dataset.userAvatar);
+      if (!user?.photo) return;
+      const source = user.photo;
+      if (!avatarUrls.has(source)) {
+        const result = /^https?:\/\//i.test(source)
+          ? Promise.resolve(source)
+          : Promise.resolve().then(() => getDownloadURL(ref(storage, source)));
+        avatarUrls.set(source, result.catch(error => {
+          avatarUrls.delete(source);
+          console.warn('Unable to load profile photo:', user.id, error.code || error.message);
+          return '';
+        }));
+      }
+      image.addEventListener('load', () => { image.hidden = false; }, { once: true });
+      image.addEventListener('error', () => { image.remove(); }, { once: true });
+      avatarUrls.get(source).then(url => {
+        if (url && image.isConnected) image.src = url;
+      });
+    });
+  };
+
   /* A suspension that has run out is Active everywhere on this page -- the
      table, the filter, the stats -- because that is what every access check
      already decides. The stored `status` is tidied up separately, below. */
@@ -2153,6 +2209,7 @@
       uid: normalizeText(data.uid || data.userId || snapshotDoc.id),
       // suspensionState() reads the raw fields, so keep them as stored.
       raw: data,
+      photo: profilePhotoOf(data),
       suspendedUntil: data.suspendedUntil ?? null,
       suspensionReason: normalizeText(data.suspensionReason || ''),
       name: fullName || 'Unnamed user',
@@ -2478,7 +2535,7 @@
       <tr data-user-id="${escapeHtml(user.id)}"${user.id === state.selectedUserId ? ' class="is-selected"' : ''}>
         <td>
           <div class="user-cell">
-            <div class="thumb">${escapeHtml(getInitials(user.name))}</div>
+            <div class="thumb">${avatarMarkup(user)}</div>
             <div class="user-cell-text">
               <div class="user-name">${escapeHtml(user.name)}</div>
               <div class="user-email">${escapeHtml(user.email)}</div>
@@ -2492,6 +2549,8 @@
         <td class="stacked-date" data-label="Registered On">${formatStackedDateTime(user.memberSince)}</td>
       </tr>
     `).join('');
+
+    loadAvatars(usersTableBody);
 
     const shownFrom = start + 1;
     const shownTo = start + pageItems.length;
@@ -2580,7 +2639,8 @@
       return;
     }
 
-    document.getElementById('detailAvatar').textContent = getInitials(user.name);
+    document.getElementById('detailAvatar').innerHTML = avatarMarkup(user);
+    loadAvatars(document.getElementById('detailAvatar'));
     document.getElementById('detailName').textContent = user.name;
     document.getElementById('detailEmail').textContent = user.email;
 
@@ -2688,7 +2748,8 @@
     const user = getSelectedUser();
     if (!user) return;
 
-    document.getElementById('profileModalAvatar').textContent = getInitials(user.name);
+    document.getElementById('profileModalAvatar').innerHTML = avatarMarkup(user);
+    loadAvatars(document.getElementById('profileModalAvatar'));
     document.getElementById('viewProfileTitle').textContent = user.name;
     document.getElementById('profileModalEmail').textContent = user.email;
     document.getElementById('profileModalRole').textContent = user.role;

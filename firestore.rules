@@ -392,8 +392,16 @@ service cloud.firestore {
             && resource.data.expiresAt <= request.time);
     }
 
+    function isAdvisoryGuide() {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return signedIn() && exists(userPath)
+        && get(userPath).data.get('role', get(userPath).data.get('Role', '')) is string
+        && get(userPath).data.get('role', get(userPath).data.get('Role', '')).lower().matches('.*guide.*');
+    }
+
     match /Advisory/{advisoryId} {
-      allow read: if true;
+      allow read: if resource.data.get('visibility', 'All Users') != 'Guide'
+        || isAdmin() || (signedIn() && isAdvisoryGuide());
       allow create, delete: if isAdmin();
       allow update: if isAdmin() && (
         !advisoryExpired()

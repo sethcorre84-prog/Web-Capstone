@@ -650,6 +650,10 @@
         color: var(--icon);
     }
 
+    .detail-chip i.detail-star {
+        color: #e0a526;
+    }
+
     /* Edit mode swaps the chip/row values for inputs sized at 130px inline;
        cap them here, and shrink the chip's own padding, so an editing chip does
        not stretch past the panel. */
@@ -1159,6 +1163,16 @@
         font-weight: 600;
     }
 
+    /* Discard Changes: red, so it isn't mistaken for Save Changes above it. */
+    #discardEditBtn {
+        border-color: #d9534f;
+        color: #c0392b;
+    }
+
+    #discardEditBtn[hidden] {
+        display: none;
+    }
+
     .btn-secondary:hover {
         background: var(--dm-surface-2, #f5f5f2);
     }
@@ -1464,6 +1478,7 @@
             <span class="badge moderate" id="detailDiff">Moderate</span>
             <span class="detail-chip"><i class="fa-solid fa-route" aria-hidden="true"></i><span id="detailDist">7.2 km</span></span>
             <span class="detail-chip"><i class="fa-regular fa-clock" aria-hidden="true"></i><span id="detailDur">4–6 hrs</span></span>
+            <span class="detail-chip" id="detailRatingChip" title="Average of hikers' reviews for this trail"><i class="fa-solid fa-star detail-star" aria-hidden="true"></i><span id="detailRating">No ratings yet</span></span>
           </div>
           <div class="detail-desc" id="detailDesc">The most popular trail of Mount Makiling. Passes through dense forest, mossy rocks, and offers scenic views of Laguna de Bay.</div>
           <span class="detail-section-label">Trail Specifications</span>
@@ -1482,6 +1497,7 @@
             <span class="badge open" id="detailStatus">Open</span>
           </div>
           <button class="btn-secondary" id="editTrailBtn" style="margin-top:12px;">✎ Edit Trail Information</button>
+          <button class="btn-secondary" id="discardEditBtn" type="button" style="margin-top:8px;" hidden>↺ Discard Changes</button>
         </div>
 
         <div class="panel">
@@ -1583,18 +1599,14 @@
             <option>Closed</option>
           </select>
         </div>
-        <div style="flex:1;">
-          <label style="font-size:12px;color:var(--text-secondary);">Ratings</label>
-          <input type="text" id="newTrailRatings" placeholder="e.g. 4.8" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
-        </div>
       </div>
 
       <div style="display:flex;gap:10px;">
         <div style="flex:1;">
           <label style="font-size:12px;color:var(--text-secondary);">Entry Type</label>
           <select id="newTrailEntryType" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:4px;">
-            <option>Legal Entry</option>
-            <option>Unregistered Map</option>
+            <option>Registered Trail</option>
+            <option>Unregistered Trail</option>
           </select>
         </div>
         <div style="flex:1;">
@@ -1745,6 +1757,8 @@ function getTrailCoordinates(trail) {
 
 let trails = [];
 let selectedId = null;
+// Average review stars per trail, keyed by the trail's document ID.
+let trailRatings = new Map();
 let editing = false;
 // Same page size as every other paginated table (A&A.html, hazardreport.html,
 // userreports.html) so the number of pages is consistent across the portal.
@@ -1890,7 +1904,7 @@ tr.innerHTML = `
   <td>${t["Approximate Distance"] || "—"}</td>
   <td>${t.Elevation || "—"}</td>
   <td>${t.Duration || "—"}</td>
-  <td>${t.EntryType || "—"}</td>
+  <td>${entryTypeLabel(t.EntryType) || "—"}</td>
   <td><span class="badge ${status.toLowerCase()}">${status}</span></td>
   <td><div class="row-actions">
     <button class="icon-btn visibility-btn" title="${visible ? 'Visible — click to hide' : 'Hidden — click to show'}">${visible ? '👁' : '🚫'}</button>
@@ -1985,6 +1999,47 @@ function updateStats() {
 
 }
 
+/* Ratings come from the hikers' reviews in the app: reviews/{uid}_{trailID},
+   each with stars 1-5 and the trailID of the trail it is about. Each trail's
+   rating is the average of its own reviews only, like the app's
+   ReviewService.watchAverages. */
+function renderDetailRating() {
+  const label = document.getElementById('detailRating');
+  if (!label) return;
+  const rating = trailRatings.get(selectedId);
+  label.textContent = rating
+    ? `${rating.average.toFixed(1)} (${rating.count} review${rating.count === 1 ? '' : 's'})`
+    : 'No ratings yet';
+}
+
+onSnapshot(collection(db, 'reviews'), (snapshot) => {
+  const totals = new Map();
+  snapshot.forEach((review) => {
+    const { trailID, stars } = review.data();
+    const value = Number(stars);
+    if (!trailID || !Number.isFinite(value) || value < 1 || value > 5) return;
+    const entry = totals.get(trailID) || { sum: 0, count: 0 };
+    entry.sum += value;
+    entry.count += 1;
+    totals.set(trailID, entry);
+  });
+  trailRatings = new Map([...totals].map(([id, { sum, count }]) => [id, { average: sum / count, count }]));
+  renderDetailRating();
+}, (error) => {
+  console.error('Error loading trail reviews:', error);
+});
+
+// Older names for the Entry Types; trails saved under them show the current
+// name (and take it in Firestore the next time they are saved in edit mode).
+const OLD_ENTRY_TYPES = {
+  'Legal Entry': 'Registered Trail',
+  'Registered Map': 'Registered Trail',
+  'Unregistered Map': 'Unregistered Trail'
+};
+function entryTypeLabel(value) {
+  return OLD_ENTRY_TYPES[value] || value;
+}
+
 function renderDetail() {
   const t = getSelected();
   if (!t) return;
@@ -2002,6 +2057,8 @@ function renderDetail() {
   document.getElementById('detailDiff').className = 'badge ' + diffClass(t.Difficulty);
   document.getElementById('detailDist').textContent = t["Approximate Distance"] || "—";
   document.getElementById('detailDur').textContent = t.Duration || "—";
+  renderDetailRating();
+  document.getElementById('discardEditBtn').hidden = true;
   document.getElementById('detailDesc').textContent = t.Description || "";
   document.getElementById('detailElev').textContent = t.Elevation || "—";
   // "Location" is the municipality (this row's id is a leftover name).
@@ -2014,7 +2071,7 @@ function renderDetail() {
     ? '1,090 m (Peak 2, summit)'
     : (t.HighestPoint || '—');
   document.getElementById('detailType').textContent = t.Type || "Undefined";
-  document.getElementById('detailEntryType').textContent = t.EntryType || "Undefined";
+  document.getElementById('detailEntryType').textContent = entryTypeLabel(t.EntryType) || "Undefined";
   document.getElementById('detailStatus').textContent = status;
   document.getElementById('detailStatus').className = 'badge ' + status.toLowerCase();
 
@@ -2072,11 +2129,11 @@ function openEditMode() {
       <option ${currentType === "Undefined" ? "selected" : ""}>Undefined</option>
     </select>`;
 
-  const currentEntryType = t.EntryType || "Undefined";
+  const currentEntryType = entryTypeLabel(t.EntryType) || "Undefined";
   document.getElementById('detailEntryType').innerHTML = `
     <select id="editEntryType" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;">
-      <option ${currentEntryType === "Legal Entry" ? "selected" : ""}>Legal Entry</option>
-      <option ${currentEntryType === "Unregistered Map" ? "selected" : ""}>Unregistered Map</option>
+      <option ${currentEntryType === "Registered Trail" ? "selected" : ""}>Registered Trail</option>
+      <option ${currentEntryType === "Unregistered Trail" ? "selected" : ""}>Unregistered Trail</option>
     </select>`;
 
   document.getElementById('detailPublishDate').innerHTML =
@@ -2135,6 +2192,26 @@ function readEditForm() {
   return values;
 }
 
+/* Discard Changes: shown only while the edit form differs from what it held
+   when editing began. It drops the edits and shows the saved trail again. */
+const discardEditBtn = document.getElementById('discardEditBtn');
+
+function updateDiscardButton() {
+  const current = editing && editBaseline ? readEditForm() : null;
+  discardEditBtn.hidden = !current
+    || Object.keys(EDIT_FIELDS).every((field) => current[field] === editBaseline[field]);
+}
+
+const detailPanel = discardEditBtn.closest('.panel');
+detailPanel.addEventListener('input', updateDiscardButton);
+detailPanel.addEventListener('change', updateDiscardButton);
+
+discardEditBtn.addEventListener('click', () => {
+  editing = false;
+  editBaseline = null;
+  renderDetail();
+});
+
 async function saveEdit() {
   const t = getSelected();
   if (!t) return;
@@ -2142,7 +2219,11 @@ async function saveEdit() {
   // Only what the admin actually changed is saved, and Last Updated
   // (UpdatedAt) moves only then: saving an untouched form changes nothing.
   const current = readEditForm();
-  const changed = Object.keys(EDIT_FIELDS).filter((field) => current[field] !== editBaseline?.[field]);
+  // Entry Type is compared with what Firestore holds, not with what the
+  // dropdown first showed: a trail saved under an old name (or with no type)
+  // opens on the current one, and saving must still write it.
+  const saved = { ...editBaseline, EntryType: t.EntryType || '' };
+  const changed = Object.keys(EDIT_FIELDS).filter((field) => current[field] !== saved[field]);
   if (!changed.length) {
     editing = false;
     editBaseline = null;
@@ -2162,6 +2243,8 @@ async function saveEdit() {
     await updateDoc(doc(db, "trails", t.id), updated);
     editing = false;
     editBaseline = null;
+    // The live listener skipped its redraw while editing was still on.
+    renderDetail();
   } catch (err) {
     console.error(err);
     alert("Failed to save changes: " + err.message);
@@ -2291,7 +2374,6 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     Elevation: document.getElementById('newTrailElev').value,
     Municipality: document.getElementById('newTrailMunicipality').value,
     Status: document.getElementById('newTrailStatus').value,
-    Ratings: document.getElementById('newTrailRatings').value,
     // The day the trail goes live, as the admin set it. Left out entirely
     // when the field is blank, rather than stored as an empty value.
     ...(publishDate ? { PublishDate: publishDate } : {}),
@@ -2318,7 +2400,6 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     document.getElementById('newTrailDur').value = '';
     document.getElementById('newTrailElev').value = '';
     document.getElementById('newTrailMunicipality').value = '';
-    document.getElementById('newTrailRatings').value = '';
     document.getElementById('newTrailPublishDate').value = '';
     photoInput.value = '';
     resetPhotoPicker();

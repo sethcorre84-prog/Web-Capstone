@@ -866,6 +866,11 @@
 		background: var(--dm-surface-2, #fbfcfa);
 		color: var(--text-primary);
 	}
+	/* Published By: filled in from the signed-in admin, not typed. */
+	.field input[readonly] {
+		cursor: not-allowed;
+		opacity: 0.75;
+	}
 	.field textarea {
 		resize: vertical;
 		min-height: 60px;
@@ -1241,7 +1246,7 @@
         		</div>
         		<div class="table-scroll">
         			<table>
-            			<thead><tr><th>Title</th><th class="center-cell">Type</th><th class="center-cell">Target</th><th class="center-cell">Status</th><th>Published / Scheduled</th><th>Actions</th></tr></thead>
+				<thead><tr><th>Title</th><th class="center-cell">Type</th><th class="center-cell">Target</th><th class="center-cell">Status</th><th>Published By</th><th>Actions</th></tr></thead>
             			<tbody id="listBody"></tbody>
         			</table>
         		</div>
@@ -1339,7 +1344,7 @@
 				<div class="field"><label>Expires On (optional)</label><input type="datetime-local" id="mExpires"></div>
 			</div>
 			<div class="field-row">
-				<div class="field"><label>Published By</label><input id="mPublishedBy" value="Admin User"></div>
+				<div class="field"><label>Published By</label><input id="mPublishedBy" value="Admin User" readonly aria-readonly="true" tabindex="-1" title="Set automatically to the signed-in admin"></div>
 				<div class="field"><label>Visibility</label>
 					<select id="mVisibility"><option>All Users</option><option>Guide</option></select>
 				</div>
@@ -1426,6 +1431,7 @@
 	<script type="module">
 		import { auth, db, storage } from "../jsPages/firebase-config.js";
 		import { escapeHtml } from "../jsPages/utils.js";
+		import { getAdvisoryAuthorName } from "../jsPages/advisory-author.js";
 		import {
 			collection, onSnapshot, updateDoc, setDoc, doc, getDoc,
 			serverTimestamp, orderBy, query, Timestamp, increment
@@ -1748,7 +1754,7 @@ async function syncExpiredAdvisories(){
 				const tdTarget = document.createElement('td'); tdTarget.className = 'center-cell'; tdTarget.textContent = it.target || '';
 				const tdStatus = document.createElement('td'); tdStatus.className = 'center-cell';
 				tdStatus.innerHTML = effectiveStatus ? `<span class="status-badge ${effectiveStatus.toLowerCase()}">${escapeHtml(effectiveStatus)}</span>` : '';
-				const tdPub = document.createElement('td'); tdPub.textContent = fmtDateTime(it.effectiveDate || it.publishedAt || it.createdAt);
+				const tdPub = document.createElement('td'); tdPub.textContent = it.publishedBy || 'Admin User';
 
 				const tdActions = document.createElement('td');
 				const actWrap = el('div', 'row-actions');
@@ -2443,7 +2449,8 @@ setInterval(refreshExpiry, 60000);
 		overlay.addEventListener('dragover', (e) => e.preventDefault());
 		overlay.addEventListener('drop', (e) => e.preventDefault());
 
-		function openModal(id){
+		async function openModal(id){
+			const authorName = await getAdvisoryAuthorName();
 			const it = id ? allItems.find(d => d.id === id) : null;
 			// Every way into the edit form passes through here, so this is the
 			// one check that keeps an expired advisory read-only.
@@ -2461,7 +2468,7 @@ setInterval(refreshExpiry, 60000);
 			document.getElementById('mTarget').value = it?.target || '';
 			document.getElementById('mEffective').value = toLocalInputValue(it?.effectiveDate || it?.publishedAt) || toLocalInputValue(new Date());
 			document.getElementById('mExpires').value = toLocalInputValue(it?.expiresAt);
-			document.getElementById('mPublishedBy').value = it?.publishedBy || 'Admin User';
+			document.getElementById('mPublishedBy').value = it?.publishedBy || authorName;
 			// Advisories saved with a retired option (Registered/Premium Users)
 			// open as All Users, since the select no longer offers those.
 			document.getElementById('mVisibility').value = it?.visibility === 'Guide' ? 'Guide' : 'All Users';
@@ -2522,7 +2529,9 @@ setInterval(refreshExpiry, 60000);
 				target: document.getElementById('mTarget').value.trim() || 'All Trails',
 				effectiveDate: effVal ? Timestamp.fromDate(new Date(effVal)) : null,
 				expiresAt: expVal ? Timestamp.fromDate(new Date(expVal)) : null,
-				publishedBy: document.getElementById('mPublishedBy').value.trim() || 'Admin User',
+				// A new advisory is always published under the signed-in admin;
+				// an edit keeps its original publisher.
+				publishedBy: (editingId && document.getElementById('mPublishedBy').value.trim()) || await getAdvisoryAuthorName(),
 				visibility: document.getElementById('mVisibility').value,
 				channels,
 				desc: document.getElementById('mDesc').value.trim(),

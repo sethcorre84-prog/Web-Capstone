@@ -15,6 +15,7 @@
 // Dashboard's own .button / .card styles and these never affect each other.
 
 import { auth, db, storage } from './firebase-config.js';
+import { getAdvisoryAuthorName } from './advisory-author.js';
 import {
   addDoc,
   collection,
@@ -199,10 +200,9 @@ function createAddTrailModal() {
         </div>
         <div class="qa-row">
           <div class="qa-field"><label for="qaTrailStatus">Status</label><select id="qaTrailStatus"><option>Open</option><option>Closed</option></select></div>
-          <div class="qa-field"><label for="qaTrailRatings">Ratings</label><input type="text" id="qaTrailRatings" placeholder="e.g. 4.8"></div>
+          <div class="qa-field"><label for="qaTrailEntryType">Entry Type</label><select id="qaTrailEntryType"><option>Registered Trail</option><option>Unregistered Trail</option></select></div>
         </div>
         <div class="qa-row">
-          <div class="qa-field"><label for="qaTrailEntryType">Entry Type</label><select id="qaTrailEntryType"><option>Legal Entry</option><option>Unregistered Map</option></select></div>
           <div class="qa-field"><label for="qaTrailPublishDate">Publish Date</label><input type="date" id="qaTrailPublishDate"></div>
         </div>
         <div class="qa-error" id="qaTrailError" role="alert"></div>
@@ -234,7 +234,7 @@ function createAddTrailModal() {
   }
 
   function resetForm() {
-    ['qaTrailName', 'qaTrailDesc', 'qaTrailDist', 'qaTrailDur', 'qaTrailElev', 'qaTrailMunicipality', 'qaTrailRatings', 'qaTrailPublishDate']
+    ['qaTrailName', 'qaTrailDesc', 'qaTrailDist', 'qaTrailDur', 'qaTrailElev', 'qaTrailMunicipality', 'qaTrailPublishDate']
       .forEach((id) => { $(id).value = ''; });
     ['qaTrailDiff', 'qaTrailType', 'qaTrailStatus', 'qaTrailEntryType'].forEach((id) => { $(id).selectedIndex = 0; });
     errorEl.textContent = '';
@@ -315,7 +315,6 @@ function createAddTrailModal() {
       Elevation: $('qaTrailElev').value,
       Municipality: $('qaTrailMunicipality').value,
       Status: $('qaTrailStatus').value,
-      Ratings: $('qaTrailRatings').value,
       ...(publishDate ? { PublishDate: publishDate } : {}),
       UpdatedAt: serverTimestamp(),
       StatusUpdatedAt: serverTimestamp()
@@ -515,12 +514,12 @@ function createAdvisoryModal() {
     });
   }
 
-  function resetForm() {
+  function resetForm(authorName) {
     ['qaAdvTitle', 'qaAdvTarget', 'qaAdvExpires', 'qaAdvDesc', 'qaAdvActions'].forEach((id) => { $(id).value = ''; });
     $('qaAdvType').value = 'Advisory';
     $('qaAdvStatus').value = 'Active';
     $('qaAdvRisk').value = 'Moderate';
-    $('qaAdvPublishedBy').value = 'Admin User';
+    $('qaAdvPublishedBy').value = authorName;
     $('qaAdvVisibility').value = 'All Users';
     $('qaAdvChanInApp').checked = true;
     $('qaAdvChanEmail').checked = false;
@@ -540,9 +539,9 @@ function createAdvisoryModal() {
 
   const modal = {
     overlay,
-    open() {
+    async open() {
       // The same defaults A&A.html's openModal(null) sets.
-      resetForm();
+      resetForm(await getAdvisoryAuthorName());
       draftRef = doc(collection(db, 'Advisory'));
       unsavedUploads = [];
       $('qaAdvEffective').value = toDateTimeInputValue(new Date());
@@ -610,7 +609,7 @@ function createAdvisoryModal() {
       target: $('qaAdvTarget').value.trim() || 'All Trails',
       effectiveDate: effective ? Timestamp.fromDate(new Date(effective)) : null,
       expiresAt: expires ? Timestamp.fromDate(new Date(expires)) : null,
-      publishedBy: $('qaAdvPublishedBy').value.trim() || 'Admin User',
+      publishedBy: $('qaAdvPublishedBy').value.trim() || await getAdvisoryAuthorName(),
       visibility: $('qaAdvVisibility').value,
       channels,
       desc: $('qaAdvDesc').value.trim(),
