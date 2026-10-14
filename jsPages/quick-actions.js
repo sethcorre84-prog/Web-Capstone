@@ -36,9 +36,11 @@ import {
 /* ---------- Styles ---------- */
 
 const STYLES = `
-.qa-modal { position: fixed; inset: 0; z-index: 1000; display: none; justify-content: center; padding: 40px 16px; overflow-y: auto; background: rgba(15, 25, 15, .45); }
+.qa-modal { position: fixed; inset: 0; z-index: 1000; display: none; justify-content: center; align-items: center; padding: 40px 16px; overflow: hidden; background: rgba(15, 25, 15, .45); }
 .qa-modal.open { display: flex; }
-.qa-modal .qa-card { width: 100%; max-width: 560px; height: max-content; padding: 22px 24px 24px; border-radius: 12px; background: var(--card-bg); color: var(--text-primary); }
+/* The card scrolls, not the page behind it, so the scrollbar sits at the
+   pop-up's own edge. */
+.qa-modal .qa-card { width: 100%; max-width: 560px; height: max-content; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 22px 24px 24px; border-radius: 12px; background: var(--card-bg); color: var(--text-primary); }
 .qa-modal.qa-trail .qa-card { max-width: 480px; padding: 26px; }
 .qa-modal h2 { margin: 0 0 16px; font-size: 18px; }
 .qa-modal .qa-field { margin-bottom: 13px; }

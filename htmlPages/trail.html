@@ -1217,6 +1217,14 @@
         gap: 8px;
         margin-bottom: 8px;
     }
+    .quick-grid .quick-btn[hidden] {
+        display: none;
+    }
+    /* Draw Route and Import, on a trail that already has a line. */
+    .quick-grid .quick-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 
     .quick-btn {
         display: flex;
@@ -1513,6 +1521,10 @@
             <button class="quick-btn outline" id="addCheckpointBtn" type="button">+ Add Checkpoints</button>
             <button class="quick-btn outline" id="addCampsiteBtn" type="button">+ Add Campsites</button>
             <button class="quick-btn outline" id="addSuggestedCheckpointsBtn" type="button" style="grid-column:1 / -1" title="Adds the registration points, campsites and summit of each trail as checkpoints">+ Suggested Checkpoints (all trails)</button>
+            <!-- The selected trail's line on every map (trail-routes.js). -->
+            <button class="quick-btn outline" id="drawRouteBtn" type="button" title="Click along the trail on the map to draw its route">✏️ Draw Route</button>
+            <button class="quick-btn outline" id="importRouteBtn" type="button" title="Use a GPS recording of the trail (.gpx or .kml) as its route">📂 Import GPX / KML</button>
+            <button class="quick-btn outline" id="removeRouteBtn" type="button" style="grid-column:1 / -1" hidden title="Take this trail's saved route off the maps">🗑️ Remove Route</button>
           </div>
         </div>
       </div>
@@ -1690,9 +1702,12 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getDownloadURL, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { createMakilingMap, trailLineKey } from "../jsPages/makiling-area.js";
+import { createMakilingMap, trailLineKey, lineKeyFor, trailForLineKey, trailStart } from "../jsPages/makiling-area.js";
+import { addMapFeatures } from "../jsPages/map-features.js";
 import { pageList, pageGap, PAGE_GAP } from "../jsPages/pagination.js";
+import { escapeHtml } from "../jsPages/utils.js";
 import { initTrailPoints, openSuggestedCheckpointsDialog } from "../jsPages/trail-points.js";
+import { initTrailRoutes } from "../jsPages/trail-routes.js";
 import { countMapPoints } from "../jsPages/map-features.js";
 import { initStationsPanel } from "../jsPages/trail-stations.js";
 import { initStationEditor } from "../jsPages/trail-station-editor.js";
@@ -1703,7 +1718,10 @@ const makilingCenter = [14.136, 121.197];
 // status of the trail in the list and highlighted when it is selected.
 // Clicking a line selects its trail, the same as clicking its row.
 let trailLines = null;
-const trailForLine = (key) => trails.find(t => trailLineKey(t.Trail) === key);
+// The route editor (trail-routes.js), set up further down.
+let trailRoutes = null;
+// A key is a trail's saved route (trail:<id>) or a line from the file.
+const trailForLine = (key) => trailForLineKey(trails, key);
 const isClosed = (trail) => String(trail?.Status || 'Open').toLowerCase().startsWith('close');
 
 // The same Mount Makiling map as the Dashboard and Geomap (makiling-area.js):
@@ -1716,6 +1734,8 @@ const { map: trailMap, trailLines: trailLinesLoaded } = createMakilingMap('trail
       return isClosed(trail) ? '#c8402f' : '#2f8f4e';
     },
     onClick(key) {
+      // While a route is being drawn, a click on a line adds a point instead.
+      if (trailRoutes?.isEditing()) return;
       const trail = trailForLine(key);
       if (!trail) return;
       selectedId = trail.id; editing = false; renderDetail(); render();
@@ -1729,15 +1749,17 @@ let selectedTrailMarker = null;
 const trailLinesReady = trailLinesLoaded.then((lines) => {
   trailLines = lines;
   syncTrailLines();
+  // Saved routes arrive (and change) on their own; keep colour and highlight.
+  lines?.onChange(syncTrailLines);
 });
 
 function syncTrailLines() {
   if (!trailLines) return;
   trailLines.recolor();
-  trailLines.highlight(trailLineKey(getSelected()?.Trail));
+  trailLines.highlight(lineKeyFor(getSelected()));
 }
 
-const lineForTrail = (trail) => trailLines?.lines.get(trailLineKey(trail?.Trail))?.stroke || null;
+const lineForTrail = (trail) => trailLines?.lines.get(lineKeyFor(trail))?.stroke || null;
 const trailCoordinateFallbacks = {
   "Sipit Trail": [14.1150551, 121.186634],
   "Makiling Traverse (MakTrav)": [14.1352241, 121.1944517],
@@ -1775,10 +1797,17 @@ function diffClass(diff) {
 
 // Live-sync with Firestore "trails" collection
 const trailsCol = collection(db, "trails");
+
+// The trail stations from Trail Station Management, at the same positions on
+// the trail lines as on GeoMap (map-features.js), each as the plain Trail
+// Station dot. The facility badges and rivers stay on GeoMap.
+const stationFeatures = addMapFeatures({ map: trailMap, db, trails: () => trails, stationsOnly: true });
+
 onSnapshot(trailsCol, (snapshot) => {
   trails = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   if (!selectedId && trails.length > 0) selectedId = trails[0].id;
   trailPoints.render(trails);
+  stationFeatures.render();
   startRequestedAdd();
   render();
   updateStats();               // add this line
@@ -1805,6 +1834,21 @@ const trailPoints = initTrailPoints({
   buttons: {
     checkpoints: document.getElementById('addCheckpointBtn'),
     campsites: document.getElementById('addCampsiteBtn')
+  },
+  notify: (message) => alert(message)
+});
+
+// Draw Route / Import GPX / KML: the selected trail's line on every map,
+// saved on the trail (trail-routes.js; makiling-area.js draws it).
+trailRoutes = initTrailRoutes({
+  map: trailMap,
+  db,
+  getSelected,
+  lineFor: lineForTrail,
+  buttons: {
+    draw: document.getElementById('drawRouteBtn'),
+    import: document.getElementById('importRouteBtn'),
+    remove: document.getElementById('removeRouteBtn')
   },
   notify: (message) => alert(message)
 });
@@ -1855,19 +1899,23 @@ function showSelectedTrailOnMap() {
   const trail = getSelected();
   if (!trail) return;
 
-  const coordinates = getTrailCoordinates(trail);
+  // The trail's starting point: the start of its route or line
+  // (makiling-area.js trailStart), else the location saved for it.
+  const line = lineForTrail(trail);
+  const start = trailStart(trail, line?.getLatLngs().flat());
+  const coordinates = start || getTrailCoordinates(trail);
   if (selectedTrailMarker) trailMap.removeLayer(selectedTrailMarker);
   selectedTrailMarker = L.marker(coordinates).addTo(trailMap);
-  selectedTrailMarker.bindPopup(`<strong>${trail.Trail || 'Selected trail'}</strong><br>${trail.Status || 'Open'}`).openPopup();
-  const line = lineForTrail(trail);
-  if (line) trailMap.fitBounds(line.getBounds(), { padding: [30, 30] });
-  else trailMap.setView(coordinates, 15);
+  selectedTrailMarker.bindPopup(`<strong>${escapeHtml(trail.Trail || 'Selected trail')}</strong><br>${
+    start ? 'Starting point' : 'Trail location'} · ${escapeHtml(trail.Status || 'Open')}`).openPopup();
+  trailMap.setView(coordinates, 16);
   document.getElementById('trailMap').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function render() {
   stationsPanel.update(getSelected(), trails);
   stationEditor.update(getSelected());
+  trailRoutes?.update(getSelected());
   syncTrailLines();
   const q = document.getElementById('searchInput').value.toLowerCase();
   const st = document.getElementById('statusFilter').value;

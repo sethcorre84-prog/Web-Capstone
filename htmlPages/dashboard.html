@@ -1312,7 +1312,7 @@
                                 <option value="quarter">Last 3 Months</option>
                                 <option value="year">This Year</option>
                             </select>
-                            <a class="card-link" href="hazardreport.html">View reports</a>
+                            <a class="card-link" href="hazardreport.html">Download reports</a>
                         </div>
                     </div>
                     <div class="bar-chart" id="hazardTrends"><div class="empty-state"><span>Loading hazard trends...</span></div></div>
@@ -1326,7 +1326,7 @@
                         <a class="button button-primary" href="trail.html" data-quick-action="add-trail"><i class="fa-solid fa-plus" aria-hidden="true"></i>Add Trail</a>
                         <a class="button button-primary" href="trail.html?add=checkpoint"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>Add Checkpoint</a>
                         <a class="button button-blue" href="A&amp;A.html" data-quick-action="post-advisory"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i>Post Announcement</a>
-                        <button type="button" class="button button-purple" id="viewReportsBtn" title="Export the lists on this Dashboard as a PDF or Excel file"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>View Reports</button>
+                        <button type="button" class="button button-purple" id="viewReportsBtn" title="Export the lists on this Dashboard as a PDF or Excel file"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>Download Reports</button>
                         <a class="button button-wide" href="geomap.html"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>Open Geomap Monitoring</a>
                     </div>
                 </div>
@@ -1340,12 +1340,13 @@
         import { formatPortalDate, formatPortalTime, portalHourCycle, portalTimeZone, toPortalDate } from "../jsPages/datetime-prefs.js";
         import { getTrailImage, onTrailImagesReady } from "../jsPages/trail-images.js";
         import { createMakilingMap } from "../jsPages/makiling-area.js";
+        import { addMapFeatures } from "../jsPages/map-features.js";
         import { watchActiveHikers } from "../jsPages/active-hikers.js";
         import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, weatherUrlFor } from "../jsPages/weather-locations.js";
         import { openExportMenu } from "../jsPages/export-table.js";
 
         /* What each Dashboard list is showing right now, recorded by the code
-           that draws it, so View Reports exports exactly the lists on screen. */
+           that draws it, so Download Reports exports exactly the lists on screen. */
         const dashboardExport = {};
 
         // Follows Settings > Date & Time (datetime-prefs.js).
@@ -1509,7 +1510,7 @@
             container.innerHTML = `
                 <div class="bar-legend">Number of Reports · ${total} total${change}</div>
                 <div class="bars">${bars.map(([type, value]) => `
-                    <a class="bar-col" href="${reportsLink(type)}"${tipFor(type, value)} aria-label="${escapeHtml(type)}: ${value} report${value === 1 ? '' : 's'}. View reports">
+                    <a class="bar-col" href="${reportsLink(type)}"${tipFor(type, value)} aria-label="${escapeHtml(type)}: ${value} report${value === 1 ? '' : 's'}. Download reports">
                         <span class="bar-value">${value}</span>
                         <span class="bar" style="height:${Math.max(4, (value / max) * 100)}%"></span>
                     </a>`).join('')}
@@ -1594,6 +1595,10 @@
         // Peak 2 is the summit badge drawn with the trail lines
         // (makiling-area.js), as on GeoMap.
         const trailLayer = L.layerGroup().addTo(dashboardMap);
+        // The trail stations from Trail Station Management, at the same
+        // positions as on GeoMap (map-features.js), each as the plain Trail
+        // Station dot. The facility badges and rivers stay on GeoMap.
+        const stationFeatures = addMapFeatures({ map: dashboardMap, db, trails: () => latestTrails || [], stationsOnly: true });
         // The map fills its row, whose height follows the cards beside it, so
         // Leaflet is told whenever that box changes size.
         new ResizeObserver(() => dashboardMap.invalidateSize()).observe(document.getElementById('dashboardMap'));
@@ -1821,6 +1826,7 @@
         onSnapshot(collection(db, 'trails'), (snapshot) => {
             const trails = snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
             latestTrails = trails;
+            stationFeatures.render();
             trailLayer.clearLayers();
             trails.forEach(trail => {
                 const coordinates = getCoordinates(trail);
@@ -1899,7 +1905,7 @@
             renderHazardTrends();
         });
 
-        /* View Reports: the lists on this Dashboard as one PDF or Excel file
+        /* Download Reports: the lists on this Dashboard as one PDF or Excel file
            (export-table.js), the same rows as on screen. The stat cards are
            read from the page itself, so they match what is shown exactly. */
         const textOf = (el) => (el?.textContent || '').replace(/\s+/g, ' ').trim();

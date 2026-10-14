@@ -1498,12 +1498,12 @@
             <div class="setting-icon">🛡️</div>
             <div class="setting-text">
               <div class="label">Two-Factor Authentication</div>
-              <div class="desc">Add an extra layer of security to your account.</div>
+              <div class="desc" id="twoFactorDesc">Ask for a code texted to your profile's phone number when you sign in on a new device.</div>
             </div>
           </div>
           <div class="setting-right">
             <label class="switch">
-              <input type="checkbox" data-setting-toggle="twoFactor">
+              <input type="checkbox" id="twoFactorToggle" aria-describedby="twoFactorDesc">
               <span class="slider"></span>
             </label>
           </div>
@@ -1692,18 +1692,19 @@
   import { pageList, pageGap, PAGE_GAP } from '../jsPages/pagination.js';
   import { ref as storageRef, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
   import { planReportIds } from '../jsPages/report-ids.js';
-  import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+  import { EmailAuthProvider, onAuthStateChanged, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import { ADMIN_ROLES, NO_ROLE_LABEL, renderAdminIdentity, roleOf, updateAdminProfile } from '../jsPages/admin-identity.js';
   import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
   import { DATE_FORMATS, TIME_FORMATS, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
   import { openExportMenu } from '../jsPages/export-table.js';
   import { endOtherSessions, endSession, listSessions } from '../jsPages/admin-sessions.js';
+  import { checkTwoFactor, disableTwoFactor, enableTwoFactor } from '../jsPages/two-factor.js';
   import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, setWeatherLocationKey } from '../jsPages/weather-locations.js';
 
   const STORAGE_KEY = 'peakpath-settings';
-  const defaultSettings = {
-    twoFactor: false
-  };
+  // Two-Factor Authentication is not a browser setting: it lives on the admin
+  // record and is switched by the Cloud Functions (two-factor.js, below).
+  const defaultSettings = {};
 
   const storedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
   const settings = { ...defaultSettings, ...storedSettings };
@@ -4208,6 +4209,51 @@
         showToast('Your browser blocked saving this setting.');
       }
     });
+  });
+
+  /* Two-Factor Authentication: on means signing in on a new device needs a
+     code texted to the phone number in Profile Information. Turning it on
+     sends one first, so a wrong number cannot lock the admin out. */
+  const twoFactorToggle = document.getElementById('twoFactorToggle');
+  const twoFactorDesc = document.getElementById('twoFactorDesc');
+  const TWO_FACTOR_DESC = twoFactorDesc.textContent;
+  const showTwoFactor = (status) => {
+    twoFactorToggle.checked = Boolean(status?.enabled);
+    twoFactorDesc.textContent = status?.enabled && status.masked
+      ? `On. New devices need a code texted to ${status.masked}.`
+      : TWO_FACTOR_DESC;
+  };
+  onAuthStateChanged(auth, (user) => {
+    if (!user) return;
+    checkTwoFactor().then(showTwoFactor).catch((error) => {
+      console.warn('Could not read two-factor sign-in:', error.message);
+    });
+  });
+  twoFactorToggle.addEventListener('change', async () => {
+    const turningOn = twoFactorToggle.checked;
+    twoFactorToggle.disabled = true;
+    try {
+      if (turningOn) {
+        const done = await enableTwoFactor();
+        if (!done) {
+          twoFactorToggle.checked = false;
+          return;
+        }
+        showToast('Two-factor sign-in is on', 3000);
+      } else {
+        await disableTwoFactor();
+        showToast('Two-factor sign-in is off', 3000);
+      }
+      showTwoFactor(await checkTwoFactor());
+    } catch (error) {
+      console.error('Could not change two-factor sign-in:', error);
+      twoFactorToggle.checked = !turningOn;
+      showToast(error?.code === 'functions/internal'
+        ? 'Could not reach the two-factor service. It may not be deployed yet.'
+        : (error?.message || 'Could not change two-factor sign-in.'), 4000);
+    } finally {
+      twoFactorToggle.disabled = false;
+    }
   });
 
   /* Theme. sidebar.js owns it (it applies it before paint on every page, and

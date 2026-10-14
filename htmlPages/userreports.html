@@ -292,12 +292,41 @@
     /* Search + filter row — same look as User Management, Trail and Hazard
          Reports: light search box with the magnifier first, plain dropdowns, and
          a bordered Clear Filters button. */
+    /* One row like Hazard Reports' filters: the search box widest, the four
+       dropdowns (Trail, Status, Report Type, Date) sharing the rest evenly,
+       and Clear Filters sized to its label. */
     .toolbar {
-        display: flex;
-        align-items: center;
+        display: grid;
+        grid-template-columns: minmax(140px, 1.6fr) repeat(4, minmax(105px, 1fr)) auto;
         gap: 10px;
-        flex-wrap: wrap;
+        align-items: center;
         margin-bottom: 14px;
+    }
+    .toolbar select.filter {
+        width: 100%;
+        min-width: 0;
+        text-overflow: ellipsis;
+    }
+    .toolbar .search-box {
+        min-width: 0;
+    }
+    .toolbar .clear-btn {
+        justify-content: center;
+        white-space: nowrap;
+    }
+    @media (max-width: 760px) {
+        .toolbar {
+            grid-template-columns: 1fr 1fr;
+        }
+        .toolbar .search-box,
+        .toolbar .clear-btn {
+            grid-column: 1 / -1;
+        }
+    }
+    @media (max-width: 560px) {
+        .toolbar {
+            grid-template-columns: 1fr;
+        }
     }
     .search-box {
         flex: 1 1 200px;
@@ -340,63 +369,6 @@
         color: var(--text-600);
         outline: none;
         cursor: pointer;
-    }
-    .filters-btn {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-left: auto;
-        padding: 8px 12px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--dm-surface, #fff);
-        font: inherit;
-        font-size: 13px;
-        font-weight: 400;
-        color: var(--text-600);
-        cursor: pointer;
-    }
-    .filters-btn:hover,
-    .filters-btn.open {
-        background: var(--dm-surface-2, #f5f5f2);
-    }
-    .filters-count {
-        min-width: 17px;
-        height: 17px;
-        padding: 0 5px;
-        border-radius: 9px;
-        background: var(--accent-dark);
-        color: #fff;
-        font-size: 10px;
-        font-weight: 700;
-        display: grid;
-        place-items: center;
-    }
-    .filters-count[hidden] {
-        display: none;
-    }
-    .more-filters {
-        display: flex;
-        align-items: flex-end;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-bottom: 10px;
-        padding: 12px;
-        border: 1px dashed var(--border);
-        border-radius: 10px;
-        background: var(--dm-surface-2, #fafbf9);
-    }
-    .more-filters[hidden] {
-        display: none;
-    }
-    .more-filters label {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        font-size: 11.5px;
-        font-weight: 600;
-        color: var(--text-600);
     }
     .clear-btn {
         display: flex;
@@ -659,6 +631,22 @@
         font-size: 11px;
         line-height: 1.45;
         color: var(--text-900);
+    }
+    /* Report Type, Location / Trail, Date Reported and Status sit centred in
+       their columns, headings included. The location is a clamped block, so
+       it is centred with its margins as well. */
+    .reports-table th:nth-child(4),
+    .reports-table th:nth-child(6),
+    .reports-table th:nth-child(7),
+    .reports-table th:nth-child(8),
+    .reports-table td:nth-child(4):not(.table-empty),
+    .reports-table td:nth-child(6):not(.table-empty),
+    .reports-table td:nth-child(7):not(.table-empty),
+    .reports-table td:nth-child(8):not(.table-empty) {
+        text-align: center;
+    }
+    .reports-table td:nth-child(6) .loc-text {
+        margin-inline: auto;
     }
     .stacked-date {
         font-size: 11px;
@@ -1055,6 +1043,30 @@
         text-transform: uppercase;
         letter-spacing: 0.03em;
     }
+    /* Location / Trail, as in Hazard Report details: a pin, the place in
+       bold, and the trail on the line under it. */
+    .loc-block {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .loc-block .ic {
+        flex-shrink: 0;
+        line-height: 1.4;
+    }
+    .loc-block strong {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--dm-text, #1c231c);
+        overflow-wrap: anywhere;
+    }
+    .loc-block span:not(.ic) {
+        display: block;
+        margin-top: 1px;
+        font-size: 12px;
+        color: var(--dm-text-2, #5b6b60);
+    }
     .d-value {
         font-size: 12.5px;
         line-height: 1.5;
@@ -1306,6 +1318,15 @@
         min-height: 94px;
         resize: vertical;
         line-height: 1.5;
+    }
+    .modal .field-hint {
+        margin: 6px 0 0;
+        font-size: 11.5px;
+        line-height: 1.45;
+        color: var(--text-400);
+    }
+    .modal .field-hint[hidden] {
+        display: none;
     }
     .modal-actions {
         display: flex;
@@ -1787,6 +1808,10 @@
               <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
               <input id="reportsSearchInput" type="search" placeholder="Search reports..." aria-label="Search reports">
             </div>
+            <!-- Every trail in the trails collection, kept live (syncFilterOptions). -->
+            <select id="reportsTrailFilter" class="filter" aria-label="Filter by trail">
+              <option value="all">All Trails</option>
+            </select>
             <select id="reportsStatusFilter" class="filter" aria-label="Filter by status">
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -1807,28 +1832,6 @@
               <option value="month">This Month</option>
               <option value="lastMonth">Last Month</option>
             </select>
-            <button class="filters-btn" id="filtersToggleBtn" type="button" aria-expanded="false" aria-controls="moreFilters">
-              <i class="fa-solid fa-filter"></i>Filters<span class="filters-count" id="filtersCount" hidden>0</span>
-            </button>
-          </div>
-
-          <div class="more-filters" id="moreFilters" hidden>
-            <label>Location / Trail
-              <select id="reportsLocationFilter" class="filter"><option value="all">All Locations</option></select>
-            </label>
-            <label>Account Link
-              <select id="reportsLinkFilter" class="filter">
-                <option value="all">All Reports</option>
-                <option value="linked">Reported user has an account</option>
-                <option value="unlinked">No matching account</option>
-              </select>
-            </label>
-            <label>Sort By
-              <select id="reportsSortFilter" class="filter">
-                <option value="newest">Newest reports first</option>
-                <option value="oldest">Oldest reports first</option>
-              </select>
-            </label>
             <button class="clear-btn" id="clearFiltersBtn" type="button">
               <i class="fa-solid fa-filter" aria-hidden="true"></i>
               Clear Filters
@@ -2010,8 +2013,13 @@
 <div id="contactUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="contactUserTitle">
   <form id="contactUserForm" class="modal">
     <h2 id="contactUserTitle">Contact Reported User</h2>
-    <p class="modal-sub" id="contactUserSub">Open an email draft addressed to the reported user.</p>
+    <p class="modal-sub" id="contactUserSub">Email the reported user from your account.</p>
 
+    <div class="field">
+      <label for="contactUserFrom">From</label>
+      <input id="contactUserFrom" type="email" readonly>
+      <p class="field-hint">Sent from the Gmail account you are signed in with. If that account is not set up for sending, it goes out from the PeakPath account with your name, and replies still come to you.</p>
+    </div>
     <div class="field">
       <label for="contactUserEmail">To</label>
       <input id="contactUserEmail" type="email" readonly>
@@ -2027,7 +2035,7 @@
 
     <div class="modal-actions">
       <button type="button" class="modal-cancel" data-close-modal="contactUserModal">Cancel</button>
-      <button type="submit" class="modal-confirm blue" id="sendContactBtn">Open Email Draft</button>
+      <button type="submit" class="modal-confirm blue" id="sendContactBtn">Send Email</button>
     </div>
   </form>
 </div>
@@ -2036,7 +2044,7 @@
 <div id="warnUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="warnUserTitle">
   <form id="warnUserForm" class="modal">
     <h2 id="warnUserTitle">Warn User</h2>
-    <p class="modal-sub" id="warnUserSub">Issue a formal warning against the reported user.</p>
+    <p class="modal-sub" id="warnUserSub">Issue a formal warning to the reported user through a private PeakPath chat.</p>
     <div class="modal-callout" id="warnUserCallout" hidden></div>
 
     <div class="field">
@@ -2051,8 +2059,9 @@
       </select>
     </div>
     <div class="field">
-      <label for="warnUserNote">Note to record</label>
-      <textarea id="warnUserNote" name="note" required placeholder="Describe what the user is being warned about."></textarea>
+      <label for="warnUserNote" id="warnUserNoteLabel">Warning message</label>
+      <textarea id="warnUserNote" name="note" required maxlength="1000" rows="6" placeholder="Describe what the user is being warned about."></textarea>
+      <p class="field-hint" id="warnUserNoteHint">Sent to the user as a private chat in the PeakPath app, and recorded on this report.</p>
     </div>
 
     <div class="modal-actions">
@@ -2145,6 +2154,8 @@
   import { escapeHtml, normalizeText } from '../jsPages/utils.js';
   import { formatPortalDate, formatPortalTime, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
   import { suspensionState } from '../jsPages/account-status.js';
+  import { sendDirectMessage } from '../jsPages/community-chat.js';
+  import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
   import {
     arrayUnion,
     collection,
@@ -2476,7 +2487,7 @@
   };
 
   const readLocation = (data) => {
-    const raw = [data.location, data.trail, data.trailName, data.place, data.area, data.locationName]
+    const raw = [data.location, data.place, data.area, data.locationName]
       .find((value) => (typeof value === "string" ? value.trim() : value));
     let text = '';
     if (typeof raw === 'string') {
@@ -2519,6 +2530,10 @@
       type,
       description: getFirstAvailable(data.description, data.details, data.message, data.comment) || 'No description provided',
       location: readLocation(data),
+      // The trail is found at render time (trailOf): saved on the report,
+      // or else the trail assigned to the reported user's team.
+      storedTrail: normalizeText(getFirstAvailable(data.trail, data.trailName)),
+      teamID: normalizeText(getFirstAvailable(data.teamID, data.teamId)),
       status,
       date,
       submittedAt: toDate(data.createdAt) || toDate(data.timestamp) || toDate(data.reportedAt) || date,
@@ -2528,6 +2543,7 @@
       resolvedBy: normalizeText(data.resolvedBy),
       actionLog: Array.isArray(data.actionLog) ? data.actionLog : [],
       warningsIssued: Number(data.warningsIssued) || 0,
+      lastContactedAt: data.lastContactedAt || null,
       attachments: collectAttachments(data),
       reportedRef: collectPersonRef(data, REPORTED_FIELDS),
       reporterRef: collectPersonRef(data, REPORTER_FIELDS)
@@ -2689,11 +2705,7 @@
   const statusFilter = $('reportsStatusFilter');
   const typeFilter = $('reportsTypeFilter');
   const dateFilter = $('reportsDateFilter');
-  const locationFilter = $('reportsLocationFilter');
-  const linkFilter = $('reportsLinkFilter');
-  const sortFilter = $('reportsSortFilter');
-  const filtersToggleBtn = $('filtersToggleBtn');
-  const moreFilters = $('moreFilters');
+  const trailFilter = $('reportsTrailFilter');
 
   const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
@@ -2727,14 +2739,24 @@
       ...[...extraTypes].map(([value, label]) => ({ value, label }))
     ]);
 
-    const locations = [...new Set(state.reports.map((report) => report.location).filter((location) => location !== 'Unknown location'))].sort();
-    rebuildSelect(locationFilter, 'All Locations', locations.map((location) => ({ value: location, label: location })));
+    // One option per trail in Trail Management, so a newly added trail is
+    // here as soon as it is saved.
+    rebuildSelect(trailFilter, 'All Trails', [...trailNames]
+      .filter(([, name]) => name)
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([id, name]) => ({ value: id, label: name })));
   };
 
-  const updateFiltersCount = () => {
-    const active = [locationFilter.value !== 'all', linkFilter.value !== 'all', sortFilter.value !== 'newest'].filter(Boolean).length;
-    $('filtersCount').textContent = active;
-    $('filtersCount').hidden = !active;
+  /* Which trail a report belongs to, as a trails/{id}: the trail saved on the
+     report (matched by name), else the reported user's team's trail. The same
+     trail trailOf() shows in the details. */
+  const trailKey = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const reportTrailId = (report) => {
+    if (report.storedTrail) {
+      const key = trailKey(report.storedTrail);
+      return [...trailNames].find(([, name]) => trailKey(name) === key)?.[0] || '';
+    }
+    return teamTrailIds.get(report.teamID) || '';
   };
 
   const getFilteredReports = () => {
@@ -2747,22 +2769,18 @@
           report.reportId, report.storedId, report.id,
           report.reportedUser.name, report.reportedUser.email, report.reportedUser.username,
           report.reportedBy.name, report.reportedBy.email, report.reportedBy.username,
-          report.type.label, report.status.label, report.location, report.description
+          report.type.label, report.status.label, report.location, trailOf(report), report.description
         ].join(' ').toLowerCase();
 
         return (!term || haystack.includes(term))
           && (statusFilter.value === 'all' || report.status.key === statusFilter.value)
           && (typeFilter.value === 'all' || report.type.key === typeFilter.value)
           && (!range || inRange(report.date, range))
-          && (locationFilter.value === 'all' || report.location === locationFilter.value)
-          && (linkFilter.value === 'all' || (linkFilter.value === 'linked') === Boolean(report.reportedUser.user));
+          && (trailFilter.value === 'all' || reportTrailId(report) === trailFilter.value);
       })
-      .sort((a, b) => {
-        // Submission time determines recency; IDs break ties consistently.
-        const diff = (b.submittedAt?.getTime() || 0) - (a.submittedAt?.getTime() || 0)
-          || reportOrder(b) - reportOrder(a);
-        return sortFilter.value === 'oldest' ? -diff : diff;
-      });
+      // Newest first: submission time, with IDs breaking ties consistently.
+      .sort((a, b) => (b.submittedAt?.getTime() || 0) - (a.submittedAt?.getTime() || 0)
+        || reportOrder(b) - reportOrder(a));
   };
 
   /* =====================================================================
@@ -2901,6 +2919,8 @@
     if (!report) return;
     const linkedUser = report.reportedUser.user;
     const isResolved = report.status.key === 'resolved';
+    const warned = wasWarned(report);
+    const contacted = wasContacted(report);
 
     const menu = document.createElement('div');
     menu.className = 'row-menu';
@@ -2910,8 +2930,8 @@
       ${report.status.key === 'pending' ? '<button type="button" data-menu="review"><i class="fa-solid fa-magnifying-glass"></i>Mark as under review</button>' : ''}
       ${linkedUser ? `<a href="usermanagement.html?user=${encodeURIComponent(linkedUser.id)}"><i class="fa-solid fa-user"></i>Open in User Management</a>` : ''}
       <hr>
-      <button type="button" data-menu="contact" ${hasValidEmail(report.reportedUser.email) ? '' : 'disabled'}><i class="fa-solid fa-phone"></i>Contact reported user</button>
-      <button type="button" data-menu="warn"><i class="fa-solid fa-triangle-exclamation"></i>Warn user</button>
+      <button type="button" data-menu="contact" ${hasValidEmail(report.reportedUser.email) && !contacted ? '' : 'disabled'}><i class="fa-solid fa-phone"></i>${contacted ? 'Already contacted' : 'Contact reported user'}</button>
+      <button type="button" data-menu="warn" ${warned ? 'disabled' : ''}><i class="fa-solid fa-triangle-exclamation"></i>${warned ? 'Already warned' : 'Warn user'}</button>
       <button type="button" data-menu="suspend" class="danger" ${linkedUser ? '' : 'disabled'}><i class="fa-solid fa-circle-xmark"></i>Suspend user</button>
       <button type="button" data-menu="resolve" ${isResolved ? 'disabled' : ''}><i class="fa-regular fa-circle-check"></i>${isResolved ? 'Already resolved' : 'Mark as resolved'}</button>
     `;
@@ -3772,6 +3792,24 @@
     element.className = `status-pill${report ? ` ${report.status.key}` : ''}`;
   };
 
+  /* The app does not save a trail on a user report. It saves the reported
+     user's team (teamID), and a team is assigned a trail (teams/{id}.trailID),
+     so that is the trail shown, by its name in Trail Management. */
+  const teamTrailIds = new Map();
+  const trailNames = new Map();
+  const trailOf = (report) => report.storedTrail
+    || trailNames.get(teamTrailIds.get(report.teamID))
+    || '';
+
+  const locationHtml = (report) => `
+    <div class="loc-block">
+      <span class="ic" aria-hidden="true">📍</span>
+      <div>
+        <strong>${escapeHtml(report.location || 'Unknown location')}</strong>
+        <span>${escapeHtml(trailOf(report) || 'No trail specified')}</span>
+      </div>
+    </div>`;
+
   const renderSelectedReport = () => {
     const report = getSelectedReport();
     setStatusPill($('detailStatusPill'), report);
@@ -3791,7 +3829,7 @@
     $('detailReportType').textContent = report.type.label;
     $('detailReportedUser').innerHTML = personCardHtml(report.reportedUser, { showReports: true });
     $('detailReportedBy').innerHTML = personCardHtml(report.reportedBy);
-    $('detailLocation').textContent = report.location;
+    $('detailLocation').innerHTML = locationHtml(report);
     $('detailDateReported').textContent = reportDateLabel(report);
     $('detailDescription').textContent = report.description;
     $('detailEvidence').innerHTML = evidenceHtml(report, 4);
@@ -3921,21 +3959,36 @@
     }
   };
 
+  /* Each action reaches the reported user once per report, and the two are
+     separate: a warning (sent through the chat) turns off only Warn User, a
+     contact (email) only Contact Reported User. Other reports about the same
+     user are unaffected. */
+  const logHas = (report, type) => Array.isArray(report?.actionLog)
+    && report.actionLog.some((entry) => entry?.type === type);
+  const wasWarned = (report) => Boolean(report) && (report.warningsIssued > 0 || logHas(report, 'warn'));
+  const wasContacted = (report) => Boolean(report) && (Boolean(report.lastContactedAt) || logHas(report, 'contact'));
+
   const syncActionButtons = (report) => {
     const linkedUser = report?.reportedUser.user || null;
     const isResolved = report?.status.key === 'resolved';
     const canEmail = Boolean(report) && hasValidEmail(report.reportedUser.email);
 
     viewDetailsBtn.disabled = !report;
-    contactUserBtn.disabled = !report || !canEmail;
-    warnUserBtn.disabled = !report;
+    const warned = wasWarned(report);
+    const contacted = wasContacted(report);
+    warnUserBtn.disabled = !report || warned;
+    contactUserBtn.disabled = !report || !canEmail || contacted;
+    warnUserBtn.title = warned ? `${report.reportedUser.name} was already warned about this report.` : '';
+    contactUserBtn.title = contacted ? `${report.reportedUser.name} was already contacted about this report.` : '';
     suspendUserBtn.disabled = !report || !linkedUser;
     resolveReportBtn.disabled = !report || isResolved;
     resolveReportBtn.querySelector('span').textContent = isResolved ? 'Resolved' : 'Mark as Resolved';
 
     const hints = [];
+    if (warned) hints.push(`${report.reportedUser.name} was already warned about this report.`);
+    if (contacted) hints.push(`${report.reportedUser.name} was already contacted about this report.`);
     if (report) {
-      if (!canEmail) hints.push('This report has no valid email, so the reported user cannot be contacted.');
+      if (!canEmail && !contacted) hints.push('This report has no valid email, so the reported user cannot be contacted.');
       if (!linkedUser) {
         hints.push(state.usersLoaded
           ? 'No matching account was found in Users, so suspension is unavailable.'
@@ -4008,7 +4061,7 @@
     $('fullReportId').textContent = report.reportId;
     $('fullReportType').textContent = report.type.label;
     $('fullDateReported').textContent = reportDateLabel(report);
-    $('fullLocation').textContent = report.location;
+    $('fullLocation').innerHTML = locationHtml(report);
     $('fullReportedUser').innerHTML = personCardHtml(report.reportedUser, { showReports: true });
     $('fullReportedBy').innerHTML = personCardHtml(report.reportedBy);
     $('fullDescription').textContent = report.description;
@@ -4054,7 +4107,7 @@
 
   contactUserBtn.addEventListener('click', () => {
     const report = getSelectedReport();
-    if (!report) return;
+    if (!report || wasContacted(report)) return;
 
     const person = report.reportedUser;
     if (!hasValidEmail(person.email)) {
@@ -4063,7 +4116,8 @@
     }
 
     $('contactUserSub').textContent =
-      `Opens an email draft to ${person.name} and records the contact on report ${report.reportId}.`;
+      `Sends an email to ${person.name} and records the contact on report ${report.reportId}.`;
+    $('contactUserFrom').value = auth.currentUser?.email || '';
     $('contactUserEmail').value = person.email;
     $('contactUserSubject').value = `PeakPath: report ${report.reportId} about your trail conduct`;
     $('contactUserMessage').value =
@@ -4079,50 +4133,96 @@
     event.preventDefault();
     const report = getSelectedReport();
     if (!report) return;
+    // Another admin may have contacted them since this opened.
+    if (wasContacted(report)) {
+      closeModal(contactUserModal);
+      showToast(`${report.reportedUser.name} was already contacted about this report.`, 'error');
+      return;
+    }
 
     const email = normalizeText($('contactUserEmail').value);
     const subject = normalizeText($('contactUserSubject').value);
     const message = $('contactUserMessage').value;
 
-    await withBusyButton($('sendContactBtn'), 'Opening...', async () => {
+    /* Sent by the emailReportedUser Cloud Function from the signed-in
+       admin's Gmail, which also records the contact on the report, so the
+       page never logs an email that did not go out. */
+    await withBusyButton($('sendContactBtn'), 'Sending...', async () => {
       try {
-        await saveReportAction(
-          report,
-          buildLogEntry('contact', `Contacted ${report.reportedUser.name}`, `${subject} (sent to ${email})`),
-          { lastContactedAt: new Date().toISOString() }
-        );
+        const sendEmail = httpsCallable(getFunctions(auth.app), 'emailReportedUser');
+        const { data } = await sendEmail({
+          reportId: report.id,
+          to: email,
+          name: report.reportedUser.name,
+          subject,
+          message
+        });
         closeModal(contactUserModal);
-        window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
-        showToast('Contact logged and email draft opened.', 'success');
+        showToast(`Email sent to ${email} from ${data?.sentFrom || 'your account'}.`, 'success');
       } catch (error) {
-        console.error('Failed to log the contact attempt:', error);
-        showToast('Unable to record this contact right now.', 'error');
+        console.error('Failed to email the reported user:', error);
+        showToast(error?.code === 'functions/internal'
+          ? 'Could not reach the email service. It may not be deployed yet.'
+          : (error?.message || 'Unable to send this email right now.'), 'error');
       }
     });
   });
 
+  /* Warn User sends the warning to the reported user as a private chat from
+     this admin (community-chat.js), which they see in the app's Chats, and
+     records it on the report and their account. The message starts as a
+     written-out warning for the chosen reason; once the admin edits it,
+     changing the reason no longer rewrites it. */
+  let warnMessageEdited = false;
+  const warningText = (report, reason) => {
+    const first = String(report.reportedUser.name || '').split(' ')[0] || 'there';
+    return `Hi ${first}, this is a formal warning from the PeakPath admin team about report ${report.reportId} `
+      + `(${reason.toLowerCase()}). Another hiker reported this behavior, and it goes against the community `
+      + 'rules every PeakPath user agreed to. Please keep the trails and the chats safe and respectful for '
+      + 'everyone. Further violations may lead to your account being suspended. If you believe this is a '
+      + 'mistake, you can reply to this message.';
+  };
+
   warnUserBtn.addEventListener('click', () => {
     const report = getSelectedReport();
-    if (!report) return;
+    if (!report || wasWarned(report)) return;
 
     const linkedUser = report.reportedUser.user;
     const callout = $('warnUserCallout');
     const reasonSelect = $('warnUserReason');
 
-    $('warnUserSub').textContent = `Issue a formal warning to ${report.reportedUser.name} for report ${report.reportId}.`;
+    $('warnUserSub').textContent = linkedUser
+      ? `Send ${report.reportedUser.name} a formal warning for report ${report.reportId}, through a private PeakPath chat.`
+      : `Record a formal warning against ${report.reportedUser.name} for report ${report.reportId}.`;
     reasonSelect.value = [...reasonSelect.options].some((option) => option.value === report.type.label) ? report.type.label : 'Other';
-    $('warnUserNote').value = '';
+    warnMessageEdited = false;
+    $('warnUserNote').value = linkedUser ? warningText(report, reasonSelect.value) : '';
+    $('warnUserNoteLabel').textContent = linkedUser ? 'Warning message' : 'Note to record';
+    $('warnUserNoteHint').hidden = !linkedUser;
+    $('confirmWarnBtn').textContent = linkedUser ? 'Send Warning' : 'Record Warning';
 
     callout.hidden = Boolean(linkedUser);
-    if (!linkedUser) callout.textContent = 'No matching account was found in Users. The warning is recorded on this report only.';
+    if (!linkedUser) callout.textContent = 'No matching account was found in Users, so the warning cannot be sent through the chat. It is recorded on this report only.';
 
     openModal(warnUserModal);
+  });
+
+  $('warnUserNote').addEventListener('input', () => { warnMessageEdited = true; });
+  $('warnUserReason').addEventListener('change', () => {
+    const report = getSelectedReport();
+    if (report?.reportedUser.user && !warnMessageEdited) $('warnUserNote').value = warningText(report, $('warnUserReason').value);
   });
 
   $('warnUserForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const report = getSelectedReport();
     if (!report) return;
+    // Another admin may have warned them since this opened.
+    if (wasWarned(report)) {
+      closeModal(warnUserModal);
+      showToast(`${report.reportedUser.name} was already warned about this report.`, 'error');
+      return;
+    }
 
     const reason = $('warnUserReason').value;
     const note = normalizeText($('warnUserNote').value);
@@ -4131,7 +4231,18 @@
     const linkedUser = report.reportedUser.user;
     const nowIso = new Date().toISOString();
 
-    await withBusyButton($('confirmWarnBtn'), 'Issuing...', async () => {
+    await withBusyButton($('confirmWarnBtn'), linkedUser ? 'Sending...' : 'Recording...', async () => {
+      // The chat goes first: a warning the user never received is not
+      // recorded as issued.
+      if (linkedUser) {
+        try {
+          await sendDirectMessage({ uid: linkedUser.uid || linkedUser.id, name: linkedUser.name, username: linkedUser.username }, note);
+        } catch (error) {
+          console.error('Failed to send the warning chat:', error);
+          showToast('Unable to send the warning through the chat right now.', 'error');
+          return;
+        }
+      }
       try {
         if (linkedUser) {
           await updateDoc(doc(db, 'users', linkedUser.id), {
@@ -4143,7 +4254,7 @@
 
         await saveReportAction(
           report,
-          buildLogEntry('warn', `Warning issued — ${reason}`, note),
+          buildLogEntry('warn', `Warning issued — ${reason}${linkedUser ? ' (sent by chat)' : ''}`, note),
           {
             warningsIssued: increment(1),
             lastWarningAt: nowIso,
@@ -4154,7 +4265,7 @@
         );
 
         closeModal(warnUserModal);
-        showToast(linkedUser ? `Warning issued to ${linkedUser.name}.` : 'Warning recorded on the report (no linked account).', 'success');
+        showToast(linkedUser ? `Warning sent to ${linkedUser.name} through the chat.` : 'Warning recorded on the report (no linked account).', 'success');
       } catch (error) {
         console.error('Failed to issue the warning:', error);
         showToast('Unable to issue this warning right now.', 'error');
@@ -4297,24 +4408,16 @@
      ===================================================================== */
   const applyFilters = () => {
     state.page = 1;
-    updateFiltersCount();
     renderTable();
   };
 
   searchInput.addEventListener('input', applyFilters);
-  [statusFilter, typeFilter, dateFilter, locationFilter, linkFilter, sortFilter]
+  [statusFilter, typeFilter, dateFilter, trailFilter]
     .forEach((select) => select.addEventListener('change', applyFilters));
-
-  filtersToggleBtn.addEventListener('click', () => {
-    moreFilters.hidden = !moreFilters.hidden;
-    filtersToggleBtn.classList.toggle('open', !moreFilters.hidden);
-    filtersToggleBtn.setAttribute('aria-expanded', String(!moreFilters.hidden));
-  });
 
   $('clearFiltersBtn').addEventListener('click', () => {
     searchInput.value = '';
-    [statusFilter, typeFilter, dateFilter, locationFilter, linkFilter].forEach((select) => { select.value = 'all'; });
-    sortFilter.value = 'newest';
+    [statusFilter, typeFilter, dateFilter, trailFilter].forEach((select) => { select.value = 'all'; });
     applyFilters();
   });
 
@@ -4367,10 +4470,28 @@
     refreshAll();
   });
 
+  onSnapshot(collection(db, 'teams'), (snapshot) => {
+    teamTrailIds.clear();
+    snapshot.forEach((team) => {
+      const data = team.data() || {};
+      teamTrailIds.set(team.id, normalizeText(data.trailID || data.trailId));
+    });
+    refreshAll();
+  }, (error) => console.error('Failed to load teams for report trails:', error));
+
+  onSnapshot(collection(db, 'trails'), (snapshot) => {
+    trailNames.clear();
+    snapshot.forEach((trail) => {
+      const data = trail.data() || {};
+      trailNames.set(trail.id, normalizeText(data.Trail || data.name || data.trailName));
+    });
+    refreshAll();
+  }, (error) => console.error('Failed to load trails for report trails:', error));
+
   onSnapshot(collection(db, REPORTS_COLLECTION), (snapshot) => {
     const hasNewReports = state.reportsLoaded
       && snapshot.docChanges().some((change) => change.type === 'added');
-    if (hasNewReports && sortFilter.value === 'newest') state.page = 1;
+    if (hasNewReports) state.page = 1;
     // One malformed document must not blank the whole table.
     state.reportDocs = snapshot.docs.flatMap((snapshotDoc) => {
       try {

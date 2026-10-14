@@ -295,6 +295,173 @@
         border-color: #a93324;
     }
 
+    /* Contact User (Emergency): one row per way to reach the user. */
+    .contact-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--dm-border, #e4e7e1);
+        border-radius: 10px;
+        background: var(--dm-surface-2, #fbfcfa);
+    }
+    .contact-item > i {
+        width: 18px;
+        text-align: center;
+        color: #2f8f4e;
+    }
+    .contact-item-text {
+        flex: 1;
+        min-width: 0;
+    }
+    .contact-item-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #93a199;
+    }
+    .contact-item-value {
+        margin-top: 2px;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--dm-text, #1c231c);
+        overflow-wrap: anywhere;
+    }
+    .contact-item-value.is-empty {
+        font-weight: 500;
+        color: var(--dm-text-2, #93a199);
+    }
+    .contact-item-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+    .contact-item-actions .btn-ghost,
+    .contact-item-actions .btn-primary {
+        padding: 7px 11px;
+        font-size: 12px;
+        text-decoration: none;
+    }
+
+    /* A deactivated user's reactivation request (from the app's "Account
+       deactivated" screen), above the action buttons. */
+    .reactivation-card {
+        margin: 4px 0 14px;
+        padding: 14px;
+        border: 1px solid #f0c98a;
+        border-radius: 10px;
+        background: #fff8ec;
+    }
+    .reactivation-card[hidden] {
+        display: none;
+    }
+    .reactivation-card h4 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 2px;
+        font-size: 13.5px;
+        color: #8a5a00;
+    }
+    .reactivation-card .rc-meta {
+        margin-bottom: 8px;
+        font-size: 11.5px;
+        color: #a07a3a;
+    }
+    .reactivation-card .rc-reason {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--dm-text, #1c231c);
+    }
+    .reactivation-card .rc-message {
+        margin-top: 4px;
+        font-size: 12.5px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        color: var(--dm-text-2, #5b6b60);
+    }
+    .reactivation-card textarea {
+        width: 100%;
+        min-height: 56px;
+        margin-top: 10px;
+        padding: 8px 10px;
+        border: 1px solid var(--dm-border, #e4e7e1);
+        border-radius: 8px;
+        background: var(--dm-surface, #fff);
+        color: var(--dm-text, #1c231c);
+        font: inherit;
+        font-size: 12.5px;
+        resize: vertical;
+    }
+    .reactivation-card .rc-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .reactivation-card .rc-actions button {
+        flex: 1;
+        justify-content: center;
+    }
+    :root[data-theme="dark"] .reactivation-card {
+        background: #2c2416;
+        border-color: #6b5326;
+    }
+    :root[data-theme="dark"] .reactivation-card h4,
+    :root[data-theme="dark"] .reactivation-card .rc-meta {
+        color: #e8c178;
+    }
+
+    /* Reset Password dialog: the new-password form. */
+    .reset-option {
+        padding: 14px 16px;
+        border: 1px solid var(--dm-border, #e4e7e1);
+        border-radius: 10px;
+        background: var(--dm-surface-2, #fbfcfa);
+    }
+    .reset-option h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 4px;
+        font-size: 14px;
+        color: var(--dm-text, #1c231c);
+    }
+    .reset-option h3 i {
+        color: #2f8f4e;
+    }
+    .reset-option p {
+        margin: 0 0 12px;
+        font-size: 12.5px;
+        line-height: 1.5;
+        color: var(--dm-text-2, #5b6b60);
+    }
+    .reset-option .field + .field {
+        margin-top: 10px;
+    }
+    .reset-option-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 12px;
+        margin-top: 12px;
+    }
+    .reset-option-actions label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-right: auto;
+        font-size: 12.5px;
+        color: var(--dm-text-2, #5b6b60);
+        cursor: pointer;
+    }
+
     .modal-lede {
         margin: -4px 0 16px;
         font-size: 12.5px;
@@ -561,6 +728,18 @@
     .user-list-table th,
     .user-list-table .stacked-date {
         white-space: nowrap;
+    }
+    /* Role, Team / Group, Status, Last Active and Registered On sit centred
+       in their columns, headings included. Phones show each user as a card
+       instead (below 700px), where the fields stay left-aligned. */
+    @media (min-width: 701px) {
+        .user-list-table th:nth-child(n + 2),
+        .user-list-table td:nth-child(n + 2):not([colspan]) {
+            text-align: center;
+        }
+        .user-list-table td:nth-child(n + 2) .team-chips {
+            justify-content: center;
+        }
     }
 
     .table-wrapper {
@@ -1210,6 +1389,9 @@
         max-width: 100%;
         overflow-wrap: anywhere;
     }
+    .hero-chip[title] {
+        cursor: help;
+    }
 
     .hero-chip i {
         font-size: 10.5px;
@@ -1831,6 +2013,18 @@
           <div class="detail-row" id="detailSuspensionRow" hidden><i class="fa-solid fa-ban"></i><span class="detail-label">Suspended until</span><span class="detail-value" id="detailSuspendedUntil">—</span></div>
         </div>
 
+        <div class="reactivation-card" id="reactivationCard" hidden>
+          <h4><i class="fa-solid fa-rotate-left" aria-hidden="true"></i>Reactivation requested</h4>
+          <div class="rc-meta" id="reactivationMeta"></div>
+          <div class="rc-reason" id="reactivationReason"></div>
+          <div class="rc-message" id="reactivationMessage"></div>
+          <textarea id="reactivationNote" maxlength="500" placeholder="Note to the user (optional), sent with your decision"></textarea>
+          <div class="rc-actions">
+            <button type="button" class="btn-ghost" id="declineReactivationBtn">Decline</button>
+            <button type="button" class="btn-primary" id="approveReactivationBtn"><i class="fa-solid fa-user-check" aria-hidden="true"></i>Reactivate</button>
+          </div>
+        </div>
+
         <div class="detail-actions">
           <button id="viewProfileBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-eye"></i>View Profile</button>
           <button id="resetPasswordBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-rotate"></i>Reset Password</button>
@@ -1875,6 +2069,51 @@
   </form>
 </div>
 
+<!-- Contact User (Emergency): the user's numbers and email, to copy or
+     call, instead of handing a tel: link straight to the browser. -->
+<div id="contactUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="contactUserTitle">
+  <div class="modal">
+    <h2 id="contactUserTitle">Contact User</h2>
+    <p class="modal-lede" id="contactUserLede"></p>
+    <div class="contact-list" id="contactUserList"></div>
+    <p class="action-status" id="contactUserStatus" role="status" aria-live="polite"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="closeContactUserBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Password: set a new password on the spot. -->
+<div id="resetPasswordModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="resetPasswordTitle">
+  <div class="modal">
+    <h2 id="resetPasswordTitle">Reset Password</h2>
+    <p class="modal-lede" id="resetPasswordLede"></p>
+
+    <form class="reset-option" id="setPasswordForm">
+      <h3><i class="fa-solid fa-key" aria-hidden="true"></i>Set a new password now</h3>
+      <p>It works at once, and the user is signed out on every device. Tell them the new password and ask them to change it after signing in.</p>
+      <div class="field">
+        <label for="setPasswordNew">New password</label>
+        <input id="setPasswordNew" type="password" minlength="8" autocomplete="new-password" required>
+      </div>
+      <div class="field">
+        <label for="setPasswordConfirm">Confirm password</label>
+        <input id="setPasswordConfirm" type="password" minlength="8" autocomplete="new-password" required>
+      </div>
+      <p class="field-hint">At least 8 characters.</p>
+      <div class="reset-option-actions">
+        <label><input type="checkbox" id="setPasswordShow">Show</label>
+        <button type="submit" class="btn-primary" id="setPasswordBtn"><i class="fa-solid fa-key" aria-hidden="true"></i>Set Password</button>
+      </div>
+    </form>
+
+    <p class="action-status" id="resetPasswordModalStatus" role="status" aria-live="polite"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="closeResetPasswordBtn">Close</button>
+    </div>
+  </div>
+</div>
+
 <div id="addUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
   <form id="addUserForm" class="modal">
     <h2 id="addUserTitle">Add User</h2>
@@ -1889,15 +2128,24 @@
     </div>
     <div class="field">
       <label for="addUserEmail">Email</label>
+      <input id="addUserEmail" name="email" type="email" autocomplete="off" aria-describedby="addUserEmailHint" required>
+      <p id="addUserEmailHint" class="field-hint">Saved with the account. The phone number below is what gets verified.</p>
+    </div>
+    <!-- The phone is verified by SMS: the code goes to the user's phone and
+         they read it to the admin, proving it is a working SIM, before the
+         account can be added (the same check as the app's own sign-up). -->
+    <div class="field">
+      <label for="addUserPhone">Phone</label>
       <div class="verify-row">
-        <input id="addUserEmail" name="email" type="email" autocomplete="off" aria-describedby="addUserEmailStatus" required>
-        <button type="button" class="verify-btn" id="sendEmailCodeBtn">Send code</button>
+        <input id="addUserPhone" name="phone" type="tel" inputmode="tel" autocomplete="off" maxlength="17" placeholder="09XX XXX XXXX or +63 9XX XXX XXXX" aria-describedby="addUserPhoneHint" required>
+        <button type="button" class="verify-btn" id="sendPhoneCodeBtn">Send code</button>
       </div>
-      <div class="verify-row" id="emailCodeRow" hidden>
-        <input id="addUserEmailCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code from the email" aria-label="Verification code">
-        <button type="button" class="verify-btn" id="confirmEmailCodeBtn">Verify</button>
+      <div class="verify-row" id="phoneCodeRow" hidden>
+        <input id="addUserPhoneCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code from the SMS" aria-label="SMS code">
+        <button type="button" class="verify-btn" id="confirmPhoneCodeBtn">Verify</button>
       </div>
-      <p id="addUserEmailStatus" class="field-hint verify-status">The email must be verified: send a code to it, then enter the code the user receives.</p>
+      <p id="addUserPhoneHint" class="field-hint verify-status">Philippine mobile number only (+63). Send a code to it, then enter the code the user receives by SMS.</p>
+      <div id="addUserRecaptcha"></div>
     </div>
     <div class="field">
       <label for="addUserPassword">Password</label>
@@ -1922,17 +2170,10 @@
         </select>
       </div>
     </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Teams</label>
-        <div class="team-picker" id="addUserTeams"></div>
-        <p class="team-picker-hint" id="addUserTeamsHint"></p>
-      </div>
-      <div class="field">
-        <label for="addUserPhone">Phone</label>
-        <input id="addUserPhone" name="phone" type="tel" inputmode="tel" autocomplete="off" maxlength="17" placeholder="09XX XXX XXXX or +63 9XX XXX XXXX" aria-describedby="addUserPhoneHint" required>
-        <p id="addUserPhoneHint" class="field-hint">Philippine mobile number only (+63).</p>
-      </div>
+    <div class="field">
+      <label>Teams</label>
+      <div class="team-picker" id="addUserTeams"></div>
+      <p class="team-picker-hint" id="addUserTeamsHint"></p>
     </div>
     <p id="addUserStatusMessage" class="action-status" role="status" aria-live="polite"></p>
     <div class="modal-actions">
@@ -1956,9 +2197,10 @@
         </button>
       </div>
       <div class="profile-hero-chips">
-        <span class="hero-chip"><i class="fa-solid fa-user-tag" aria-hidden="true"></i>Role: <span id="profileModalRole">—</span></span>
+        <!-- Hovering a chip says what it is (set in openViewProfile). -->
+        <span class="hero-chip" id="profileModalRoleChip"><i class="fa-solid fa-user-tag" aria-hidden="true"></i>Role: <span id="profileModalRole">—</span></span>
         <span class="hero-chip" id="profileModalStatusChip"><span class="chip-dot"></span><span id="profileModalStatus">—</span></span>
-        <span class="hero-chip"><i class="fa-solid fa-user-group" aria-hidden="true"></i><span id="profileModalTeam">—</span></span>
+        <span class="hero-chip" id="profileModalTeamChip"><i class="fa-solid fa-user-group" aria-hidden="true"></i><span id="profileModalTeam">—</span></span>
       </div>
     </div>
 
@@ -2016,7 +2258,7 @@
   import { pageList, pageGap, PAGE_GAP } from '../jsPages/pagination.js';
   import { openExportMenu } from '../jsPages/export-table.js';
   import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-  import { initializeAuth, inMemoryPersistence, createUserWithEmailAndPassword, deleteUser, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+  import { initializeAuth, inMemoryPersistence, deleteUser, signOut, RecaptchaVerifier, signInWithPhoneNumber, getAdditionalUserInfo, linkWithCredential, EmailAuthProvider, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
   import {
     getFirestore,
     runTransaction,
@@ -2220,6 +2462,7 @@
       status: status || 'Active',
       team,
       phone,
+      phoneE164: normalizeText(data.phoneE164 || ''),
       emergencyContact,
       memberSince,
       lastActive,
@@ -2613,8 +2856,33 @@
     recentActivityList.innerHTML = activityRowsHtml(user, 'Select a user to see their activity.');
   };
 
+  /* Reactivation requests: a deactivated user asks from the app's "Account
+     deactivated" screen (reactivationRequests/{uid}). A pending one shows on
+     that user's details; Reactivate or Decline settles it, and the user is
+     emailed the decision (emailReactivationDecision Cloud Function). */
+  const reactivationRequests = new Map();
+  const pendingRequestOf = (user) => {
+    const request = reactivationRequests.get(user?.uid) || reactivationRequests.get(user?.id);
+    return request?.status === 'pending' ? request : null;
+  };
+
+  function renderReactivationRequest(user) {
+    const card = document.getElementById('reactivationCard');
+    const request = pendingRequestOf(user);
+    card.hidden = !request;
+    if (!request) return;
+    const sent = toDate(request.createdAt);
+    document.getElementById('reactivationMeta').textContent =
+      `From ${request.email || user.email}${sent ? ` · ${formatDisplayDateTime(sent)}` : ''}`;
+    document.getElementById('reactivationReason').textContent = request.reason || 'No reason given';
+    document.getElementById('reactivationMessage').textContent = request.message || '';
+    if (card.dataset.uid !== request.uid) document.getElementById('reactivationNote').value = '';
+    card.dataset.uid = request.uid;
+  }
+
   const renderSelectedUser = () => {
     const user = getSelectedUser();
+    renderReactivationRequest(user);
 
     if (!user) {
       document.getElementById('detailAvatar').textContent = 'U';
@@ -2699,7 +2967,6 @@
     document.getElementById('detailArea').textContent = userAreaText(user);
 
     detailActionButtons.forEach(button => { if (button) button.disabled = false; });
-    resetPasswordBtn.disabled = !hasValidEmail(user.email);
     contactUserBtn.disabled = !(user.phone && user.phone !== '—') && !hasValidEmail(user.email);
 
     suspendUserBtn.innerHTML = suspension.active
@@ -2739,7 +3006,7 @@
     if (saveAddUserBtn.textContent === 'Adding...') return;
     addUserModal.classList.remove('open');
     addUserForm.reset();
-    resetEmailVerification();
+    resetPhoneVerification();
     addUserDraft = false;
   };
   const closeViewProfileModal = () => viewProfileModal.classList.remove('open');
@@ -2756,7 +3023,13 @@
     document.getElementById('profileModalStatus').textContent = effectiveStatusOf(user);
     // The dot beside the status word picks up the status colour.
     document.getElementById('profileModalStatusChip').className = `hero-chip status-${getUserStatusClass(effectiveStatusOf(user))}`;
-    document.getElementById('profileModalTeam').textContent = userTeamNames(user).join(', ') || '—';
+    const teamNames = userTeamNames(user);
+    document.getElementById('profileModalTeam').textContent = teamNames.join(', ') || '—';
+    document.getElementById('profileModalRoleChip').title = `Role: ${user.role}`;
+    document.getElementById('profileModalStatusChip').title = `Account status: ${effectiveStatusOf(user)}`;
+    document.getElementById('profileModalTeamChip').title = teamNames.length
+      ? `Team / Group: ${teamNames.join(', ')}`
+      : 'Team / Group: not in a team';
     document.getElementById('profileModalPhone').textContent = user.phone;
     document.getElementById('profileModalEmergencyContact').textContent = user.emergencyContact;
     document.getElementById('profileModalArea').textContent = userAreaText(user);
@@ -2788,7 +3061,7 @@
       return;
     }
     addUserForm.reset();
-    resetEmailVerification();
+    resetPhoneVerification();
     // Every team starts unticked; a full team is still
     // shown as full and cannot be picked.
     renderTeamPicker(
@@ -2807,23 +3080,80 @@
     if (event.target === addUserModal) hideAddUserModal();
   });
 
+  // Esc closes whichever pop-up is open.
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
     closeViewProfileModal();
     hideAddUserModal();
+    if (resetPasswordModal.classList.contains('open')) closeResetPasswordModal();
+    if (suspendUserModal.classList.contains('open')) closeSuspendModal();
+    if (contactUserModal.classList.contains('open')) closeContactUserModal();
   });
+
+  /* Contact User (Emergency): a pop-up with every way to reach the user.
+     Each value can be copied; Call and Email open the device's phone or mail
+     app only when the admin chooses to. */
+  const contactUserModal = document.getElementById('contactUserModal');
+  const contactUserList = document.getElementById('contactUserList');
+  const contactUserStatus = document.getElementById('contactUserStatus');
+  const filled = (value) => (value && value !== '—' ? String(value).trim() : '');
+
+  const setContactStatus = (message, type = '') => {
+    contactUserStatus.textContent = message;
+    contactUserStatus.className = `action-status${type ? ` ${type}` : ''}`;
+  };
+
+  const contactItemHtml = ({ icon, label, value, href, action }) => `
+    <div class="contact-item">
+      <i class="fa-solid ${icon}" aria-hidden="true"></i>
+      <div class="contact-item-text">
+        <div class="contact-item-label">${escapeHtml(label)}</div>
+        <div class="contact-item-value${value ? '' : ' is-empty'}">${value ? escapeHtml(value) : 'Not provided'}</div>
+      </div>
+      ${value ? `<div class="contact-item-actions">
+        <button type="button" class="btn-ghost" data-copy="${escapeHtml(value)}" data-label="${escapeHtml(label)}"><i class="fa-regular fa-copy" aria-hidden="true"></i>Copy</button>
+        <a class="btn-primary" href="${escapeHtml(href)}"><i class="fa-solid ${action === 'Email' ? 'fa-envelope' : 'fa-phone'}" aria-hidden="true"></i>${action}</a>
+      </div>` : ''}
+    </div>`;
+
+  const closeContactUserModal = () => {
+    contactUserModal.classList.remove('open');
+    setContactStatus('');
+  };
 
   contactUserBtn.addEventListener('click', () => {
     const user = getSelectedUser();
     if (!user) return;
-    const phone = user.phone && user.phone !== '—' ? user.phone : (user.emergencyContact !== '—' ? user.emergencyContact : '');
-    if (phone) {
-      window.location.href = `tel:${phone.replace(/[^\d+]/g, '')}`;
-      return;
+    const phone = filled(user.phone);
+    const emergency = filled(user.emergencyContact);
+    const email = hasValidEmail(user.email) ? user.email : '';
+    const tel = (number) => `tel:${number.replace(/[^\d+]/g, '')}`;
+
+    document.getElementById('contactUserTitle').textContent = `Contact ${user.name}`;
+    document.getElementById('contactUserLede').textContent = [user.role, userAreaText(user)].filter((part) => filled(part)).join(' · ');
+    contactUserList.innerHTML = [
+      contactItemHtml({ icon: 'fa-phone', label: 'Phone', value: phone, href: phone && tel(phone), action: 'Call' }),
+      contactItemHtml({ icon: 'fa-user-shield', label: 'Emergency contact', value: emergency, href: emergency && tel(emergency), action: 'Call' }),
+      contactItemHtml({ icon: 'fa-envelope', label: 'Email', value: email, href: email && `mailto:${email}?subject=${encodeURIComponent('PeakPath emergency contact')}`, action: 'Email' })
+    ].join('');
+    setContactStatus('');
+    contactUserModal.classList.add('open');
+  });
+
+  contactUserList.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-copy]');
+    if (!button) return;
+    try {
+      await navigator.clipboard.writeText(button.dataset.copy);
+      setContactStatus(`${button.dataset.label} copied.`, 'success');
+    } catch {
+      setContactStatus('Could not copy. Select the text and copy it instead.', 'error');
     }
-    if (hasValidEmail(user.email)) {
-      window.location.href = `mailto:${user.email}?subject=${encodeURIComponent('PeakPath emergency contact')}`;
-    }
+  });
+
+  document.getElementById('closeContactUserBtn').addEventListener('click', closeContactUserModal);
+  contactUserModal.addEventListener('click', (event) => {
+    if (event.target === contactUserModal) closeContactUserModal();
   });
 
   // ---------------------------------------------------------------------
@@ -2892,24 +3222,15 @@
      (sendSignupVerificationCode / confirmSignupVerificationCode in
      functions/index.js) before Add User is enabled. firestore.rules check
      the same record, so a profile for an unverified email is refused. */
-  const functionsApi = getFunctions(auth.app);
-  const sendSignupCode = httpsCallable(functionsApi, 'sendSignupVerificationCode');
-  const confirmSignupCode = httpsCallable(functionsApi, 'confirmSignupVerificationCode');
-  const emailInput = document.getElementById('addUserEmail');
-  const emailCodeInput = document.getElementById('addUserEmailCode');
-  const emailCodeRow = document.getElementById('emailCodeRow');
-  const sendEmailCodeBtn = document.getElementById('sendEmailCodeBtn');
-  const confirmEmailCodeBtn = document.getElementById('confirmEmailCodeBtn');
-  const emailStatus = document.getElementById('addUserEmailStatus');
-  const EMAIL_HINT = 'The email must be verified: send a code to it, then enter the code the user receives.';
-  let verifiedEmail = null;
-  let resendTimer = null;
-
-  const currentEmail = () => emailInput.value.trim().toLowerCase();
-  const setEmailStatus = (text, tone = '') => {
-    emailStatus.textContent = text;
-    emailStatus.className = `field-hint verify-status${tone ? ` is-${tone}` : ''}`;
-  };
+  /* Add User verifies the PHONE by SMS, like the app's own sign-up
+     (AuthService.startPhoneSignup): Send code texts a 6-digit code to the
+     number, the user reads it to the admin, and Verify confirms it. That
+     signs in with the phone number in a separate, in-memory Firebase app,
+     which creates the account; Add User then attaches the email and password
+     and saves the profile from that account, so the admin's own sign-in is
+     never touched. A number that already has an account is refused, and a
+     verified account the admin abandons (Cancel, or a changed number) is
+     deleted again. */
   /* Philippine mobile numbers only: 09XXXXXXXXX, 9XXXXXXXXX, 639XXXXXXXXX or
      +639XXXXXXXXX, with spaces, dashes or brackets allowed. Returns the number
      the way the app stores it -- phone "09XXXXXXXXX" and phoneE164
@@ -2922,152 +3243,203 @@
   };
   const addUserPhoneInput = document.getElementById('addUserPhone');
   const addUserPhoneHint = document.getElementById('addUserPhoneHint');
-  const PHONE_HINT = 'Philippine mobile number only (+63).';
+  const phoneCodeRow = document.getElementById('phoneCodeRow');
+  const phoneCodeInput = document.getElementById('addUserPhoneCode');
+  const sendPhoneCodeBtn = document.getElementById('sendPhoneCodeBtn');
+  const confirmPhoneCodeBtn = document.getElementById('confirmPhoneCodeBtn');
+  const PHONE_HINT = 'Philippine mobile number only (+63). Send a code to it, then enter the code the user receives by SMS.';
   const PHONE_ERROR = 'Not a Philippine mobile number. Use 09XX XXX XXXX or +63 9XX XXX XXXX.';
   const addUserPhoneOk = () => Boolean(parsePhilippinePhone(addUserPhoneInput.value));
+  const setPhoneStatus = (text, tone = '') => {
+    addUserPhoneHint.textContent = text;
+    addUserPhoneHint.className = `field-hint verify-status${tone ? ` is-${tone}` : ''}`;
+  };
   // Marks the field (and says why in red) once something is typed.
   const checkAddUserPhone = () => {
     const typed = addUserPhoneInput.value.trim();
     const bad = typed && !addUserPhoneOk();
     addUserPhoneInput.setCustomValidity(bad ? PHONE_ERROR : '');
-    addUserPhoneHint.textContent = bad ? PHONE_ERROR : PHONE_HINT;
-    addUserPhoneHint.className = `field-hint verify-status${bad ? ' is-error' : ''}`;
+    if (!verifiedPhone) setPhoneStatus(bad ? PHONE_ERROR : PHONE_HINT, bad ? 'error' : '');
   };
 
-  /* Add User only works with a verified email AND a Philippine mobile
-     number; the button says which one is missing. */
-  const refreshAddUserButton = () => {
-    const emailOk = verifiedEmail && verifiedEmail === currentEmail();
-    const phoneOk = addUserPhoneOk();
-    saveAddUserBtn.disabled = !(emailOk && phoneOk);
-    saveAddUserBtn.title = !emailOk ? 'Verify the email first'
-      : !phoneOk ? 'Enter a Philippine mobile number (+63)' : '';
+  /* One SIM number per account: the user (if any) whose profile already has
+     this number, in any of the ways it may be saved (09..., +63..., spaced).
+     Checked before an SMS is spent and again when adding; the SMS sign-in
+     also refuses a number another account signed in with. */
+  const userWithPhone = (e164) => state.users.find((user) =>
+    user.phoneE164 === e164 || parsePhilippinePhone(user.phone)?.e164 === e164) || null;
+  const phoneTakenMessage = (owner) =>
+    `That phone number is already used by ${owner?.name || 'another account'}. One SIM number per account: use a different number.`;
+
+  // The separate Firebase app the new account lives in until it is added.
+  let signup = null;        // { app, auth, verifier, confirmation, user }
+  let verifiedPhone = null; // the E.164 number once its code is confirmed
+  let resendTimer = null;
+
+  const endSignupSession = async ({ deleteAccount }) => {
+    const session = signup;
+    signup = null;
+    if (!session) return;
+    session.verifier?.clear?.();
+    if (deleteAccount && session.user) await deleteUser(session.user).catch(() => {});
+    await signOut(session.auth).catch(() => {});
+    await deleteApp(session.app).catch(() => {});
   };
-  addUserPhoneInput.addEventListener('input', () => {
-    checkAddUserPhone();
-    if (saveAddUserBtn.textContent !== 'Adding...') refreshAddUserButton();
-  });
+
+  /* Add User only works once the phone is verified, and the number in the
+     box is still the verified one. */
+  const refreshAddUserButton = () => {
+    const parsed = parsePhilippinePhone(addUserPhoneInput.value);
+    const phoneOk = Boolean(verifiedPhone && parsed && parsed.e164 === verifiedPhone);
+    saveAddUserBtn.disabled = !phoneOk;
+    saveAddUserBtn.title = phoneOk ? '' : 'Verify the phone number by SMS first';
+  };
+
   const startResendCountdown = (seconds) => {
     clearInterval(resendTimer);
     let left = seconds;
-    sendEmailCodeBtn.disabled = true;
-    sendEmailCodeBtn.textContent = `Resend (${left}s)`;
+    sendPhoneCodeBtn.disabled = true;
+    sendPhoneCodeBtn.textContent = `Resend (${left}s)`;
     resendTimer = setInterval(() => {
       left -= 1;
       if (left <= 0) {
         clearInterval(resendTimer);
-        sendEmailCodeBtn.disabled = false;
-        sendEmailCodeBtn.textContent = 'Resend code';
+        sendPhoneCodeBtn.disabled = false;
+        sendPhoneCodeBtn.textContent = 'Resend code';
       } else {
-        sendEmailCodeBtn.textContent = `Resend (${left}s)`;
+        sendPhoneCodeBtn.textContent = `Resend (${left}s)`;
       }
     }, 1000);
   };
-  const resetEmailVerification = () => {
-    verifiedEmail = null;
+
+  // Back to the start: also removes an account that was verified but never added.
+  const resetPhoneVerification = () => {
+    endSignupSession({ deleteAccount: Boolean(verifiedPhone) });
+    verifiedPhone = null;
     clearInterval(resendTimer);
-    sendEmailCodeBtn.disabled = false;
-    sendEmailCodeBtn.textContent = 'Send code';
-    emailInput.readOnly = false;
-    emailCodeRow.hidden = true;
-    emailCodeInput.value = '';
-    setEmailStatus(EMAIL_HINT);
-    checkAddUserPhone();  // after a form reset: back to the plain hint
+    sendPhoneCodeBtn.disabled = false;
+    sendPhoneCodeBtn.textContent = 'Send code';
+    addUserPhoneInput.readOnly = false;
+    phoneCodeRow.hidden = true;
+    phoneCodeInput.value = '';
+    setPhoneStatus(PHONE_HINT);
+    checkAddUserPhone();
     refreshAddUserButton();
   };
-  const describeCallError = (error, fallback) => {
-    // A function that was never deployed arrives as "not-found" with no message of ours.
-    if (error?.code === 'functions/not-found' || error?.code === 'functions/internal' && !error.message) {
-      return 'Email verification is not set up yet: deploy the Cloud Functions (firebase deploy --only functions).';
-    }
-    return error?.message || fallback;
-  };
 
-  // Changing the address undoes any verification of the old one.
-  emailInput.addEventListener('input', () => {
-    if (verifiedEmail || !emailCodeRow.hidden) resetEmailVerification();
-    else refreshAddUserButton();
+  // What a Firebase phone-verification error means, in words.
+  const describePhoneError = (error) => ({
+    'auth/invalid-verification-code': 'That code is not right. Check the SMS and try again.',
+    'auth/code-expired': 'That code has expired. Send a new one.',
+    'auth/too-many-requests': 'Too many attempts. Wait a while, then try again.',
+    'auth/invalid-phone-number': PHONE_ERROR,
+    'auth/quota-exceeded': 'The SMS limit for today has been reached. Try again later.',
+    'auth/operation-not-allowed': 'SMS sign-in is not turned on for this project (Firebase Console > Authentication > Sign-in method > Phone).',
+    'auth/unauthorized-domain': 'This site is not an authorized domain for SMS codes (Firebase Console > Authentication > Settings).',
+    'auth/captcha-check-failed': 'This site is not an authorized domain for SMS codes (Firebase Console > Authentication > Settings).',
+    'auth/network-request-failed': 'Network error. Check your connection and try again.'
+  }[error?.code] || error?.message || 'Something went wrong. Try again.');
+
+  // Changing the number undoes any verification of the old one.
+  addUserPhoneInput.addEventListener('input', () => {
+    if (verifiedPhone || !phoneCodeRow.hidden) resetPhoneVerification();
+    else {
+      checkAddUserPhone();
+      if (saveAddUserBtn.textContent !== 'Adding...') refreshAddUserButton();
+    }
+  });
+  // A verified number can be changed by clicking it: that starts over.
+  addUserPhoneInput.addEventListener('click', () => {
+    if (verifiedPhone && addUserPhoneInput.readOnly) {
+      resetPhoneVerification();
+      addUserPhoneInput.focus();
+    }
   });
 
-  sendEmailCodeBtn.addEventListener('click', async () => {
-    const email = currentEmail();
-    if (!hasValidEmail(email)) {
-      setEmailStatus('Enter a valid email address first.', 'error');
-      emailInput.focus();
+  sendPhoneCodeBtn.addEventListener('click', async () => {
+    const parsed = parsePhilippinePhone(addUserPhoneInput.value);
+    if (!parsed) {
+      checkAddUserPhone();
+      setPhoneStatus(PHONE_ERROR, 'error');
+      addUserPhoneInput.focus();
       return;
     }
-    sendEmailCodeBtn.disabled = true;
-    sendEmailCodeBtn.textContent = 'Checking…';
-    setEmailStatus(`Sending a code to ${email} and checking that the address exists… this can take up to 30 seconds.`);
+    const owner = userWithPhone(parsed.e164);
+    if (owner) {
+      setPhoneStatus(phoneTakenMessage(owner), 'error');
+      addUserPhoneInput.focus();
+      return;
+    }
+    sendPhoneCodeBtn.disabled = true;
+    sendPhoneCodeBtn.textContent = 'Sending…';
+    setPhoneStatus(`Sending a code to ${parsed.local}…`);
     try {
-      const { data } = await sendSignupCode({ email });
-      emailCodeRow.hidden = false;
-      emailCodeInput.value = '';
-      emailCodeInput.focus();
-      setEmailStatus(`Code sent to ${email}. Ask the user for the 6-digit code; it expires in ${Math.round((data?.expiresInSeconds || 600) / 60)} minutes.`);
-      startResendCountdown(data?.resendAfterSeconds || 60);
+      await endSignupSession({ deleteAccount: false });
+      const app = initializeApp(auth.app.options, 'add-user-' + crypto.randomUUID());
+      const signupAuth = initializeAuth(app, { persistence: inMemoryPersistence });
+      signupAuth.languageCode = 'en';
+      const holder = document.getElementById('addUserRecaptcha');
+      holder.innerHTML = '<div></div>';
+      const verifier = new RecaptchaVerifier(signupAuth, holder.firstChild, { size: 'invisible' });
+      signup = { app, auth: signupAuth, verifier, confirmation: null, user: null };
+      signup.confirmation = await signInWithPhoneNumber(signupAuth, parsed.e164, verifier);
+      phoneCodeRow.hidden = false;
+      phoneCodeInput.value = '';
+      phoneCodeInput.focus();
+      setPhoneStatus(`Code sent by SMS to ${parsed.local}. Ask the user for the 6-digit code.`);
+      startResendCountdown(60);
     } catch (error) {
-      console.error('Sending the verification code failed:', error);
-      const retry = error?.details?.retryAfter;
-      if (retry) startResendCountdown(retry);
-      else {
-        sendEmailCodeBtn.disabled = false;
-        sendEmailCodeBtn.textContent = 'Send code';
-      }
-      const reason = error?.details?.reason;
-      const isGmail = /@(gmail|googlemail)\.com$/.test(email);
-      if (reason === 'invalid') {
-        setEmailStatus(`${email} is not a valid ${isGmail ? 'Gmail' : 'email'} address. Check it for typos.`, 'error');
-      } else if (reason === 'not-existing') {
-        setEmailStatus(`${email} does not exist. ${isGmail ? 'This Gmail account was not found.' : 'No mailbox was found for it.'} Check it for typos.`, 'error');
-      } else {
-        setEmailStatus(describeCallError(error, 'Could not send the code. Try again.'), 'error');
-      }
-      emailInput.focus();
+      console.error('Sending the SMS code failed:', error);
+      await endSignupSession({ deleteAccount: false });
+      sendPhoneCodeBtn.disabled = false;
+      sendPhoneCodeBtn.textContent = 'Send code';
+      setPhoneStatus(describePhoneError(error), 'error');
     }
   });
 
-  const confirmEmailCode = async () => {
-    const email = currentEmail();
-    const code = emailCodeInput.value.trim();
-    if (!/^\d{6}$/.test(code)) {
-      setEmailStatus('Enter the 6-digit code from the email.', 'error');
-      emailCodeInput.focus();
+  const confirmPhoneCode = async () => {
+    const code = phoneCodeInput.value.replace(/\D/g, '');
+    if (code.length !== 6 || !signup?.confirmation) {
+      setPhoneStatus('Enter the 6-digit code from the SMS.', 'error');
+      phoneCodeInput.focus();
       return;
     }
-    confirmEmailCodeBtn.disabled = true;
-    confirmEmailCodeBtn.textContent = 'Checking…';
+    confirmPhoneCodeBtn.disabled = true;
+    confirmPhoneCodeBtn.textContent = 'Checking…';
     try {
-      await confirmSignupCode({ email, code });
-      verifiedEmail = email;
+      const result = await signup.confirmation.confirm(code);
+      // An account already owns this number: signing in only opened it.
+      if (getAdditionalUserInfo(result)?.isNewUser === false) {
+        await endSignupSession({ deleteAccount: false });
+        phoneCodeRow.hidden = true;
+        clearInterval(resendTimer);
+        sendPhoneCodeBtn.disabled = false;
+        sendPhoneCodeBtn.textContent = 'Send code';
+        setPhoneStatus('That phone number already has a PeakPath account. One SIM number per account: use a different number.', 'error');
+        return;
+      }
+      signup.user = result.user;
+      verifiedPhone = parsePhilippinePhone(addUserPhoneInput.value)?.e164 || null;
       clearInterval(resendTimer);
-      emailInput.readOnly = true; // edit it and verification starts over
-      emailCodeRow.hidden = true;
-      sendEmailCodeBtn.disabled = true;
-      sendEmailCodeBtn.textContent = 'Verified ✓';
-      setEmailStatus(`${email} is verified. You can add the user now.`, 'ok');
+      addUserPhoneInput.readOnly = true; // edit it and verification starts over
+      phoneCodeRow.hidden = true;
+      sendPhoneCodeBtn.disabled = true;
+      sendPhoneCodeBtn.textContent = 'Verified ✓';
+      setPhoneStatus('The phone number is verified. You can add the user now.', 'ok');
     } catch (error) {
-      console.error('Verifying the code failed:', error);
-      setEmailStatus(describeCallError(error, 'Could not verify the code. Try again.'), 'error');
+      console.error('Verifying the SMS code failed:', error);
+      setPhoneStatus(describePhoneError(error), 'error');
     } finally {
-      confirmEmailCodeBtn.disabled = false;
-      confirmEmailCodeBtn.textContent = 'Verify';
+      confirmPhoneCodeBtn.disabled = false;
+      confirmPhoneCodeBtn.textContent = 'Verify';
       refreshAddUserButton();
     }
   };
-  confirmEmailCodeBtn.addEventListener('click', confirmEmailCode);
-  emailCodeInput.addEventListener('keydown', (event) => {
+  confirmPhoneCodeBtn.addEventListener('click', confirmPhoneCode);
+  phoneCodeInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
-      confirmEmailCode();
-    }
-  });
-  // A verified address can be changed by clicking it: that starts over.
-  emailInput.addEventListener('click', () => {
-    if (verifiedEmail && emailInput.readOnly) {
-      emailInput.readOnly = false;
-      resetEmailVerification();
-      emailInput.focus();
+      confirmPhoneCode();
     }
   });
 
@@ -3081,8 +3453,15 @@
       return;
     }
     if (saveAddUserBtn.disabled || !addUserForm.reportValidity()) return;
-    if (!verifiedEmail || verifiedEmail !== currentEmail()) {
-      setEmailStatus('Verify the email before adding the user.', 'error');
+    if (!verifiedPhone || !signup?.user) {
+      setPhoneStatus('Verify the phone number by SMS before adding the user.', 'error');
+      return;
+    }
+    // Someone else may have been given this number since it was verified.
+    const phoneOwner = userWithPhone(verifiedPhone);
+    if (phoneOwner) {
+      addUserStatusMessage.textContent = phoneTakenMessage(phoneOwner);
+      addUserStatusMessage.className = 'action-status error';
       return;
     }
     const formData = new FormData(addUserForm);
@@ -3106,21 +3485,19 @@
       .filter(team => wantedTeamIds.includes(team.id))
       .map(team => team.name)
       .join(', ');
-    let accountApp;
-    let accountAuth;
-    let createdUser;
+    // The account made by the SMS check, signed in its own Firebase app.
+    const createdUser = signup.user;
+    const role = normalizeText(formData.get('role')) || 'Hiker';
     let profileSaved = false;
     try {
-      // Isolate the new account's session from the signed-in administrator.
-      accountApp = initializeApp(auth.app.options, 'add-user-' + crypto.randomUUID());
-      accountAuth = initializeAuth(accountApp, { persistence: inMemoryPersistence });
-      const credential = await createUserWithEmailAndPassword(accountAuth, email, password);
-      createdUser = credential.user;
+      // Email and password, so username sign-in works (as the app's sign-up).
+      await linkWithCredential(createdUser, EmailAuthProvider.credential(email, password));
+      await updateProfile(createdUser, { displayName: normalizeText(formData.get('fullName')) }).catch(() => {});
+      // Saved by the new account itself, as an app sign-up is: the rules let
+      // an account create its own profile (as a hiker) with no further check.
+      // A Guide is promoted by the admin just after.
+      const accountDb = getFirestore(signup.app);
       // Mobile login resolves usernames/{username} before authenticating.
-      // Saved as the signed-in administrator: the rules only let an account
-      // create its own profile as a hiker, so a Guide (or "Hiker" with a
-      // capital H) written from the new account's session would be refused.
-      const accountDb = db;
       const usernameRef = doc(accountDb, 'usernames', username);
       // Validated on submit (checkAddUserPhone), so this always parses.
       const parsedPhone = parsePhilippinePhone(formData.get('phone'));
@@ -3137,44 +3514,51 @@
           fullName: normalizeText(formData.get('fullName')),
           username,
           email,
-          role: normalizeText(formData.get('role')) || 'Hiker',
+          role: 'Hiker',
           status: normalizeText(formData.get('status')) || 'Active',
           team: teamMirror || '—',
           phone,
           phoneE164,
-          phoneLinked: false,
+          phoneLinked: true,
+          phoneVerifiedAt: serverTimestamp(),
+          emailVerified: false,
           createdAt: serverTimestamp()
         });
         transaction.set(usernameRef, {
           uid: createdUser.uid,
           email,
           phoneE164,
-          phoneLinked: false
+          phoneLinked: true
         });
       });
       profileSaved = true;
+      verifiedPhone = null; // added: nothing to clean up any more
+      if (role.toLowerCase() !== 'hiker') {
+        await updateDoc(doc(db, 'users', createdUser.uid), { role });
+      }
       await applyTeamMembership(createdUser.uid, wantedTeamIds);
-      setResetPasswordStatus(`New ${normalizeText(formData.get('role')) || 'Hiker'} added. Mobile username: ${username}. Sign in with the password entered here.`, 'success');
+      setResetPasswordStatus(`New ${role} added with a verified phone number. Mobile username: ${username}. Sign in with the password entered here.`, 'success');
     } catch (error) {
       console.error('Add user failed:', error.code || '', error);
       if (profileSaved) {
         setResetPasswordStatus('User account created, but some team assignments could not be saved. Check their team memberships.', 'error');
       } else {
-        let rollbackFailed = false;
-        if (createdUser) {
-          try { await deleteUser(createdUser); }
-          catch { rollbackFailed = true; }
-        }
+        // The phone-verified account stays, so the admin can fix the email,
+        // username or password and press Add User again without a new SMS.
+        // Cancel removes it.
+        const rollbackFailed = false;
         const messages = {
           'account/username-taken': 'That username is already taken. Choose another username.',
           'auth/email-already-in-use': 'This email already has an account. Use a different email.',
+          'auth/credential-already-in-use': 'This email already has an account. Use a different email.',
+          'auth/provider-already-linked': 'This account already has an email. Cancel and start again.',
           'auth/invalid-email': 'Enter a valid email address.',
           'auth/weak-password': 'Choose a stronger password that meets the password requirements.',
           'auth/password-does-not-meet-requirements': 'Choose a stronger password that meets the password requirements.',
           'auth/operation-not-allowed': 'Email/password account creation is not enabled in Firebase.',
           'auth/network-request-failed': 'Network error. Check your connection and try again.',
           'auth/too-many-requests': 'Too many attempts. Please try again later.',
-          'permission-denied': 'Firestore refused to save the profile. The email may not be verified any more (verification lasts an hour); verify it again. If this keeps happening, check that the latest firestore.rules are deployed.'
+          'permission-denied': 'Firestore refused to save the profile. Check that the latest firestore.rules are deployed.'
         };
         addUserStatusMessage.textContent = rollbackFailed
           ? 'The sign-in account was created, but its profile could not be saved or the account removed. Resolve this account in Firebase before trying again.'
@@ -3183,8 +3567,8 @@
       }
     } finally {
       document.getElementById('addUserPassword').value = '';
-      if (accountAuth) await signOut(accountAuth).catch(() => {});
-      if (accountApp) await deleteApp(accountApp).catch(() => {});
+      // Added: the new account's session is no longer needed.
+      if (profileSaved) await endSignupSession({ deleteAccount: false });
       saveAddUserBtn.disabled = false;
       saveAddUserBtn.textContent = 'Add User';
       if (profileSaved) closeAddUserModal();
@@ -3192,25 +3576,86 @@
     }
   });
 
-  resetPasswordBtn.addEventListener('click', async () => {
+  /* Reset Password, in place of Firebase's own reset-link email: the
+     setUserPassword function sets the new password at once (Super
+     Administrators and Administrators; never an admin account). */
+  const resetPasswordModal = document.getElementById('resetPasswordModal');
+  const setPasswordForm = document.getElementById('setPasswordForm');
+  const setPasswordNew = document.getElementById('setPasswordNew');
+  const setPasswordConfirm = document.getElementById('setPasswordConfirm');
+  const setPasswordBtn = document.getElementById('setPasswordBtn');
+  const resetPasswordModalStatus = document.getElementById('resetPasswordModalStatus');
+  const resetFunctions = getFunctions(auth.app);
+  const setUserPassword = httpsCallable(resetFunctions, 'setUserPassword');
+  let resetTarget = null;
+
+  // A function that is missing or unreachable reaches the page only as
+  // "internal"; say what that means instead.
+  const resetErrorText = (error, fallback) => (error?.code === 'functions/internal'
+    ? "Couldn't reach the password service. It may not be deployed yet, or the connection dropped. Try again shortly."
+    : error?.message || fallback);
+
+  const setResetModalStatus = (message, type = '') => {
+    resetPasswordModalStatus.textContent = message;
+    resetPasswordModalStatus.className = `action-status${type ? ` ${type}` : ''}`;
+  };
+
+  const closeResetPasswordModal = () => {
+    resetPasswordModal.classList.remove('open');
+    setPasswordForm.reset();
+    setPasswordNew.type = setPasswordConfirm.type = 'password';
+    setResetModalStatus('');
+    resetTarget = null;
+  };
+
+  resetPasswordBtn.addEventListener('click', () => {
     const user = getSelectedUser();
-    if (!user || !hasValidEmail(user.email)) {
-      setResetPasswordStatus('A valid email address is required.', 'error');
+    if (!user) return;
+    resetTarget = user;
+    document.getElementById('resetPasswordTitle').textContent = `Reset Password for ${user.name}`;
+    document.getElementById('resetPasswordLede').textContent = hasValidEmail(user.email)
+      ? `Account email: ${user.email}`
+      : 'This account has no email address on file.';
+    setPasswordForm.reset();
+    setPasswordNew.type = setPasswordConfirm.type = 'password';
+    setResetModalStatus('');
+    resetPasswordModal.classList.add('open');
+  });
+
+  document.getElementById('setPasswordShow').addEventListener('change', (event) => {
+    setPasswordNew.type = setPasswordConfirm.type = event.target.checked ? 'text' : 'password';
+  });
+
+  setPasswordForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const user = resetTarget;
+    if (!user) return;
+    if (setPasswordNew.value.length < 8) {
+      setResetModalStatus('The password must be at least 8 characters.', 'error');
       return;
     }
-
-    resetPasswordBtn.disabled = true;
-    setResetPasswordStatus('');
-
-    try {
-      await sendPasswordResetEmail(auth, user.email);
-      setResetPasswordStatus(`Password reset email sent to ${user.email}.`, 'success');
-    } catch (error) {
-      console.error('Failed to send password reset email:', error);
-      setResetPasswordStatus('Unable to send the password reset email right now.', 'error');
-    } finally {
-      resetPasswordBtn.disabled = false;
+    if (setPasswordNew.value !== setPasswordConfirm.value) {
+      setResetModalStatus('The two passwords do not match.', 'error');
+      return;
     }
+    setPasswordBtn.disabled = true;
+    setResetModalStatus('Setting the password...');
+    try {
+      await setUserPassword({ uid: user.uid || user.id, newPassword: setPasswordNew.value });
+      setPasswordForm.reset();
+      setResetModalStatus(`New password set for ${user.name}. They have been signed out everywhere.`, 'success');
+      setResetPasswordStatus(`New password set for ${user.name}.`, 'success');
+    } catch (error) {
+      console.error('Failed to set the password:', error);
+      setResetModalStatus(resetErrorText(error, 'Unable to set the password right now.'), 'error');
+    } finally {
+      setPasswordBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('closeResetPasswordBtn').addEventListener('click', closeResetPasswordModal);
+  resetPasswordModal.addEventListener('click', (event) => {
+    if (event.target === resetPasswordModal) closeResetPasswordModal();
   });
 
   // ---------------------------------------------------------------------
@@ -3378,7 +3823,12 @@
 
     deactivateUserBtn.disabled = true;
     try {
-      await updateDoc(doc(db, 'users', user.id), { status: nextStatus });
+      // When and by whom: the app's deactivated screen shows "Since".
+      await updateDoc(doc(db, 'users', user.id), deactivating
+        ? { status: nextStatus, deactivatedAt: serverTimestamp(), deactivatedBy: auth.currentUser?.uid || null }
+        : { status: nextStatus, deactivatedAt: null, deactivatedBy: null });
+      // Activating answers a pending reactivation request too.
+      if (!deactivating && pendingRequestOf(user)) await settleReactivation(user, true, '');
       setResetPasswordStatus(deactivating
         ? `${user.name} has been deactivated and can no longer sign in to the app.`
         : `${user.name} has been activated and can sign in to the app again.`, 'success');
@@ -3389,6 +3839,61 @@
       deactivateUserBtn.disabled = false;
     }
   });
+
+  const sendDecisionEmail = httpsCallable(getFunctions(auth.app), 'emailReactivationDecision');
+
+  async function settleReactivation(user, approve, note) {
+    const request = pendingRequestOf(user);
+    if (!request) return;
+    await updateDoc(doc(db, 'reactivationRequests', request.uid), {
+      status: approve ? 'approved' : 'declined',
+      note: note || null,
+      resolvedAt: serverTimestamp(),
+      resolvedBy: auth.currentUser?.uid || null,
+      updatedAt: serverTimestamp()
+    });
+    // Best effort: the decision stands even if the email does not go.
+    try {
+      await sendDecisionEmail({ uid: request.uid });
+    } catch (error) {
+      console.warn('Could not email the reactivation decision:', error.message);
+      setResetPasswordStatus(`Saved, but the email to ${request.email || 'the user'} could not be sent.`, 'error');
+      return false;
+    }
+    return true;
+  }
+
+  const decideReactivation = async (approve) => {
+    const user = getSelectedUser();
+    if (!user || !pendingRequestOf(user)) return;
+    const note = document.getElementById('reactivationNote').value.trim();
+    const buttons = [document.getElementById('approveReactivationBtn'), document.getElementById('declineReactivationBtn')];
+    buttons.forEach((button) => { button.disabled = true; });
+    try {
+      if (approve) {
+        await updateDoc(doc(db, 'users', user.id), { status: 'Active', deactivatedAt: null, deactivatedBy: null });
+      }
+      const emailed = await settleReactivation(user, approve, note);
+      if (emailed !== false) {
+        setResetPasswordStatus(approve
+          ? `${user.name} has been reactivated and emailed.`
+          : `${user.name}'s request was declined and they were emailed.`, 'success');
+      }
+    } catch (error) {
+      console.error('Could not settle the reactivation request:', error);
+      setResetPasswordStatus('Unable to update this request right now.', 'error');
+    } finally {
+      buttons.forEach((button) => { button.disabled = false; });
+    }
+  };
+  document.getElementById('approveReactivationBtn').addEventListener('click', () => decideReactivation(true));
+  document.getElementById('declineReactivationBtn').addEventListener('click', () => decideReactivation(false));
+
+  onSnapshot(collection(db, 'reactivationRequests'), (snapshot) => {
+    reactivationRequests.clear();
+    snapshot.forEach((item) => reactivationRequests.set(item.id, { uid: item.id, ...item.data() }));
+    renderSelectedUser();
+  }, (error) => console.warn('Could not load reactivation requests:', error.message));
 
   // Opens the PDF / Excel menu (export-table.js) for the users the current
   // search and filters show.

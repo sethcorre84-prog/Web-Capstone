@@ -5,6 +5,14 @@
 // ends them. Ending a session marks it revoked, and the browser holding it
 // signs out as soon as it sees that (at once if a page is open, otherwise the
 // next time a page loads).
+//
+// One place at a time: while an admin account is open in one browser, no
+// other browser or device can use it. Signing in elsewhere is refused at the
+// login page, and a browser that was already signed in is signed out when it
+// next loads a page, naming the device that has the account. A session counts
+// as open while its page sends a heartbeat, every minute; a browser closed
+// without logging out stops, and after ACTIVE_WINDOW_MS the account is free
+// again.
 import { auth, db } from "./firebase-config.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -12,8 +20,11 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const SESSION_KEY = "peakpath-session-id";
-const HEARTBEAT_MS = 5 * 60 * 1000; // lastActiveAt is refreshed this often while a page is open
+const HEARTBEAT_MS = 60 * 1000; // lastActiveAt is refreshed this often while a page is open
+// A session with no heartbeat for this long is over (its browser was closed).
+const ACTIVE_WINDOW_MS = 3 * 60 * 1000;
 export const SESSION_ENDED_REASON = "session-ended";
+export const SESSION_IN_USE_REASON = "in-use";
 
 const sessionsOf = (uid) => collection(db, "admins", uid, "sessions");
 const sessionRef = (uid, id) => doc(db, "admins", uid, "sessions", id);
@@ -66,15 +77,53 @@ export async function describeDevice() {
   return { browser, os, deviceType: mobile ? "Mobile" : "Computer" };
 }
 
+const toMillis = (t) => (t?.toMillis ? t.toMillis() : 0);
+
+/* Another browser that has this account open right now, or null: a session
+   not ended, not this browser's own, with a heartbeat in the last
+   ACTIVE_WINDOW_MS. Sessions whose heartbeat stopped long ago (closed without
+   logging out) are cleared out on the way. */
+export async function activeSessionElsewhere(user) {
+  const own = readSessionId();
+  const snap = await getDocs(sessionsOf(user.uid));
+  const now = Date.now();
+  let active = null;
+  for (const item of snap.docs) {
+    if (item.id === own) continue;
+    const data = item.data();
+    const last = toMillis(data.lastActiveAt) || toMillis(data.signedInAt);
+    if (data.revoked || now - last > ACTIVE_WINDOW_MS) {
+      deleteDoc(item.ref).catch(() => {});
+      continue;
+    }
+    if (!active || last > active.last) active = { id: item.id, ...data, last };
+  }
+  return active;
+}
+
+// "Chrome on Windows 11 (active 1 minute ago)", for the refusal message.
+export function describeSession(session) {
+  const device = [session?.browser, session?.os].filter(Boolean).join(" on ") || "another device";
+  const minutes = Math.max(0, Math.round((Date.now() - (session?.last || Date.now())) / 60000));
+  return `${device} (active ${minutes < 1 ? "just now" : `${minutes} minute${minutes === 1 ? "" : "s"} ago`})`;
+}
+
 const randomId = () =>
   (crypto.randomUUID?.() || `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`).replace(/-/g, "");
 
 /* Starts (or resumes) this browser's session and watches it. Calls onEnded
-   once if the session is ended from another device. Failures (for example
-   before the Firestore rules allow sessions) are logged, never fatal. */
-export async function startSession(user, onEnded) {
+   once if the session is ended from another device, and onInUse(session)
+   instead of starting when another browser has the account open. Failures
+   (for example before the Firestore rules allow sessions) are logged, never
+   fatal. */
+export async function startSession(user, onEnded, onInUse) {
   let id = readSessionId();
   try {
+    const elsewhere = await activeSessionElsewhere(user);
+    if (elsewhere) {
+      onInUse?.(elsewhere);
+      return;
+    }
     const device = await describeDevice();
     const fields = {
       ...device,
@@ -106,9 +155,22 @@ export async function startSession(user, onEnded) {
     if (!snap.exists() || snap.data().revoked) end();
   }, (error) => console.warn("Could not watch the login session:", error.message));
 
-  // Keep "last active" current while a page is open and in front.
-  const beat = () => {
-    if (ended || document.visibilityState !== "visible") return;
+  // Keep "last active" current while a page is open, in front or not: it is
+  // what keeps the account closed to other devices.
+  let lastBeat = Date.now();
+  const beat = async () => {
+    if (ended) return;
+    // A tab the browser froze for a while let its session lapse, so another
+    // device may have signed in since; that one keeps the account.
+    if (Date.now() - lastBeat > ACTIVE_WINDOW_MS) {
+      const elsewhere = await activeSessionElsewhere(user).catch(() => null);
+      if (elsewhere) {
+        ended = true;
+        onInUse?.(elsewhere);
+        return;
+      }
+    }
+    lastBeat = Date.now();
     updateDoc(sessionRef(user.uid, id), { lastActiveAt: serverTimestamp() }).catch(() => {});
   };
   setInterval(beat, HEARTBEAT_MS);
@@ -121,6 +183,16 @@ export async function endCurrentSession() {
   const id = readSessionId();
   writeSessionId("");
   if (user && id) await deleteDoc(sessionRef(user.uid, id)).catch(() => {});
+}
+
+// Signed out because another browser has the account open.
+export async function signOutInUse(session) {
+  writeSessionId("");
+  try {
+    sessionStorage.setItem("peakpath-in-use", describeSession(session));
+  } catch { /* the login page then says it more generally */ }
+  await signOut(auth).catch(() => {});
+  window.location.href = `Home.html?reason=${SESSION_IN_USE_REASON}`;
 }
 
 // Signed out because the session was ended elsewhere.

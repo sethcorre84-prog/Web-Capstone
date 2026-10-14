@@ -6,6 +6,9 @@
 // Leaflet is loaded as a classic deferred script, which runs before the
 // pages' module scripts, so the global `L` is ready whenever this is called.
 
+import { db } from './firebase-config.js';
+import { collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
 export const MAKILING_CENTER = [14.1325, 121.1936];
 export const MAKILING_RADIUS_M = 6000;
 
@@ -136,7 +139,56 @@ export function trailLineKey(name) {
   return null;
 }
 
+/* ---- Routes saved on trails ----
+   A trail added in Trail Management has no line in the file above, so it can
+   carry its own: trails/{id}.route, a list of { lat, lng } points drawn there
+   (Draw Route) or imported from a GPS recording (trail-routes.js). Every map
+   draws these with the file's lines, live; a route on one of the file's
+   trails replaces that trail's file line. */
+export const validRoute = (route) => Array.isArray(route)
+  && route.filter((p) => Number.isFinite(Number(p?.lat)) && Number.isFinite(Number(p?.lng))).length >= 2;
+
+// The key a trail's line is filed under in `lines`: its own route if it has
+// one, else the file line its name matches (or null).
+export const lineKeyFor = (trail) => (validRoute(trail?.route) ? `trail:${trail.id}` : trailLineKey(trail?.Trail));
+
+// The trail behind a key from lineKeyFor (or from the file), among `trails`.
+export const trailForLineKey = (trails, key) => {
+  if (!key) return null;
+  if (key.startsWith('trail:')) return trails.find((t) => t.id === key.slice(6)) || null;
+  return trails.find((t) => !validRoute(t.route) && trailLineKey(t.Trail) === key) || null;
+};
+
+/* Where a trail starts, as [lat, lng]: the first point of its saved route
+   (drawn or recorded from the trailhead), or the end of its file line where
+   the hike begins (the registration or jump-off below; for any other line,
+   the end farther from the summit). `latLngs` are the points of the line it
+   is drawn with. Null when it has neither. */
+const KNOWN_STARTS = {
+  mariang: [14.14814, 121.23185],   // MCME registration, Station 1
+  sipit: [14.10642, 121.18826],     // Sto. Tomas jump-off
+  traverse: [14.1091, 121.1657]     // Sto. Tomas start, up the Sipit side
+};
+export function trailStart(trail, latLngs) {
+  if (validRoute(trail?.route)) {
+    const first = trail.route.find((p) => Number.isFinite(Number(p?.lat)) && Number.isFinite(Number(p?.lng)));
+    return [Number(first.lat), Number(first.lng)];
+  }
+  if (!latLngs?.length) return null;
+  const first = L.latLng(latLngs[0]);
+  const last = L.latLng(latLngs[latLngs.length - 1]);
+  const known = KNOWN_STARTS[trailLineKey(trail?.Trail)];
+  const end = known
+    ? (L.latLng(known).distanceTo(first) <= L.latLng(known).distanceTo(last) ? first : last)
+    : (L.latLng(PEAK_2).distanceTo(first) >= L.latLng(PEAK_2).distanceTo(last) ? first : last);
+  return [end.lat, end.lng];
+}
+
+const routeLength = (latLngs) => latLngs.reduce((sum, point, i) => (i
+  ? sum + L.latLng(latLngs[i - 1]).distanceTo(point) : 0), 0);
+
 const TRAIL_COLOR = '#2f8f4e';
+const CLOSED_COLOR = '#c8402f';
 // Side trails (Mud Spring, Flat Rocks): yellow, like the maps' legends.
 const SIDE_TRAIL_COLOR = '#ffb020';
 
@@ -153,7 +205,12 @@ const PEAK_ICON_HTML = '<div style="display:grid;place-items:center;width:24px;h
    closed); onClick(key) makes the lines clickable. Returns the lines by key
    and highlight(key), which thickens one line and fades the rest. */
 export async function addTrailLines(map, { colorFor, onClick } = {}) {
-  const data = await loadTrailLines();
+  // A file that will not load costs only its own lines: the routes saved on
+  // trails are still drawn.
+  const data = await loadTrailLines().catch((error) => {
+    console.warn('Could not load the trail lines file:', error.message);
+    return { features: [] };
+  });
   const lines = new Map();
   const peaks = [];
   const group = L.layerGroup().addTo(map);
@@ -192,10 +249,83 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
 
   map.attributionControl?.addAttribution('Trails &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors');
 
-  function highlight(activeKey) {
-    lines.forEach((line, key) => {
-      const active = key === activeKey;
-      const dim = activeKey && !active;
+  // The file's lines, kept so one can come back when a route replacing it
+  // is removed.
+  const fileLines = new Map(lines);
+  let routeKeys = [];
+  let activeKey = null;
+
+  // A saved route's own colour when the page does not choose one (Dashboard,
+  // Emergency): its trail's status, red when closed, as GeoMap shows it.
+  const statusColor = (trail) => (String(trail?.Status || 'Open').toLowerCase().startsWith('close')
+    ? CLOSED_COLOR : TRAIL_COLOR);
+
+  function drawLine(key, latLngs, { side, name, color, tooltip, trail = null }) {
+    const casing = L.polyline(latLngs, {
+      color: '#fff', weight: side ? 5 : 7, opacity: 0.85, interactive: false
+    }).addTo(group);
+    const stroke = L.polyline(latLngs, {
+      color, weight: side ? 3 : 4, opacity: 1, dashArray: side ? '6 6' : null
+    }).bindTooltip(tooltip, { sticky: true }).addTo(group);
+    if (onClick) stroke.on('click', () => onClick(key));
+    lines.set(key, { casing, stroke, side, name, trail });
+  }
+
+  // Redraws the saved routes from the trails collection.
+  function setRoutes(trails) {
+    routeKeys.forEach((key) => {
+      const line = lines.get(key);
+      if (line) { group.removeLayer(line.casing); group.removeLayer(line.stroke); }
+      lines.delete(key);
+    });
+    routeKeys = [];
+    // Every file line back in place, then the ones a route replaces taken out.
+    fileLines.forEach((line, key) => {
+      if (!lines.has(key)) {
+        line.casing.addTo(group);
+        line.stroke.addTo(group);
+        lines.set(key, line);
+      }
+    });
+    trails.filter((trail) => validRoute(trail.route)).forEach((trail) => {
+      const replaced = trailLineKey(trail.Trail);
+      if (replaced && lines.has(replaced) && fileLines.has(replaced)) {
+        const line = lines.get(replaced);
+        group.removeLayer(line.casing);
+        group.removeLayer(line.stroke);
+        lines.delete(replaced);
+      }
+      const key = `trail:${trail.id}`;
+      const latLngs = trail.route
+        .map((p) => [Number(p.lat), Number(p.lng)])
+        .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+      const name = trail.Trail || 'Trail';
+      const km = (routeLength(latLngs) / 1000).toFixed(1);
+      drawLine(key, latLngs, {
+        side: false,
+        name,
+        color: colorFor?.(key) || statusColor(trail),
+        tooltip: `${name} · ${km} km`,
+        trail
+      });
+      routeKeys.push(key);
+    });
+    // The summit badge stays above every line.
+    peaks.forEach((peak) => { group.removeLayer(peak); peak.addTo(group); });
+    if (activeKey) highlight(activeKey);
+    changeListeners.forEach((listener) => listener());
+  }
+
+  const changeListeners = new Set();
+  onSnapshot(collection(db, 'trails'), (snapshot) => {
+    setRoutes(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+  }, (error) => console.warn('Could not load the saved trail routes:', error.message));
+
+  function highlight(key) {
+    activeKey = key;
+    lines.forEach((line, lineKey) => {
+      const active = lineKey === key;
+      const dim = key && !active;
       line.casing.setStyle({ weight: active ? 10 : (line.side ? 5 : 7), opacity: dim ? 0.35 : 0.85 });
       line.stroke.setStyle({ weight: active ? 6 : (line.side ? 3 : 4), opacity: dim ? 0.45 : 1 });
       if (active) { line.casing.bringToFront(); line.stroke.bringToFront(); }
@@ -203,8 +333,13 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
   }
 
   function recolor() {
-    lines.forEach((line, key) => line.stroke.setStyle({ color: colorFor?.(key) || (line.side ? SIDE_TRAIL_COLOR : TRAIL_COLOR) }));
+    lines.forEach((line, key) => line.stroke.setStyle({
+      color: colorFor?.(key) || (line.trail ? statusColor(line.trail) : (line.side ? SIDE_TRAIL_COLOR : TRAIL_COLOR))
+    }));
   }
 
-  return { lines, highlight, recolor, group };
+  // onChange(listener): called after the saved routes are redrawn.
+  const onChange = (listener) => { changeListeners.add(listener); return () => changeListeners.delete(listener); };
+
+  return { lines, highlight, recolor, group, onChange };
 }

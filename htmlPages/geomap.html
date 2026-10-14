@@ -495,25 +495,6 @@
       .legend-row svg {
           height: 10px;
       }
-      /* Contours and rivers are light lines drawn for the dark satellite
-         imagery (map-features.js), so their swatches sit on a small dark
-         tile the same way, rather than vanishing on the white legend. */
-      .legend-map-swatch {
-          display: grid;
-          place-items: center;
-          width: 20px;
-          height: 14px;
-          flex-shrink: 0;
-          border-radius: 4px;
-          background: #2c3d2b;
-      }
-      .legend-row .legend-map-swatch svg {
-          width: 16px;
-          height: 8px;
-      }
-      .legend-row.is-contour svg {
-          color: #7fd8c8;
-      }
       /* River/Creek: a small copy of the river label on the map (white,
          blue border, the blue wave), so the legend shows what you see. */
       .legend-river {
@@ -687,8 +668,6 @@
       .legend-list .legend-facility i { font-size: 10.5px; }
       .legend-list .legend-river { width: 32px; height: 20px; }
       .legend-list .legend-river svg { width: 20px; height: 10px; }
-      .legend-list .legend-map-swatch { width: 26px; height: 18px; }
-      .legend-list .legend-map-swatch svg { width: 20px; height: 10px; }
       /* Clickable rows (Active Alerts, and Recent Hazards that are on the map)
              highlight as a whole on hover instead of underlining the title. The
              negative margin lets the tint reach past the text without shifting it. */
@@ -735,24 +714,40 @@
       /* The four High/Moderate/Low/Total tiles inside Alerts Overview: two by
          two, each a compact row (icon, count, label), so the card fits a third
          of the row beside Trail Status Overview and Active Alerts. */
+      /* The tiles fill the card down to its bottom edge (the card is as tall
+         as the panels beside it), two rows of equal height. */
       .risk-tiles {
+          flex: 1;
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-auto-rows: minmax(0, 1fr);
           gap: 8px;
           margin-top: 10px;
       }
       .risk-tile {
           display: grid;
           grid-template-columns: auto minmax(0, 1fr);
-          grid-template-rows: auto auto;
+          grid-template-rows: auto auto auto;
+          align-content: center;
           column-gap: 10px;
-          align-items: center;
+          row-gap: 1px;
           padding: 10px 12px;
           border-radius: 10px;
+          min-width: 0;
       }
       .risk-tile > i {
-          grid-row: span 2;
+          grid-row: 1 / span 3;
+          align-self: start;
+          margin-top: 3px;
           font-size: 16px;
+      }
+      /* The third line: what the level means, and its share of all alerts. */
+      .risk-desc {
+          margin-top: 3px;
+          font-size: 11px;
+          line-height: 1.35;
+          color: var(--text-secondary);
+          opacity: 0.85;
       }
       .risk-count {
           font-size: 19px;
@@ -938,21 +933,25 @@
                 <i class="fa-solid fa-triangle-exclamation" style="color:var(--red-text)"></i>
                 <div id="highRiskCount" class="risk-count">0</div>
                 <div class="risk-label">High Risk</div>
+                <div id="highRiskDesc" class="risk-desc">Needs immediate attention</div>
               </div>
               <div class="risk-tile" style="background:var(--amber-bg)">
                 <i class="fa-solid fa-triangle-exclamation" style="color:var(--amber-icon)"></i>
                 <div id="moderateRiskCount" class="risk-count">0</div>
                 <div class="risk-label">Moderate Risk</div>
+                <div id="moderateRiskDesc" class="risk-desc">Hike with caution</div>
               </div>
               <div class="risk-tile" style="background:var(--blue-bg)">
                 <i class="fa-solid fa-triangle-exclamation" style="color:var(--blue-text)"></i>
                 <div id="lowRiskCount" class="risk-count">0</div>
                 <div class="risk-label">Low Risk</div>
+                <div id="lowRiskDesc" class="risk-desc">Minor, keep watch</div>
               </div>
               <div class="risk-tile" style="background:var(--green-bg)">
                 <i class="fa-solid fa-circle-info" style="color:var(--green-text)"></i>
                 <div id="totalRiskCount" class="risk-count">0</div>
                 <div class="risk-label">Total Risks</div>
+                <div id="totalRiskDesc" class="risk-desc">Advisories and hazard reports</div>
               </div>
             </div>
             </div>
@@ -992,7 +991,6 @@
               <div class="legend-row"><span class="hazard-dot low" aria-hidden="true"></span><span>Low Risk Hazard</span></div>
               <div class="legend-row"><span class="hiker-pin online" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Hiker (online)</span></div>
               <div class="legend-row"><span class="hiker-pin offline" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Hiker (last seen)</span></div>
-              <div class="legend-row is-contour"><span class="legend-map-swatch" aria-hidden="true"><svg viewBox="0 0 24 10"><path d="M1 6c2.5-6 5.5 6 8 0s5.5-6 8 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Contour Line (100 m)</span></div>
               <div class="legend-row is-river" title="Rivers and creeks inside the Mount Makiling Forest Reserve"><span class="legend-river" aria-hidden="true"><svg viewBox="0 0 24 10" aria-hidden="true"><path d="M1 7c4-5 8 2 12-2s7-3 10-1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span><span>River/Creek</span></div>
               <div class="legend-row"><span class="legend-station" aria-hidden="true"></span><span>Trail Station</span></div>
               <!-- One row per station tag, from FACILITIES in map-features.js. -->
@@ -1010,7 +1008,7 @@
     import { collection, onSnapshot, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { formatPortalDate, portalHourCycle, portalTimeZone, toPortalDate as toDate } from "../jsPages/datetime-prefs.js";
     import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, weatherUrlFor } from "../jsPages/weather-locations.js";
-    import { createMakilingMap, trailLineKey, PEAK_2 } from "../jsPages/makiling-area.js";
+    import { createMakilingMap, trailForLineKey, PEAK_2 } from "../jsPages/makiling-area.js";
     import { initTrailPoints } from "../jsPages/trail-points.js";
     import { addMapFeatures, FACILITIES } from "../jsPages/map-features.js";
 
@@ -1036,14 +1034,23 @@
       center: PEAK_2,
       trailLineOptions: {
         colorFor(key) {
-          const trail = mapTrails.find((t) => trailLineKey(t.Trail) === key);
+          const trail = trailForLineKey(mapTrails, key);
           if (!trail) return null;
           return String(trail.Status || 'Open').toLowerCase().startsWith('close') ? '#c8402f' : '#2f8f4e';
         }
       }
     });
 
-    const trailLayer = L.layerGroup().addTo(map);
+    // The Trails switch in the layers control covers the trail pins
+    // (trailLayer) and the trail lines with the summit badge
+    // (makiling-area.js), so unticking it clears every trail off the map.
+    const trailLayer = L.layerGroup();
+    const trailsOverlay = L.layerGroup([trailLayer]).addTo(map);
+    trailLines.then((lines) => {
+      if (!lines) return;
+      map.removeLayer(lines.group);
+      trailsOverlay.addLayer(lines.group);
+    });
     const hazardLayer = L.layerGroup().addTo(map);
     const hikerLayer = L.layerGroup().addTo(map);
 
@@ -1052,7 +1059,7 @@
     const pointLayer = L.layerGroup().addTo(map);
     const trailPoints = initTrailPoints({ map, readOnly: true, layer: pointLayer });
 
-    // Contour lines, rivers and creeks, and the trail stations with their
+    // Rivers and creeks, and the trail stations with their
     // facilities (monitoring, first aid, food): the rest of the legend.
     const mapFeatures = addMapFeatures({
       map,
@@ -1142,10 +1149,25 @@
         if (bucket in counts) counts[bucket] += 1;
       });
 
+      const total = counts.high + counts.moderate + counts.low;
       highRiskCount.textContent = String(counts.high);
       moderateRiskCount.textContent = String(counts.moderate);
       lowRiskCount.textContent = String(counts.low);
-      totalRiskCount.textContent = String(counts.high + counts.moderate + counts.low);
+      totalRiskCount.textContent = String(total);
+
+      // Each tile's third line: what the level means and its share of all
+      // current alerts; the total says where they come from.
+      const share = (count) => (total ? ` · ${Math.round((count / total) * 100)}%` : '');
+      const describe = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+      describe('highRiskDesc', `Needs immediate attention${share(counts.high)}`);
+      describe('moderateRiskDesc', `Hike with caution${share(counts.moderate)}`);
+      describe('lowRiskDesc', `Minor, keep watch${share(counts.low)}`);
+      const counted = (list) => list.filter((item) => getRiskBucket(item) in counts).length;
+      const advisoryTotal = counted(activeAdvisories);
+      const hazardTotal = counted(activeHazards);
+      describe('totalRiskDesc', total
+        ? `${advisoryTotal} advisor${advisoryTotal === 1 ? 'y' : 'ies'} · ${hazardTotal} hazard${hazardTotal === 1 ? '' : 's'}`
+        : 'No current advisories or hazards');
     };
 
     const renderActiveAlerts = (advisories) => {
@@ -1565,12 +1587,11 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshHikers(); });
 
     L.control.layers(null, {
-      'Trails': trailLayer,
+      'Trails': trailsOverlay,
       'Checkpoints & campsites': pointLayer,
       'Trail stations': mapFeatures.stations,
       'Verified hazards': hazardLayer,
       'Hikers': hikerLayer,
-      'Contour lines': mapFeatures.contours,
       'Rivers & creeks': mapFeatures.waterways
     }).addTo(map);
 

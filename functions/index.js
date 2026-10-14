@@ -604,6 +604,50 @@ exports.listAdmins = onCall(async (request) => {
   };
 });
 
+// User Management > View user > Set Password: an admin types a new password
+// for an app user and it takes effect at once, for a hiker who can't get at
+// their email (at the ranger station, say). Super Administrators and
+// Administrators only, never a Viewer; and never on an admin account, whose
+// password only its owner changes (Forgot Password on the login page). The
+// user is signed out everywhere, so the old password stops working at once.
+exports.setUserPassword = onCall(async (request) => {
+  const callerUid = request.auth?.uid;
+  const caller = callerUid ? await db.collection("admins").doc(callerUid).get() : null;
+  const callerRole = caller?.exists ? roleOf(caller.data()) : null;
+  if (!callerRole || callerRole === "Viewer") {
+    throw new HttpsError("permission-denied", "Only Super Administrators and Administrators can set a user's password.");
+  }
+
+  const uid = String(request.data?.uid || "");
+  const newPassword = request.data?.newPassword;
+  if (!uid) throw new HttpsError("invalid-argument", "Choose a user.");
+  if (typeof newPassword !== "string" || newPassword.length < PASSWORD_MIN_LENGTH) {
+    throw new HttpsError("invalid-argument", `The password must be at least ${PASSWORD_MIN_LENGTH} characters.`);
+  }
+  if ((await db.collection("admins").doc(uid).get()).exists) {
+    throw new HttpsError("permission-denied", "An admin's password can only be changed by that admin.");
+  }
+
+  try {
+    await getAuth().updateUser(uid, { password: newPassword });
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "This user has no sign-in account.");
+    }
+    if (error.code === "auth/invalid-password") {
+      throw new HttpsError("invalid-argument", "Firebase refused that password. Try a longer one.");
+    }
+    throw error;
+  }
+  await getAuth().revokeRefreshTokens(uid);
+  // Who set it and when, on the user's record (never the password itself).
+  await db.collection("users").doc(uid).update({
+    passwordSetByAdminAt: FieldValue.serverTimestamp(),
+    passwordSetByAdmin: callerUid
+  }).catch((error) => logger.warn("Could not record the password change", error));
+  return { ok: true };
+});
+
 exports.setAdminRole = onCall(async (request) => {
   const caller = await requireSuperAdmin(request);
   const uid = String(request.data?.uid || "");
@@ -1059,5 +1103,274 @@ exports.emailDueAdvisories = onSchedule(
     for (const advisoryDoc of pending.docs) {
       await processAdvisory(advisoryDoc.ref, advisoryDoc.data());
     }
+  }
+);
+
+// =====================================================================
+// User Reports > Contact Reported User
+// =====================================================================
+
+/* Emails the reported user from the admin who is signed in, straight from
+   the portal, and records the contact on the report (once per report, the
+   page's rule). The email goes out through the admin's own Gmail when it has
+   an app password in GMAIL_SENDERS, so it arrives from that account; anyone
+   else is sent through GMAIL_USER with their name and Reply-To, so replies
+   still reach them. Super Administrators and Administrators only. */
+exports.emailReportedUser = onCall(
+  { secrets: [GMAIL_USER, GMAIL_APP_PASSWORD, GMAIL_SENDERS] },
+  async (request) => {
+    const callerUid = request.auth?.uid;
+    const caller = callerUid ? await db.collection("admins").doc(callerUid).get() : null;
+    const callerRole = caller?.exists ? roleOf(caller.data()) : null;
+    if (!callerRole || callerRole === "Viewer") {
+      throw new HttpsError("permission-denied", "Only Super Administrators and Administrators can email users.");
+    }
+
+    const reportId = String(request.data?.reportId || "");
+    const to = normalizeEmail(request.data?.to);
+    const name = String(request.data?.name || "").trim().slice(0, 120) || to;
+    const subject = String(request.data?.subject || "").trim().slice(0, 200);
+    const message = String(request.data?.message || "").trim().slice(0, 5000);
+    if (!reportId) throw new HttpsError("invalid-argument", "Choose a report.");
+    if (!subject || !message) throw new HttpsError("invalid-argument", "Write a subject and a message.");
+
+    const reportRef = db.collection("reportedUser").doc(reportId);
+    const report = await reportRef.get();
+    if (!report.exists) throw new HttpsError("not-found", "That report no longer exists.");
+    if (report.get("lastContactedAt")) {
+      throw new HttpsError("already-exists", "This user was already contacted about this report.");
+    }
+
+    // The signed-in admin: their address and name.
+    let adminEmail = String(caller.get("email") || request.auth.token?.email || "").trim().toLowerCase();
+    if (!adminEmail) adminEmail = String((await getAuth().getUser(callerUid)).email || "").toLowerCase();
+    const adminName = String(caller.get("name") || request.auth.token?.name || "PeakPath Admin").trim();
+    const fallback = GMAIL_USER.value();
+    const ownPassword = senderPasswords()[adminEmail];
+    const transporter = ownPassword ? mailTransport(adminEmail, ownPassword) : mailTransport();
+    const sentFrom = ownPassword ? adminEmail : fallback;
+
+    try {
+      await transporter.sendMail({
+        from: { name: `${adminName} (PeakPath)`, address: adminEmail || fallback },
+        replyTo: adminEmail || fallback,
+        to,
+        subject,
+        text: message,
+        html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#1c231c">${
+          escapeHtml(message).replace(/\n/g, "<br>")}</div>`
+      });
+    } catch (error) {
+      logger.error(`Could not email the reported user on report ${reportId}`, error);
+      throw new HttpsError("unavailable", "The email could not be sent. Please try again.");
+    }
+
+    // Recorded once it is sent, in the same shape the page writes.
+    const at = new Date().toISOString();
+    await reportRef.update({
+      lastContactedAt: at,
+      actionLog: FieldValue.arrayUnion({
+        type: "contact",
+        title: `Contacted ${name}`,
+        note: `${subject} (sent to ${to} from ${sentFrom})`,
+        by: adminName,
+        at
+      })
+    });
+    logger.info(`Report ${reportId}: emailed ${to} through ${sentFrom}`);
+    return { sentFrom, to };
+  }
+);
+
+// =====================================================================
+// Two-factor sign-in by SMS (Settings > Two-Factor Authentication)
+// =====================================================================
+
+/* An admin who turns it on (admins/{uid}.twoFactor) is asked, on any device
+   not yet recognised, for a code texted to the phone number on their profile
+   (admins/{uid}.phone). The page sends and checks the code with Firebase's
+   own phone verification, in a separate throwaway sign-in, and hands the
+   resulting ID token here: it proves that phone number was reached. These
+   functions check it against the profile and remember the device in
+   admins/{uid}/trustedDevices/{deviceId}, which no client can read or write
+   (no firestore.rules block), so a browser cannot mark itself recognised. */
+
+// A profile phone ("0917 123 4567", "+63 917...", "9171234567") in E.164.
+function toE164(raw) {
+  const value = String(raw || "").trim();
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  if (value.startsWith("+")) return `+${digits}`;
+  if (digits.startsWith("63") && digits.length === 12) return `+${digits}`;
+  if (digits.startsWith("0") && digits.length === 11) return `+63${digits.slice(1)}`;
+  if (digits.startsWith("9") && digits.length === 10) return `+63${digits}`;
+  return `+${digits}`;
+}
+
+const maskPhone = (e164) => (e164.length > 6
+  ? `${e164.slice(0, e164.length - 7)} ••• ••${e164.slice(-2)}`
+  : e164);
+
+const DEVICE_ID = /^[A-Za-z0-9_-]{8,64}$/;
+
+async function signedInAdmin(request) {
+  const uid = request.auth?.uid;
+  const snap = uid ? await db.collection("admins").doc(uid).get() : null;
+  if (!snap?.exists || !roleOf(snap.data())) {
+    throw new HttpsError("permission-denied", "Only PeakPath admins can use two-factor sign-in.");
+  }
+  return { uid, ref: snap.ref, data: snap.data() };
+}
+
+const deviceIdOf = (request) => {
+  const id = String(request.data?.deviceId || "");
+  if (!DEVICE_ID.test(id)) throw new HttpsError("invalid-argument", "This browser could not be identified.");
+  return id;
+};
+
+// Whether this device must pass the SMS check now, and where the code goes.
+exports.checkTwoFactor = onCall(async (request) => {
+  const admin = await signedInAdmin(request);
+  const deviceId = deviceIdOf(request);
+  const phone = toE164(admin.data.phone);
+  const enabled = admin.data.twoFactor === true;
+  let trusted = false;
+  if (enabled) {
+    trusted = (await admin.ref.collection("trustedDevices").doc(deviceId).get()).exists;
+  }
+  return {
+    enabled,
+    required: enabled && !trusted,
+    phone,
+    masked: phone ? maskPhone(phone) : ""
+  };
+});
+
+/* The SMS code was right: `phoneToken` is the ID token of the phone sign-in
+   it produced. With `enable`, this also turns two-factor on. */
+exports.confirmTwoFactor = onCall(async (request) => {
+  const admin = await signedInAdmin(request);
+  const deviceId = deviceIdOf(request);
+  const profilePhone = toE164(admin.data.phone);
+  if (!profilePhone) {
+    throw new HttpsError("failed-precondition", "Add a phone number to your profile first.");
+  }
+
+  let decoded;
+  try {
+    decoded = await getAuth().verifyIdToken(String(request.data?.phoneToken || ""));
+  } catch (error) {
+    throw new HttpsError("unauthenticated", "The code check could not be confirmed. Try again.");
+  }
+  if (decoded.phone_number !== profilePhone) {
+    throw new HttpsError("permission-denied", "That code was not sent to the phone number on your profile.");
+  }
+  // Fresh only: a token from an earlier check cannot be replayed.
+  if (Date.now() / 1000 - Number(decoded.auth_time || 0) > 10 * 60) {
+    throw new HttpsError("deadline-exceeded", "That code check is too old. Request a new code.");
+  }
+
+  const device = String(request.data?.device || "").slice(0, 80);
+  await admin.ref.collection("trustedDevices").doc(deviceId).set({
+    device,
+    phone: profilePhone,
+    trustedAt: FieldValue.serverTimestamp()
+  });
+  if (request.data?.enable === true) {
+    await admin.ref.update({ twoFactor: true, twoFactorEnabledAt: FieldValue.serverTimestamp() });
+  }
+
+  // The throwaway phone sign-in made an Auth account for the number; remove
+  // it unless it is someone's real account (an admin or an app user).
+  if (decoded.uid !== admin.uid) {
+    try {
+      const phoneUser = await getAuth().getUser(decoded.uid);
+      const onlyPhone = phoneUser.providerData.every((p) => p.providerId === "phone") && !phoneUser.email;
+      const [isAdmin, isAppUser] = await Promise.all([
+        db.collection("admins").doc(decoded.uid).get().then((s) => s.exists),
+        db.collection("users").doc(decoded.uid).get().then((s) => s.exists)
+      ]);
+      if (onlyPhone && !isAdmin && !isAppUser) await getAuth().deleteUser(decoded.uid);
+    } catch (error) {
+      logger.warn("Could not tidy the two-factor phone sign-in", error);
+    }
+  }
+  return { ok: true };
+});
+
+// Turns two-factor off and forgets every recognised device.
+exports.disableTwoFactor = onCall(async (request) => {
+  const admin = await signedInAdmin(request);
+  const devices = await admin.ref.collection("trustedDevices").get();
+  const batch = db.batch();
+  devices.docs.forEach((item) => batch.delete(item.ref));
+  batch.update(admin.ref, { twoFactor: false, twoFactorEnabledAt: FieldValue.delete() });
+  await batch.commit();
+  return { ok: true };
+});
+
+// =====================================================================
+// User Management > reactivation requests
+// =====================================================================
+
+/* Emails a deactivated user the decision on their reactivation request
+   (reactivationRequests/{uid}, sent from the app's "Account deactivated"
+   screen), once User Management has recorded it as approved or declined.
+   Sent through the deciding admin's own Gmail when it has an app password in
+   GMAIL_SENDERS, otherwise through GMAIL_USER with their name and Reply-To.
+   Super Administrators and Administrators only. */
+exports.emailReactivationDecision = onCall(
+  { secrets: [GMAIL_USER, GMAIL_APP_PASSWORD, GMAIL_SENDERS] },
+  async (request) => {
+    const callerUid = request.auth?.uid;
+    const caller = callerUid ? await db.collection("admins").doc(callerUid).get() : null;
+    const callerRole = caller?.exists ? roleOf(caller.data()) : null;
+    if (!callerRole || callerRole === "Viewer") {
+      throw new HttpsError("permission-denied", "Only Super Administrators and Administrators can answer requests.");
+    }
+
+    const uid = String(request.data?.uid || "");
+    const ref = db.collection("reactivationRequests").doc(uid);
+    const snap = uid ? await ref.get() : null;
+    if (!snap?.exists) throw new HttpsError("not-found", "That request no longer exists.");
+    const data = snap.data();
+    if (!["approved", "declined"].includes(data.status)) {
+      throw new HttpsError("failed-precondition", "Decide the request before emailing it.");
+    }
+    const to = normalizeEmail(data.email);
+    const approved = data.status === "approved";
+    const first = String(data.name || "").trim().split(/\s+/)[0] || "there";
+    const note = String(data.note || "").trim();
+
+    const message = approved
+      ? `Hi ${first},\n\nGood news: your PeakPath account has been reactivated. You can sign in to the app again with your usual username and password.`
+        + `${note ? `\n\nNote from the admin: ${note}` : ""}\n\nSee you on the trails,\nThe PeakPath team`
+      : `Hi ${first},\n\nWe reviewed your request to reactivate your PeakPath account, and it was not approved this time.`
+        + `${note ? `\n\nNote from the admin: ${note}` : ""}`
+        + "\n\nIf you have more details to share, you can send a new request from the app or reply to this email.\n\nThe PeakPath team";
+
+    let adminEmail = String(caller.get("email") || request.auth.token?.email || "").trim().toLowerCase();
+    if (!adminEmail) adminEmail = String((await getAuth().getUser(callerUid)).email || "").toLowerCase();
+    const adminName = String(caller.get("name") || request.auth.token?.name || "PeakPath Admin").trim();
+    const ownPassword = senderPasswords()[adminEmail];
+    const transporter = ownPassword ? mailTransport(adminEmail, ownPassword) : mailTransport();
+    const fallback = GMAIL_USER.value();
+
+    try {
+      await transporter.sendMail({
+        from: { name: `${adminName} (PeakPath)`, address: adminEmail || fallback },
+        replyTo: adminEmail || fallback,
+        to,
+        subject: approved ? "Your PeakPath account has been reactivated" : "Your PeakPath reactivation request",
+        text: message,
+        html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#1c231c">${
+          escapeHtml(message).replace(/\n/g, "<br>")}</div>`
+      });
+    } catch (error) {
+      logger.error(`Could not email the reactivation decision to ${uid}`, error);
+      throw new HttpsError("unavailable", "The email could not be sent. Please try again.");
+    }
+    await ref.update({ emailedAt: FieldValue.serverTimestamp() });
+    return { ok: true };
   }
 );

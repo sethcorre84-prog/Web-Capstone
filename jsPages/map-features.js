@@ -1,8 +1,6 @@
 // map-features.js
 // The GeoMap's reference layers, so everything its legend names is on the map:
 //
-//   Contour lines     every 100 m, traced from AWS Terrain Tiles (SRTM)
-//                     into assets/data/makiling-contours.geojson
 //   Rivers / creeks   OpenStreetMap waterways inside the Mount Makiling
 //                     Forest Reserve only (clipped to the reserve's OSM
 //                     outline, saved as assets/data/makiling-reserve.geojson),
@@ -31,7 +29,6 @@ const dataUrl = (name) => new URL(`../assets/data/${name}`, import.meta.url).hre
 
 // Colours shared with the legend swatches in geomap.html; picked to read on
 // the satellite imagery (dark forest green).
-export const CONTOUR_COLOR = '#7fd8c8';
 // The river symbol: the wave in the legend's River/Creek row and in each
 // named river's label on the map, so the two look the same.
 export const RIVER_WAVE = '<svg viewBox="0 0 24 10" aria-hidden="true"><path d="M1 7c4-5 8 2 12-2s7-3 10-1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
@@ -84,9 +81,6 @@ const CSS = `
 .mf-popup strong { display:block; font-size:13.5px; }
 .mf-popup .mf-sub { color:#5b6b60; font-size:11.5px; margin-bottom:4px; }
 .mf-popup .mf-coords { color:#93a199; font-size:11px; margin-top:4px; }
-.mf-contour-label { background:none; border:0; box-shadow:none; color:#e8fff9; font-size:10px; font-weight:700;
-  text-shadow:0 0 3px rgba(0,0,0,.9); padding:0; }
-.mf-contour-label::before { display:none; }
 .mf-river { display:inline-flex; align-items:center; gap:5px; padding:3px 8px 3px 6px; border-radius:20px;
   background:#fff; border:2px solid #2a7fd0; box-shadow:0 1px 4px rgba(0,0,0,.35); white-space:nowrap;
   font:600 11px/1.2 system-ui, sans-serif; color:#1d4f86; transform:translate(-50%, -50%); }
@@ -157,43 +151,29 @@ export function countMapPoints(trails) {
   db            Firestore
   trails        () => the trails/{id} documents (with id), for station
                 popups and for trails whose stations are not saved yet
-  Returns { contours, waterways, stations } layer groups for a layers
+  stationsOnly  true for the Dashboard and Trail Management overviews: no
+                rivers, and every station is the plain
+                Trail Station dot rather than a facility badge
+  Returns { waterways, stations } layer groups for a layers
   control, and render() to redraw the stations after the trail names change.
 */
-export function addMapFeatures({ map, db, trails = () => [] }) {
+export function addMapFeatures({ map, db, trails = () => [], stationsOnly = false }) {
   const trailById = (trailID) => trails().find((t) => t.id === trailID);
   const trailName = (trailID) => trailById(trailID)?.Trail || '';
   const style = document.createElement('style');
   style.textContent = CSS;
   document.head.appendChild(style);
 
-  // Contours and water sit under the trail lines and markers.
+  // Water sits under the trail lines and markers.
   if (!map.getPane('mfBackdrop')) {
     map.createPane('mfBackdrop');
     map.getPane('mfBackdrop').style.zIndex = 350;
   }
 
-  const contours = L.layerGroup().addTo(map);
   const waterways = L.layerGroup().addTo(map);
   const stations = L.layerGroup().addTo(map);
 
-  loadJson('makiling-contours.geojson').then((data) => {
-    L.geoJSON(data, {
-      pane: 'mfBackdrop',
-      interactive: true,
-      style: (feature) => ({
-        color: CONTOUR_COLOR,
-        weight: feature.properties.index ? 1.8 : 1,
-        opacity: feature.properties.index ? 0.85 : 0.6
-      }),
-      onEachFeature: (feature, layer) => {
-        layer.bindTooltip(`${feature.properties.elevation} m`, { sticky: true, className: 'mf-contour-label', direction: 'top' });
-      }
-    }).addTo(contours);
-    map.attributionControl?.addAttribution('Contours: AWS Terrain Tiles');
-  }).catch((error) => console.warn('Could not draw the contour lines:', error.message));
-
-  loadJson('makiling-waterways.geojson').then((data) => {
+  if (!stationsOnly) loadJson('makiling-waterways.geojson').then((data) => {
     L.geoJSON(data, {
       pane: 'mfBackdrop',
       style: (feature) => ({
@@ -286,7 +266,7 @@ export function addMapFeatures({ map, db, trails = () => [] }) {
       const open = !String(data.status ?? 'open').toLowerCase().startsWith('close');
       const tags = Array.isArray(data.tags) ? data.tags : [];
       const facilities = facilitiesOf(tags);
-      const marker = facilities.length
+      const marker = facilities.length && !stationsOnly
         ? L.marker([lat, lng], { icon: facilityIcon(facilities, open), zIndexOffset: 200 })
         : L.circleMarker([lat, lng], {
           radius: 5, color: '#1f3a28', weight: 2, fillColor: '#ffffff', fillOpacity: open ? 1 : 0.5
@@ -300,5 +280,5 @@ export function addMapFeatures({ map, db, trails = () => [] }) {
     render();
   }, (error) => console.warn('Could not load the trail stations:', error.message));
 
-  return { contours, waterways, stations, render };
+  return { waterways, stations, render };
 }

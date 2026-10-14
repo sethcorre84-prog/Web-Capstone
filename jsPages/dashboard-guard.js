@@ -3,7 +3,8 @@ import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { isAccountBlocked, watchAccountStatus } from "./account-status.js";
-import { endCurrentSession, signOutEndedSession, startSession } from "./admin-sessions.js";
+import { endCurrentSession, signOutEndedSession, signOutInUse, startSession } from "./admin-sessions.js";
+import { guardTwoFactor } from "./two-factor.js";
 
 // Kept in step with ADMIN_ROLES in admin-identity.js. An admin record whose
 // role is not one of these has no access.
@@ -141,12 +142,21 @@ onAuthStateChanged(auth, async (user) => {
     console.warn("Could not check account status:", error.message);
   }
 
+  // Two-factor: a browser that signed in but never entered its SMS code
+  // (the login page was closed at the code) goes back to sign in.
+  if (!(await guardTwoFactor(user))) {
+    await signOut(auth);
+    window.location.href = "Home.html?reason=two-factor";
+    return;
+  }
+
   // User is a verified admin — safe to show the page
   console.log("Access granted:", user.email);
 
   // Settings > Login Sessions: record this browser's session, and sign out
-  // if it is ended from another device.
-  startSession(user, signOutEndedSession);
+  // if it is ended from another device, or if another browser already has
+  // this account open (one place at a time).
+  startSession(user, signOutEndedSession, signOutInUse);
 
   // Deactivated by another admin while this page is open: sign out now,
   // not on the next page load.

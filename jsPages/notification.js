@@ -1,11 +1,13 @@
 import { db } from './firebase-config.js';
 import { escapeHtml } from './utils.js';
-import { collection, limit, onSnapshot, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { mountCommunityChat } from './community-chat.js';
+import { collection, limit, onSnapshot, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const notificationLimit = 20;
 let notifications = [];
 let pendingReports = [];
 let userReports = [];
+let reactivationRequests = [];
 let activeAdvisories = [];
 let latestAnalysis = null;
 
@@ -101,6 +103,25 @@ const refreshNotifications = () => {
     };
   });
 
+  // A deactivated user asking from the app to be let back in; it leads to
+  // them in User Management, where the request is answered.
+  const reactivationNotifications = reactivationRequests.map((request) => {
+    const createdAt = request.createdAt || request.updatedAt;
+    const readKey = `peakpath:reactivation-read:${request.id}:${getDate(createdAt)?.getTime() || 0}`;
+    const readAt = getReadAt(readKey);
+    return {
+      id: `reactivation-${request.id}`,
+      type: 'reactivation',
+      title: 'Reactivation request',
+      message: `${request.name || request.email || 'A deactivated user'} asks to have their account back: ${request.reason || 'no reason given'}.`,
+      createdAt,
+      read: !!readAt,
+      readAt,
+      readKey,
+      link: `usermanagement.html?user=${encodeURIComponent(request.id)}`
+    };
+  });
+
   const advisoryNotifications = activeAdvisories.map((advisory) => {
     const createdAt = advisory.restoredAt || advisory.createdAt || advisory.publishedAt || advisory.effectiveDate;
     const readKey = advisoryReadKey(advisory.id, getDate(createdAt)?.getTime());
@@ -146,7 +167,7 @@ const refreshNotifications = () => {
     });
   }
 
-  notifications = sortNotifications([...pendingNotifications, ...userReportNotifications, ...advisoryNotifications, ...analysisNotifications]);
+  notifications = sortNotifications([...pendingNotifications, ...userReportNotifications, ...reactivationNotifications, ...advisoryNotifications, ...analysisNotifications]);
   render();
 };
 
@@ -276,6 +297,9 @@ document.querySelectorAll('.bell-wrap').forEach((bell) => {
   setupCenter(bell);
 });
 
+// The Community Chat button sits just left of every bell (community-chat.js).
+mountCommunityChat();
+
 document.addEventListener('click', () => {
   document.querySelectorAll('.notification-panel.open').forEach((panel) => {
     panel.classList.remove('open');
@@ -289,6 +313,13 @@ document.addEventListener('keydown', (event) => {
     panel.classList.remove('open');
     panel.closest('.notification-center')?.querySelector('.bell-btn')?.setAttribute('aria-expanded', 'false');
   });
+});
+
+onSnapshot(query(collection(db, 'reactivationRequests'), where('status', '==', 'pending')), (snapshot) => {
+  reactivationRequests = snapshot.docs.map((request) => ({ ...request.data(), id: request.id }));
+  refreshNotifications();
+}, (error) => {
+  console.warn('Unable to load reactivation requests:', error.message);
 });
 
 onSnapshot(collection(db, 'reportedUser'), (snapshot) => {

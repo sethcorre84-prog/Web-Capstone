@@ -19,4 +19,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-export { auth, db, storage };
+// firebaseConfig: two-factor.js starts a second, separate Firebase app with it
+// for the SMS check, so the admin's own sign-in is never touched.
+export { auth, db, storage, firebaseConfig };

@@ -194,11 +194,24 @@
 		font-size: 13px;
 		color: var(--text-secondary);
 	}
-	.detail.is-empty {
+	/* Announcement Details keeps one size whether or not an advisory is
+	   selected: it fills the column beside the list (at least 420px), and a
+	   long advisory scrolls inside #detailBody instead of stretching it. */
+	.detail {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
 		min-height: 420px;
+	}
+	#detailBody {
+		flex: 1 1 0;
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		/* Its content no longer sizes the card (or the row beside the list). */
+		contain: size;
+		margin-right: -8px;
+		padding-right: 8px;
 	}
 	.detail.is-empty .detail-top,
 	.detail.is-empty #detailBody {
@@ -1726,7 +1739,8 @@ async function syncExpiredAdvisories(){
 				const meta = typeMeta(it.type);
 				const effectiveStatus = getEffectiveStatus(it);
 				const tr = document.createElement('tr');
-				if (it.id === selectedId) tr.classList.add('selected');
+				tr.dataset.id = it.id;
+				if (it.id === selectedId && !selectedArchiveIds.has(it.id)) tr.classList.add('selected');
 				if (it.id === pendingDeepLinkId) deepLinkRow = tr;
 				tr.onclick = () => selectAdvisory(it.id);
 
@@ -1960,6 +1974,7 @@ async function syncExpiredAdvisories(){
 
 		// Nothing selected: the details card shows only its heading and prompt.
 		function showEmptyDetail(){
+			document.querySelectorAll('#listBody tr.selected').forEach((row) => row.classList.remove('selected'));
 			document.getElementById('detailCard').classList.add('is-empty');
 			document.getElementById('detailTitle').textContent = 'Select an advisory';
 			document.getElementById('detailSub').textContent = 'Choose an item from the list to see full details here.';
@@ -1971,6 +1986,16 @@ async function syncExpiredAdvisories(){
 			const it = allItems.find(d => d.id === id);
 			if (!it) return;
 			selectedId = id;
+			// One advisory is highlighted at a time: picking one in the list
+			// drops the Expired panel's selection, and picking an expired one
+			// leaves no row lit in the list.
+			if (!selectedArchiveIds.has(id) && selectedArchiveIds.size) {
+				selectedArchiveIds.clear();
+				renderExpiredList();
+			}
+			document.querySelectorAll('#listBody tr[data-id]').forEach((row) => {
+				row.classList.toggle('selected', row.dataset.id === id && !selectedArchiveIds.has(id));
+			});
 			document.getElementById('detailCard').classList.remove('is-empty');
 			updateArchiveButtonState();
 			const meta = typeMeta(it.type);

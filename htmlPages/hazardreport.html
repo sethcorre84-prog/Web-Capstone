@@ -557,8 +557,9 @@
     /* Pagination buttons are styled in pages.css so every table matches. */
 
     /* Report details card */
-    /* Grows with its content (the page scrolls, not the card), so a long
-         description is always shown in full without an inner scrollbar. */
+    /* Beside the list it keeps the list's height and scrolls (see the
+         min-width: 1151px rule below); stacked on narrow screens it grows with
+         its content. */
     .details-card {
         padding: 18px 20px 22px 20px;
         display: flex;
@@ -900,21 +901,29 @@
         gap: 10px;
         align-items: flex-start;
         min-height: 68px;
-        padding: 10px 0;
+        /* The side padding is there selected or not: adding it only on
+           selection narrowed the text, so a long line wrapped and the row
+           changed size each time it was clicked. */
+        padding: 10px 8px;
         border-bottom: 1px solid var(--border);
         cursor: pointer;
         transition:
             transform 0.15s ease,
             box-shadow 0.15s ease,
-            background 0.15s ease,
-            padding 0.15s ease;
+            background 0.15s ease;
+    }
+    /* Each text line stays on one line, so every row keeps its three-line
+       height however long a location or ID is. */
+    .rejected-row > div > div,
+    .resolved-row > div > div {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .rejected-row.archive-selected,
     .resolved-row.is-selected {
         background: var(--accent-light);
         border-radius: 8px;
-        padding-left: 8px;
-        padding-right: 8px;
         transform: translateY(-3px);
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
         position: relative;
@@ -1291,14 +1300,14 @@
             grid-template-columns: minmax(0, 1fr);
         }
     }
-    /* A resolved report's details (the "resolving is final" note and the
-         resolution in its history) run much taller than the list, which then
-         stretched to match and left a blank gap above its footer. While the two
-         cards sit side by side, the list sets the row height instead:
-         contain:size stops the details card sizing the row, and it scrolls
-         within the list's height. */
+    /* A report's details (a rejected report's note, a resolved report's
+         resolution, a long history) can run taller than the list, which then
+         stretched the row and pushed the Rejected and Resolved panels down.
+         While the two cards sit side by side, the list sets the row height
+         for every report: contain:size stops the details card sizing the row,
+         and it scrolls within the list's height when it needs to. */
     @media (min-width: 1151px) {
-        .details-card.is-resolved {
+        .details-card {
             contain: size;
             overflow-y: auto;
             scrollbar-width: thin;
@@ -2991,8 +3000,12 @@ function proceedEditVerify() {
 // so rejected reports remain in the Rejected panel, then loads details.
 window.selectReport = (reportId) => {
   selectedReport = allReports.find(r => r.id === reportId);
+  // One report is highlighted at a time: picking any other report (in the
+  // list or the Resolved panel) drops the Rejected panel's selection.
+  if (!selectedArchiveIds.has(reportId)) selectedArchiveIds.clear();
   filterReports(false);
   renderReportDetails(selectedReport);
+  renderRejectedList(); // drops or keeps the Rejected panel's highlight
   renderResolvedList(); // moves the Resolved panel's highlight
 };
 

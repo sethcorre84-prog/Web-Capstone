@@ -15,7 +15,8 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { isAccountBlocked } from "./account-status.js";
-import { SESSION_ENDED_REASON, beginNewSession } from "./admin-sessions.js";
+import { SESSION_ENDED_REASON, SESSION_IN_USE_REASON, activeSessionElsewhere, beginNewSession, describeSession } from "./admin-sessions.js";
+import { requireTwoFactor } from "./two-factor.js";
 
 // Kept in step with ADMIN_ROLES in admin-identity.js (not imported here, as
 // that module also runs the signed-in page header code). An admin record
@@ -115,6 +116,20 @@ const ALERTS = {
     title: "Your admin account has no role yet",
     message: "A Super Administrator needs to give your account a role in Settings > Role & Permission Settings before you can sign in."
   },
+  twoFactor: {
+    variant: "danger",
+    icon: "fa-shield-halved",
+    eyebrow: "Two-factor sign-in",
+    title: "Verification needed",
+    message: "This device needs the 6-digit code texted to the phone number on your profile. Sign in again to get a new code."
+  },
+  inUse: {
+    variant: "danger",
+    icon: "fa-user-lock",
+    eyebrow: "Account in use",
+    title: "This account is open on another device",
+    message: "An admin account can be open in only one place at a time. Log out there first, or wait a few minutes if that browser was closed without logging out."
+  },
   sessionEnded: {
     variant: "danger",
     icon: "fa-right-from-bracket",
@@ -187,6 +202,17 @@ function showErrorModal(kind, fields) {
 
   document.getElementById("errorModal").classList.add("show");
   document.getElementById("errorModalClose").focus();
+}
+
+// "This account is open on another device", naming that device when known.
+function showInUse(device) {
+  const base = ALERTS.inUse.message;
+  if (device) {
+    ALERTS.inUse.message = `It is open on ${device}. An admin account can be open in only one place at a time. `
+      + "Log out there first, or wait a few minutes if that browser was closed without logging out.";
+  }
+  showErrorModal("inUse");
+  ALERTS.inUse.message = base;
 }
 
 function closeErrorModal() {
@@ -263,6 +289,32 @@ function login() {
           await signOut(auth);
           setSigningIn(false);
           showErrorModal("deactivated");
+          return;
+        }
+
+        // One place at a time: refused while another browser has this
+        // account open. A failed check lets them in, like the status check.
+        const elsewhere = await activeSessionElsewhere(user).catch((error) => {
+          console.warn("Could not check other sessions:", error.message);
+          return null;
+        });
+        if (elsewhere) {
+          await signOut(auth);
+          setSigningIn(false);
+          showInUse(describeSession(elsewhere));
+          return;
+        }
+
+        // Two-factor: a device not used with this account before needs the
+        // SMS code sent to the profile's phone number (two-factor.js).
+        const twoFactor = await requireTwoFactor();
+        if (!twoFactor.ok) {
+          await signOut(auth);
+          setSigningIn(false);
+          const base = ALERTS.twoFactor.message;
+          if (twoFactor.message) ALERTS.twoFactor.message = twoFactor.message;
+          showErrorModal("twoFactor");
+          ALERTS.twoFactor.message = base;
           return;
         }
 
@@ -647,9 +699,18 @@ document.addEventListener("DOMContentLoaded", () => {
   // dashboard-guard.js sends a deactivated admin here; say why, once.
   const params = new URLSearchParams(window.location.search);
   const reason = params.get("reason");
-  const REASON_MODALS = { deactivated: "signedOut", "no-role": "noRole", [SESSION_ENDED_REASON]: "sessionEnded" };
+  const REASON_MODALS = { deactivated: "signedOut", "no-role": "noRole", [SESSION_ENDED_REASON]: "sessionEnded", [SESSION_IN_USE_REASON]: "inUse", "two-factor": "twoFactor" };
   if (REASON_MODALS[reason]) {
-    showErrorModal(REASON_MODALS[reason]);
+    if (reason === SESSION_IN_USE_REASON) {
+      let device = "";
+      try {
+        device = sessionStorage.getItem("peakpath-in-use") || "";
+        sessionStorage.removeItem("peakpath-in-use");
+      } catch { /* storage blocked */ }
+      showInUse(device);
+    } else {
+      showErrorModal(REASON_MODALS[reason]);
+    }
     params.delete("reason");
     const query = params.toString();
     history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : "") + window.location.hash);
