@@ -126,13 +126,17 @@ function explain(error) {
     case 'auth/quota-exceeded': return 'The SMS limit for today has been reached. Try again later.';
     case 'auth/operation-not-allowed': return 'SMS sign-in is not turned on for this project (Firebase Console > Authentication > Phone).';
     case 'auth/unauthorized-domain':
-    case 'auth/captcha-check-failed': return 'This site is not an authorized domain for SMS codes (Firebase Console > Authentication > Settings).';
+      return `${location.hostname} is not an authorized domain for SMS codes. Add exactly "${location.hostname}" in Firebase Console > Authentication > Settings > Authorized domains.`;
+    case 'auth/captcha-check-failed':
+      return `The reCAPTCHA check for ${location.hostname} failed (auth/captcha-check-failed). Make sure "${location.hostname}" is in Authorized domains, then reload the page and try again.`;
+    case 'auth/invalid-app-credential':
+      return 'Firebase rejected the reCAPTCHA check (auth/invalid-app-credential). Reload the page and try again; if it keeps happening, check reCAPTCHA / App Check settings for Phone sign-in.';
     case 'functions/permission-denied':
     case 'functions/deadline-exceeded':
     case 'functions/failed-precondition':
     case 'functions/unauthenticated': return error.message;
     case 'functions/internal': return 'Could not reach the verification service. It may not be deployed yet.';
-    default: return error?.message || 'Something went wrong. Try again.';
+    default: return `${error?.message || 'Something went wrong. Try again.'}${error?.code ? ` (${error.code})` : ''}`;
   }
 }
 

@@ -337,6 +337,22 @@
         font-weight: 500;
         color: var(--dm-text-2, #93a199);
     }
+    /* Phone rows: no buttons (a computer cannot place the call), just how to
+       reach them. */
+    .contact-item-note {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        max-width: 190px;
+        margin: 0;
+        font-size: 11.5px;
+        line-height: 1.4;
+        color: var(--dm-text-2, #5b6b60);
+    }
+    .contact-item-note i {
+        flex-shrink: 0;
+        color: #2f8f4e;
+    }
     .contact-item-actions {
         display: flex;
         gap: 6px;
@@ -873,12 +889,6 @@
         margin-right: 5px;
         font-size: 9px;
     }
-    /* Still on the old free-text field, not in a team document. */
-    .team-chip.is-legacy {
-        background: var(--dm-surface-2, #f1f4f0);
-        color: var(--dm-text-2, #5b6b60);
-        font-weight: 500;
-    }
     /* The detail row's value is a single ellipsised line; chips need to wrap. */
     .detail-value.team-value {
         display: flex;
@@ -1133,6 +1143,19 @@
         color: #93a199;
         letter-spacing: 0.04em;
         text-transform: uppercase;
+    }
+
+    .field textarea {
+        width: 100%;
+        border: 1px solid var(--dm-border, #e4e7e1);
+        background: var(--dm-surface-2, #fbfcfa);
+        border-radius: 6px;
+        padding: 10px 12px;
+        color: var(--dm-text, #1c231c);
+        font: inherit;
+        font-size: 14px;
+        line-height: 1.5;
+        resize: vertical;
     }
 
     .field input {
@@ -2083,6 +2106,38 @@
   </div>
 </div>
 
+<!-- Email the user: written here and sent from the signed-in admin's
+     account by the emailUser Cloud Function, instead of a mailto: link that
+     opens whatever mail app the computer has. -->
+<div id="emailUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="emailUserTitle">
+  <form id="emailUserForm" class="modal">
+    <h2 id="emailUserTitle">Email User</h2>
+    <p class="modal-lede" id="emailUserLede"></p>
+    <div class="field">
+      <label for="emailUserFrom">From</label>
+      <input id="emailUserFrom" type="email" readonly>
+      <p class="field-hint">Your signed-in admin account. If its Gmail is not set up for sending, the email goes out from the PeakPath account with your name, and replies still come to you.</p>
+    </div>
+    <div class="field">
+      <label for="emailUserTo">To</label>
+      <input id="emailUserTo" type="email" readonly>
+    </div>
+    <div class="field">
+      <label for="emailUserSubject">Subject</label>
+      <input id="emailUserSubject" type="text" maxlength="200" required>
+    </div>
+    <div class="field">
+      <label for="emailUserMessage">Message</label>
+      <textarea id="emailUserMessage" rows="7" maxlength="5000" required></textarea>
+    </div>
+    <p class="action-status" id="emailUserStatus" role="status" aria-live="polite"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="cancelEmailUserBtn">Cancel</button>
+      <button type="submit" class="btn-primary" id="sendEmailUserBtn"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i>Send Email</button>
+    </div>
+  </form>
+</div>
+
 <!-- Reset Password: set a new password on the spot. -->
 <div id="resetPasswordModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="resetPasswordTitle">
   <div class="modal">
@@ -2119,7 +2174,8 @@
     <h2 id="addUserTitle">Add User</h2>
     <div class="field">
       <label for="addUserName">Full Name</label>
-      <input id="addUserName" name="fullName" type="text" required>
+      <input id="addUserName" name="fullName" type="text" maxlength="80" autocomplete="off" aria-describedby="addUserNameHint" required>
+      <p id="addUserNameHint" class="field-hint verify-status">Letters and spaces only, e.g. Juan Dela Cruz.</p>
     </div>
     <div class="field">
       <label for="addUserUsername">Username</label>
@@ -2152,23 +2208,14 @@
       <input id="addUserPassword" name="password" type="password" autocomplete="new-password" minlength="6" aria-describedby="addUserPasswordHint" required>
       <p id="addUserPasswordHint" class="field-hint">Use at least 6 characters.</p>
     </div>
-    <div class="field-row">
-      <div class="field">
-        <label for="addUserRole">Role</label>
-        <select id="addUserRole" name="role">
-          <option>Hiker</option>
-          <option>Guide</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="addUserStatus">Status</label>
-        <select id="addUserStatus" name="status">
-          <option>Active</option>
-          <option>Inactive</option>
-          <option>Pending</option>
-          <option>Suspended</option>
-        </select>
-      </div>
+    <!-- A new user always starts Active; Suspend / Deactivate are on their
+         details afterwards. -->
+    <div class="field">
+      <label for="addUserRole">Role</label>
+      <select id="addUserRole" name="role">
+        <option>Hiker</option>
+        <option>Guide</option>
+      </select>
     </div>
     <div class="field">
       <label>Teams</label>
@@ -2527,13 +2574,11 @@
     return accountIds(user).has(team.leaderId.toLowerCase());
   };
 
-  // Team names for display, search and export. Anyone not in a team document
-  // falls back to the old free-text field so nothing disappears.
-  const userTeamNames = (user) => {
-    const names = teamsForUser(user).map(team => team.name);
-    if (names.length) return names;
-    return user?.team && user.team !== '—' ? [user.team] : [];
-  };
+  /* Team names for display, search and export: only the teams in the teams
+     collection, which the app creates, joins and deletes. The free-text
+     `team` copied onto a user when they were added is never updated after,
+     so it would keep showing teams that no longer exist. */
+  const userTeamNames = (user) => teamsForUser(user).map(team => team.name);
 
   /* Assigned Area: the trail of every team the user is in (teams/{id}.trailID
      -> trails/{id}.Trail), so a hiker or guide on a team shows where that
@@ -2557,11 +2602,7 @@
         )}">${escapeHtml(team.name)}</span>`
       ).join('')}</div>`;
     }
-    const fallback = userTeamNames(user);
-    if (!fallback.length) return '—';
-    return `<div class="team-chips">${fallback.map(name =>
-      `<span class="team-chip is-legacy" title="Not in a team document yet">${escapeHtml(name)}</span>`
-    ).join('')}</div>`;
+    return '—';
   };
 
   const identityKeys = (user) => {
@@ -2672,10 +2713,8 @@
     const users = state.users;
     const total = users.length;
     const guides = users.filter(user => toBadgeClass(user.role) === 'guide').length;
-    // The real count of teams, so one with no members still counts. Falls
-    // back to the distinct free-text values if the collection is unreadable.
-    const teamCount = state.teams.length
-      || new Set(users.map(user => user.team).filter(team => team && team !== '—')).size;
+    // The real count of teams, so one with no members still counts.
+    const teamCount = state.teams.length;
     const usersInTeams = users.filter(user => userTeamNames(user).length).length;
 
     const now = new Date();
@@ -3088,6 +3127,7 @@
     if (resetPasswordModal.classList.contains('open')) closeResetPasswordModal();
     if (suspendUserModal.classList.contains('open')) closeSuspendModal();
     if (contactUserModal.classList.contains('open')) closeContactUserModal();
+    if (emailUserModal.classList.contains('open')) closeEmailUserModal();
   });
 
   /* Contact User (Emergency): a pop-up with every way to reach the user.
@@ -3110,10 +3150,11 @@
         <div class="contact-item-label">${escapeHtml(label)}</div>
         <div class="contact-item-value${value ? '' : ' is-empty'}">${value ? escapeHtml(value) : 'Not provided'}</div>
       </div>
-      ${value ? `<div class="contact-item-actions">
+      ${value && action === 'Email' ? `<div class="contact-item-actions">
         <button type="button" class="btn-ghost" data-copy="${escapeHtml(value)}" data-label="${escapeHtml(label)}"><i class="fa-regular fa-copy" aria-hidden="true"></i>Copy</button>
-        <a class="btn-primary" href="${escapeHtml(href)}"><i class="fa-solid ${action === 'Email' ? 'fa-envelope' : 'fa-phone'}" aria-hidden="true"></i>${action}</a>
+        <button type="button" class="btn-primary" data-compose-email="${escapeHtml(value)}"><i class="fa-solid fa-envelope" aria-hidden="true"></i>Email</button>
       </div>` : ''}
+      ${value && action !== 'Email' ? `<p class="contact-item-note"><i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>Call this number from your phone. Computers in the portal cannot place calls.</p>` : ''}
     </div>`;
 
   const closeContactUserModal = () => {
@@ -3140,7 +3181,81 @@
     contactUserModal.classList.add('open');
   });
 
+  /* Email: compose here, sent from the signed-in admin's account. */
+  const emailUserModal = document.getElementById('emailUserModal');
+  const emailUserForm = document.getElementById('emailUserForm');
+  const emailUserStatus = document.getElementById('emailUserStatus');
+  const sendEmailUserBtn = document.getElementById('sendEmailUserBtn');
+  const sendUserEmail = httpsCallable(getFunctions(auth.app), 'emailUser');
+  let emailTarget = null;
+
+  const setEmailUserStatus = (message, type = '') => {
+    emailUserStatus.textContent = message;
+    emailUserStatus.className = `action-status${type ? ` ${type}` : ''}`;
+  };
+  const closeEmailUserModal = () => {
+    emailUserModal.classList.remove('open');
+    emailTarget = null;
+  };
+  const openEmailUserModal = (user, email) => {
+    emailTarget = { user, email };
+    const first = String(user.name || '').split(' ')[0] || 'there';
+    document.getElementById('emailUserTitle').textContent = `Email ${user.name}`;
+    document.getElementById('emailUserLede').textContent = 'Written here and sent straight from the portal.';
+    document.getElementById('emailUserFrom').value = auth.currentUser?.email || '';
+    document.getElementById('emailUserTo').value = email;
+    document.getElementById('emailUserSubject').value = 'A message from the PeakPath admin team';
+    document.getElementById('emailUserMessage').value = `Hi ${first},\n\n`;
+    setEmailUserStatus('');
+    closeContactUserModal();
+    emailUserModal.classList.add('open');
+    const message = document.getElementById('emailUserMessage');
+    message.focus();
+    message.setSelectionRange(message.value.length, message.value.length);
+  };
+
+  emailUserForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!emailTarget) return;
+    const subject = document.getElementById('emailUserSubject').value.trim();
+    const message = document.getElementById('emailUserMessage').value.trim();
+    if (!subject || !message) {
+      setEmailUserStatus('Write a subject and a message.', 'error');
+      return;
+    }
+    sendEmailUserBtn.disabled = true;
+    setEmailUserStatus('Sending…');
+    try {
+      const { data } = await sendUserEmail({
+        uid: emailTarget.user.id,
+        to: emailTarget.email,
+        subject,
+        message
+      });
+      const name = emailTarget.user.name;
+      closeEmailUserModal();
+      setResetPasswordStatus(`Email sent to ${name} from ${data?.sentFrom || 'your account'}.`, 'success');
+    } catch (error) {
+      console.error('Could not email the user:', error);
+      setEmailUserStatus(error?.code === 'functions/internal' || error?.code === 'functions/not-found'
+        ? 'Could not reach the email service. It may not be deployed yet.'
+        : (error?.message || 'The email could not be sent. Try again.'), 'error');
+    } finally {
+      sendEmailUserBtn.disabled = false;
+    }
+  });
+  document.getElementById('cancelEmailUserBtn').addEventListener('click', closeEmailUserModal);
+  emailUserModal.addEventListener('click', (event) => {
+    if (event.target === emailUserModal) closeEmailUserModal();
+  });
+
   contactUserList.addEventListener('click', async (event) => {
+    const compose = event.target.closest('[data-compose-email]');
+    if (compose) {
+      const user = getSelectedUser();
+      if (user) openEmailUserModal(user, compose.dataset.composeEmail);
+      return;
+    }
     const button = event.target.closest('[data-copy]');
     if (!button) return;
     try {
@@ -3324,6 +3439,8 @@
     phoneCodeInput.value = '';
     setPhoneStatus(PHONE_HINT);
     checkAddUserPhone();
+    // After a form reset: the name's hint back to plain too.
+    checkAddUserName();
     refreshAddUserButton();
   };
 
@@ -3335,10 +3452,11 @@
     'auth/invalid-phone-number': PHONE_ERROR,
     'auth/quota-exceeded': 'The SMS limit for today has been reached. Try again later.',
     'auth/operation-not-allowed': 'SMS sign-in is not turned on for this project (Firebase Console > Authentication > Sign-in method > Phone).',
-    'auth/unauthorized-domain': 'This site is not an authorized domain for SMS codes (Firebase Console > Authentication > Settings).',
-    'auth/captcha-check-failed': 'This site is not an authorized domain for SMS codes (Firebase Console > Authentication > Settings).',
+    'auth/unauthorized-domain': `${location.hostname} is not an authorized domain for SMS codes. Add exactly "${location.hostname}" in Firebase Console > Authentication > Settings > Authorized domains.`,
+    'auth/captcha-check-failed': `The reCAPTCHA check for ${location.hostname} failed (auth/captcha-check-failed). Make sure "${location.hostname}" is in Authorized domains, then reload and try again.`,
+    'auth/invalid-app-credential': 'Firebase rejected the reCAPTCHA check (auth/invalid-app-credential). Reload the page and try again.',
     'auth/network-request-failed': 'Network error. Check your connection and try again.'
-  }[error?.code] || error?.message || 'Something went wrong. Try again.');
+  }[error?.code] || `${error?.message || 'Something went wrong. Try again.'}${error?.code ? ` (${error.code})` : ''}`);
 
   // Changing the number undoes any verification of the old one.
   addUserPhoneInput.addEventListener('input', () => {
@@ -3443,8 +3561,32 @@
     }
   });
 
+  /* Full Name: letters (any alphabet, so ñ and accented names work) and
+     single spaces between words. No numbers or symbols; those belong in the
+     username, which keeps its own rules. */
+  const addUserNameInput = document.getElementById('addUserName');
+  const addUserNameHint = document.getElementById('addUserNameHint');
+  const NAME_HINT = 'Letters and spaces only, e.g. Juan Dela Cruz.';
+  const NAME_ERROR = 'Use letters and spaces only. Numbers and symbols are not allowed in the full name.';
+  const fullNameOk = (value) => /^\p{L}+(?: \p{L}+)*$/u.test(String(value || '').trim().replace(/\s+/g, ' '));
+  const checkAddUserName = () => {
+    const typed = addUserNameInput.value.trim();
+    const bad = typed !== '' && !fullNameOk(typed);
+    addUserNameInput.setCustomValidity(bad ? NAME_ERROR : '');
+    addUserNameHint.textContent = bad ? NAME_ERROR : NAME_HINT;
+    addUserNameHint.className = `field-hint verify-status${bad ? ' is-error' : ''}`;
+    return !bad && typed !== '';
+  };
+  addUserNameInput.addEventListener('input', checkAddUserName);
+
   addUserForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (!checkAddUserName()) {
+      addUserStatusMessage.textContent = NAME_ERROR;
+      addUserStatusMessage.className = 'action-status error';
+      addUserNameInput.focus();
+      return;
+    }
     checkAddUserPhone();
     if (!addUserPhoneOk()) {
       addUserStatusMessage.textContent = 'Enter a Philippine mobile number (+63) before adding the user.';
@@ -3515,7 +3657,7 @@
           username,
           email,
           role: 'Hiker',
-          status: normalizeText(formData.get('status')) || 'Active',
+          status: 'Active',
           team: teamMirror || '—',
           phone,
           phoneE164,
@@ -3941,11 +4083,8 @@
     };
 
     const roles = [...new Set(state.users.map(user => user.role).filter(Boolean))].sort();
-    // Every team in the collection, so an empty team is still selectable,
-    // plus any legacy free-text team still sitting on a user document.
-    const teamNameSet = new Set(state.teams.map(team => team.name));
-    state.users.forEach((user) => { userTeamNames(user).forEach(name => teamNameSet.add(name)); });
-    const teams = [...teamNameSet].filter(Boolean).sort();
+    // Every team in the collection, so an empty team is still selectable.
+    const teams = [...new Set(state.teams.map(team => team.name))].filter(Boolean).sort();
 
     rebuild(roleFilter, 'All Roles', roles);
     rebuild(teamFilter, 'All Teams', teams);

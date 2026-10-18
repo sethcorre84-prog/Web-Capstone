@@ -710,11 +710,18 @@
     }
 
     /* ---- Activity footer ---- */
-    .activity-more {
+    /* The button row, laid out like Hazard Reports' Rejected / Resolved
+       pagination; the buttons themselves are styled in pages.css. */
+    .activity-pages {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
         width: 100%;
-        justify-content: center;
         margin-top: 10px;
-        color: var(--accent-dark);
+    }
+    .activity-pages:empty {
+        display: none;
     }
     .activity-icon.team {
         background: #2f6b45;
@@ -1103,10 +1110,10 @@
       <div class="panel activity-panel">
         <div class="panel-header">
           <h2>Recent Emergency Activities</h2>
-          <button class="link-btn" id="activityAllBtn" type="button" hidden>View All</button>
         </div>
         <div id="activityList"><div class="activity-empty">Loading…</div></div>
-        <button class="btn activity-more" id="activityMoreBtn" type="button" hidden>View All Activities</button>
+        <!-- 5 per page (ACTIVITY_LIMIT), the portal's standard page controls. -->
+        <div class="pagination activity-pages" id="activityPagination"></div>
       </div>
     </div>
   </main>
@@ -1154,6 +1161,7 @@
 <script type="module">
   import { auth, db } from '../jsPages/firebase-config.js';
   import { escapeHtml } from '../jsPages/utils.js';
+  import { pageList, pageGap, PAGE_GAP } from '../jsPages/pagination.js';
   import { collection, doc, onSnapshot, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   import { formatPortalDate, formatPortalDateTime, formatPortalTime, portalTimeZone, toPortalDate } from '../jsPages/datetime-prefs.js';
   import { createMakilingMap } from '../jsPages/makiling-area.js';
@@ -1363,7 +1371,7 @@
   let activeTab = 'all';
   let showClosed = false;
   let showAllRows = false;      // table: first TABLE_LIMIT rows, or all
-  let showAllActivity = false;  // activity feed: first ACTIVITY_LIMIT, or all
+  let activityPage = 1;         // activity feed: ACTIVITY_LIMIT per page
   const TABLE_LIMIT = 5;
   const ACTIVITY_LIMIT = 5;
   let modalId = null;
@@ -1711,14 +1719,14 @@
     });
     events.sort((a, b) => b.when - a.when);
 
-    const more = events.length > ACTIVITY_LIMIT;
-    $('activityAllBtn').hidden = !more;
-    $('activityMoreBtn').hidden = !more;
-    $('activityAllBtn').textContent = showAllActivity ? 'Show Less' : 'View All';
-    $('activityMoreBtn').textContent = showAllActivity ? 'Show Less' : 'View All Activities';
+    // 5 to a page, newest first; a page that no longer exists (fewer events
+    // now) falls back to the last one.
+    const totalPages = Math.max(1, Math.ceil(events.length / ACTIVITY_LIMIT));
+    activityPage = Math.min(Math.max(1, activityPage), totalPages);
+    const start = (activityPage - 1) * ACTIVITY_LIMIT;
 
     $('activityList').innerHTML = events.length
-      ? (showAllActivity ? events : events.slice(0, ACTIVITY_LIMIT)).map((e) => `
+      ? events.slice(start, start + ACTIVITY_LIMIT).map((e) => `
           <div class="activity-item">
             <div class="activity-main">
               ${e.type ? typeIcon(e.type) : `<div class="activity-icon ${e.icon}"><i class="fa-solid ${e.glyph}"></i></div>`}
@@ -1731,12 +1739,35 @@
           </div>
         `).join('')
       : '<div class="activity-empty">No emergency activity yet.</div>';
+    renderActivityPagination(totalPages);
   };
 
-  ['activityAllBtn', 'activityMoreBtn'].forEach((id) => $(id).addEventListener('click', () => {
-    showAllActivity = !showAllActivity;
-    renderActivities();
-  }));
+  // ‹ 1 2 3 › under the feed, like every other paginated list (pagination.js).
+  const renderActivityPagination = (totalPages) => {
+    const wrap = $('activityPagination');
+    wrap.innerHTML = '';
+    if (totalPages <= 1) return;
+    const addButton = (label, page, { disabled = false, active = false } = {}) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'page-btn' + (active ? ' active' : '');
+      btn.innerHTML = label;
+      btn.disabled = disabled;
+      if (!disabled && !active) {
+        btn.addEventListener('click', () => {
+          activityPage = page;
+          renderActivities();
+        });
+      }
+      wrap.appendChild(btn);
+    };
+    addButton('&lsaquo;', activityPage - 1, { disabled: activityPage === 1 });
+    for (const page of pageList(activityPage, totalPages)) {
+      if (page === PAGE_GAP) wrap.appendChild(pageGap());
+      else addButton(String(page), page, { active: page === activityPage });
+    }
+    addButton('&rsaquo;', activityPage + 1, { disabled: activityPage === totalPages });
+  };
 
   // ---------------------------------------------------------------------
   // Banner: alerts nobody has picked up come first, then bad weather

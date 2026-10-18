@@ -9,6 +9,9 @@
 //
 //   communityChat/{id}            the one public room every hiker reads
 //     senderId, senderName, senderUsername, type ("text"), text, createdAt
+//     An admin's delete keeps the message as type "removed" with its text
+//     wiped (removedBy, removedAt), so the app shows that an admin removed
+//     it for the safety guidelines instead of it silently vanishing.
 //
 //   chats/{uidA_uidB}             a private chat between this admin and one
 //     participants [uidA, uidB]   user (uids sorted), e.g. a warning sent
@@ -19,6 +22,8 @@
 //     senderId, type ("text"), text, createdAt
 //
 // The app shows only a sender's name, so an admin's name carries "(Admin)".
+// Every admin only watches the Community Chat here: no message box, just
+// deleting messages. Private chats (e.g. Warn User) still send.
 // Hikers' chats with each other are readable by their members only, so the
 // list holds the Community Chat and this admin's own private chats.
 
@@ -28,13 +33,15 @@ import { getAdvisoryAuthorName } from './advisory-author.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getDownloadURL, ref } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 import {
-  addDoc, collection, deleteDoc, deleteField, doc, getDoc, increment, limit, onSnapshot, orderBy, query,
+  collection, deleteDoc, deleteField, doc, getDoc, increment, limit, onSnapshot, orderBy, query,
   serverTimestamp, setDoc, updateDoc, where, writeBatch
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const ROOM = 'communityChat';
 const MESSAGE_LIMIT = 200;   // the newest messages, as in the app
-const MAX_LENGTH = 1000;     // firestore.rules caps a Community Chat message at 1000 characters
+const MAX_LENGTH = 1000;     // longest message an admin can type in a private chat
+// What hikers see in place of a message an admin removed (the app says the same).
+const REMOVED_NOTE = "Removed by an admin for going against PeakPath's safety guidelines.";
 const seenKey = (uid) => `peakpath:community-last-seen:${uid}`;
 
 const CSS = `
@@ -152,6 +159,17 @@ const CSS = `
 .chat-confirm-delete { display: inline-flex; align-items: center; gap: 7px; border: 0;
   background: var(--danger, #c8402f); color: #fff; }
 .chat-confirm-delete:disabled { opacity: .6; cursor: not-allowed; }
+.chat-watch { display: flex; align-items: center; gap: 9px; padding: 10px 12px; font-size: 12px;
+  line-height: 1.4; border-top: 1px solid var(--border, #e4e7e1); background: var(--dm-surface-2, #f6f8f5);
+  color: var(--text-secondary, #5b6b60); }
+.chat-watch i { color: var(--accent, #2f8f4e); font-size: 13px; }
+.chat-watch strong { color: var(--text-primary, #1c231c); font-weight: 600; }
+.chat-watch[hidden], .chat-form[hidden] { display: none; }
+/* Watching the Community Chat, deleting is the one action, so it always shows. */
+.chat-panel.is-watching .chat-delete { opacity: .75; }
+.chat-msg.is-removed .chat-bubble { display: flex; align-items: center; gap: 7px; font-style: italic;
+  background: none; border: 1px dashed var(--border, #d5dbd3); color: var(--text-secondary, #5b6b60); box-shadow: none; }
+.chat-msg.is-removed .chat-bubble i { font-style: normal; color: var(--danger, #c8402f); }
 .chat-error { padding: 0 12px 8px; font-size: 11.5px; color: var(--danger, #c8402f); }
 .chat-error:empty { display: none; }
 `;
@@ -264,7 +282,9 @@ function threads() {
     avatar: '<i class="fa-solid fa-users" aria-hidden="true"></i>',
     person: false,
     preview: latest
-      ? `${latest.senderId === me?.uid ? 'You' : firstName(latest.senderName)}: ${latest.text || ''}`
+      ? (latest.type === 'removed'
+        ? 'A message was removed by an admin'
+        : `${latest.senderId === me?.uid ? 'You' : firstName(latest.senderName)}: ${latest.text || ''}`)
       : 'No messages yet',
     at: latest?.date || null,
     unread: communityUnread() > 0
@@ -314,7 +334,7 @@ const roomMessages = () => (current.kind === 'community' ? community : directMes
 function messagesHtml() {
   const list = roomMessages();
   if (!list.length) {
-    const hint = current.kind === 'community' ? 'Say hello to the hikers.' : 'Write the first message.';
+    const hint = current.kind === 'community' ? 'Messages from hikers will show here.' : 'Write the first message.';
     return `<div class="chat-empty"><i class="fa-regular fa-comments" aria-hidden="true"></i><br>No messages yet. ${hint}</div>`;
   }
   let lastDay = '';
@@ -327,6 +347,13 @@ function messagesHtml() {
       return `${divider}<div class="chat-msg is-system"><div class="chat-bubble">${escapeHtml(message.text || '')}</div></div>`;
     }
     const mine = message.senderId === me?.uid;
+    if (message.type === 'removed') {
+      return `${divider}
+      <div class="chat-msg is-removed">
+        <div class="chat-meta"><strong>${escapeHtml(message.senderName || 'Hiker')}</strong><span>${timeLabel(date)}</span></div>
+        <div class="chat-bubble"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>${escapeHtml(REMOVED_NOTE)}</div>
+      </div>`;
+    }
     const isAdmin = message.senderRole === 'admin' || /\(Admin\)$/.test(message.senderName || '');
     const name = current.kind === 'community' ? (message.senderName || 'Hiker') : current.name;
     const text = message.type === 'location' ? `📍 Shared a location${message.text ? `: ${message.text}` : ''}` : (message.text || '');
@@ -345,7 +372,7 @@ function messagesHtml() {
 function roomHeadHtml() {
   if (current.kind === 'community') {
     return `<span class="chat-avatar"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
-      <div class="chat-head-title"><strong>Community Chat</strong><span>Every PeakPath hiker can read this room</span></div>`;
+      <div class="chat-head-title"><strong>Community Chat</strong><span>Watching · admins can't post here</span></div>`;
   }
   return `<span class="chat-avatar is-person">${personAvatar(current.otherUid, current.name)}</span>
     <div class="chat-head-title"><strong>${escapeHtml(current.name)}</strong><span>Official notice · they can't reply${current.username ? ` · @${escapeHtml(current.username)}` : ''}</span></div>`;
@@ -363,7 +390,12 @@ function render() {
   widgets.forEach((widget) => {
     widget.threads.innerHTML = threadsHtml(widget);
     widget.roomHead.innerHTML = roomHeadHtml();
-    widget.input.placeholder = current.kind === 'community' ? 'Message everyone...' : `Message ${firstName(current.name)}...`;
+    // Community Chat: admins watch only, so the message box gives way to a note.
+    const watching = current.kind === 'community';
+    widget.panel.classList.toggle('is-watching', watching);
+    widget.form.hidden = watching;
+    widget.watch.hidden = !watching;
+    if (!watching) widget.input.placeholder = `Message ${firstName(current.name)}...`;
     const { list } = widget;
     const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 40;
     list.innerHTML = messagesHtml();
@@ -472,21 +504,16 @@ async function sendDirect(chatId, otherUid, text) {
   await batch.commit();
 }
 
-async function sendCommunity(text) {
-  await addDoc(collection(db, ROOM), {
-    senderId: me.uid,
-    senderName: await adminName(),
-    senderUsername: '',
-    senderRole: 'admin',
-    type: 'text',
-    text,
-    createdAt: serverTimestamp()
-  });
-}
-
 async function deleteMessage(id) {
+  // Community Chat: the message stays as a "removed by an admin" notice, its
+  // text wiped, so hikers see why it went (firestore.rules allows only this).
   if (current.kind === 'community') {
-    await deleteDoc(doc(db, ROOM, id));
+    await updateDoc(doc(db, ROOM, id), {
+      type: 'removed',
+      text: '',
+      removedBy: me.uid,
+      removedAt: serverTimestamp()
+    });
     return;
   }
   const chatRef = doc(db, 'chats', current.chatId);
@@ -566,7 +593,7 @@ function askDelete(id) {
     ? 'You'
     : (current.kind === 'community' ? (message?.senderName || 'Hiker') : current.name);
   confirmBox.querySelector('.chat-confirm-text').textContent = current.kind === 'community'
-    ? 'It will be removed for everyone in the Community Chat, including in the PeakPath app. This can\'t be undone.'
+    ? 'Its text will be removed for everyone. In the PeakPath app, hikers and its sender will see that an admin removed it for going against the safety guidelines. This can\'t be undone.'
     : `It will be removed from your chat with ${current.name}, including in the PeakPath app. This can't be undone.`;
   confirmBox.querySelector('.chat-confirm-quote').textContent = message ? `${who}: ${message.text || ''}` : '';
   confirmBox.querySelector('.chat-confirm-error').textContent = '';
@@ -649,8 +676,12 @@ function mountOne(bell) {
         </div>
         <div class="chat-messages" aria-live="polite"><div class="chat-empty">Loading messages...</div></div>
         <div class="chat-error" role="alert"></div>
+        <div class="chat-watch" hidden>
+          <i class="fa-regular fa-eye" aria-hidden="true"></i>
+          <span><strong>You're watching.</strong> Admins can't post in the Community Chat. Use the trash icon to delete a message.</span>
+        </div>
         <form class="chat-form">
-          <textarea rows="1" maxlength="${MAX_LENGTH}" placeholder="Message everyone..." aria-label="Message"></textarea>
+          <textarea rows="1" maxlength="${MAX_LENGTH}" placeholder="Message..." aria-label="Message"></textarea>
           <button type="submit" aria-label="Send message" disabled><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
         </form>
       </div>
@@ -672,6 +703,7 @@ function mountOne(bell) {
     list: wrap.querySelector('.chat-messages'),
     error: wrap.querySelector('.chat-error'),
     form: wrap.querySelector('.chat-form'),
+    watch: wrap.querySelector('.chat-watch'),
     input: wrap.querySelector('textarea'),
     sendBtn: wrap.querySelector('.chat-form button')
   };
@@ -724,15 +756,14 @@ function mountOne(bell) {
   widget.form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const text = widget.input.value.trim();
-    if (!text || !me) return;
+    // Nothing is ever posted to the Community Chat from here.
+    if (!text || !me || current.kind !== 'direct') return;
     widget.sendBtn.disabled = true;
     widget.error.textContent = '';
     try {
-      if (current.kind === 'community') await sendCommunity(text);
-      else await sendDirect(current.chatId, current.otherUid, text);
+      await sendDirect(current.chatId, current.otherUid, text);
       widget.input.value = '';
       resize();
-      if (current.kind === 'community') markSeen();
       widget.list.scrollTop = widget.list.scrollHeight;
     } catch (error) {
       console.error('Could not send the message:', error);

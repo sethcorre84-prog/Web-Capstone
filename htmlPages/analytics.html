@@ -1800,13 +1800,13 @@
       <div class="kpi-row" id="descriptiveKpis"></div>
       <div class="panel-grid">
         <div class="chart-panel fill">
-          <div class="chart-title" id="volumeChartTitle">Hazard Reports Submitted</div>
-          <div class="day-bars" id="volumeChart" role="img" aria-label="Hazard reports submitted per day"></div>
+          <div class="chart-title" id="volumeChartTitle">Verified Hazard Reports</div>
+          <div class="day-bars" id="volumeChart" role="img" aria-label="Verified hazard reports per day"></div>
           <div class="axis-row" id="volumeAxis"></div>
           <div class="empty-state" id="volumeNote">Loading hazard reports…</div>
         </div>
         <div class="chart-panel">
-          <div class="chart-title">Hazard Types Reported</div>
+          <div class="chart-title">Verified Hazard Types</div>
           <div id="typeBreakdown"><div class="empty-state">Loading hazard reports…</div></div>
         </div>
       </div>
@@ -2365,6 +2365,11 @@
 
     const acceptedShare = (list) => (list.length ? (list.filter(isAccepted).length / list.length) * 100 : null);
 
+    /* Hazard Reports Submitted and Hazard Types Reported count only hazards an
+       admin verified (still verified, or since resolved): pending reports are
+       unconfirmed and rejected ones were false. */
+    const verified = submitted.filter(isAccepted);
+
     /* Daily bars up to 45 days; weekly beyond that, so 90 days stays readable. */
     const bucketDays = periodDays <= 45 ? 1 : 7;
     const bucketCount = Math.ceil(periodDays / bucketDays);
@@ -2373,7 +2378,7 @@
       const end = new Date(todayStart.getTime() - (bucketCount - 1 - index) * bucketDays * DAY_MS);
       const start = new Date(end.getTime() - (bucketDays - 1) * DAY_MS);
       const endExclusive = new Date(end.getTime() + DAY_MS);
-      const count = submitted.filter((report) => {
+      const count = verified.filter((report) => {
         const date = reportDate(report);
         return date && date >= start && date < endExclusive;
       }).length;
@@ -2385,6 +2390,7 @@
       bucketDays,
       series,
       submitted,
+      verified,
       previous,
       resolved,
       resolvedPrevious: resolvedIn(periodDays),
@@ -2394,10 +2400,10 @@
       acceptedShare: acceptedShare(submitted),
       acceptedSharePrevious: acceptedShare(previous),
       pendingNow: submitted.filter((report) => reportStatusOf(report) === 'pending').length,
-      byType: countBy(submitted, (report) => normalizeText(report.hazardType || report.type) || 'Unspecified'),
+      byType: countBy(verified, (report) => normalizeText(report.hazardType || report.type) || 'Unspecified'),
       byStatus: countBy(submitted, reportStatusOf),
-      byTrail: countBy(submitted.filter((report) => reportTrailLabel(report) !== 'Not specified'), reportTrailLabel),
-      byRisk: countBy(submitted, (report) => riskLevelKey(report)),
+      byTrail: countBy(verified.filter((report) => reportTrailLabel(report) !== 'Not specified'), reportTrailLabel),
+      byRisk: countBy(verified, (report) => riskLevelKey(report)),
       advisories: (state.advisories || []).filter((item) => inWindow(advisoryDate(item), periodDays)).length,
       emergencies: (state.emergencies || []).filter((item) => inWindow(emergencyDate(item), periodDays)).length,
       newAccounts: hikers().filter((user) => inWindow(accountDate(user), periodDays)).length
@@ -2794,22 +2800,22 @@
     // Volume over time
     const maxCount = Math.max(...data.series.map((bucket) => bucket.count), 1);
     setText('volumeChartTitle', data.bucketDays === 1
-      ? 'Hazard Reports Submitted (per day)'
-      : 'Hazard Reports Submitted (per week)');
+      ? 'Verified Hazard Reports (per day)'
+      : 'Verified Hazard Reports (per week)');
     chart.innerHTML = data.series.map((bucket) => {
       const height = bucket.count ? Math.max(6, Math.round((bucket.count / maxCount) * 100)) : 2;
       const period = data.bucketDays === 1
         ? `${formatDay(bucket.end)}, ${formatDate(bucket.end)}`
         : `${formatDate(bucket.start)}–${formatDate(bucket.end)}`;
       const endExclusive = new Date(bucket.end.getTime() + DAY_MS);
-      const inBucket = data.submitted.filter((report) => {
+      const inBucket = data.verified.filter((report) => {
         const date = reportDate(report);
         return date && date >= bucket.start && date < endExclusive;
       });
       const tip = {
         title: period,
         lines: [
-          `${bucket.count} report${bucket.count === 1 ? '' : 's'} submitted`,
+          `${bucket.count} verified report${bucket.count === 1 ? '' : 's'}`,
           inBucket.length ? `Types: ${topOf(inBucket, typeOf)}` : '',
           inBucket.length ? `Status: ${topOf(inBucket, (report) => capitalise(reportStatusOf(report)), 5)}` : '',
           inBucket.length ? `Trails: ${topOf(inBucket, reportTrailLabel)}` : ''
@@ -2826,12 +2832,12 @@
       : '';
 
     const busiest = [...data.series].sort((a, b) => b.count - a.count)[0];
-    note.textContent = data.submitted.length
-      ? `${data.submitted.length} report${data.submitted.length === 1 ? '' : 's'} in the last ${periodDays} days` +
+    note.textContent = data.verified.length
+      ? `${data.verified.length} verified report${data.verified.length === 1 ? '' : 's'} in the last ${periodDays} days` +
         (busiest && busiest.count
           ? ` · busiest ${data.bucketDays === 1 ? 'day' : 'week'}: ${formatDate(busiest.end)} (${busiest.count})`
           : '')
-      : `No hazard reports were submitted in the last ${periodDays} days.`;
+      : `No verified hazard reports in the last ${periodDays} days.`;
 
     // Hazard types
     const typeList = document.getElementById('typeBreakdown');
@@ -2840,14 +2846,15 @@
     const otherTypes = data.byType.slice(6).map((row) => row.label);
     if (otherCount) topTypes.push({ label: 'Other types', count: otherCount });
     const share = (count) => (data.submitted.length ? `${Math.round((count / data.submitted.length) * 100)}% of reports` : '');
+    const verifiedShare = (count) => (data.verified.length ? `${Math.round((count / data.verified.length) * 100)}% of verified reports` : '');
     topTypes.forEach((row) => {
       const reports = row.label === 'Other types'
-        ? data.submitted.filter((report) => otherTypes.includes(typeOf(report)))
-        : data.submitted.filter((report) => typeOf(report) === row.label);
+        ? data.verified.filter((report) => otherTypes.includes(typeOf(report)))
+        : data.verified.filter((report) => typeOf(report) === row.label);
       row.tip = {
         title: row.label,
         lines: [
-          `${row.count} report${row.count === 1 ? '' : 's'} · ${share(row.count)}`,
+          `${row.count} verified report${row.count === 1 ? '' : 's'} · ${verifiedShare(row.count)}`,
           row.label === 'Other types' ? `Includes: ${otherTypes.join(', ')}` : '',
           `Status: ${topOf(reports, (report) => capitalise(reportStatusOf(report)), 5)}`,
           `Risk: ${topOf(reports, (report) => capitalise(riskLevelKey(report)), 4)}`,
@@ -2856,8 +2863,8 @@
       };
     });
     typeList.innerHTML = topTypes.length
-      ? barRows(topTypes, { total: data.submitted.length, icons: true })
-      : '<div class="empty-state">No hazard reports in this period.</div>';
+      ? barRows(topTypes, { total: data.verified.length, icons: true })
+      : '<div class="empty-state">No verified hazard reports in this period.</div>';
 
     // Status split
     const statusOrder = ['pending', 'verified', 'resolved', 'rejected'];
@@ -2888,22 +2895,22 @@
     const trailList = document.getElementById('trailBreakdown');
     trailList.innerHTML = data.byTrail.length
       ? barRows(data.byTrail.slice(0, 5).map((row) => {
-        const reports = data.submitted.filter((report) => reportTrailLabel(report) === row.label);
+        const reports = data.verified.filter((report) => reportTrailLabel(report) === row.label);
         const trail = (state.trails || []).find((item) => trailName(item) === row.label);
         return {
           ...row,
           tip: {
             title: row.label,
             lines: [
-              `${row.count} report${row.count === 1 ? '' : 's'} · ${share(row.count)}`,
+              `${row.count} verified report${row.count === 1 ? '' : 's'} · ${verifiedShare(row.count)}`,
               `Types: ${topOf(reports, typeOf)}`,
               `Status: ${topOf(reports, (report) => capitalise(reportStatusOf(report)), 5)}`,
               trail ? `Trail is currently ${closedTrails().includes(trail) ? 'closed' : 'open'}` : ''
             ]
           }
         };
-      }), { total: data.submitted.length })
-      : '<div class="empty-state">No reports in this period name a trail.</div>';
+      }), { total: data.verified.length })
+      : '<div class="empty-state">No verified reports in this period name a trail.</div>';
 
     // Activity rows
     const setRow = (id, value, muted, tip) => {
@@ -2971,10 +2978,10 @@
           : '.')
       );
       if (data.byType.length) {
-        summary.push(`${data.byType[0].label} was the most reported hazard (${data.byType[0].count} of ${data.submitted.length}).`);
+        summary.push(`${data.byType[0].label} was the most verified hazard (${data.byType[0].count} of ${data.verified.length} verified reports).`);
       }
       if (data.byTrail.length) {
-        summary.push(`${data.byTrail[0].label} drew the most reports (${data.byTrail[0].count}).`);
+        summary.push(`${data.byTrail[0].label} had the most verified hazards (${data.byTrail[0].count}).`);
       }
       if (data.medianReviewHours !== null) {
         summary.push(`Admins reviewed reports in ${formatDuration(data.medianReviewHours)} on average (median).`);
@@ -4235,9 +4242,25 @@
 
   /* ---------------- Live sources ---------------- */
 
+  /* Trails as hikers see them in the app: a Registered Trail (the app's
+     isLegalEntry: an entry type starting "Registered", or the older "Legal
+     Entry") that Trail Management has not hidden. Unregistered and hidden
+     trails are not on the mountain for hikers, so they are left out of
+     every count, closure ratio and trail forecast. */
+  const isPublicTrail = (trail) => {
+    if (trail?.Visible === false) return false;
+    const entry = trail?.EntryType;
+    if (typeof entry === 'boolean') return entry;
+    const text = normalizeText(entry).toLowerCase();
+    return text.startsWith('registered') || text.startsWith('legal');
+  };
+  const KEEP = { trails: isPublicTrail };
+
   const watchCollection = (name, key) => {
     onSnapshot(collection(db, name), (snapshot) => {
-      state[key] = snapshot.docs.map((docSnapshot) => ({ id: docSnapshot.id, ...docSnapshot.data() }));
+      state[key] = snapshot.docs
+        .map((docSnapshot) => ({ id: docSnapshot.id, ...docSnapshot.data() }))
+        .filter(KEEP[key] || (() => true));
       delete state.errors[key];
       renderAll();
     }, (error) => {

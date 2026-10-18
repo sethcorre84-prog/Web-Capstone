@@ -1374,3 +1374,65 @@ exports.emailReactivationDecision = onCall(
     return { ok: true };
   }
 );
+
+// =====================================================================
+// User Management > Contact User > Email
+// =====================================================================
+
+/* An email from the signed-in admin to one user, written in the portal.
+   Only to the address on that user's own profile (users/{uid}), so this
+   cannot be used to mail anyone else. Sent through the admin's own Gmail
+   when it has an app password in GMAIL_SENDERS, otherwise through GMAIL_USER
+   with their name and Reply-To. Super Administrators and Administrators. */
+exports.emailUser = onCall(
+  { secrets: [GMAIL_USER, GMAIL_APP_PASSWORD, GMAIL_SENDERS] },
+  async (request) => {
+    const callerUid = request.auth?.uid;
+    const caller = callerUid ? await db.collection("admins").doc(callerUid).get() : null;
+    const callerRole = caller?.exists ? roleOf(caller.data()) : null;
+    if (!callerRole || callerRole === "Viewer") {
+      throw new HttpsError("permission-denied", "Only Super Administrators and Administrators can email users.");
+    }
+
+    const uid = String(request.data?.uid || "");
+    const to = normalizeEmail(request.data?.to);
+    const subject = String(request.data?.subject || "").trim().slice(0, 200);
+    const message = String(request.data?.message || "").trim().slice(0, 5000);
+    if (!uid) throw new HttpsError("invalid-argument", "Choose a user.");
+    if (!subject || !message) throw new HttpsError("invalid-argument", "Write a subject and a message.");
+
+    const profile = await db.collection("users").doc(uid).get();
+    if (!profile.exists) throw new HttpsError("not-found", "That user no longer exists.");
+    const onFile = [profile.get("email"), profile.get("Email")]
+      .map((value) => String(value || "").trim().toLowerCase())
+      .filter(Boolean);
+    if (!onFile.includes(to)) {
+      throw new HttpsError("permission-denied", "That is not the email address on this user's profile.");
+    }
+
+    let adminEmail = String(caller.get("email") || request.auth.token?.email || "").trim().toLowerCase();
+    if (!adminEmail) adminEmail = String((await getAuth().getUser(callerUid)).email || "").toLowerCase();
+    const adminName = String(caller.get("name") || request.auth.token?.name || "PeakPath Admin").trim();
+    const ownPassword = senderPasswords()[adminEmail];
+    const transporter = ownPassword ? mailTransport(adminEmail, ownPassword) : mailTransport();
+    const fallback = GMAIL_USER.value();
+    const sentFrom = ownPassword ? adminEmail : fallback;
+
+    try {
+      await transporter.sendMail({
+        from: { name: `${adminName} (PeakPath)`, address: adminEmail || fallback },
+        replyTo: adminEmail || fallback,
+        to,
+        subject,
+        text: message,
+        html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#1c231c">${
+          escapeHtml(message).replace(/\n/g, "<br>")}</div>`
+      });
+    } catch (error) {
+      logger.error(`Could not email user ${uid}`, error);
+      throw new HttpsError("unavailable", "The email could not be sent. Please try again.");
+    }
+    logger.info(`Emailed user ${uid} (${to}) through ${sentFrom}`);
+    return { sentFrom, to };
+  }
+);

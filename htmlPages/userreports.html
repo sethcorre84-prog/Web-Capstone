@@ -3032,7 +3032,11 @@
         </div>`).join('')}
     </div>`;
 
-  // Counts behind each chart, shared with the Excel export.
+  // Counts behind each chart, shared with the Excel export. Largest first, so
+  // the legend's top row and the donut's first slice are the most reported.
+  // Array sort is stable, so ties keep their usual order.
+  const byMostReports = (segments) => [...segments].sort((a, b) => b.value - a.value);
+
   const typeSegments = (reports) => {
     const counts = new Map();
     reports.forEach((report) => {
@@ -3042,21 +3046,21 @@
     });
 
     // Every reason the app offers is listed, at 0 when none came in (like the
-    // Status chart), in the app's order so colours stay put between periods.
-    // Then Other, and any older free-text categories.
+    // Status chart); then Other, and any older free-text categories. Each keeps
+    // its own colour, and the most reported comes first (ties in the app's order).
     const listed = (type) => counts.get(type.key) || { label: type.label, color: type.chart, value: 0 };
-    return [
+    return byMostReports([
       ...REPORT_TYPES.map(listed),
       listed(OTHER_TYPE),
       ...[...counts].filter(([key]) => key.startsWith('other:')).map(([, entry]) => entry)
-    ];
+    ]);
   };
 
-  const statusSegments = (reports) => Object.values(STATUSES).map((status) => ({
+  const statusSegments = (reports) => byMostReports(Object.values(STATUSES).map((status) => ({
     label: status.label,
     color: status.chart,
     value: reports.filter((report) => report.status.key === status.key).length
-  }));
+  })));
 
   const timeBuckets = (reports, range) => {
     // Future days of the current month/year are not plotted.

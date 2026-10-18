@@ -435,13 +435,12 @@
               display: none;
           }
       }
-      /* Stretched to the map's height (syncLegendToMap) on wide layouts. The
-         list gets the height that is left (set in the same function), and
-         column-fill:auto fills the left column all the way down before any row
-         moves to the right one, so the columns need not be equal. */
-      .legend.is-sized .legend-list {
-          column-fill: auto;
-          overflow: hidden;
+      /* The legend is exactly as tall as the map on wide layouts
+         (syncLegendToMap): a column whose groups take the space between the
+         title and the footer, scrolling inside if they ever need more. */
+      .legend {
+          display: flex;
+          flex-direction: column;
       }
       .legend-title {
           /* The sidebar's forest green rather than near-black, so the dark band
@@ -456,14 +455,57 @@
           border-radius: 7px;
           margin-bottom: 8px;
       }
-      /* Two columns, filled top to bottom (left column first), so the legend
-         reads in order but takes half the height. The station-tag rows come
-         from a display:contents wrapper, so they flow into the columns too. */
+      /* Sections like the map's layers (Trails, Trail Points, Hazards, ...),
+         each a two-column grid. The station-tag rows come from a
+         display:contents wrapper, so they sit in their section's grid. */
       .legend-list {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          scrollbar-width: thin;
+          scrollbar-color: var(--border) transparent;
+          padding: 2px 2px 0;
+      }
+      .legend-group + .legend-group {
+          margin-top: 6px;
+      }
+      /* Small caps heading with a rule running to the right edge. */
+      .legend-group-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0 0 2px;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.07em;
+          text-transform: uppercase;
+          color: var(--text-secondary);
+      }
+      .legend-group-title::after {
+          content: '';
+          flex: 1;
           border-top: 1px solid var(--border);
-          padding-top: 6px;
-          column-count: 2;
-          column-gap: 14px;
+      }
+      .legend-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          column-gap: 10px;
+      }
+      .legend-foot {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          margin: 8px 0 0;
+          padding: 7px 4px 0;
+          border-top: 1px solid var(--border);
+          font-size: 11px;
+          line-height: 1.35;
+          color: var(--text-secondary);
+      }
+      .legend-foot i {
+          color: var(--accent);
+          font-size: 11px;
       }
       .legend-row {
           display: flex;
@@ -480,8 +522,8 @@
       }
       /* Too narrow for two readable columns (phones): back to one. */
       @media (max-width: 420px) {
-          .legend-list {
-              column-count: 1;
+          .legend-grid {
+              grid-template-columns: 1fr;
           }
       }
       .legend-row i,
@@ -568,25 +610,47 @@
           color: #fff;
           transform: rotate(45deg);
       }
-      /* Same look as the hazard circle markers — keep in sync with HAZARD_RISK_COLORS. */
-      .hazard-dot {
-          width: 12px;
-          height: 12px;
-          margin: 0 2px;
+      /* Hazard badges: a round badge in the risk colour with a white icon per
+         level (warning triangle / exclamation / info), used for the hazard
+         markers on the map (L.divIcon) and their legend rows, so the two
+         always match. Keep in sync with HAZARD_RISK_STYLE. */
+      .hazard-badge {
+          display: grid;
+          place-items: center;
+          width: 24px;
+          height: 24px;
           flex-shrink: 0;
           border-radius: 50%;
           border: 2px solid #fff;
-          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.28);
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+          box-sizing: border-box;
       }
-      .hazard-dot.high {
-          background: #c8402f;
+      .hazard-badge i,
+      .legend-row .hazard-badge i {
+          width: auto;
+          font-size: 11px;
+          color: #fff;
       }
-      .hazard-dot.moderate {
-          background: #e8a63c;
+      .hazard-badge.unknown { background: #8a948c; }
+      .hazard-marker { background: none; border: 0; }
+      /* The risk levels' warning signs: High solid red with a white mark,
+         Moderate yellow and red-edged, Low yellow and black-edged
+         (hazardSign in the script draws the same SVG). */
+      .hazard-sign {
+          display: block;
+          width: 26px;
+          height: 23px;
+          flex-shrink: 0;
+          filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
       }
-      .hazard-dot.low {
-          background: #2a63b5;
+      .legend-row .hazard-sign,
+      .legend-list .hazard-sign {
+          width: 22px;
+          height: 19px;
       }
+      .legend-list .hazard-badge { width: 22px; height: 22px; }
+      .legend-list .hazard-badge i { font-size: 10px; }
+
       /* Live hiker pins (an L.divIcon) and their legend swatches. */
       .hiker-marker {
           background: none;
@@ -653,14 +717,13 @@
       /* A size up for the Map Legend's rows: larger text and swatches, now
          that the legend is as tall as the map and has the room. */
       .legend-list .legend-row {
-          gap: 10px;
-          padding: 6px 3px;
-          font-size: 13.5px;
+          gap: 9px;
+          padding: 5px 3px;
+          font-size: 12.5px;
       }
       .legend-list .legend-line { width: 20px; height: 6px; }
       .legend-list .legend-pin { width: 20px; height: 20px; }
       .legend-list .legend-pin i { font-size: 9px; }
-      .legend-list .hazard-dot { width: 15px; height: 15px; }
       .legend-list .hiker-pin { width: 20px; height: 20px; }
       .legend-list .hiker-pin i { font-size: 10px; }
       .legend-list .legend-station { width: 15px; height: 15px; }
@@ -980,22 +1043,55 @@
         <aside class="right-column">
           <div class="legend">
             <div class="legend-title">Map Legend</div>
+            <!-- Grouped like the map's layers; scrolls inside itself if the map is
+                 ever shorter than the legend, so no row is cut off. -->
             <div class="legend-list">
-              <div class="legend-row"><span class="legend-line" style="background:#2f8f4e" aria-hidden="true"></span><span>Open Trail</span></div>
-              <div class="legend-row"><span class="legend-line" style="background:#c8402f" aria-hidden="true"></span><span>Closed Trail</span></div>
-              <div class="legend-row"><span class="legend-line is-dashed" style="color:#ffb020" aria-hidden="true"></span><span>Side Trail</span></div>
-              <div class="legend-row"><span class="legend-pin" style="background:#2f6b45" aria-hidden="true"><i class="fa-solid fa-flag"></i></span><span>Checkpoint</span></div>
-              <div class="legend-row" title="Placed with + Add Campsites in Trail Management"><span class="legend-pin" style="background:#8a5a1f" aria-hidden="true"><i class="fa-solid fa-campground"></i></span><span>Campsite</span></div>
-              <div class="legend-row"><span class="hazard-dot high" aria-hidden="true"></span><span>High Risk Hazard</span></div>
-              <div class="legend-row"><span class="hazard-dot moderate" aria-hidden="true"></span><span>Moderate Risk Hazard</span></div>
-              <div class="legend-row"><span class="hazard-dot low" aria-hidden="true"></span><span>Low Risk Hazard</span></div>
-              <div class="legend-row"><span class="hiker-pin online" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Hiker (online)</span></div>
-              <div class="legend-row"><span class="hiker-pin offline" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Hiker (last seen)</span></div>
-              <div class="legend-row is-river" title="Rivers and creeks inside the Mount Makiling Forest Reserve"><span class="legend-river" aria-hidden="true"><svg viewBox="0 0 24 10" aria-hidden="true"><path d="M1 7c4-5 8 2 12-2s7-3 10-1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span><span>River/Creek</span></div>
-              <div class="legend-row"><span class="legend-station" aria-hidden="true"></span><span>Trail Station</span></div>
-              <!-- One row per station tag, from FACILITIES in map-features.js. -->
-              <div id="stationTagLegend" style="display:contents"></div>
+              <section class="legend-group">
+                <h4 class="legend-group-title">Trails</h4>
+                <div class="legend-grid">
+                  <div class="legend-row"><span class="legend-line" style="background:#2f8f4e" aria-hidden="true"></span><span>Open trail</span></div>
+                  <div class="legend-row"><span class="legend-line" style="background:#c8402f" aria-hidden="true"></span><span>Closed trail</span></div>
+                  <div class="legend-row"><span class="legend-line is-dashed" style="color:#ffb020" aria-hidden="true"></span><span>Side trail</span></div>
+                </div>
+              </section>
+              <section class="legend-group">
+                <h4 class="legend-group-title">Trail Points</h4>
+                <div class="legend-grid">
+                  <div class="legend-row"><span class="legend-pin" style="background:#2f6b45" aria-hidden="true"><i class="fa-solid fa-flag"></i></span><span>Checkpoint</span></div>
+                  <div class="legend-row" title="Placed with + Add Campsites in Trail Management"><span class="legend-pin" style="background:#8a5a1f" aria-hidden="true"><i class="fa-solid fa-campground"></i></span><span>Campsite</span></div>
+                </div>
+              </section>
+              <section class="legend-group">
+                <h4 class="legend-group-title">Hazards</h4>
+                <div class="legend-grid">
+                  <div class="legend-row"><svg class="hazard-sign" viewBox="0 0 32 28" aria-hidden="true"><path d="M16 2.2 30.2 26H1.8Z" fill="#e53935" stroke="#b71c1c" stroke-width="3" stroke-linejoin="round"/><rect x="14.4" y="9" width="3.2" height="9.5" rx="1.6" fill="#fff"/><circle cx="16" cy="22" r="1.9" fill="#fff"/></svg><span>High risk</span></div>
+                  <div class="legend-row"><svg class="hazard-sign" viewBox="0 0 32 28" aria-hidden="true"><path d="M16 2.2 30.2 26H1.8Z" fill="#ffc21a" stroke="#d32f2f" stroke-width="3" stroke-linejoin="round"/><rect x="14.4" y="9" width="3.2" height="9.5" rx="1.6" fill="#111"/><circle cx="16" cy="22" r="1.9" fill="#111"/></svg><span>Moderate risk</span></div>
+                  <div class="legend-row"><svg class="hazard-sign" viewBox="0 0 32 28" aria-hidden="true"><path d="M16 2.2 30.2 26H1.8Z" fill="#ffc21a" stroke="#111111" stroke-width="3" stroke-linejoin="round"/><rect x="14.4" y="9" width="3.2" height="9.5" rx="1.6" fill="#111"/><circle cx="16" cy="22" r="1.9" fill="#111"/></svg><span>Low risk</span></div>
+                </div>
+              </section>
+              <section class="legend-group">
+                <h4 class="legend-group-title">Hikers</h4>
+                <div class="legend-grid">
+                  <div class="legend-row"><span class="hiker-pin online" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Online now</span></div>
+                  <div class="legend-row"><span class="hiker-pin offline" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Last seen</span></div>
+                </div>
+              </section>
+              <section class="legend-group">
+                <h4 class="legend-group-title">Stations &amp; Facilities</h4>
+                <div class="legend-grid">
+                  <div class="legend-row"><span class="legend-station" aria-hidden="true"></span><span>Trail station</span></div>
+                  <!-- One row per station tag, from FACILITIES in map-features.js. -->
+                  <div id="stationTagLegend" style="display:contents"></div>
+                </div>
+              </section>
+              <section class="legend-group">
+                <h4 class="legend-group-title">Nature</h4>
+                <div class="legend-grid">
+                  <div class="legend-row is-river" title="Rivers and creeks inside the Mount Makiling Forest Reserve"><span class="legend-river" aria-hidden="true"><svg viewBox="0 0 24 10" aria-hidden="true"><path d="M1 7c4-5 8 2 12-2s7-3 10-1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span><span>River / creek</span></div>
+                </div>
+              </section>
             </div>
+            <p class="legend-foot"><i class="fa-solid fa-layer-group" aria-hidden="true"></i>Show or hide each layer with the layers button on the map.</p>
           </div>
 
         </aside>
@@ -1115,8 +1211,39 @@
       return 'Unknown Risk';
     };
 
-    // Hazard marker fill per risk level — keep in sync with .hazard-dot in the legend.
+    // Hazard marker fill per risk level — keep in sync with .hazard-badge.
     const HAZARD_RISK_COLORS = { high: '#c8402f', moderate: '#e8a63c', low: '#2a63b5', unknown: '#8a948c' };
+    // The icon in each level's badge, on the map and in the legend.
+    const HAZARD_RISK_ICONS = { high: 'fa-triangle-exclamation', moderate: 'fa-exclamation', low: 'fa-info', unknown: 'fa-question' };
+    /* Moderate and Low are yellow warning signs (red-edged / black-edged),
+       the same SVG as their legend rows; High and unknown keep the badge. */
+    /* Each level's warning sign: fill, border and the "!" colour. High is
+       solid red with a white mark; Moderate and Low are yellow, red-edged
+       and black-edged. Unknown keeps the grey badge. */
+    const HAZARD_SIGNS = {
+      high: { fill: '#e53935', border: '#b71c1c', mark: '#fff' },
+      moderate: { fill: '#ffc21a', border: '#d32f2f', mark: '#111' },
+      low: { fill: '#ffc21a', border: '#111111', mark: '#111' }
+    };
+    const hazardSign = ({ fill, border, mark }) => `<svg class="hazard-sign" viewBox="0 0 32 28" aria-hidden="true">`
+      + `<path d="M16 2.2 30.2 26H1.8Z" fill="${fill}" stroke="${border}" stroke-width="3" stroke-linejoin="round"/>`
+      + `<rect x="14.4" y="9" width="3.2" height="9.5" rx="1.6" fill="${mark}"/>`
+      + `<circle cx="16" cy="22" r="1.9" fill="${mark}"/></svg>`;
+    const hazardIcon = (bucket) => (HAZARD_SIGNS[bucket]
+      ? L.divIcon({
+        className: 'hazard-marker',
+        html: hazardSign(HAZARD_SIGNS[bucket]),
+        iconSize: [26, 23],
+        iconAnchor: [13, 12],
+        popupAnchor: [0, -12]
+      })
+      : L.divIcon({
+        className: 'hazard-marker',
+        html: `<span class="hazard-badge ${bucket}"><i class="fa-solid ${HAZARD_RISK_ICONS[bucket] || HAZARD_RISK_ICONS.unknown}" aria-hidden="true"></i></span>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+        popupAnchor: [0, -12]
+      }));
     // Higher risk is drawn later so it sits on top where markers overlap.
     const HAZARD_DRAW_ORDER = { unknown: 0, low: 1, moderate: 2, high: 3 };
 
@@ -1420,13 +1547,13 @@
         const coordinates = getMappableHazardCoordinates(data);
         if (!coordinates) return;
         const reportedDate = toDate(data.createdAt) || toDate(data.timestamp);
-        const riskColor = HAZARD_RISK_COLORS[getRiskBucket(data)];
-        const marker = L.circleMarker(coordinates, {
-          radius: 9,
-          color: '#ffffff',
-          weight: 2,
-          fillColor: riskColor,
-          fillOpacity: 0.9
+        const riskBucket = getRiskBucket(data);
+        const riskColor = HAZARD_RISK_COLORS[riskBucket];
+        const marker = L.marker(coordinates, {
+          icon: hazardIcon(riskBucket),
+          title: getRiskLabel(data),
+          // Higher risk on top where markers overlap (drawn in that order too).
+          zIndexOffset: (HAZARD_DRAW_ORDER[riskBucket] || 0) * 100
         }).bindPopup(`
           <strong>${escapeHtml(data.hazardType || 'Verified hazard')}</strong><br>
           <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${riskColor}"></span>${escapeHtml(getRiskLabel(data))}</span><br>
@@ -1609,19 +1736,14 @@
       // natural height under the map.
       if (window.matchMedia('(max-width: 980px)').matches) {
         legend.style.height = '';
-        legendList.style.height = '';
         legend.classList.remove('is-sized');
         map.invalidateSize();
         return;
       }
 
+      // The groups take the rest of the height between the title and the
+      // footer (flex), scrolling inside if they need more.
       legend.style.height = `${mapArea.offsetHeight}px`;
-      // The list takes the rest of the legend's height, down to its padding.
-      const legendBox = legend.getBoundingClientRect();
-      const legendStyle = getComputedStyle(legend);
-      const listHeight = legendBox.bottom - parseFloat(legendStyle.borderBottomWidth)
-        - parseFloat(legendStyle.paddingBottom) - legendList.getBoundingClientRect().top;
-      legendList.style.height = `${Math.max(0, Math.floor(listHeight))}px`;
       legend.classList.add('is-sized');
       map.invalidateSize();
     }

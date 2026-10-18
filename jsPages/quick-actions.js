@@ -369,7 +369,7 @@ function createAdvisoryModal() {
         <div class="qa-field"><label for="qaAdvTitle">Title</label><input id="qaAdvTitle" placeholder="e.g. Trail Closure: Sipit Trail"></div>
         <div class="qa-row">
           <div class="qa-field"><label for="qaAdvType">Type</label><select id="qaAdvType"><option>Advisory</option><option>Weather</option><option>Update</option><option>Alert</option><option>Announcement</option></select></div>
-          <div class="qa-field"><label for="qaAdvStatus">Status</label><select id="qaAdvStatus"><option>Active</option><option>Scheduled</option><option>Expired</option></select></div>
+          <div class="qa-field"><label for="qaAdvStatus">Status</label><select id="qaAdvStatus"><option>Active</option><option>Scheduled</option></select></div>
         </div>
         <div class="qa-field"><label for="qaAdvRisk">Risk Level</label><select id="qaAdvRisk"><option>Low</option><option>Moderate</option><option>High</option></select></div>
         <div class="qa-field"><label for="qaAdvTarget">Target</label><input id="qaAdvTarget" placeholder="e.g. Sipit Trail (Section 2) or All Trails"></div>

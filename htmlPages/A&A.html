@@ -1345,7 +1345,7 @@
 					<select id="mType"><option>Advisory</option><option>Weather</option><option>Update</option><option>Alert</option><option>Announcement</option></select>
 				</div>
 				<div class="field"><label>Status</label>
-					<select id="mStatus"><option>Active</option><option>Scheduled</option><option>Expired</option></select>
+					<select id="mStatus"><option>Active</option><option>Scheduled</option></select>
 				</div>
 			</div>
 			<div class="field"><label>Risk Level</label>
@@ -2488,7 +2488,14 @@ setInterval(refreshExpiry, 60000);
 			saveBtn.textContent = it ? 'Edit Advisory' : 'Create Advisory';
 			document.getElementById('mTitle').value = it?.title || '';
 			document.getElementById('mType').value = it?.type || 'Advisory';
-			document.getElementById('mStatus').value = it?.status || 'Active';
+			/* Status choices: a new advisory starts Active or Scheduled, never
+			   Expired; editing one can also mark it Expired. A status outside
+			   these (e.g. Archived) stays listed so opening it changes nothing. */
+			const statusSelect = document.getElementById('mStatus');
+			const statusChoices = it ? ['Active', 'Scheduled', 'Expired'] : ['Active', 'Scheduled'];
+			if (it?.status && !statusChoices.includes(it.status)) statusChoices.push(it.status);
+			statusSelect.replaceChildren(...statusChoices.map((status) => new Option(status, status)));
+			statusSelect.value = it?.status || 'Active';
 			document.getElementById('mRiskLevel').value = it?.riskLevel || 'Moderate';
 			document.getElementById('mTarget').value = it?.target || '';
 			document.getElementById('mEffective').value = toLocalInputValue(it?.effectiveDate || it?.publishedAt) || toLocalInputValue(new Date());
