@@ -1,14 +1,20 @@
 // weather-locations.js
 // The places the dashboard's weather card can report on, and which one is
-// chosen. Settings > System Settings > Dashboard Weather picks it; the choice
-// is saved to this browser (like the theme) and the dashboard reads it here.
+// chosen. Settings > System Settings > Dashboard Weather picks it and saves
+// it to Firestore (settings/weather { location }), shared by every admin and
+// by the PeakPath app's Current Conditions card (WeatherService in the app's
+// homepage.dart has the same places and makes the same request). This
+// browser keeps a copy so the cards show the right place straight away.
 //
 // Temperatures come from Open-Meteo's live "current" conditions. It models a
 // grid a few km wide, so each location also passes its elevation: Open-Meteo
 // then corrects the temperature for height, which is what makes the summit
 // read cooler than the trailhead and the town below it.
 
+import { doc, onSnapshot, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
 const STORAGE_KEY = 'peakpath-weather-location';
+const SETTING_PATH = ['settings', 'weather'];
 
 export const WEATHER_LOCATIONS = {
   summit: {
@@ -68,3 +74,34 @@ export function weatherUrlFor(key) {
 }
 
 export const WEATHER_STORAGE_KEY = STORAGE_KEY;
+
+/* Calls onChange(key) whenever the shared location changes from the one
+   this browser last showed (on load too, if another admin changed it). A
+   missing document means the default. Returns the unsubscribe function. */
+export function watchWeatherLocation(db, onChange) {
+  let last = getWeatherLocationKey();
+  return onSnapshot(doc(db, ...SETTING_PATH), (snapshot) => {
+    const saved = snapshot.data()?.location;
+    const key = WEATHER_LOCATIONS[saved] ? saved : DEFAULT_WEATHER_LOCATION;
+    try {
+      localStorage.setItem(STORAGE_KEY, key);
+    } catch {
+      // Storage blocked: the cards still follow the shared choice.
+    }
+    if (key === last) return;
+    last = key;
+    onChange(key);
+  }, (error) => console.warn('Could not read the shared weather location:', error.message));
+}
+
+/* Saves the location for every admin and the app. Throws if Firestore
+   refuses (e.g. a Viewer account). */
+export async function saveWeatherLocation(db, key, uid = '') {
+  if (!WEATHER_LOCATIONS[key]) return;
+  await setDoc(doc(db, ...SETTING_PATH), { location: key, updatedAt: serverTimestamp(), updatedBy: uid });
+  try {
+    localStorage.setItem(STORAGE_KEY, key);
+  } catch {
+    // Saved in Firestore; this browser just can't keep its copy.
+  }
+}

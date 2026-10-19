@@ -1449,13 +1449,14 @@
       <div class="panel">
         <div class="panel-title">System Settings</div>
 
-        <!-- Saved to this browser and applied instantly; no Save needed. -->
+        <!-- Saved to Firestore and applied instantly for every admin and the
+             PeakPath app; no Save needed. -->
         <div class="setting-row">
           <div class="setting-left">
             <div class="setting-icon">🌦️</div>
             <div class="setting-text">
               <div class="label" id="weatherLocationLabel">Dashboard Weather</div>
-              <div class="desc">Choose where the Dashboard's weather card and the Emergency map read the live temperature (°C).</div>
+              <div class="desc">Choose where the live temperature (°C) is read for the Dashboard, the GeoMap and Emergency weather cards, and the PeakPath app's Current Conditions.</div>
             </div>
           </div>
           <div class="setting-right">
@@ -1504,12 +1505,13 @@
             <div class="setting-icon">🛡️</div>
             <div class="setting-text">
               <div class="label">Two-Factor Authentication</div>
-              <div class="desc" id="twoFactorDesc">Ask for a code texted to your profile's phone number when you sign in on a new device.</div>
+              <div class="desc" id="twoFactorDesc">Required for every admin: signing in on a computer this account hasn't used before needs a code texted to your profile's phone number.</div>
             </div>
           </div>
+          <!-- Always on for every admin (functions/index.js checkTwoFactor). -->
           <div class="setting-right">
-            <label class="switch">
-              <input type="checkbox" id="twoFactorToggle" aria-describedby="twoFactorDesc">
+            <label class="switch" title="Required for every admin">
+              <input type="checkbox" id="twoFactorToggle" aria-describedby="twoFactorDesc" checked disabled>
               <span class="slider"></span>
             </label>
           </div>
@@ -1704,8 +1706,8 @@
   import { DATE_FORMATS, TIME_FORMATS, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
   import { openExportMenu } from '../jsPages/export-table.js';
   import { endOtherSessions, endSession, listSessions } from '../jsPages/admin-sessions.js';
-  import { checkTwoFactor, disableTwoFactor, enableTwoFactor } from '../jsPages/two-factor.js';
-  import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, setWeatherLocationKey } from '../jsPages/weather-locations.js';
+  import { checkTwoFactor } from '../jsPages/two-factor.js';
+  import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, saveWeatherLocation, watchWeatherLocation } from '../jsPages/weather-locations.js';
 
   const STORAGE_KEY = 'peakpath-settings';
   // Two-Factor Authentication is not a browser setting: it lives on the admin
@@ -4217,49 +4219,20 @@
     });
   });
 
-  /* Two-Factor Authentication: on means signing in on a new device needs a
-     code texted to the phone number in Profile Information. Turning it on
-     sends one first, so a wrong number cannot lock the admin out. */
-  const twoFactorToggle = document.getElementById('twoFactorToggle');
+  /* Two-Factor Authentication: always on for every admin. Signing in on a
+     computer the account hasn't used before needs a code texted to the
+     phone number in Profile Information; with no number there, nothing
+     can be texted, so the row asks for one. */
   const twoFactorDesc = document.getElementById('twoFactorDesc');
-  const TWO_FACTOR_DESC = twoFactorDesc.textContent;
-  const showTwoFactor = (status) => {
-    twoFactorToggle.checked = Boolean(status?.enabled);
-    twoFactorDesc.textContent = status?.enabled && status.masked
-      ? `On. New devices need a code texted to ${status.masked}.`
-      : TWO_FACTOR_DESC;
-  };
   onAuthStateChanged(auth, (user) => {
     if (!user) return;
-    checkTwoFactor().then(showTwoFactor).catch((error) => {
+    checkTwoFactor().then((status) => {
+      twoFactorDesc.textContent = status?.phone
+        ? `Required for every admin. A computer this account hasn't used before needs a code texted to ${status.masked}.`
+        : 'Required for every admin, but your profile has no phone number yet. Add one in Profile Information so new computers need a code.';
+    }).catch((error) => {
       console.warn('Could not read two-factor sign-in:', error.message);
     });
-  });
-  twoFactorToggle.addEventListener('change', async () => {
-    const turningOn = twoFactorToggle.checked;
-    twoFactorToggle.disabled = true;
-    try {
-      if (turningOn) {
-        const done = await enableTwoFactor();
-        if (!done) {
-          twoFactorToggle.checked = false;
-          return;
-        }
-        showToast('Two-factor sign-in is on', 3000);
-      } else {
-        await disableTwoFactor();
-        showToast('Two-factor sign-in is off', 3000);
-      }
-      showTwoFactor(await checkTwoFactor());
-    } catch (error) {
-      console.error('Could not change two-factor sign-in:', error);
-      twoFactorToggle.checked = !turningOn;
-      showToast(error?.code === 'functions/internal'
-        ? 'Could not reach the two-factor service. It may not be deployed yet.'
-        : (error?.message || 'Could not change two-factor sign-in.'), 4000);
-    } finally {
-      twoFactorToggle.disabled = false;
-    }
   });
 
   /* Theme. sidebar.js owns it (it applies it before paint on every page, and
@@ -4292,8 +4265,9 @@
     });
   }
 
-  /* Dashboard Weather. Like the theme, it is saved the moment it changes;
-     the dashboard's weather card reads it from weather-locations.js. */
+  /* Dashboard Weather. Saved the moment it changes, to Firestore
+     (settings/weather), so every admin's weather cards and the PeakPath
+     app's Current Conditions follow it (weather-locations.js). */
   const weatherLocationPicker = document.getElementById('weatherLocationPicker');
   if (weatherLocationPicker) {
     const syncWeatherPicker = () => {
@@ -4301,22 +4275,29 @@
     };
     syncWeatherPicker();
 
-    weatherLocationPicker.addEventListener('change', () => {
+    weatherLocationPicker.addEventListener('change', async () => {
+      const key = weatherLocationPicker.value;
+      weatherLocationPicker.disabled = true;
       try {
-        setWeatherLocationKey(weatherLocationPicker.value);
+        await saveWeatherLocation(db, key, auth.currentUser?.uid || '');
       } catch (error) {
         console.error('Failed to save the weather location:', error);
         syncWeatherPicker();
-        showToast('Your browser blocked saving this setting.');
+        showToast(error?.code === 'permission-denied'
+          ? 'Your admin role cannot change the weather location.'
+          : 'The weather location could not be saved. Try again.');
         return;
+      } finally {
+        weatherLocationPicker.disabled = false;
       }
-      const name = WEATHER_LOCATIONS[weatherLocationPicker.value].name;
-      showToast(`Dashboard weather now shows ${name}`);
+      showToast(`Weather now shows ${WEATHER_LOCATIONS[key].name} on the portal and the app`);
     });
 
     window.addEventListener('storage', (event) => {
       if (event.key === WEATHER_STORAGE_KEY) syncWeatherPicker();
     });
+    // Another admin changed it.
+    watchWeatherLocation(db, syncWeatherPicker);
   }
 
   syncInputs();

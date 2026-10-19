@@ -1103,7 +1103,7 @@
     import { escapeHtml } from "../jsPages/utils.js";
     import { collection, onSnapshot, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { formatPortalDate, portalHourCycle, portalTimeZone, toPortalDate as toDate } from "../jsPages/datetime-prefs.js";
-    import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, weatherUrlFor } from "../jsPages/weather-locations.js";
+    import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, watchWeatherLocation, weatherUrlFor } from "../jsPages/weather-locations.js";
     import { createMakilingMap, trailForLineKey, PEAK_2 } from "../jsPages/makiling-area.js";
     import { initTrailPoints } from "../jsPages/trail-points.js";
     import { addMapFeatures, FACILITIES } from "../jsPages/map-features.js";
@@ -1849,6 +1849,8 @@
     window.addEventListener('storage', (event) => {
       if (event.key === WEATHER_STORAGE_KEY) updateWeather();
     });
+    // Changed in Settings by any admin (shared in Firestore with the app).
+    watchWeatherLocation(db, updateWeather);
 
 function updateTime() {
     // The clock shows the time zone chosen in Settings > Date & Time.

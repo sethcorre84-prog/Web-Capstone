@@ -643,6 +643,16 @@
     .emergency-footer {
         margin-top: 14px;
     }
+    /* The table area fills the panel down to its bottom edge (the panel is
+       as tall as the map beside it), so the sideways scrollbar sits along the
+       bottom of the card instead of right under the last row. */
+    #emergencyTablePanel {
+        display: flex;
+        flex-direction: column;
+    }
+    #emergencyTablePanel .table-wrap {
+        flex: 1;
+    }
 
     /* ---- Map frame: markers, weather, full screen ---- */
     .map-frame {
@@ -1165,7 +1175,7 @@
   import { collection, doc, onSnapshot, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   import { formatPortalDate, formatPortalDateTime, formatPortalTime, portalTimeZone, toPortalDate } from '../jsPages/datetime-prefs.js';
   import { createMakilingMap } from '../jsPages/makiling-area.js';
-  import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, weatherUrlFor } from '../jsPages/weather-locations.js';
+  import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, watchWeatherLocation, weatherUrlFor } from '../jsPages/weather-locations.js';
 
   const $ = (id) => document.getElementById(id);
 
@@ -2139,6 +2149,8 @@
   window.addEventListener('storage', (event) => {
     if (event.key === WEATHER_STORAGE_KEY) updateWeather();
   });
+  // Changed in Settings by any admin (shared in Firestore with the app).
+  watchWeatherLocation(db, updateWeather);
 </script>
 <!-- A module so it can import the Settings > Date & Time zone; nothing else
      on the page calls updateEmergencyClock, so module scope costs nothing. -->

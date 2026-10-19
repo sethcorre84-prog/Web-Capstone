@@ -295,6 +295,10 @@
     .list-card-header {
         padding: 18px 20px 12px 20px;
         border-bottom: 1px solid var(--border);
+        /* The filter row follows this header's own width, not the screen's:
+           with the details panel beside it the list is much narrower than the
+           window, and the dropdowns were cut off. */
+        container-type: inline-size;
     }
     .list-card-header h2 {
         margin: 0 0 12px 0;
@@ -374,16 +378,34 @@
         justify-content: center;
     }
 
-    @media (max-width: 760px) {
+    /* Narrower: the search box and Clear Filters on top, the four dropdowns
+       in one row under them. */
+    @container (max-width: 820px) {
         .filters-row {
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
         }
-        .search-box {
+        .filters-row .search-box {
+            grid-column: 1 / 4;
+        }
+    }
+    /* Narrower still: the dropdowns two by two, Clear Filters full width. */
+    @container (max-width: 560px) {
+        .filters-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .filters-row .search-box,
+        .filters-row .btn-outline {
             grid-column: 1 / -1;
         }
-        .btn-outline {
-            width: 100%;
+    }
+    /* Phones: one per row. */
+    @container (max-width: 340px) {
+        .filters-row {
+            grid-template-columns: minmax(0, 1fr);
         }
+    }
+    select.filter-select {
+        text-overflow: ellipsis;
     }
     .btn-outline:hover {
         background: var(--dm-surface-2, #f5f5f2);
@@ -1344,9 +1366,6 @@
     @media (max-width: 560px) {
         .stats {
             grid-template-columns: minmax(0, 1fr);
-        }
-        .filters-row {
-            grid-template-columns: 1fr;
         }
         /* Seven columns will not fit a phone legibly: hold the table at a
            readable width and let its wrapper scroll sideways. */

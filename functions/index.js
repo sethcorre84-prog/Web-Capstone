@@ -1186,14 +1186,18 @@ exports.emailReportedUser = onCall(
 // Two-factor sign-in by SMS (Settings > Two-Factor Authentication)
 // =====================================================================
 
-/* An admin who turns it on (admins/{uid}.twoFactor) is asked, on any device
-   not yet recognised, for a code texted to the phone number on their profile
-   (admins/{uid}.phone). The page sends and checks the code with Firebase's
+/* Required for every admin: on any device not yet recognised, signing in
+   needs a code texted to the phone number on their profile
+   (admins/{uid}.phone). An admin with no phone on their profile is let in
+   until they add one (Settings says so), so no one is locked out. The page sends and checks the code with Firebase's
    own phone verification, in a separate throwaway sign-in, and hands the
    resulting ID token here: it proves that phone number was reached. These
    functions check it against the profile and remember the device in
    admins/{uid}/trustedDevices/{deviceId}, which no client can read or write
-   (no firestore.rules block), so a browser cannot mark itself recognised. */
+   (no firestore.rules block), so a browser cannot mark itself recognised.
+
+   The number that passed a code is kept (admins/{uid}.twoFactorPhone, which
+   admins cannot write: see firestore.rules). */
 
 // A profile phone ("0917 123 4567", "+63 917...", "9171234567") in E.164.
 function toE164(raw) {
@@ -1233,16 +1237,27 @@ exports.checkTwoFactor = onCall(async (request) => {
   const admin = await signedInAdmin(request);
   const deviceId = deviceIdOf(request);
   const phone = toE164(admin.data.phone);
-  const enabled = admin.data.twoFactor === true;
-  let trusted = false;
-  if (enabled) {
-    trusted = (await admin.ref.collection("trustedDevices").doc(deviceId).get()).exists;
+  // Always on, for every admin.
+  const enabled = true;
+  const trusted = (await admin.ref.collection("trustedDevices").doc(deviceId).get()).exists;
+  // Turned on before the confirmed number was kept: a recognised device
+  // stores the number its code went to, which proves it the same way.
+  let verifiedPhone = admin.data.twoFactorPhone || "";
+  if (!verifiedPhone && phone) {
+    const proven = await admin.ref.collection("trustedDevices").where("phone", "==", phone).limit(1).get();
+    if (!proven.empty) {
+      verifiedPhone = phone;
+      await admin.ref.update({ twoFactorPhone: phone });
+    }
   }
   return {
     enabled,
-    required: enabled && !trusted,
+    // No phone on the profile: nothing to text, so not required (yet).
+    required: Boolean(phone) && !trusted,
     phone,
-    masked: phone ? maskPhone(phone) : ""
+    masked: phone ? maskPhone(phone) : "",
+    // This number already passed a code: turning it on needs the password.
+    phoneVerified: Boolean(phone) && verifiedPhone === phone
   };
 });
 
@@ -1276,9 +1291,15 @@ exports.confirmTwoFactor = onCall(async (request) => {
     phone: profilePhone,
     trustedAt: FieldValue.serverTimestamp()
   });
-  if (request.data?.enable === true) {
-    await admin.ref.update({ twoFactor: true, twoFactorEnabledAt: FieldValue.serverTimestamp() });
-  }
+  // The number is proven: remembered, so turning it on again needs only the
+  // password.
+  await admin.ref.update({
+    twoFactorPhone: profilePhone,
+    twoFactorPhoneVerifiedAt: FieldValue.serverTimestamp(),
+    ...(request.data?.enable === true
+      ? { twoFactor: true, twoFactorEnabledAt: FieldValue.serverTimestamp() }
+      : {})
+  });
 
   // The throwaway phone sign-in made an Auth account for the number; remove
   // it unless it is someone's real account (an admin or an app user).
@@ -1298,15 +1319,18 @@ exports.confirmTwoFactor = onCall(async (request) => {
   return { ok: true };
 });
 
-// Turns two-factor off and forgets every recognised device.
+/* No longer used: two-factor is required for every admin, and a computer is
+   only recognised after an SMS code (confirmTwoFactor). Kept refusing so a
+   password alone can never mark a new computer as recognised. */
+exports.enableTwoFactorWithPassword = onCall(async (request) => {
+  await signedInAdmin(request);
+  throw new HttpsError("failed-precondition", "Two-factor sign-in is always on. A new computer needs the SMS code.");
+});
+
+// Two-factor sign-in is required for every admin, so it cannot be turned off.
 exports.disableTwoFactor = onCall(async (request) => {
-  const admin = await signedInAdmin(request);
-  const devices = await admin.ref.collection("trustedDevices").get();
-  const batch = db.batch();
-  devices.docs.forEach((item) => batch.delete(item.ref));
-  batch.update(admin.ref, { twoFactor: false, twoFactorEnabledAt: FieldValue.delete() });
-  await batch.commit();
-  return { ok: true };
+  await signedInAdmin(request);
+  throw new HttpsError("failed-precondition", "Two-factor sign-in is required for every admin and cannot be turned off.");
 });
 
 // =====================================================================

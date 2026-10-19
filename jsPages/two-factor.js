@@ -1,16 +1,14 @@
 // two-factor.js
-// Two-factor sign-in by SMS, for admins who turn it on in Settings > Two-Factor
-// Authentication. On a device not yet recognised, signing in also needs a
-// 6-digit code texted to the phone number on the admin's profile.
+// Two-factor sign-in by SMS, required for every admin account. On a computer
+// not yet recognised for the account, signing in also needs a 6-digit code
+// texted to the phone number on the admin's profile (Settings shows it).
 //
 //   login.js           asks for the code after the password (requireTwoFactor)
 //   dashboard-guard.js signs out a browser that skipped it (guardTwoFactor)
-//   Setting.html       turns it on (with a code, so a wrong number cannot lock
-//                      the admin out) and off
 //
 // The code is sent and checked by Firebase's own phone verification, in a
 // second Firebase app so the admin's sign-in is never touched. Its result is
-// confirmed by the checkTwoFactor / confirmTwoFactor / disableTwoFactor Cloud
+// confirmed by the checkTwoFactor / confirmTwoFactor Cloud
 // Functions (functions/index.js), which keep the recognised devices where no
 // browser can write them. Needs the Phone sign-in method turned on in
 // Firebase Console > Authentication, and the site's domain listed under its
@@ -141,9 +139,8 @@ function explain(error) {
 }
 
 /* Sends a code to `phone` and waits for it. Resolves true once the code is
-   confirmed (this device is then recognised; with `enable`, two-factor is
-   turned on), false if cancelled. */
-function smsChallenge({ phone, masked, title, intro, enable = false }) {
+   confirmed (this device is then recognised), false if cancelled. */
+function smsChallenge({ phone, masked, title, intro }) {
   if (!overlay) buildOverlay();
   const $ = (selector) => overlay.querySelector(selector);
   const sendStep = $('.tf-send-step');
@@ -246,7 +243,7 @@ function smsChallenge({ phone, masked, title, intro, enable = false }) {
       try {
         const result = await confirmation.confirm(code);
         const phoneToken = await result.user.getIdToken();
-        await call('confirmTwoFactor', { deviceId: deviceId(), device: await deviceLabel(), phoneToken, enable });
+        await call('confirmTwoFactor', { deviceId: deviceId(), device: await deviceLabel(), phoneToken });
         try { sessionStorage.setItem(PASSED_KEY(auth.currentUser?.uid), '1'); } catch { /* fine */ }
         finish(true);
       } catch (error) {
@@ -304,19 +301,3 @@ export async function guardTwoFactor(user) {
     return true;
   }
 }
-
-/* Settings: turns it on after a code to the profile phone (so the number is
-   known to work), and recognises this device. Resolves true when on. */
-export async function enableTwoFactor() {
-  const status = await checkTwoFactor();
-  if (!status.phone) throw new Error('Add your phone number in Settings > Profile Information first.');
-  return smsChallenge({
-    phone: status.phone,
-    masked: status.masked,
-    title: 'Turn on two-factor sign-in',
-    intro: 'Confirm your phone number first.',
-    enable: true
-  });
-}
-
-export const disableTwoFactor = () => call('disableTwoFactor', {});

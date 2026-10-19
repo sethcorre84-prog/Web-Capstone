@@ -1342,7 +1342,7 @@
         import { createMakilingMap } from "../jsPages/makiling-area.js";
         import { addMapFeatures } from "../jsPages/map-features.js";
         import { watchActiveHikers } from "../jsPages/active-hikers.js";
-        import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, weatherUrlFor } from "../jsPages/weather-locations.js";
+        import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, watchWeatherLocation, weatherUrlFor } from "../jsPages/weather-locations.js";
         import { openExportMenu } from "../jsPages/export-table.js";
 
         /* What each Dashboard list is showing right now, recorded by the code
@@ -2091,6 +2091,8 @@
         window.addEventListener('storage', (event) => {
             if (event.key === WEATHER_STORAGE_KEY) updateWeather();
         });
+        // Changed in Settings by any admin (shared in Firestore with the app).
+        watchWeatherLocation(db, updateWeather);
 
         // The hour right now in the portal's time zone, so the greeting always
         // agrees with the clock beside it rather than with the device's zone.
