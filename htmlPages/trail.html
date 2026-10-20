@@ -1654,6 +1654,17 @@
   </div>
 </div>
 
+<!-- Notice pop-up: messages on this page (showNotice), in place of the
+     browser's alert box. -->
+<div id="noticeModal" role="dialog" aria-modal="true" aria-labelledby="noticeTitle" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1200;align-items:center;justify-content:center;">
+  <div style="background:var(--dm-surface, #fff);border-radius:12px;padding:28px;max-width:380px;width:90%;text-align:center;">
+    <div id="noticeIcon" style="display:grid;place-items:center;width:52px;height:52px;margin:0 auto 12px;border-radius:50%;font-size:22px;"></div>
+    <h3 id="noticeTitle" style="margin-bottom:8px;font-size:18px;"></h3>
+    <p id="noticeText" style="color:var(--text-secondary);font-size:13.5px;line-height:1.5;margin-bottom:20px;"></p>
+    <button id="noticeOkBtn" type="button" style="width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent, #2f8f4e);color:#fff;font-weight:600;font-size:13px;cursor:pointer;">OK</button>
+  </div>
+</div>
+
 <script type="module">
 import { db, storage } from "../jsPages/firebase-config.js";
 import { formatPortalDate, formatPortalDateTime } from "../jsPages/datetime-prefs.js";
@@ -1720,6 +1731,47 @@ const makilingCenter = [14.136, 121.197];
 let trailLines = null;
 // The route editor (trail-routes.js), set up further down.
 let trailRoutes = null;
+
+/* The page's message pop-up. tone: 'info' (green), 'warning' (amber) or
+   'error' (red). Resolves when it is closed (OK, Escape or a click
+   outside). */
+const NOTICE_TONES = {
+  info: { icon: 'fa-circle-info', color: '#2f8f4e', bg: 'rgba(47,143,78,.12)' },
+  warning: { icon: 'fa-route', color: '#b9791b', bg: 'rgba(232,166,60,.16)' },
+  error: { icon: 'fa-triangle-exclamation', color: '#c8402f', bg: 'rgba(200,64,47,.12)' }
+};
+function showNotice(message, { title = 'Notice', tone = 'info' } = {}) {
+  const modal = document.getElementById('noticeModal');
+  const look = NOTICE_TONES[tone] || NOTICE_TONES.info;
+  const icon = document.getElementById('noticeIcon');
+  icon.innerHTML = `<i class="fa-solid ${look.icon}" aria-hidden="true"></i>`;
+  icon.style.color = look.color;
+  icon.style.background = look.bg;
+  document.getElementById('noticeTitle').textContent = title;
+  document.getElementById('noticeText').textContent = message;
+  modal.style.display = 'flex';
+  const ok = document.getElementById('noticeOkBtn');
+  ok.focus();
+  return new Promise((resolve) => {
+    const close = () => {
+      modal.style.display = 'none';
+      ok.onclick = null;
+      modal.onclick = null;
+      document.removeEventListener('keydown', onKey, true);
+      resolve();
+    };
+    const onKey = (event) => {
+      if (event.key === 'Escape' || event.key === 'Enter') {
+        event.preventDefault();
+        event.stopPropagation();
+        close();
+      }
+    };
+    ok.onclick = close;
+    modal.onclick = (event) => { if (event.target === modal) close(); };
+    document.addEventListener('keydown', onKey, true);
+  });
+}
 // A key is a trail's saved route (trail:<id>) or a line from the file.
 const trailForLine = (key) => trailForLineKey(trails, key);
 const isClosed = (trail) => String(trail?.Status || 'Open').toLowerCase().startsWith('close');
@@ -1835,7 +1887,7 @@ const trailPoints = initTrailPoints({
     checkpoints: document.getElementById('addCheckpointBtn'),
     campsites: document.getElementById('addCampsiteBtn')
   },
-  notify: (message) => alert(message)
+  notify: (message) => showNotice(message, { title: 'Trail Map' })
 });
 
 // Draw Route / Import GPX / KML: the selected trail's line on every map,
@@ -1850,7 +1902,7 @@ trailRoutes = initTrailRoutes({
     import: document.getElementById('importRouteBtn'),
     remove: document.getElementById('removeRouteBtn')
   },
-  notify: (message) => alert(message)
+  notify: (message) => showNotice(message, { title: 'Trail Map' })
 });
 
 // trail.html?add=checkpoint (the Dashboard's Quick Actions > Add Checkpoint)
@@ -1966,7 +2018,7 @@ tr.innerHTML = `
     await updateDoc(doc(db, "trails", t.id), { Visible: !visible });
   } catch (err) {
     console.error(err);
-    alert("Failed to update visibility: " + err.message);
+    showNotice(`The visibility could not be changed: ${err.message}`, { title: 'Not updated', tone: 'error' });
   }
 });
 
@@ -2086,6 +2138,22 @@ const OLD_ENTRY_TYPES = {
 };
 function entryTypeLabel(value) {
   return OLD_ENTRY_TYPES[value] || value;
+}
+
+/* Becoming a Registered Trail needs a line on the maps: a trail with none
+   gets its route drawn or imported first (trail-routes.js
+   registerWithRoute), and only saving it registers the trail. */
+const needsRouteToRegister = (trail, entryType) =>
+  entryTypeLabel(entryType) === 'Registered Trail'
+  && entryTypeLabel(trail?.EntryType) !== 'Registered Trail'
+  && !trailRoutes?.hasLine(trail);
+
+async function registerThroughRoute(trail) {
+  const ok = await trailRoutes.registerWithRoute(trail);
+  if (!ok) {
+    await showNotice(`${trail.Trail || 'The trail'} was not registered: it needs a route on the map first. `
+      + 'Edit it again and choose Registered Trail to add one.', { title: 'Not registered', tone: 'warning' });
+  }
 }
 
 function renderDetail() {
@@ -2279,6 +2347,11 @@ async function saveEdit() {
     return;
   }
 
+  // Registered Trail with no line yet: everything else is saved now, and
+  // the Entry Type only once its route is (registerThroughRoute below).
+  const registerAfter = changed.includes('EntryType') && needsRouteToRegister(t, current.EntryType);
+  if (registerAfter) changed.splice(changed.indexOf('EntryType'), 1);
+
   const updated = { UpdatedAt: serverTimestamp() };
   for (const field of changed) {
     // Clearing the date removes it rather than storing a blank.
@@ -2288,14 +2361,15 @@ async function saveEdit() {
   if (changed.includes('Status')) updated.StatusUpdatedAt = serverTimestamp();
 
   try {
-    await updateDoc(doc(db, "trails", t.id), updated);
+    if (changed.length) await updateDoc(doc(db, "trails", t.id), updated);
     editing = false;
     editBaseline = null;
     // The live listener skipped its redraw while editing was still on.
     renderDetail();
+    if (registerAfter) await registerThroughRoute(t);
   } catch (err) {
     console.error(err);
-    alert("Failed to save changes: " + err.message);
+    showNotice(`Your changes could not be saved: ${err.message}`, { title: 'Not saved', tone: 'error' });
   }
 }
 
@@ -2369,13 +2443,13 @@ photoInput.addEventListener('change', () => {
   if (!file) return resetPhotoPicker();
 
   if (!file.type.startsWith('image/')) {
-    alert('Please choose an image file.');
+    showNotice('Please choose an image file.', { title: 'Photo not added', tone: 'error' });
     photoInput.value = '';
     resetPhotoPicker();
     return;
   }
   if (file.size > 5 * 1024 * 1024) {
-    alert('Trail photos must be 5 MB or smaller.');
+    showNotice('Trail photos must be 5 MB or smaller.', { title: 'Photo not added', tone: 'error' });
     photoInput.value = '';
     resetPhotoPicker();
     return;
@@ -2405,18 +2479,22 @@ function resetPhotoPicker() {
 document.getElementById('submitAddTrail').addEventListener('click', async () => {
   const name = document.getElementById('newTrailName').value.trim();
   if (!name) {
-    alert("Please enter a trail name.");
+    showNotice('Please enter a trail name.', { title: 'Trail name needed', tone: 'error' });
     return;
   }
 
     const publishDate = fromDateInputValue(document.getElementById('newTrailPublishDate').value);
+
+    // A new trail has no line yet: chosen as Registered, it is added as
+    // Unregistered and registered once its route is saved (below).
+    const wantsRegistered = entryTypeLabel(document.getElementById('newTrailEntryType').value) === 'Registered Trail';
 
     const newTrail = {
     Trail: name,
     Description: document.getElementById('newTrailDesc').value,
     Difficulty: document.getElementById('newTrailDiff').value,
     Type: document.getElementById('newTrailType').value,
-    EntryType: document.getElementById('newTrailEntryType').value,
+    EntryType: wantsRegistered ? 'Unregistered Trail' : document.getElementById('newTrailEntryType').value,
     "Approximate Distance": document.getElementById('newTrailDist').value,
     Duration: document.getElementById('newTrailDur').value,
     Elevation: document.getElementById('newTrailElev').value,
@@ -2451,9 +2529,14 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     document.getElementById('newTrailPublishDate').value = '';
     photoInput.value = '';
     resetPhotoPicker();
+    if (wantsRegistered) {
+      const added = { id: docRef.id, ...newTrail };
+      if (needsRouteToRegister(added, 'Registered Trail')) await registerThroughRoute(added);
+      else await updateDoc(docRef, { EntryType: 'Registered Trail' });
+    }
   } catch (err) {
     console.error(err);
-    alert("Failed to add trail: " + err.message);
+    showNotice(`The trail could not be added: ${err.message}`, { title: 'Not added', tone: 'error' });
   }
 });
 
@@ -2514,7 +2597,7 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async () =
     if (selectedId === trailPendingDelete.id) selectedId = null;
   } catch (err) {
     console.error(err);
-    alert("Failed to delete trail: " + err.message);
+    showNotice(`The trail could not be deleted: ${err.message}`, { title: 'Not deleted', tone: 'error' });
   } finally {
     trailPendingDelete = null;
     deleteConfirmModal.style.display = 'none';

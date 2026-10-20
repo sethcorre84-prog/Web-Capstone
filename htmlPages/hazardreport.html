@@ -315,10 +315,14 @@
     .list-header-top h2 {
         margin: 0;
     }
+    /* One line whenever it fits: the search box widest, the four dropdowns
+       sharing the rest, Clear Filters sized to its label. When the list is
+       too narrow (e.g. with the details panel open) it wraps onto a second
+       or third line instead of squeezing the labels. */
     .filters-row {
-        display: grid;
-        grid-template-columns: minmax(140px, 1.6fr) repeat(4, minmax(105px, 1fr)) auto;
-        gap: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
         align-items: center;
     }
     .search-box {
@@ -378,30 +382,26 @@
         justify-content: center;
     }
 
-    /* Narrower: the search box and Clear Filters on top, the four dropdowns
-       in one row under them. */
-    @container (max-width: 820px) {
-        .filters-row {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-        .filters-row .search-box {
-            grid-column: 1 / 4;
-        }
+    .filters-row .search-box {
+        flex: 2 1 120px;
     }
-    /* Narrower still: the dropdowns two by two, Clear Filters full width. */
-    @container (max-width: 560px) {
-        .filters-row {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-        .filters-row .search-box,
-        .filters-row .btn-outline {
-            grid-column: 1 / -1;
-        }
+    .filters-row select.filter-select {
+        flex: 1 1 115px;
+        width: auto;
+    }
+    /* "Trail: All" and "Status: All" are short labels: these two take less
+       room, so Clear Filters fits on the same line. */
+    .filters-row #trailFilter,
+    .filters-row #statusFilter {
+        flex: 0.6 1 88px;
+    }
+    .filters-row .btn-outline {
+        flex: 0 0 auto;
     }
     /* Phones: one per row. */
     @container (max-width: 340px) {
-        .filters-row {
-            grid-template-columns: minmax(0, 1fr);
+        .filters-row > * {
+            flex-basis: 100%;
         }
     }
     select.filter-select {

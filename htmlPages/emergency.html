@@ -313,6 +313,16 @@
         gap: 6px;
         white-space: nowrap;
     }
+    /* Hiker pins (hiker-layer.js) at legend size. */
+    .legend-item .hiker-pin {
+        width: 18px;
+        height: 18px;
+        border-width: 1px;
+        font-size: 9px;
+    }
+    .legend-item .hiker-pin::after {
+        display: none;
+    }
     .trends-panel {
         margin-top: 14px;
     }
@@ -813,6 +823,12 @@
         font-weight: 600;
         color: var(--text-secondary);
     }
+    .lost-text {
+        margin: 0 0 10px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text-secondary);
+    }
     .resolve-form .optional {
         font-weight: 400;
         color: var(--text-muted);
@@ -1090,6 +1106,8 @@
           <div class="map-legend">
             <span class="legend-item"><span class="type-icon sm sos"><span class="sos-text">SOS</span></span>SOS Alert</span>
             <span class="legend-item"><span class="type-icon sm lost"><i class="fa-solid fa-person-walking"></i></span>Lost / Missing</span>
+            <span class="legend-item" title="Signed in to the PeakPath app on Mount Makiling"><span class="hiker-pin online" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span>Hiker</span>
+            <span class="legend-item" title="Started a hike in the PeakPath app"><span class="hiker-pin online on-hike" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span>On a hike</span>
             <button class="map-fullscreen" id="mapFullscreenBtn" type="button" title="Full screen" aria-label="Show the map full screen"><i class="fa-solid fa-expand"></i></button>
           </div>
         </div>
@@ -1159,10 +1177,25 @@
       </div>
     </form>
 
+    <!-- An SOS from a hiker who is lost: the admin marks it Lost / Missing,
+         and the PeakPath app then alerts every hiker (pushOnMissingHiker). -->
+    <form class="resolve-form" id="lostForm" novalidate hidden>
+      <p class="lost-text">This SOS will become a <strong>Lost / Missing</strong> alert. Every PeakPath hiker gets an alert in the app to look out for this hiker.</p>
+      <div class="field">
+        <label for="lostNote">Note for hikers <span class="optional">(optional)</span></label>
+        <textarea id="lostNote" rows="2" maxlength="300" placeholder="e.g. Last seen near Station 21, wearing a red jacket"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="lostCancel" type="button">Back</button>
+        <button class="btn btn-warn" id="lostConfirm" type="submit">Mark as Lost / Missing</button>
+      </div>
+    </form>
+
     <div class="form-error" id="emModalError" role="alert"></div>
 
     <div class="modal-actions" id="emModalActions">
       <button class="btn" id="emLocateBtn" type="button"><i class="fa-solid fa-location-crosshairs"></i>Show on map</button>
+      <button class="btn" id="emLostBtn" type="button" title="The hiker is lost: alert every PeakPath hiker"><i class="fa-solid fa-person-walking"></i>Mark as Lost / Missing</button>
       <button class="btn btn-warn" id="emRespondBtn" type="button"><i class="fa-solid fa-person-running"></i>Mark responding</button>
       <button class="btn btn-primary" id="emResolveBtn" type="button"><i class="fa-solid fa-check"></i>Mark resolved</button>
     </div>
@@ -1175,6 +1208,7 @@
   import { collection, doc, onSnapshot, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   import { formatPortalDate, formatPortalDateTime, formatPortalTime, portalTimeZone, toPortalDate } from '../jsPages/datetime-prefs.js';
   import { createMakilingMap } from '../jsPages/makiling-area.js';
+  import { addHikerLayer } from '../jsPages/hiker-layer.js';
   import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, watchWeatherLocation, weatherUrlFor } from '../jsPages/weather-locations.js';
 
   const $ = (id) => document.getElementById(id);
@@ -1294,7 +1328,9 @@
   // Hikers, so a record carrying only a user id still shows a name and phone.
   const usersById = new Map();
   const userFor = (data) => {
-    for (const key of ['userId', 'uid', 'hikerId', 'userID']) {
+    // A teammate's Lost / Missing report is filed by the teammate (userId);
+    // the hiker it is about is missingUserId.
+    for (const key of ['missingUserId', 'userId', 'uid', 'hikerId', 'userID']) {
       const user = usersById.get(text(data[key]));
       if (user) return user;
     }
@@ -1340,7 +1376,17 @@
       resolutionNote: text(data.resolutionNote),
       // GPS accuracy in metres, from the phone.
       accuracy: Number.isFinite(Number(data.accuracy)) && Number(data.accuracy) > 0 ? Number(data.accuracy) : null,
-      cancelledAt: toPortalDate(data.cancelledAt)
+      cancelledAt: toPortalDate(data.cancelledAt),
+      // The hiker the alert is about (for marking an SOS as Lost / Missing).
+      hikerUid: text(pick(data, ['missingUserId', 'userId', 'uid', 'hikerId', 'userID'])),
+      // Lost / Missing: who reported it from the app (a teammate), or which
+      // admin turned an SOS into one.
+      reportedByName: text(data.reportedByName),
+      teamName: text(data.teamName),
+      lastSeenAt: toPortalDate(data.lastSeenAt),
+      markedLostBy: text(data.markedLostBy),
+      markedLostAt: toPortalDate(data.markedLostAt),
+      lostNote: text(data.lostNote)
     };
   };
 
@@ -1393,6 +1439,22 @@
   // Map
   // ---------------------------------------------------------------------
   const { map, bounds: makilingBounds } = createMakilingMap('emergencyMap');
+  // Hikers on the mountain (hiker-layer.js, as on the GeoMap), under the
+  // emergency markers, so responders see who is near an alert.
+  let emergencyCaption = '';
+  let hikerCaption = '';
+  const showMapCaption = () => {
+    $('mapCaption').textContent = [emergencyCaption, hikerCaption].filter(Boolean).join(' · ');
+  };
+  addHikerLayer({
+    map,
+    db,
+    bounds: makilingBounds,
+    onCaption: (text) => {
+      hikerCaption = text;
+      showMapCaption();
+    }
+  });
   const markerLayer = L.layerGroup().addTo(map);
   const markersById = new Map();
 
@@ -1421,7 +1483,8 @@
           iconAnchor: [15, 15],
           popupAnchor: [0, -14]
         }),
-        zIndexOffset: isOpen(record) ? 1000 : 0
+        // Open alerts above the hiker pins (1000-1100), closed ones below.
+        zIndexOffset: isOpen(record) ? 2000 : 0
       }).bindPopup(`
         <strong>${escapeHtml(type.label)}: ${escapeHtml(record.name)}</strong><br>
         ${escapeHtml(record.location)}<br>
@@ -1436,7 +1499,8 @@
     const caption = [`${plural(plotted, 'alert')} on the map`];
     if (noPosition) caption.push(`${noPosition} without a location`);
     if (offMountain) caption.push(`${offMountain} outside Mount Makiling`);
-    $('mapCaption').textContent = visible.length ? caption.join(' · ') : 'No emergencies to show on the map.';
+    emergencyCaption = visible.length ? caption.join(' · ') : 'No emergencies to show on the map.';
+    showMapCaption();
   };
 
   // "View details" inside a marker popup. The dialog lives outside the map,
@@ -1818,6 +1882,7 @@
   // ---------------------------------------------------------------------
   const modal = $('emergencyModal');
   const resolveForm = $('resolveForm');
+  const lostForm = $('lostForm');
   const modalError = $('emModalError');
 
   const detailRow = (label, value) => value
@@ -1836,6 +1901,10 @@
     $('emModalTitle').textContent = r.title || `${type.label} alert`;
     $('emModalDetails').innerHTML = [
       detailRow('Hiker', r.name),
+      detailRow('Reported missing by', r.reportedByName ? `${r.reportedByName}${r.teamName ? ` (team ${r.teamName})` : ''}, from the PeakPath app` : ''),
+      detailRow('Marked Lost / Missing', r.markedLostAt || r.markedLostBy ? `${r.markedLostAt ? formatPortalDateTime(r.markedLostAt) : ''}${r.markedLostBy ? ` by ${r.markedLostBy}` : ''} (from the hiker's SOS)` : ''),
+      detailRow('Last seen', r.lastSeenAt ? `${formatPortalDateTime(r.lastSeenAt)} (last position the app shared)` : ''),
+      detailRow('Note for hikers', r.lostNote),
       detailRow('Group size', r.groupSize > 1 ? String(r.groupSize) : ''),
       detailRow('Phone', r.phone),
       detailRow('Emergency contact', r.emergencyContact),
@@ -1857,6 +1926,8 @@
     $('emLocateBtn').disabled = !onMap;
     $('emLocateBtn').title = onMap ? '' : (r.coords ? 'This location is outside Mount Makiling' : 'No location shared');
     $('emRespondBtn').hidden = r.status !== 'active';
+    // Only an open SOS can become Lost / Missing.
+    $('emLostBtn').hidden = !(r.type === 'sos' && isOpen(r));
     $('emResolveBtn').hidden = !isOpen(r);
   };
 
@@ -1864,6 +1935,7 @@
     modalId = id;
     modalError.textContent = '';
     resolveForm.hidden = true;
+    lostForm.hidden = true;
     $('emModalActions').hidden = false;
     fillModal();
     modal.hidden = false;
@@ -1907,7 +1979,7 @@
   const adminName = () => auth.currentUser?.displayName || auth.currentUser?.email || 'Admin';
 
   const setBusy = (busy) => {
-    ['emRespondBtn', 'emResolveBtn', 'resolveConfirm'].forEach((id) => { $(id).disabled = busy; });
+    ['emRespondBtn', 'emResolveBtn', 'resolveConfirm', 'emLostBtn', 'lostConfirm'].forEach((id) => { $(id).disabled = busy; });
   };
 
   $('emRespondBtn').addEventListener('click', async () => {
@@ -1938,6 +2010,48 @@
     $('emModalActions').hidden = true;
     resolveForm.hidden = false;
     $('resolvePeople').focus();
+  });
+
+  // Mark as Lost / Missing: the hiker's own SOS says they are lost. It stays
+  // the same alert (status, position, history), now as Lost / Missing.
+  $('emLostBtn').addEventListener('click', () => {
+    if (!modalId) return;
+    modalError.textContent = '';
+    $('lostNote').value = '';
+    $('emModalActions').hidden = true;
+    lostForm.hidden = false;
+    $('lostNote').focus();
+  });
+
+  $('lostCancel').addEventListener('click', () => {
+    lostForm.hidden = true;
+    $('emModalActions').hidden = false;
+    modalError.textContent = '';
+  });
+
+  lostForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const record = records.find((item) => item.id === modalId);
+    if (!record) return;
+    modalError.textContent = '';
+    setBusy(true);
+    try {
+      await updateDoc(recordRef(modalId), {
+        type: 'Lost',
+        ...(record.hikerUid ? { missingUserId: record.hikerUid } : {}),
+        markedLostAt: serverTimestamp(),
+        markedLostBy: adminName(),
+        lostNote: $('lostNote').value.trim(),
+        updatedAt: serverTimestamp()
+      });
+      lostForm.hidden = true;
+      $('emModalActions').hidden = false;
+    } catch (error) {
+      console.error('Failed to mark the hiker as lost / missing:', error);
+      modalError.textContent = writeError(error);
+    } finally {
+      setBusy(false);
+    }
   });
 
   $('resolveCancel').addEventListener('click', () => {
@@ -2011,7 +2125,10 @@
       : null;
     if (failed.length) console.warn('Emergency alerts not loaded from:', failed.join(', '));
     render();
-    if (loadError) $('mapCaption').textContent = loadError;
+    if (loadError) {
+      emergencyCaption = loadError;
+      showMapCaption();
+    }
   }
 
   let firstLoadDone = false;

@@ -1167,7 +1167,7 @@
         <main class="main-panel">
             <section class="top-bar">
                 <div class="top-copy">
-                    <h1 id="greeting">Welcome back, Admin!</h1>
+                    <h1 id="greeting">Welcome back!</h1>
                     <p>Mount Makiling overview</p>
                 </div>
                 <!-- The module script below is deferred and imports Firebase,
@@ -1177,16 +1177,38 @@
                      Settings > Date & Time, and with the hour changing while
                      the page is left open. -->
                 <script>
-                    // 6:00-11:59 morning, 12:00-17:59 afternoon,
-                    // 18:00-21:59 evening, 22:00-5:59 night (until sunrise).
+                    // The signed-in admin's first name: the name admin-identity.js
+                    // kept from the last sign-in straight away, then the live one
+                    // (it announces it with a 'peakpath:admin-name' event).
+                    (function () {
+                        var first = function (name) {
+                            return String(name || '').trim().split(/\s+/)[0] || '';
+                        };
+                        try {
+                            window.portalAdminName = first(JSON.parse(localStorage.getItem('peakpath-admin-identity') || '{}').name);
+                        } catch (error) {
+                            window.portalAdminName = '';
+                        }
+                        document.addEventListener('peakpath:admin-name', function (event) {
+                            window.portalAdminName = first(event.detail && event.detail.name);
+                            var el = document.getElementById('greeting');
+                            if (el && window.portalGreetingHour !== undefined) {
+                                el.textContent = window.portalGreeting(window.portalGreetingHour);
+                            }
+                        });
+                    })();
+                    // Mountain-themed, by the hour: 6:00-11:59 morning,
+                    // 12:00-17:59 afternoon, 18:00-21:59 evening, 22:00-5:59 night.
                     window.portalGreeting = function (hour) {
-                        if (hour >= 6 && hour < 12) return 'Hello Early bird';
-                        if (hour >= 12 && hour < 18) return 'Hello Sunshine';
-                        if (hour >= 18 && hour < 22) return 'Hello Evening star';
-                        return 'Hello, night owl';
+                        window.portalGreetingHour = hour;
+                        var name = window.portalAdminName || 'Admin';
+                        if (hour >= 6 && hour < 12) return 'Rise and shine, ' + name + '! The trails are waking up';
+                        if (hour >= 12 && hour < 18) return 'Good afternoon, ' + name + '!';
+                        if (hour >= 18 && hour < 22) return 'Good evening, ' + name + '!';
+                        return 'Working late, ' + name + '?';
                     };
                     document.getElementById('greeting').textContent =
-                        window.portalGreeting(new Date().getHours()) + ', Admin!';
+                        window.portalGreeting(new Date().getHours());
                 </script>
                 <!-- Who is signed in is already in the sidebar account chip, so
                      the header only carries the day, a live clock and the logo. -->
@@ -2110,7 +2132,7 @@
         function updateClock() {
             const greeting = document.getElementById('greeting');
             if (greeting) {
-                greeting.textContent = `${window.portalGreeting(portalHour())}, Admin!`;
+                greeting.textContent = window.portalGreeting(portalHour());
             }
 
             const clock = document.getElementById('live-clock');

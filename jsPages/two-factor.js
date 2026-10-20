@@ -1,14 +1,18 @@
 // two-factor.js
-// Two-factor sign-in by SMS, required for every admin account. On a computer
-// not yet recognised for the account, signing in also needs a 6-digit code
-// texted to the phone number on the admin's profile (Settings shows it).
+// Two-factor sign-in by SMS, for admins who turn it on in Settings > Two-Factor
+// Authentication. On a device not yet recognised, signing in also needs a
+// 6-digit code texted to the phone number on the admin's profile.
 //
 //   login.js           asks for the code after the password (requireTwoFactor)
 //   dashboard-guard.js signs out a browser that skipped it (guardTwoFactor)
+//   Setting.html       turns it on (with a code the first time, so a wrong
+//                      number cannot lock the admin out; after that, with the
+//                      admin's password while the profile phone is the same)
+//                      and off
 //
 // The code is sent and checked by Firebase's own phone verification, in a
 // second Firebase app so the admin's sign-in is never touched. Its result is
-// confirmed by the checkTwoFactor / confirmTwoFactor Cloud
+// confirmed by the checkTwoFactor / confirmTwoFactor / disableTwoFactor Cloud
 // Functions (functions/index.js), which keep the recognised devices where no
 // browser can write them. Needs the Phone sign-in method turned on in
 // Firebase Console > Authentication, and the site's domain listed under its
@@ -18,7 +22,7 @@ import { auth, firebaseConfig } from './firebase-config.js';
 import { describeDevice } from './admin-sessions.js';
 import { getApp, getApps, initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
-  RecaptchaVerifier, getAuth, signInWithPhoneNumber, signOut
+  EmailAuthProvider, RecaptchaVerifier, getAuth, reauthenticateWithCredential, signInWithPhoneNumber, signOut
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
 
@@ -77,7 +81,17 @@ const CSS = `
 .tf-primary:disabled, .tf-resend:disabled { opacity:.55; cursor:not-allowed; }
 .tf-resend { margin-top:12px; border:0; background:none; font:inherit; font-size:12.5px; font-weight:700;
   color:#2f8f4e; cursor:pointer; }
-.tf-code-step[hidden], .tf-send-step[hidden] { display:none; }
+.tf-code-step[hidden], .tf-send-step[hidden], .tf-pass-step[hidden] { display:none; }
+.tf-pass { width:100%; padding:11px 12px; border:1px solid var(--border,#dfe5df); border-radius:10px; font:inherit;
+  font-size:14px; background:var(--dm-surface-2,#fbfcfa); color:var(--text-primary,#1c231c); box-sizing:border-box; }
+.tf-pass:focus { outline:none; border-color:#2f8f4e; box-shadow:0 0 0 3px rgba(47,143,78,.15); }
+/* Show / hide password, inside the field on the right. */
+.tf-pass-wrap { position:relative; }
+.tf-pass-wrap .tf-pass { padding-right:44px; }
+.tf-eye { position:absolute; top:50%; right:6px; transform:translateY(-50%); display:grid; place-items:center;
+  width:34px; height:34px; border:0; border-radius:8px; background:none; color:var(--text-secondary,#5b6b60);
+  font-size:15px; cursor:pointer; }
+.tf-eye:hover, .tf-eye:focus-visible { color:#2f8f4e; background:rgba(47,143,78,.08); outline:none; }
 `;
 
 let overlay = null;
@@ -107,6 +121,17 @@ function buildOverlay() {
           <button type="submit" class="tf-primary tf-verify">Verify</button>
         </div>
         <button type="button" class="tf-resend" disabled>Resend code</button>
+      </form>
+      <form class="tf-pass-step" hidden>
+        <div class="tf-pass-wrap">
+          <input class="tf-pass" type="password" autocomplete="current-password" placeholder="Your password" aria-label="Password">
+          <button type="button" class="tf-eye" aria-label="Show password" title="Show password"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+        </div>
+        <div class="tf-error" role="alert"></div>
+        <div class="tf-actions">
+          <button type="button" class="tf-cancel">Cancel</button>
+          <button type="submit" class="tf-primary tf-pass-ok">Turn on</button>
+        </div>
       </form>
       <div id="tfRecaptcha"></div>
     </div>`;
@@ -139,8 +164,9 @@ function explain(error) {
 }
 
 /* Sends a code to `phone` and waits for it. Resolves true once the code is
-   confirmed (this device is then recognised), false if cancelled. */
-function smsChallenge({ phone, masked, title, intro }) {
+   confirmed (this device is then recognised; with `enable`, two-factor is
+   turned on), false if cancelled. */
+function smsChallenge({ phone, masked, title, intro, enable = false, newPhone = '' }) {
   if (!overlay) buildOverlay();
   const $ = (selector) => overlay.querySelector(selector);
   const sendStep = $('.tf-send-step');
@@ -153,6 +179,7 @@ function smsChallenge({ phone, masked, title, intro }) {
 
   $('#tfTitle').textContent = title;
   $('.tf-text').innerHTML = `${intro} We'll text a 6-digit code to <strong>${masked}</strong>, the phone number on your profile.`;
+  $('.tf-pass-step').hidden = true;
   sendStep.hidden = false;
   codeStep.hidden = true;
   codeInput.value = '';
@@ -243,7 +270,7 @@ function smsChallenge({ phone, masked, title, intro }) {
       try {
         const result = await confirmation.confirm(code);
         const phoneToken = await result.user.getIdToken();
-        await call('confirmTwoFactor', { deviceId: deviceId(), device: await deviceLabel(), phoneToken });
+        await call('confirmTwoFactor', { deviceId: deviceId(), device: await deviceLabel(), phoneToken, enable, newPhone });
         try { sessionStorage.setItem(PASSED_KEY(auth.currentUser?.uid), '1'); } catch { /* fine */ }
         finish(true);
       } catch (error) {
@@ -300,4 +327,142 @@ export async function guardTwoFactor(user) {
     console.warn('Could not check two-factor sign-in:', error.message);
     return true;
   }
+}
+
+// What a password re-entry error means, in words.
+function explainPassword(error) {
+  switch (error?.code) {
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+    case 'auth/invalid-login-credentials': return 'That password is not right.';
+    case 'auth/too-many-requests': return 'Too many attempts. Wait a while, then try again.';
+    case 'auth/network-request-failed': return 'No connection. Check your internet and try again.';
+    default: return explain(error);
+  }
+}
+
+/* Turning it back on: the phone already passed a code, so the admin's
+   password is enough. Resolves true once on, false if cancelled. */
+function passwordChallenge({ masked }) {
+  if (!overlay) buildOverlay();
+  const $ = (selector) => overlay.querySelector(selector);
+  const passStep = $('.tf-pass-step');
+  const input = $('.tf-pass');
+  const okBtn = $('.tf-pass-ok');
+  const error = passStep.querySelector('.tf-error');
+
+  $('#tfTitle').textContent = 'Turn on two-factor sign-in';
+  $('.tf-text').innerHTML = `Your phone number <strong>${masked}</strong> is already confirmed. Enter your password to turn it back on.`;
+  $('.tf-send-step').hidden = true;
+  $('.tf-code-step').hidden = true;
+  passStep.hidden = false;
+  input.value = '';
+  error.textContent = '';
+  // Eye button: show or hide what was typed; always starts hidden.
+  const eye = $('.tf-eye');
+  const setShown = (shown) => {
+    input.type = shown ? 'text' : 'password';
+    eye.innerHTML = `<i class="fa-regular ${shown ? 'fa-eye-slash' : 'fa-eye'}" aria-hidden="true"></i>`;
+    eye.setAttribute('aria-label', shown ? 'Hide password' : 'Show password');
+    eye.title = shown ? 'Hide password' : 'Show password';
+  };
+  setShown(false);
+  eye.onclick = () => {
+    setShown(input.type === 'password');
+    input.focus();
+  };
+  overlay.classList.add('open');
+  input.focus();
+
+  return new Promise((resolve) => {
+    const finish = (ok) => {
+      overlay.classList.remove('open');
+      passStep.hidden = true;
+      input.value = '';
+      setShown(false);
+      eye.onclick = null;
+      passStep.querySelector('.tf-cancel').onclick = null;
+      passStep.onsubmit = null;
+      document.removeEventListener('keydown', onKey);
+      resolve(ok);
+    };
+    const onKey = (event) => { if (event.key === 'Escape') finish(false); };
+    document.addEventListener('keydown', onKey);
+    passStep.querySelector('.tf-cancel').onclick = () => finish(false);
+
+    passStep.onsubmit = async (event) => {
+      event.preventDefault();
+      const user = auth.currentUser;
+      if (!input.value) {
+        error.textContent = 'Enter your password.';
+        return;
+      }
+      okBtn.disabled = true;
+      okBtn.textContent = 'Checking...';
+      error.textContent = '';
+      try {
+        await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, input.value));
+        // A fresh token, so the server sees the password was just entered.
+        await user.getIdToken(true);
+        await call('enableTwoFactorWithPassword', { deviceId: deviceId(), device: await deviceLabel() });
+        try { sessionStorage.setItem(PASSED_KEY(user.uid), '1'); } catch { /* fine */ }
+        finish(true);
+      } catch (err) {
+        console.error('Could not turn on two-factor with the password:', err);
+        error.textContent = explainPassword(err);
+      } finally {
+        okBtn.disabled = false;
+        okBtn.textContent = 'Turn on';
+      }
+    };
+  });
+}
+
+/* Settings: turns it on and recognises this device. The first time (or
+   after the profile phone changed) a code goes to the profile phone, so the
+   number is known to work; after that the password is enough. Resolves true
+   when on. */
+export async function enableTwoFactor() {
+  const status = await checkTwoFactor();
+  if (!status.phone) throw new Error('Add your phone number in Settings > Profile Information first.');
+  if (status.phoneVerified) return passwordChallenge({ masked: status.masked });
+  return smsChallenge({
+    phone: status.phone,
+    masked: status.masked,
+    title: 'Turn on two-factor sign-in',
+    intro: 'Confirm your phone number first.',
+    enable: true
+  });
+}
+
+export const disableTwoFactor = () => call('disableTwoFactor', {});
+
+/* A phone number in E.164, the way the server reads it (toE164 in
+   functions/index.js), so "0917 123 4567" and "+639171234567" are the
+   same number. */
+export function toE164(raw) {
+  const value = String(raw || '').trim();
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+  if (value.startsWith('+')) return `+${digits}`;
+  if (digits.startsWith('63') && digits.length === 12) return `+${digits}`;
+  if (digits.startsWith('0') && digits.length === 11) return `+63${digits.slice(1)}`;
+  if (digits.startsWith('9') && digits.length === 10) return `+63${digits}`;
+  return `+${digits}`;
+}
+
+const maskPhone = (e164) => (e164.length > 6 ? `${e164.slice(0, e164.length - 7)} ••• ••${e164.slice(-2)}` : e164);
+
+/* Settings > Profile Information, changing the number while two-factor is
+   on: a code goes to the NEW number, and the server saves it once the code
+   is confirmed. Resolves true when saved, false if cancelled. */
+export function confirmNewPhone(newPhone) {
+  const phone = toE164(newPhone);
+  return smsChallenge({
+    phone,
+    masked: maskPhone(phone),
+    title: 'Confirm your new number',
+    intro: 'Two-factor sign-in is on, so a new phone number must be confirmed before it is saved.',
+    newPhone
+  });
 }

@@ -54,6 +54,8 @@ export function renderAdminIdentity({ name, role } = {}) {
 
 function applyIdentity(cleanName, cleanRole) {
   if (cleanName) {
+    // The Dashboard greeting addresses the admin by first name.
+    document.dispatchEvent(new CustomEvent('peakpath:admin-name', { detail: { name: cleanName } }));
     document.querySelectorAll('.user-chip .name').forEach((el) => { el.textContent = cleanName; });
     // Avatars that show the PeakPath logo keep it; writing initials into one
     // would replace the logo image with text ("MR").

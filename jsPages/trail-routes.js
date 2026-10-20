@@ -73,6 +73,15 @@ const CSS = `
 .tr-dialog .tr-cancel { border:1px solid var(--border); background:var(--dm-surface,#fff); color:var(--text-primary); }
 .tr-dialog .tr-confirm { border:0; background:#c8402f; color:#fff; }
 .tr-dialog .tr-confirm[disabled] { opacity:.6; cursor:wait; }
+/* Registering a trail with no line: draw or import its route first. */
+.tr-dialog h3 i.is-green { color:#2f8f4e; }
+.tr-dialog .tr-choices { display:grid; gap:8px; margin:0 0 14px; }
+.tr-dialog .tr-choice { display:flex; align-items:center; gap:10px; width:100%; padding:11px 12px; border-radius:10px;
+  border:1px solid var(--border); background:var(--dm-surface,#fff); color:var(--text-primary); font:inherit;
+  font-size:13px; font-weight:600; text-align:left; cursor:pointer; }
+.tr-dialog .tr-choice:hover, .tr-dialog .tr-choice:focus-visible { border-color:#2f8f4e; background:rgba(47,143,78,.06); outline:none; }
+.tr-dialog .tr-choice i { width:18px; color:#2f8f4e; text-align:center; }
+.tr-dialog .tr-choice small { display:block; font-weight:400; color:var(--text-secondary); }
 `;
 
 /* ---- Geometry ---- */
@@ -220,6 +229,26 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, buttons, notify
   modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
   modal.querySelector('.tr-cancel').addEventListener('click', closeModal);
 
+  // Registering a trail that has no line yet: its route comes first.
+  const chooser = document.createElement('div');
+  chooser.className = 'tr-modal';
+  chooser.innerHTML = `
+    <div class="tr-dialog" role="dialog" aria-modal="true" aria-labelledby="trRegTitle">
+      <h3 id="trRegTitle"><i class="fa-solid fa-route is-green" aria-hidden="true"></i><span>Add a route first</span></h3>
+      <p class="tr-text"></p>
+      <div class="tr-choices">
+        <button type="button" class="tr-choice" data-choice="draw"><i class="fa-solid fa-pen" aria-hidden="true"></i>
+          <span>Draw Route<small>Click along the trail on the map, from start to end.</small></span></button>
+        <button type="button" class="tr-choice" data-choice="import"><i class="fa-solid fa-file-import" aria-hidden="true"></i>
+          <span>Import GPX / KML<small>A recording of the trail from a GPS app or Google Earth.</small></span></button>
+      </div>
+      <div class="tr-actions"><button type="button" class="tr-cancel">Cancel</button></div>
+    </div>`;
+  document.body.appendChild(chooser);
+  // The trail being registered while its route is drawn or imported, and
+  // what to tell the page when that ends: done(true) once saved.
+  let pendingRegister = null;   // { trail, done }
+
   /* ---- Drawing ---- */
 
   function draw() {
@@ -271,7 +300,7 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, buttons, notify
     const intro = source === 'drawn'
       ? `Drawing the route of <strong>${escapeHtml(trail.Trail || 'this trail')}</strong>: click along the trail from start to end.`
       : `Imported from <strong>${escapeHtml(fileName || 'the file')}</strong> for <strong>${escapeHtml(trail.Trail || 'this trail')}</strong>: check it, adjust if needed, then Save.`;
-    banner.querySelector('.tr-text').innerHTML = `${intro}
+    banner.querySelector('.tr-text').innerHTML = `${intro}${editing.register ? ' Saving it makes the trail a <strong>Registered Trail</strong>.' : ''}
       <small>${points.length} point${points.length === 1 ? '' : 's'} · ${km} km${points.length <= MAX_HANDLES ? ' · drag a point to move it, right-click to remove it' : ''}</small>`;
     banner.querySelector('.tr-undo').disabled = !editing.history.length;
     banner.querySelector('.tr-clear').disabled = !points.length;
@@ -279,7 +308,10 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, buttons, notify
   }
 
   function stop() {
+    // Cancelled while registering: the trail stays unregistered.
+    const done = editing?.done;
     editing = null;
+    done?.(false);
     layer.clearLayers();
     banner?.remove();
     banner = null;
@@ -287,9 +319,18 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, buttons, notify
     map.doubleClickZoom.enable();
   }
 
-  function start(trail, points, source, fileName = '') {
+  function start(trail, points, source, fileName = '', register = null) {
     stop();
-    editing = { trail, points: points.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) })), history: [], source, fileName };
+    editing = {
+      trail,
+      points: points.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) })),
+      history: [],
+      source,
+      fileName,
+      // Registering: saving the route also makes it a Registered Trail.
+      register: Boolean(register),
+      done: register?.done || null
+    };
     container.classList.add('tr-drawing');
     // Double-clicking would zoom between two clicked points.
     map.doubleClickZoom.disable();
@@ -343,7 +384,8 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, buttons, notify
 
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
-    if (modal.classList.contains('open')) closeModal();
+    if (chooser.classList.contains('open')) chooser.onclick?.({ target: chooser });
+    else if (modal.classList.contains('open')) closeModal();
     else if (editing) stop();
   });
 
@@ -353,16 +395,22 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, buttons, notify
     if (!editing || editing.points.length < 2) return;
     const button = banner.querySelector('.tr-save');
     button.disabled = true;
-    const { trail, points, source } = editing;
+    const { trail, points, source, register } = editing;
     try {
       await updateDoc(doc(db, 'trails', trail.id), {
         route: points.map((p) => ({ lat: Number(p.lat.toFixed(6)), lng: Number(p.lng.toFixed(6)) })),
         routeSource: source,
         routeUpdatedAt: serverTimestamp(),
-        UpdatedAt: serverTimestamp()
+        UpdatedAt: serverTimestamp(),
+        ...(register ? { EntryType: 'Registered Trail' } : {})
       });
+      const done = editing.done;
+      editing.done = null;
       stop();
-      notify?.(`Route saved for ${trail.Trail || 'the trail'}. It now shows on every map.`);
+      done?.(true);
+      notify?.(register
+        ? `Route saved. ${trail.Trail || 'The trail'} is now a Registered Trail and shows on every map.`
+        : `Route saved for ${trail.Trail || 'the trail'}. It now shows on every map.`);
     } catch (error) {
       console.error('Could not save the route:', error);
       button.disabled = false;
@@ -403,8 +451,15 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, buttons, notify
 
   /* ---- Buttons ---- */
 
-  // Why a trail cannot get a new route, or '' when it can.
-  const lockedReason = (trail) => {
+  // Only a Registered Trail (Entry Type, incl. its older names Legal Entry /
+  // Registered Map) gets a line on the maps; the app hides the others too.
+  const REGISTERED = ['Registered Trail', 'Legal Entry', 'Registered Map'];
+  const isRegistered = (trail) => REGISTERED.includes(String(trail?.EntryType || '').trim());
+
+  // Why a trail cannot get a new route, or '' when it can. While it is being
+  // registered (registerWithRoute) the route is what registers it.
+  const lockedReason = (trail, registering = false) => {
+    if (!registering && !isRegistered(trail)) return `${trail?.Trail || 'This trail'} is not a Registered Trail. Set its Entry Type to Registered Trail to draw or import a route.`;
     if (validRoute(trail?.route)) return `${trail.Trail || 'This trail'} already has a route. Remove it first to draw or import a new one.`;
     if (trailLineKey(trail?.Trail)) return `${trail.Trail || 'This trail'} already has its standard line on the maps.`;
     return '';
@@ -413,6 +468,7 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, buttons, notify
   // Draw Route, Import and Remove Route follow the selected trail.
   function update(trail) {
     const reason = trail ? lockedReason(trail) : '';
+    const registering = editing?.register && trail?.id === editing.trail.id;
     [buttons.draw, buttons.import].forEach((button) => {
       if (!button) return;
       button.disabled = Boolean(reason);
@@ -420,7 +476,7 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, buttons, notify
     });
     if (buttons.remove) buttons.remove.hidden = !validRoute(trail?.route);
     // The trail may have gained a route elsewhere while one was being drawn.
-    if (editing && trail?.id === editing.trail.id && reason) stop();
+    if (editing && trail?.id === editing.trail.id && lockedReason(trail, registering)) stop();
   }
   [buttons.draw, buttons.import].forEach((button) => {
     if (button) button.dataset.title = button.title;
@@ -457,10 +513,22 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, buttons, notify
     if (trail && validRoute(trail.route)) askRemove(trail);
   });
 
+  // Closing the file picker without a file cancels a registration.
+  fileInput.addEventListener('cancel', () => {
+    const waiting = pendingRegister;
+    pendingRegister = null;
+    waiting?.done(false);
+  });
+
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
-    const trail = getSelected();
-    if (!file || !trail || lockedReason(trail)) return;
+    const waiting = pendingRegister;
+    pendingRegister = null;
+    const trail = waiting?.trail || getSelected();
+    if (!file || !trail || lockedReason(trail, Boolean(waiting))) {
+      waiting?.done(false);
+      return;
+    }
     try {
       const track = parseRouteFile(await file.text(), file.name);
       // A recording somewhere else entirely is almost surely the wrong file.
@@ -468,11 +536,56 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, buttons, notify
       const onMountain = area ? track.filter((p) => area.contains([p.lat, p.lng])).length : track.length;
       if (!onMountain) throw new Error('This recording is not on Mount Makiling.');
       const points = fitPoints(track);
-      start(trail, points, /\.kml$/i.test(file.name) ? 'kml' : 'gpx', file.name);
+      start(trail, points, /\.kml$/i.test(file.name) ? 'kml' : 'gpx', file.name, waiting);
     } catch (error) {
+      waiting?.done(false);
       notify?.(error.message || 'The file could not be imported.');
     }
   });
 
-  return { stop, update, isEditing: () => Boolean(editing) };
+  /* ---- Registering ---- */
+
+  // Whether a trail already has a line on the maps (a saved route, or the
+  // standard line of the built-in trails).
+  const hasLine = (trail) => validRoute(trail?.route) || Boolean(trailLineKey(trail?.Trail));
+
+  /* Makes `trail` a Registered Trail through its route: asks to draw or
+     import one, and only saving it writes Entry Type "Registered Trail".
+     Resolves true once registered, false if the route was not saved. */
+  function registerWithRoute(trail) {
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = (ok) => {
+        if (settled) return;
+        settled = true;
+        resolve(ok);
+      };
+      const register = { trail, done };
+      chooser.querySelector('.tr-text').innerHTML = `<strong>${escapeHtml(trail.Trail || 'This trail')}</strong> has no route on the map yet. `
+        + 'A Registered Trail needs one: draw it or import a recording. It becomes a Registered Trail once the route is saved.';
+      const close = () => {
+        chooser.classList.remove('open');
+        chooser.onclick = null;
+      };
+      chooser.onclick = (event) => {
+        const choice = event.target.closest('[data-choice]')?.dataset.choice;
+        if (event.target === chooser || event.target.closest('.tr-cancel')) {
+          close();
+          done(false);
+        } else if (choice === 'draw') {
+          close();
+          start(trail, [], 'drawn', '', register);
+        } else if (choice === 'import') {
+          close();
+          pendingRegister = register;
+          fileInput.value = '';
+          fileInput.click();
+        }
+      };
+      chooser.classList.add('open');
+      chooser.querySelector('[data-choice="draw"]').focus();
+    });
+  }
+
+  return { stop, update, hasLine, registerWithRoute, isEditing: () => Boolean(editing) };
 }

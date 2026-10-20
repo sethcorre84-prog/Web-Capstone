@@ -1505,13 +1505,12 @@
             <div class="setting-icon">🛡️</div>
             <div class="setting-text">
               <div class="label">Two-Factor Authentication</div>
-              <div class="desc" id="twoFactorDesc">Required for every admin: signing in on a computer this account hasn't used before needs a code texted to your profile's phone number.</div>
+              <div class="desc" id="twoFactorDesc">Ask for a code texted to your profile's phone number when you sign in on a new device.</div>
             </div>
           </div>
-          <!-- Always on for every admin (functions/index.js checkTwoFactor). -->
           <div class="setting-right">
-            <label class="switch" title="Required for every admin">
-              <input type="checkbox" id="twoFactorToggle" aria-describedby="twoFactorDesc" checked disabled>
+            <label class="switch">
+              <input type="checkbox" id="twoFactorToggle" aria-describedby="twoFactorDesc">
               <span class="slider"></span>
             </label>
           </div>
@@ -1706,7 +1705,7 @@
   import { DATE_FORMATS, TIME_FORMATS, formatPortalDate, formatPortalDateTime, getDateTimePrefs, previewDateTime, saveDateTimePrefs } from '../jsPages/datetime-prefs.js';
   import { openExportMenu } from '../jsPages/export-table.js';
   import { endOtherSessions, endSession, listSessions } from '../jsPages/admin-sessions.js';
-  import { checkTwoFactor } from '../jsPages/two-factor.js';
+  import { checkTwoFactor, confirmNewPhone, disableTwoFactor, enableTwoFactor, toE164 } from '../jsPages/two-factor.js';
   import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, saveWeatherLocation, watchWeatherLocation } from '../jsPages/weather-locations.js';
 
   const STORAGE_KEY = 'peakpath-settings';
@@ -2818,6 +2817,37 @@
       }
       if (changingEmail && !passwordInput.value) {
         return fail('Enter your current password to change your email.', passwordInput);
+      }
+
+      // Two-factor on and a different number (not just spaced differently):
+      // the new number gets a code first, and only a confirmed number is
+      // saved (confirmTwoFactor saves it). Signing in on any device then
+      // needs a code to the new number.
+      const phoneChanged = toE164(phone) !== toE164(saved.phone);
+      if (phoneChanged) {
+        let twoFactorOn = false;
+        try {
+          twoFactorOn = Boolean((await checkTwoFactor())?.enabled);
+        } catch (error) {
+          return fail('Could not check two-factor sign-in, so your number was not changed. Try again.', phoneInput);
+        }
+        if (twoFactorOn) {
+          if (!phone) {
+            return fail('Two-factor sign-in is on, so your phone number can\'t be removed. Turn two-factor off first.', phoneInput);
+          }
+          submitBtn.disabled = true;
+          let confirmed = false;
+          try {
+            confirmed = await confirmNewPhone(phone);
+          } finally {
+            submitBtn.disabled = false;
+          }
+          if (!confirmed) {
+            return fail('Your phone number was not changed: the code to the new number was not confirmed.', phoneInput);
+          }
+          saved.phone = phone;
+          checkTwoFactor().then(showTwoFactor).catch(() => {});
+        }
       }
 
       submitBtn.disabled = true;
@@ -4219,20 +4249,50 @@
     });
   });
 
-  /* Two-Factor Authentication: always on for every admin. Signing in on a
-     computer the account hasn't used before needs a code texted to the
-     phone number in Profile Information; with no number there, nothing
-     can be texted, so the row asks for one. */
+  /* Two-Factor Authentication: on means signing in on a new device needs a
+     code texted to the phone number in Profile Information. Turning it on
+     sends one first, so a wrong number cannot lock the admin out; turning it
+     back on later only asks for the password while the number is the same. */
+  const twoFactorToggle = document.getElementById('twoFactorToggle');
   const twoFactorDesc = document.getElementById('twoFactorDesc');
+  const TWO_FACTOR_DESC = twoFactorDesc.textContent;
+  const showTwoFactor = (status) => {
+    twoFactorToggle.checked = Boolean(status?.enabled);
+    twoFactorDesc.textContent = status?.enabled && status.masked
+      ? `On. New devices need a code texted to ${status.masked}.`
+      : TWO_FACTOR_DESC;
+  };
   onAuthStateChanged(auth, (user) => {
     if (!user) return;
-    checkTwoFactor().then((status) => {
-      twoFactorDesc.textContent = status?.phone
-        ? `Required for every admin. A computer this account hasn't used before needs a code texted to ${status.masked}.`
-        : 'Required for every admin, but your profile has no phone number yet. Add one in Profile Information so new computers need a code.';
-    }).catch((error) => {
+    checkTwoFactor().then(showTwoFactor).catch((error) => {
       console.warn('Could not read two-factor sign-in:', error.message);
     });
+  });
+  twoFactorToggle.addEventListener('change', async () => {
+    const turningOn = twoFactorToggle.checked;
+    twoFactorToggle.disabled = true;
+    try {
+      if (turningOn) {
+        const done = await enableTwoFactor();
+        if (!done) {
+          twoFactorToggle.checked = false;
+          return;
+        }
+        showToast('Two-factor sign-in is on', 3000);
+      } else {
+        await disableTwoFactor();
+        showToast('Two-factor sign-in is off', 3000);
+      }
+      showTwoFactor(await checkTwoFactor());
+    } catch (error) {
+      console.error('Could not change two-factor sign-in:', error);
+      twoFactorToggle.checked = !turningOn;
+      showToast(error?.code === 'functions/internal'
+        ? 'Could not reach the two-factor service. It may not be deployed yet.'
+        : (error?.message || 'Could not change two-factor sign-in.'), 4000);
+    } finally {
+      twoFactorToggle.disabled = false;
+    }
   });
 
   /* Theme. sidebar.js owns it (it applies it before paint on every page, and
