@@ -50,7 +50,8 @@ const CSS = `
   color: var(--accent, #2f8f4e); font-size: 18px; line-height: 1; cursor: pointer; }
 .chat-wrap .chat-btn:focus-visible { outline: 2px solid var(--accent, #2f8f4e); outline-offset: 2px; }
 .chat-wrap .bell-badge[hidden] { display: none; }
-.chat-panel { position: absolute; top: calc(100% + 10px); right: 0; z-index: 60; display: none;
+/* Above Leaflet's panes (400) and controls (1000) on the map pages, same as the notification panel. */
+.chat-panel { position: absolute; top: calc(100% + 10px); right: 0; z-index: 1200; display: none;
   flex-direction: column; width: min(380px, calc(100vw - 32px)); height: min(520px, calc(100vh - 120px));
   background: var(--card-bg, #fff); border: 1px solid var(--border, #e4e7e1); border-radius: 12px;
   box-shadow: 0 14px 36px rgba(0, 0, 0, .18); overflow: hidden; text-align: left; cursor: default;
