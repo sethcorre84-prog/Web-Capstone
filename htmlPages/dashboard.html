@@ -659,23 +659,6 @@
             font-weight: 600;
             color: var(--red-text);
         }
-        .call-btn {
-            width: 28px;
-            height: 28px;
-            display: inline-grid;
-            place-items: center;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--card-bg);
-        }
-        .call-btn i {
-            color: var(--accent);
-            font-size: calc(12px * var(--ui-scale, 1));
-        }
-        .call-btn.is-disabled {
-            opacity: 0.4;
-            pointer-events: none;
-        }
         .pill-sos {
             background: var(--red-bg);
             color: var(--red-text);
@@ -1304,8 +1287,8 @@
                         </div>
                         <div class="table-wrap">
                             <table class="mini-table">
-                                <thead><tr><th>Hiker</th><th>Location</th><th>Time</th><th>Status</th><th>Action</th></tr></thead>
-                                <tbody id="emergencyList"><tr><td colspan="5" class="empty-cell">Loading emergency alerts...</td></tr></tbody>
+                                <thead><tr><th>Hiker</th><th>Location</th><th>Time</th><th>Status</th></tr></thead>
+                                <tbody id="emergencyList"><tr><td colspan="4" class="empty-cell">Loading emergency alerts...</td></tr></tbody>
                             </table>
                         </div>
                         <div class="emergency-total" id="emergencyTotal"></div>
@@ -2049,7 +2032,6 @@
             document.getElementById('emergencyList').innerHTML = open.length
                 ? open.slice(0, 3).map(({ data, status, when }) => {
                     const name = String(data.hikerName ?? data.userName ?? data.name ?? data.reportedBy ?? data.email ?? '').trim() || 'Unknown hiker';
-                    const phone = String(data.phone ?? data.phoneNumber ?? data.contactNumber ?? data.mobile ?? '').trim();
                     const type = emergencyType(data);
                     const chip = status === 'responding' ? 'pill-blue' : type === 'SOS' ? 'pill-sos' : 'pill-red';
                     return `<tr data-href="emergency.html">
@@ -2057,13 +2039,12 @@
                         <td>${escapeHtml(emergencyPlace(data))}</td>
                         <td>${when ? escapeHtml(formatPortalTime(when)) : '—'}</td>
                         <td><span class="pill-chip ${chip}">${escapeHtml(status === 'responding' ? 'Responding' : type)}</span></td>
-                        <td><a class="call-btn${phone ? '' : ' is-disabled'}" ${phone ? `href="tel:${escapeHtml(phone)}"` : 'aria-disabled="true"'} title="${phone ? `Call ${escapeHtml(phone)}` : 'No phone number shared'}"><i class="fa-solid fa-phone" aria-hidden="true"></i></a></td>
                     </tr>`;
                 }).join('')
-                : '<tr><td colspan="5" class="empty-cell">No active emergency alerts.</td></tr>';
+                : '<tr><td colspan="4" class="empty-cell">No active emergency alerts.</td></tr>';
         }, (error) => {
             console.error('Error loading dashboard emergencies:', error);
-            document.getElementById('emergencyList').innerHTML = '<tr><td colspan="5" class="empty-cell">Unable to load emergency alerts.</td></tr>';
+            document.getElementById('emergencyList').innerHTML = '<tr><td colspan="4" class="empty-cell">Unable to load emergency alerts.</td></tr>';
         });
 
         const weatherCodes = {

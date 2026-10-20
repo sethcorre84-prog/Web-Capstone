@@ -2137,21 +2137,19 @@
       snapsBySource.set(source, snapshot.docs);
       errorsBySource.delete(source);
 
-      // Highlight and announce alerts that arrive while the page is open,
-      // not the backlog already there when it loaded.
-      const arrived = [];
+      // Highlight alerts that arrive while the page is open, not the backlog
+      // already there when it loaded. Their alarm tone comes from
+      // sos-alarm.js, which sounds on every portal page.
       snapshot.docs.forEach((snap) => {
         const id = `${source}/${snap.id}`;
         if (firstLoadDone && !knownIds.has(id)) {
           freshIds.add(id);
-          arrived.push(id);
           setTimeout(() => { freshIds.delete(id); render(); }, 12000);
         }
         knownIds.add(id);
       });
       combine();
       if (!firstLoadDone && emergencySnaps !== null) firstLoadDone = true;
-      if (arrived.some((id) => records.find((r) => r.id === id && isOpen(r)))) announceNewAlert();
     }, (error) => {
       console.error(`Error loading ${source}:`, error);
       errorsBySource.set(source, error);
@@ -2160,33 +2158,10 @@
   });
 
   // ---------------------------------------------------------------------
-  // A new alert while the page is open: a short alarm tone, and the count of
-  // alerts awaiting response in the tab title so it shows from another tab.
+  // The count of alerts awaiting response in the tab title, so it shows
+  // from another tab.
   // ---------------------------------------------------------------------
   const BASE_TITLE = document.title;
-  let audio = null;
-  function announceNewAlert() {
-    try {
-      audio ||= new (window.AudioContext || window.webkitAudioContext)();
-      const now = audio.currentTime;
-      [0, 0.28, 0.56].forEach((offset) => {
-        const tone = audio.createOscillator();
-        const gain = audio.createGain();
-        tone.type = 'square';
-        tone.frequency.value = 880;
-        gain.gain.setValueAtTime(0.0001, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.18, now + offset + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.2);
-        tone.connect(gain).connect(audio.destination);
-        tone.start(now + offset);
-        tone.stop(now + offset + 0.22);
-      });
-    } catch { /* the browser blocks sound until the page has been clicked */ }
-  }
-  // Browsers allow sound only after a click on the page; unlock it then.
-  document.addEventListener('pointerdown', () => {
-    try { audio ||= new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch { /* no sound */ }
-  }, { once: true });
 
   function updateTitle() {
     const awaiting = records.filter((r) => r.status === 'active').length;

@@ -1,6 +1,7 @@
 import { db } from './firebase-config.js';
 import { escapeHtml } from './utils.js';
 import { mountCommunityChat } from './community-chat.js';
+import { watchSosAlarm } from './sos-alarm.js';
 import { collection, limit, onSnapshot, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const notificationLimit = 20;
@@ -299,6 +300,9 @@ document.querySelectorAll('.bell-wrap').forEach((bell) => {
 
 // The Community Chat button sits just left of every bell (community-chat.js).
 mountCommunityChat();
+
+// A new SOS sounds its alarm on whichever portal page is open (sos-alarm.js).
+watchSosAlarm();
 
 document.addEventListener('click', () => {
   document.querySelectorAll('.notification-panel.open').forEach((panel) => {
