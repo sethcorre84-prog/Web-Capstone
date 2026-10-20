@@ -1,7 +1,7 @@
 import { db } from './firebase-config.js';
 import { escapeHtml } from './utils.js';
 import { mountCommunityChat } from './community-chat.js';
-import { watchSosAlarm } from './sos-alarm.js';
+import { alertOf, statusOf, watchSosAlarm } from './sos-alarm.js';
 import { collection, limit, onSnapshot, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const notificationLimit = 20;
@@ -10,6 +10,7 @@ let pendingReports = [];
 let userReports = [];
 let reactivationRequests = [];
 let activeAdvisories = [];
+let lostAlerts = [];
 let latestAnalysis = null;
 
 const getDate = (value) => {
@@ -141,6 +142,26 @@ const refreshNotifications = () => {
     };
   });
 
+  // An open Lost / Missing alert from Emergency Monitoring: reported by a
+  // teammate in the app, or an SOS an admin marked Lost / Missing. Keyed by
+  // the time it became Lost / Missing, so a marked SOS comes back as unread.
+  const lostNotifications = lostAlerts.map(({ id, data, alert }) => {
+    const createdAt = getDate(data.markedLostAt) || alert.created;
+    const readKey = `peakpath:lost-alert-read:${id}:${createdAt?.getTime() || 0}`;
+    const readAt = getReadAt(readKey);
+    return {
+      id: `lost-${id}`,
+      type: 'lost_alert',
+      title: 'Lost / Missing hiker',
+      message: `${alert.name} has been reported lost or missing${alert.place ? ` at ${alert.place}` : ''}.`,
+      createdAt,
+      read: !!readAt,
+      readAt,
+      readKey,
+      link: `emergency.html?alert=${encodeURIComponent(id)}`
+    };
+  });
+
   // analytics.html saves one prescriptive record per Manila day, rewriting it
   // only when the recommendations change; each save is announced here.
   const analysisNotifications = [];
@@ -168,7 +189,7 @@ const refreshNotifications = () => {
     });
   }
 
-  notifications = sortNotifications([...pendingNotifications, ...userReportNotifications, ...reactivationNotifications, ...advisoryNotifications, ...analysisNotifications]);
+  notifications = sortNotifications([...pendingNotifications, ...userReportNotifications, ...reactivationNotifications, ...advisoryNotifications, ...lostNotifications, ...analysisNotifications]);
   render();
 };
 
@@ -301,7 +322,7 @@ document.querySelectorAll('.bell-wrap').forEach((bell) => {
 // The Community Chat button sits just left of every bell (community-chat.js).
 mountCommunityChat();
 
-// A new SOS sounds its alarm on whichever portal page is open (sos-alarm.js).
+// A new SOS sounds its alarm and pops up on whichever portal page is open (sos-alarm.js).
 watchSosAlarm();
 
 document.addEventListener('click', () => {
@@ -340,6 +361,19 @@ onSnapshot(collection(db, 'reports'), (snapshot) => {
 }, (error) => {
   console.error('Unable to load pending hazard reports:', error);
   refreshNotifications();
+});
+
+// Lost / Missing alerts still open (awaiting response or responding); one
+// resolved or cancelled leaves the list.
+onSnapshot(collection(db, 'emergency'), (snapshot) => {
+  lostAlerts = snapshot.docs
+    .map((alert) => ({ id: alert.id, data: alert.data() || {} }))
+    .filter(({ data }) => ['active', 'responding'].includes(statusOf(data)))
+    .map((entry) => ({ ...entry, alert: alertOf(entry.data) }))
+    .filter(({ alert }) => alert.lost);
+  refreshNotifications();
+}, (error) => {
+  console.warn('Unable to load lost / missing notifications:', error.message);
 });
 
 // Only the newest day's record matters: 'YYYY-MM-DD' ids sort by date.

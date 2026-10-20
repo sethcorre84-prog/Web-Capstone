@@ -2125,10 +2125,24 @@
       : null;
     if (failed.length) console.warn('Emergency alerts not loaded from:', failed.join(', '));
     render();
+    openLinkedAlert();
     if (loadError) {
       emergencyCaption = loadError;
       showMapCaption();
     }
+  }
+
+  // emergency.html?alert=<id> (a Lost / Missing notification) opens that
+  // alert once the alerts have loaded, then drops the id from the address.
+  let linkedAlert = new URLSearchParams(window.location.search).get('alert');
+  function openLinkedAlert() {
+    if (!linkedAlert) return;
+    const id = `emergency/${linkedAlert}`;
+    linkedAlert = null;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('alert');
+    window.history.replaceState({}, '', url);
+    if (records.some((record) => record.id === id)) openModal(id);
   }
 
   let firstLoadDone = false;
