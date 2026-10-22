@@ -16,7 +16,7 @@ import {
   doc,
   getDoc,
   updateDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+} from "./firestore-tracked.js";
 import { trailLineKey } from "./makiling-area.js";
 import { STATION_COORDS } from "./trail-stations.js";
 

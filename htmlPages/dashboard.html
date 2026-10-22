@@ -1237,7 +1237,7 @@
                 <div class="card">
                     <div class="card-top">
                         <h2>Visitors per Trail <small>(This Month)</small></h2>
-                        <a class="card-link" href="usermanagement.html">View teams</a>
+                        <a class="card-link" href="usermanagement.html">View hikers</a>
                     </div>
                     <div class="visit-chart" id="visitorsPerTrail"><div class="empty-state"><span>Loading visitors...</span></div></div>
                 </div>
@@ -1341,7 +1341,7 @@
     <script type="module">
         import { db } from "../jsPages/firebase-config.js";
         import { escapeHtml } from "../jsPages/utils.js";
-        import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { FieldPath, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { formatPortalDate, formatPortalTime, portalHourCycle, portalTimeZone, toPortalDate } from "../jsPages/datetime-prefs.js";
         import { getTrailImage, onTrailImagesReady } from "../jsPages/trail-images.js";
         import { createMakilingMap } from "../jsPages/makiling-area.js";
@@ -1652,29 +1652,45 @@
                 : '<li class="pill-item"><span>No trails found.</span></li>';
         }
 
-        /* Visitors per Trail (this month, portal time zone). The app records
-           which trail a hiker is on only through teams: teams/{id} has
-           trailID, members (uids) and createdAt. So a visitor is a member of
-           a team created this month for that trail; a hiker in two teams on
-           the same trail counts once. Hikers who go without a team are not
-           recorded anywhere per trail, so they cannot be counted here. */
-        let latestTeams = null;
+        /* Visitors come from Start Hike in the PeakPath app: each start adds
+           to the hiker's own users/{uid}.hikeStarts.{m2026_10} =
+           { count, trails: { trailID: n } } (HikeSessionService), the month
+           in Philippine time. A visitor is a hiker who started at least one
+           hike that month; one who hiked twice counts once, and their hikes
+           are counted too. latestStarts / lastMonthStarts hold, per hiker,
+           { count, trails } for this month and last month. */
+        let latestStarts = null;
+        let lastMonthStarts = null;
+        // The month field for `offset` months back, in the portal time zone.
+        const startsMonthKey = (offset = 0) => {
+            const [year, month] = new Date().toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).split('-').map(Number);
+            const index = year * 12 + (month - 1) - offset;
+            return `m${Math.floor(index / 12)}_${String((index % 12) + 1).padStart(2, '0')}`;
+        };
         function renderVisitorsPerTrail() {
             const container = document.getElementById('visitorsPerTrail');
-            if (!latestTeams || !latestTrails) return;
-            const monthKey = (date) => date.toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).slice(0, 7);
-            const thisMonth = monthKey(new Date());
+            if (!latestStarts || !latestTrails) return;
 
-            const visitors = new Map(); // trailID -> Set of uids
-            const teamCounts = new Map(); // trailID -> number of teams
-            latestTeams.forEach((team) => {
-                const trailID = String(team.trailID || team.trailId || '').trim();
-                const created = toPortalDate(team.createdAt);
-                if (!trailID || !created || monthKey(created) !== thisMonth) return;
-                const members = Array.isArray(team.members) ? team.members.filter(Boolean) : [];
-                if (!visitors.has(trailID)) visitors.set(trailID, new Set());
-                members.forEach((uid) => visitors.get(trailID).add(uid));
-                teamCounts.set(trailID, (teamCounts.get(trailID) || 0) + 1);
+            const visitors = new Map(); // trailID (or name) -> Set of uids
+            const teamCounts = new Map(); // trailID (or name) -> hikes started
+            latestStarts.forEach(({ uid, trails }) => {
+                Object.entries(trails || {}).forEach(([trailID, hikes]) => {
+                    const count = Number(hikes) || 0;
+                    if (count <= 0) return;
+                    if (!visitors.has(trailID)) visitors.set(trailID, new Set());
+                    visitors.get(trailID).add(uid);
+                    teamCounts.set(trailID, (teamCounts.get(trailID) || 0) + count);
+                });
+            });
+            // A start saved under the trail's name (no id) joins that trail.
+            latestTrails.forEach((trail) => {
+                const name = trail.Trail;
+                if (!name || !visitors.has(name) || name === trail.id) return;
+                if (!visitors.has(trail.id)) visitors.set(trail.id, new Set());
+                visitors.get(name).forEach((uid) => visitors.get(trail.id).add(uid));
+                teamCounts.set(trail.id, (teamCounts.get(trail.id) || 0) + (teamCounts.get(name) || 0));
+                visitors.delete(name);
+                teamCounts.delete(name);
             });
 
             // Every trail gets a row, so a quiet trail reads as 0 rather than
@@ -1695,14 +1711,14 @@
             const visitTotal = rows.reduce((sum, row) => sum + row.count, 0);
             dashboardExport.visitors = {
                 rows: rows.map((row) => [row.name, row.count, visitTotal ? `${Math.round((row.count / visitTotal) * 100)}%` : '0%', row.teams]),
-                note: `${allVisitors.size} hiker(s) in total this month, counted from teams formed for each trail`
+                note: `${allVisitors.size} hiker(s) in total this month, counted from Start Hike in the app`
             };
             if (!rows.length) {
                 container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-chart-bar" aria-hidden="true"></i><strong>No trails yet</strong><span>Add trails in Trail Management.</span></div>';
                 return;
             }
             if (!allVisitors.size) {
-                container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-people-group" aria-hidden="true"></i><strong>No visitors this month</strong><span>Hikers appear here when they form a team for a trail in the app.</span></div>';
+                container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-people-group" aria-hidden="true"></i><strong>No visitors this month</strong><span>Hikers appear here when they start a hike in the app.</span></div>';
                 return;
             }
             // Colour by trail (name order), not by rank: four colours, then grey.
@@ -1739,7 +1755,7 @@
                 const length = (row.count / visits) * CIRCUMFERENCE;
                 const slice = `<circle class="visit-slice" data-trail="${escapeHtml(row.name)}" cx="60" cy="60" r="${RADIUS}"
                     style="stroke:${row.color}" stroke-dasharray="${Math.max(length - GAP, 0.5)} ${CIRCUMFERENCE}" stroke-dashoffset="${-offset}">
-                    <title>${escapeHtml(row.name)}: ${percent(row.count)} (${row.count} hiker${row.count === 1 ? '' : 's'}, ${row.teams} team${row.teams === 1 ? '' : 's'})</title></circle>`;
+                    <title>${escapeHtml(row.name)}: ${percent(row.count)} (${row.count} hiker${row.count === 1 ? '' : 's'}, ${row.teams} hike${row.teams === 1 ? '' : 's'})</title></circle>`;
                 offset += length;
                 return slice;
             }).join('');
@@ -1751,13 +1767,13 @@
                         <div class="visit-center"><span>Total</span><strong>${allVisitors.size.toLocaleString()}</strong></div>
                     </div>
                     <ul class="visit-legend">${rows.map((row) => `
-                        <li class="${row.count ? '' : 'is-zero'}" data-trail="${escapeHtml(row.name)}" title="${row.teams} team${row.teams === 1 ? '' : 's'}">
+                        <li class="${row.count ? '' : 'is-zero'}" data-trail="${escapeHtml(row.name)}" title="${row.teams} hike${row.teams === 1 ? '' : 's'} started">
                             <span class="visit-swatch" style="background:${row.color}" aria-hidden="true"></span>
                             <span class="visit-label"><strong>${escapeHtml(row.name)}</strong><span>${row.count ? percent(row.count) : '0%'} (${row.count.toLocaleString()})</span></span>
                         </li>`).join('')}
                     </ul>
                 </div>
-                <div class="visit-note">Hikers in teams formed for each trail this month.</div>`;
+                <div class="visit-note">Hikers who started a hike on each trail this month.</div>`;
         }
 
         (() => {
@@ -1775,52 +1791,53 @@
             chart.addEventListener('mouseleave', () => focus(null));
         })();
 
-        /* Total Visitors tile: different hikers in teams formed this month
-           (portal time zone), the same count as the centre of the Visitors per
-           Trail donut, compared with last month. Needs only the teams, not
-           the trails, so it shows even before the trail list arrives. */
+        /* Total Hikers Visitors tile: different hikers who started a hike in
+           the app this month (portal time zone), the same count as the centre
+           of the Visitors per Trail donut, compared with last month. */
         function renderTotalVisitors() {
+            if (!latestStarts) return;
             const value = document.getElementById('totalVisitorsValue');
             const meta = document.getElementById('totalVisitorsMeta');
-            const monthIndex = (date) => {
-                const [year, month] = date.toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).split('-').map(Number);
-                return year * 12 + month - 1;
-            };
-            const current = monthIndex(new Date());
-            const thisMonth = new Set();
-            const lastMonth = new Set();
-            let teams = 0;
-            latestTeams.forEach((team) => {
-                const created = toPortalDate(team.createdAt);
-                if (!created) return;
-                const back = current - monthIndex(created);
-                if (back !== 0 && back !== 1) return;
-                const target = back === 0 ? thisMonth : lastMonth;
-                (Array.isArray(team.members) ? team.members : []).filter(Boolean).forEach((uid) => target.add(uid));
-                if (back === 0) teams += 1;
-            });
-
-            value.textContent = thisMonth.size.toLocaleString();
-            const diff = thisMonth.size - lastMonth.size;
-            const change = !lastMonth.size
-                ? 'none last month'
-                : diff === 0
-                    ? 'same as last month'
-                    : `${diff > 0 ? '▲' : '▼'} ${Math.abs(Math.round((diff / lastMonth.size) * 100))}% vs last month`;
-            meta.textContent = `This month · ${teams} team${teams === 1 ? '' : 's'} · ${change}`;
-            meta.title = `Hikers in teams formed this month. Last month: ${lastMonth.size.toLocaleString()}.`;
+            const thisMonth = latestStarts.length;
+            const hikes = latestStarts.reduce((sum, hiker) => sum + hiker.count, 0);
+            value.textContent = thisMonth.toLocaleString();
+            const last = lastMonthStarts ? lastMonthStarts.length : null;
+            const diff = last === null ? 0 : thisMonth - last;
+            const change = last === null
+                ? ''
+                : !last
+                    ? ' · none last month'
+                    : diff === 0
+                        ? ' · same as last month'
+                        : ` · ${diff > 0 ? '▲' : '▼'} ${Math.abs(Math.round((diff / last) * 100))}% vs last month`;
+            meta.textContent = `This month · ${hikes} hike${hikes === 1 ? '' : 's'} started${change}`;
+            meta.title = `Hikers who started a hike in the PeakPath app this month.${last === null ? '' : ` Last month: ${last.toLocaleString()}.`}`;
         }
 
-        onSnapshot(collection(db, 'teams'), (snapshot) => {
-            latestTeams = snapshot.docs.map((document) => document.data());
-            renderTotalVisitors();
-            renderVisitorsPerTrail();
-        }, (error) => {
-            console.error('Error loading teams:', error);
+        // Hikers with a hike started in a month: users whose
+        // hikeStarts.{month}.count is above 0.
+        const startsQuery = (month) => query(collection(db, 'users'), where(new FieldPath('hikeStarts', month, 'count'), '>', 0));
+        const startsOf = (snapshot, month) => snapshot.docs.map((document) => {
+            const entry = document.data().hikeStarts?.[month] || {};
+            return { uid: document.id, count: Number(entry.count) || 0, trails: entry.trails || {} };
+        });
+        const showVisitorsError = (error) => {
+            console.error('Error loading hike starts:', error);
             document.getElementById('totalVisitorsValue').textContent = '—';
             document.getElementById('totalVisitorsMeta').textContent = 'Unable to load visitor data';
             document.getElementById('visitorsPerTrail').innerHTML = '<div class="empty-state"><span>Unable to load visitor data.</span></div>';
-        });
+        };
+        const thisMonthKey = startsMonthKey(0);
+        const lastMonthKey = startsMonthKey(1);
+        onSnapshot(startsQuery(thisMonthKey), (snapshot) => {
+            latestStarts = startsOf(snapshot, thisMonthKey);
+            renderTotalVisitors();
+            renderVisitorsPerTrail();
+        }, showVisitorsError);
+        onSnapshot(startsQuery(lastMonthKey), (snapshot) => {
+            lastMonthStarts = startsOf(snapshot, lastMonthKey);
+            renderTotalVisitors();
+        }, (error) => console.error('Error loading last month\'s hike starts:', error));
 
         // Trail pictures from Storage arrive after the first draw; redraw with them.
         let latestTrails = null;
@@ -1931,7 +1948,7 @@
                 filename: 'dashboard-report',
                 sections: [
                     { title: 'Overview', headers: ['Item', 'Value', 'Details'], rows: summary },
-                    { title: 'Visitors per Trail (This Month)', headers: ['Trail', 'Hikers', 'Share', 'Teams'], rows: vis?.rows || [], note: vis?.note, chart: vis?.chart },
+                    { title: 'Visitors per Trail (This Month)', headers: ['Trail', 'Hikers', 'Share', 'Hikes started'], rows: vis?.rows || [], note: vis?.note, chart: vis?.chart },
                     { title: 'Recent Hazard Reports', headers: ['Report ID', 'Hazard', 'Reported By', 'Location', 'Trail', 'Status', 'Date'], rows: dashboardExport.hazards || [] },
                     { title: 'Trail Status Overview', headers: ['Trail', 'Location', 'Distance', 'Status'], rows: dashboardExport.trails || [] },
                     { title: 'Recent Announcements', headers: ['Title', 'Type', 'Description', 'Date'], rows: dashboardExport.announcements || [] },

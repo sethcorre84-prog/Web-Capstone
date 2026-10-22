@@ -1132,6 +1132,15 @@ video,
 canvas {
     max-width: 100%;
 }
+/* Leaflet draws lines in an <svg>/<canvas> inside a 0-wide pane div. Its own
+   CSS exempts only the default overlay pane, so a line layer in any other
+   pane (the GeoMap's rivers and creeks, pane "mfBackdrop") was squashed to
+   0px by the rule above and never showed. Every map pane is exempt. */
+.leaflet-container .leaflet-pane > svg,
+.leaflet-container .leaflet-pane > canvas {
+    max-width: none !important;
+    max-height: none !important;
+}
 img {
     height: auto;
 }

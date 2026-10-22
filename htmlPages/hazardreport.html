@@ -1779,7 +1779,7 @@ import { pageList, pageGap, PAGE_GAP } from "../jsPages/pagination.js";
 import { escapeHtml, sortByReportId } from "../jsPages/utils.js";
 import { planReportIds, reportYear as yearOfReport } from "../jsPages/report-ids.js";
 import { formatPortalDate, formatPortalTime, toPortalDate as toJsDate } from "../jsPages/datetime-prefs.js";
-import { collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, onSnapshot, updateDoc, doc, serverTimestamp, writeBatch } from "../jsPages/firestore-tracked.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // State management

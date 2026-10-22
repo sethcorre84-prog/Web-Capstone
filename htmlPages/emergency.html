@@ -1205,7 +1205,7 @@
   import { auth, db } from '../jsPages/firebase-config.js';
   import { escapeHtml } from '../jsPages/utils.js';
   import { pageList, pageGap, PAGE_GAP } from '../jsPages/pagination.js';
-  import { collection, doc, onSnapshot, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { collection, doc, onSnapshot, serverTimestamp, updateDoc } from '../jsPages/firestore-tracked.js';
   import { formatPortalDate, formatPortalDateTime, formatPortalTime, portalTimeZone, toPortalDate } from '../jsPages/datetime-prefs.js';
   import { createMakilingMap } from '../jsPages/makiling-area.js';
   import { addHikerLayer } from '../jsPages/hiker-layer.js';
@@ -1450,6 +1450,8 @@
     map,
     db,
     bounds: makilingBounds,
+    // The Lost / Missing alerts are already this map's own markers.
+    showLostAlerts: false,
     onCaption: (text) => {
       hikerCaption = text;
       showMapCaption();

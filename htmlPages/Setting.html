@@ -1558,7 +1558,8 @@
 
     <div class="settings-footer">
       <span>App Version <span class="version-pill">v1.0.0</span></span>
-      <span>Last Updated &nbsp; May 20, 2025 10:30 AM</span>
+      <!-- The newest save made on the portal (watchLastUpdated below). -->
+      <span>Last Updated &nbsp; <span id="portalLastUpdated">Loading…</span></span>
     </div>
   </main>
 </div>
@@ -1695,7 +1696,7 @@
 <script type="module">
   import { auth, db, storage } from '../jsPages/firebase-config.js';
   import { escapeHtml as escapeHTML, sortByReportId } from '../jsPages/utils.js';
-  import { collection, deleteDoc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { Timestamp, collection, deleteDoc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, setDoc, serverTimestamp, updateDoc, doc, orderBy, query, where, writeBatch } from '../jsPages/firestore-tracked.js';
   import { pageList, pageGap, PAGE_GAP } from '../jsPages/pagination.js';
   import { ref as storageRef, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
   import { planReportIds } from '../jsPages/report-ids.js';
@@ -3687,6 +3688,53 @@
       button.querySelector('strong').textContent = label;
     }
   }
+
+  /* ---- Last Updated (footer) ----
+     The newest time anything was saved on the portal. Each kind of save
+     keeps its own time on its record, so this watches the newest value of
+     each (one document per field, live) and shows the latest of them all.
+     Only times the portal writes: hikers' own activity in the app (new
+     reports, SOS position updates, profile edits) is not a portal save. */
+  const PORTAL_SAVES = [
+    ['trails', 'UpdatedAt'], ['trails', 'StatusUpdatedAt'], ['trails', 'routeUpdatedAt'],
+    ['Advisory', 'createdAt'], ['Advisory', 'editedAt'], ['Advisory', 'updatedAt'], ['Advisory', 'archivedAt'],
+    ['reports', 'verifiedAt'], ['reports', 'rejectedAt'], ['reports', 'resolvedAt'], ['reports', 'archivedAt'],
+    ['emergency', 'respondedAt'], ['emergency', 'resolvedAt'], ['emergency', 'markedLostAt'],
+    ['users', 'suspendedAt'], ['users', 'suspensionLiftedAt'], ['users', 'lastWarningAt'], ['users', 'lastSuspendedAt'],
+    ['reportedUser', 'updatedAt'], ['reportedUser', 'resolvedAt'],
+    ['stations', 'updatedAt'], ['admins', 'updatedAt'], ['adminRoleLog', 'at'],
+    ['faqs', 'updatedAt'], ['settings', 'updatedAt']
+  ];
+  (function watchLastUpdated() {
+    const el = document.getElementById('portalLastUpdated');
+    if (!el) return;
+    const newest = new Map(); // "collection.field" -> Date
+    const show = () => {
+      const latest = [...newest.values()].reduce((max, date) => (!max || date > max ? date : max), null);
+      el.textContent = latest ? formatPortalDateTime(latest) : '—';
+      el.title = latest ? 'The last time anything was saved on the portal' : 'No saves recorded yet';
+    };
+    onAuthStateChanged(auth, (user) => {
+      if (!user || watchLastUpdated.started) return;
+      watchLastUpdated.started = true;
+      let pending = PORTAL_SAVES.length;
+      const settle = () => { pending -= 1; if (pending <= 0) show(); };
+      PORTAL_SAVES.forEach(([name, field]) => {
+        let first = true;
+        // Timestamps only (>= 1970), so an old text value never sorts first.
+        const newestQuery = query(collection(db, name), where(field, '>=', Timestamp.fromMillis(0)), orderBy(field, 'desc'), limit(1));
+        onSnapshot(newestQuery, (snapshot) => {
+          const value = snapshot.docs[0]?.get(field);
+          const date = value?.toDate ? value.toDate() : null;
+          if (date) newest.set(`${name}.${field}`, date); else newest.delete(`${name}.${field}`);
+          if (first) { first = false; settle(); } else show();
+        }, () => {
+          // Not readable by this account: skipped.
+          if (first) { first = false; settle(); }
+        });
+      });
+    });
+  })();
 
   /* ---- Audit Logs ----
      Who did what and when, gathered from what the records already keep:

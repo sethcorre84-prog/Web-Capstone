@@ -22,7 +22,7 @@ import {
   setDoc,
   updateDoc,
   writeBatch
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+} from "./firestore-tracked.js";
 import { REFERENCE_STATIONS, STATION_COORDS, TAGS, referenceKeyFor } from "./trail-stations.js";
 
 const CSS = `

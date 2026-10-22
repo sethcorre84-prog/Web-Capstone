@@ -658,6 +658,18 @@
           border-width: 1px;
           flex-shrink: 0;
       }
+      /* The Lost / Missing swatch at legend size, still (hiker-layer.js's
+         map pin is larger, with a pulse). */
+      .legend-row .hiker-pin.lost,
+      .legend-list .hiker-pin.lost {
+          width: 20px;
+          height: 20px;
+          font-size: 10px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+      }
+      .legend-row .hiker-pin.lost::after {
+          display: none;
+      }
       .legend-row .hiker-pin i {
           width: auto;
           font-size: 8px;
@@ -1027,6 +1039,7 @@
                   <div class="legend-row"><span class="hiker-pin online" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Online now</span></div>
                   <div class="legend-row"><span class="hiker-pin offline" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Last seen</span></div>
                   <div class="legend-row" title="Started a hike in the PeakPath app"><span class="hiker-pin online on-hike" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>On a hike</span></div>
+                  <div class="legend-row" title="An open Lost / Missing emergency: reported by a companion in the app, or marked from their SOS"><span class="hiker-pin lost" aria-hidden="true"><i class="fa-solid fa-person-circle-question"></i></span><span>Lost / Missing</span></div>
                 </div>
               </section>
               <section class="legend-group">

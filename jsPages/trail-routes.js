@@ -26,7 +26,7 @@ import {
   doc,
   serverTimestamp,
   updateDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+} from "./firestore-tracked.js";
 import { trailLineKey, validRoute } from "./makiling-area.js";
 
 const ROUTE_COLOR = '#f08c00';

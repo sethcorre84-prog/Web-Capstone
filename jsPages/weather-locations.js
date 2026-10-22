@@ -11,7 +11,7 @@
 // then corrects the temperature for height, which is what makes the summit
 // read cooler than the trailhead and the town below it.
 
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { doc, onSnapshot, serverTimestamp, setDoc } from './firestore-tracked.js';
 
 const STORAGE_KEY = 'peakpath-weather-location';
 const SETTING_PATH = ['settings', 'weather'];

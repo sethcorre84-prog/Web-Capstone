@@ -33,6 +33,9 @@ const dataUrl = (name) => new URL(`../assets/data/${name}`, import.meta.url).hre
 // named river's label on the map, so the two look the same.
 export const RIVER_WAVE = '<svg viewBox="0 0 24 10" aria-hidden="true"><path d="M1 7c4-5 8 2 12-2s7-3 10-1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
 export const WATER_COLOR = '#55b6ff';
+// The river and creek lines on the satellite maps: stronger than
+// WATER_COLOR (the legend swatch's light blue) so they stand out.
+const RIVER_LINE_COLOR = '#1e88ff';
 
 // Station tags that put a facility marker on the map, and its icon.
 // Every station tag in Trail Station Management (TAGS in trail-stations.js)
@@ -174,12 +177,28 @@ export function addMapFeatures({ map, db, trails = () => [], stationsOnly = fals
   const stations = L.layerGroup().addTo(map);
 
   if (!stationsOnly) loadJson('makiling-waterways.geojson').then((data) => {
+    // Drawn like the trails, so they read on satellite imagery as they do
+    // on the app's map: a white edge under a strong blue line, rivers wider
+    // than creeks. The edge is drawn first and takes no clicks.
+    L.geoJSON(data, {
+      pane: 'mfBackdrop',
+      interactive: false,
+      style: (feature) => ({
+        color: '#ffffff',
+        weight: feature.properties.kind === 'river' ? 7 : 4.5,
+        opacity: 0.7,
+        lineCap: 'round',
+        lineJoin: 'round'
+      })
+    }).addTo(waterways);
     L.geoJSON(data, {
       pane: 'mfBackdrop',
       style: (feature) => ({
-        color: WATER_COLOR,
-        weight: feature.properties.kind === 'river' ? 2.6 : 1.6,
-        opacity: 0.9
+        color: RIVER_LINE_COLOR,
+        weight: feature.properties.kind === 'river' ? 4 : 2.5,
+        opacity: 1,
+        lineCap: 'round',
+        lineJoin: 'round'
       }),
       onEachFeature: (feature, layer) => {
         const name = feature.properties.name || (feature.properties.kind === 'river' ? 'River' : 'Creek');

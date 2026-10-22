@@ -26,7 +26,7 @@ import {
   onSnapshot,
   serverTimestamp,
   writeBatch
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+} from "./firestore-tracked.js";
 
 // Tag -> label and icon (Font Awesome), shown on landmark stations and as
 // the station badges on the GeoMap (map-features.js). The keys are what is
