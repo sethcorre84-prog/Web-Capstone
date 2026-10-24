@@ -1263,6 +1263,25 @@
        layout — the stat row, the table/detail split and the map.
     ========================================== */
 
+    /* Trail Details beside the Trail List: exactly as tall as the list (its
+       bottom lines up with the list's end, set by syncDetailHeight), with its
+       contents scrolling inside and the title staying on top. */
+    .trail-detail-panel.is-sized {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+        padding-top: 0;
+    }
+    .trail-detail-panel.is-sized > .panel-title {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        margin: 0 -20px 14px;
+        padding: 18px 20px 10px;
+        background: var(--card-bg);
+    }
+
     /* The trail detail column no longer fits beside the table: put it under. */
     @media (max-width: 1150px) {
         .content-grid {
@@ -1420,7 +1439,7 @@
 
       <!-- LEFT COLUMN -->
       <div>
-        <div class="panel">
+        <div class="panel" id="trailListPanel">
           <div class="panel-title">Trail List (Mount Makiling)</div>
           <div class="toolbar">
             <div class="search-box">
@@ -1458,7 +1477,7 @@
           <div id="stationsPanel" aria-live="polite"></div>
         </div>
 
-        <div class="panel">
+        <div class="panel" id="trailMapPanel">
           <div class="panel-title">Trail Map Overview (Mount Makiling)</div>
           <div class="map-box">
             <div id="trailMap" aria-label="Interactive map of Mount Makiling"></div>
@@ -1475,7 +1494,7 @@
 
       <!-- RIGHT COLUMN -->
       <div>
-        <div class="panel">
+        <div class="panel trail-detail-panel" id="trailDetailPanel">
           <div class="panel-title">Trail Details</div>
           <div id="detailPhoto" class="detail-photo" title="View full size">
             <span class="badge open detail-status-badge" id="detailPhotoStatus">Open</span>
@@ -1499,6 +1518,12 @@
             <div class="detail-row"><span><i class="fa-regular fa-calendar-plus" aria-hidden="true"></i>Publish Date</span><span id="detailPublishDate">—</span></div>
             <div class="detail-row"><span><i class="fa-regular fa-calendar-check" aria-hidden="true"></i>Last Updated</span><span id="detailUpdated">—</span></div>
           </div>
+          <!-- What a hike here costs, as ranges (trail-fees.js). -->
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px">
+            <span class="detail-section-label" style="margin-bottom:8px">Fees &amp; Payments</span>
+            <button class="btn-secondary" id="editFeesBtn" type="button" style="width:auto;padding:5px 10px;font-size:12px;margin-bottom:8px">✎ Edit Fees</button>
+          </div>
+          <div id="trailFees"></div>
           <span class="detail-section-label">Trail Status</span>
           <div class="status-mgmt-row">
             <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Current Status</span>
@@ -1508,12 +1533,12 @@
           <button class="btn-secondary" id="discardEditBtn" type="button" style="margin-top:8px;" hidden>↺ Discard Changes</button>
         </div>
 
-        <div class="panel">
+        <div class="panel trail-detail-panel" id="stationMgmtPanel">
           <div class="panel-title">Trail Station Management</div>
           <div id="stationEditor"></div>
         </div>
 
-        <div class="panel">
+        <div class="panel" id="trailActionsPanel">
           <div class="panel-title">Actions</div>
           <div class="quick-grid">
             <button class="quick-btn" id="addTrailBtn">+ Add Trail</button>
@@ -1719,6 +1744,7 @@ import { pageList, pageGap, PAGE_GAP } from "../jsPages/pagination.js";
 import { escapeHtml } from "../jsPages/utils.js";
 import { initTrailPoints, openSuggestedCheckpointsDialog } from "../jsPages/trail-points.js";
 import { initTrailRoutes } from "../jsPages/trail-routes.js";
+import { initTrailFees } from "../jsPages/trail-fees.js";
 import { countMapPoints } from "../jsPages/map-features.js";
 import { initStationsPanel } from "../jsPages/trail-stations.js";
 import { initStationEditor } from "../jsPages/trail-station-editor.js";
@@ -1731,6 +1757,7 @@ const makilingCenter = [14.136, 121.197];
 let trailLines = null;
 // The route editor (trail-routes.js), set up further down.
 let trailRoutes = null;
+let trailFees = null;
 
 /* The page's message pop-up. tone: 'info' (green), 'warning' (amber) or
    'error' (red). Resolves when it is closed (OK, Escape or a click
@@ -1864,11 +1891,73 @@ onSnapshot(trailsCol, (snapshot) => {
   render();
   updateStats();               // add this line
   if (!editing) renderDetail();
+  // Fees saved during edit mode show straight away (the rest of the
+  // details wait, so the edit form isn't overwritten).
+  else trailFees?.render(getSelected());
 });
 
 function getSelected() {
   return trails.find(t => t.id === selectedId);
 }
+
+/* Trail Station Management sized so the Actions panel under it ends level
+   with the end of the Trail Map Overview, scrolling inside like Trail
+   Details. Worked out from where the panels are: the map's bottom, less
+   the Station Management's top, the Actions panel and the gap between. */
+(function syncStationHeight() {
+  const map = document.getElementById('trailMapPanel');
+  const panel = document.getElementById('stationMgmtPanel');
+  const actions = document.getElementById('trailActionsPanel');
+  const detail = document.getElementById('trailDetailPanel');
+  if (!map || !panel || !actions) return;
+  const stacked = window.matchMedia('(max-width: 1150px)');
+  const MIN_HEIGHT = 220;
+  let frame = 0;
+  const sync = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      if (stacked.matches) {
+        panel.style.height = '';
+        panel.classList.remove('is-sized');
+        return;
+      }
+      const gap = parseFloat(getComputedStyle(panel).marginBottom) || 0;
+      const height = map.getBoundingClientRect().bottom - panel.getBoundingClientRect().top
+        - gap - actions.offsetHeight;
+      panel.style.height = `${Math.max(MIN_HEIGHT, Math.floor(height))}px`;
+      panel.classList.add('is-sized');
+    });
+  };
+  // Anything that moves the map's end or the panels above Actions.
+  const observer = new ResizeObserver(sync);
+  [map, actions, detail, ...map.parentElement.children].forEach((el) => el && observer.observe(el));
+  stacked.addEventListener('change', sync);
+  window.addEventListener('resize', sync);
+  sync();
+})();
+
+/* Trail Details as tall as the Trail List beside it, scrolling inside
+   (.trail-detail-panel.is-sized). Follows the list as it grows or shrinks
+   (filters, pages, window size); when the columns stack (narrow screens)
+   the details take their natural height again. */
+(function syncDetailHeight() {
+  const list = document.getElementById('trailListPanel');
+  const detail = document.getElementById('trailDetailPanel');
+  if (!list || !detail) return;
+  const stacked = window.matchMedia('(max-width: 1150px)');
+  const sync = () => {
+    if (stacked.matches) {
+      detail.style.height = '';
+      detail.classList.remove('is-sized');
+      return;
+    }
+    detail.style.height = `${list.offsetHeight}px`;
+    detail.classList.add('is-sized');
+  };
+  new ResizeObserver(sync).observe(list);
+  stacked.addEventListener('change', sync);
+  sync();
+})();
 
 // Trail pictures from Storage arrive after the first draw; redraw with them.
 onTrailImagesReady(() => {
@@ -1888,6 +1977,18 @@ const trailPoints = initTrailPoints({
     campsites: document.getElementById('addCampsiteBtn')
   },
   notify: (message) => showNotice(message, { title: 'Trail Map' })
+});
+
+// Fees & Payments in Trail Details: entrance, guide and camping fees, as
+// ranges, with a cost estimate (trail-fees.js).
+trailFees = initTrailFees({
+  db,
+  getSelected,
+  container: document.getElementById('trailFees'),
+  editButton: document.getElementById('editFeesBtn'),
+  // Only while editing the trail (Edit Trail Information).
+  canEdit: () => editing,
+  notify: (message) => showNotice(message, { title: 'Fees' })
 });
 
 // Draw Route / Import GPX / KML: the selected trail's line on every map,
@@ -2164,6 +2265,7 @@ function renderDetail() {
   const millis = (v) => (v?.toMillis ? v.toMillis() : (v ? new Date(v).getTime() : 0)) || 0;
   const lastChange = millis(t.StatusUpdatedAt) > millis(t.UpdatedAt) ? t.StatusUpdatedAt : t.UpdatedAt;
   document.getElementById('detailUpdated').textContent = formatTimestamp(lastChange);
+  trailFees?.render(t);
   document.getElementById('detailPublishDate').textContent = formatPublishDate(t.PublishDate);
 
   const status = t.Status || "Open";
@@ -2218,6 +2320,8 @@ function openEditMode() {
   if (!t) return;
   if (t.Visible === false) return;
   editing = true;
+  // Edit Fees becomes clickable now.
+  trailFees?.render(t);
 
   document.getElementById('detailName').innerHTML =
     `<input type="text" id="editName" value="${(t.Trail || '').replace(/"/g, '&quot;')}" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:15px;font-weight:700;">`;

@@ -2172,7 +2172,7 @@
   import { escapeHtml, normalizeText } from '../jsPages/utils.js';
   import { formatPortalDate, formatPortalTime, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
   import { suspensionState } from '../jsPages/account-status.js';
-  import { sendDirectMessage } from '../jsPages/community-chat.js';
+  import { sendDirectMessage } from '../jsPages/admin-chats.js';
   import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
   import {
     arrayUnion,
@@ -4191,7 +4191,7 @@
   });
 
   /* Warn User sends the warning to the reported user as a private chat from
-     this admin (community-chat.js), which they see in the app's Chats, and
+     this admin (admin-chats.js), which they see in the app's Chats, and
      records it on the report and their account. The message starts as a
      written-out warning for the chosen reason; once the admin edits it,
      changing the reason no longer rewrites it. */

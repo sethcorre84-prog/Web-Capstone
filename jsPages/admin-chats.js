@@ -1,17 +1,12 @@
-// community-chat.js
-// Chats for the portal, from a chat button beside the notification bell on
-// every page that has one (notification.js mounts it). Like Messenger's
-// dropdown, the button opens a list of conversations first; picking one
-// opens it, with a back arrow to the list.
+// admin-chats.js
+// The portal's Chats: this admin's private chats with PeakPath users, from a
+// chat button beside the notification bell on every page that has one
+// (notification.js mounts it). Like Messenger's dropdown, the button opens
+// the list of chats first; picking one opens it, with a back arrow to the
+// list. User Reports' Warn User sends its warning here (sendDirectMessage).
 //
-// Two kinds of conversation, both the PeakPath app's own documents (ChatService
-// in the app's lib/features/chat/chat_service.dart), under its firestore.rules:
-//
-//   communityChat/{id}            the one public room every hiker reads
-//     senderId, senderName, senderUsername, type ("text"), text, createdAt
-//     An admin's delete keeps the message as type "removed" with its text
-//     wiped (removedBy, removedAt), so the app shows that an admin removed
-//     it for the safety guidelines instead of it silently vanishing.
+// The PeakPath app's own documents (ChatService in the app's
+// lib/features/chat/chat_service.dart), under its firestore.rules:
 //
 //   chats/{uidA_uidB}             a private chat between this admin and one
 //     participants [uidA, uidB]   user (uids sorted), e.g. a warning sent
@@ -22,10 +17,7 @@
 //     senderId, type ("text"), text, createdAt
 //
 // The app shows only a sender's name, so an admin's name carries "(Admin)".
-// Every admin only watches the Community Chat here: no message box, just
-// deleting messages. Private chats (e.g. Warn User) still send.
-// Hikers' chats with each other are readable by their members only, so the
-// list holds the Community Chat and this admin's own private chats.
+// The app's Community Chat is not shown on the portal.
 
 import { auth, db, storage } from './firebase-config.js';
 import { escapeHtml } from './utils.js';
@@ -37,12 +29,8 @@ import {
   serverTimestamp, setDoc, updateDoc, where, writeBatch
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-const ROOM = 'communityChat';
 const MESSAGE_LIMIT = 200;   // the newest messages, as in the app
 const MAX_LENGTH = 1000;     // longest message an admin can type in a private chat
-// What hikers see in place of a message an admin removed (the app says the same).
-const REMOVED_NOTE = "Removed by an admin for going against PeakPath's safety guidelines.";
-const seenKey = (uid) => `peakpath:community-last-seen:${uid}`;
 
 const CSS = `
 .chat-wrap { position: relative; }
@@ -160,17 +148,6 @@ const CSS = `
 .chat-confirm-delete { display: inline-flex; align-items: center; gap: 7px; border: 0;
   background: var(--danger, #c8402f); color: #fff; }
 .chat-confirm-delete:disabled { opacity: .6; cursor: not-allowed; }
-.chat-watch { display: flex; align-items: center; gap: 9px; padding: 10px 12px; font-size: 12px;
-  line-height: 1.4; border-top: 1px solid var(--border, #e4e7e1); background: var(--dm-surface-2, #f6f8f5);
-  color: var(--text-secondary, #5b6b60); }
-.chat-watch i { color: var(--accent, #2f8f4e); font-size: 13px; }
-.chat-watch strong { color: var(--text-primary, #1c231c); font-weight: 600; }
-.chat-watch[hidden], .chat-form[hidden] { display: none; }
-/* Watching the Community Chat, deleting is the one action, so it always shows. */
-.chat-panel.is-watching .chat-delete { opacity: .75; }
-.chat-msg.is-removed .chat-bubble { display: flex; align-items: center; gap: 7px; font-style: italic;
-  background: none; border: 1px dashed var(--border, #d5dbd3); color: var(--text-secondary, #5b6b60); box-shadow: none; }
-.chat-msg.is-removed .chat-bubble i { font-style: normal; color: var(--danger, #c8402f); }
 .chat-error { padding: 0 12px 8px; font-size: 11.5px; color: var(--danger, #c8402f); }
 .chat-error:empty { display: none; }
 `;
@@ -245,11 +222,9 @@ const chatIdFor = (a, b) => [a, b].sort().join('_');
 
 let me = null;
 let myName = null;           // "Name (Admin)", as the app will show it
-let community = [];          // Community Chat messages, oldest first
-let unsubCommunity = null;
 let directChats = [];        // this admin's private chats
 let unsubDirectChats = null;
-let current = { kind: 'community' };  // the conversation the room view shows
+let current = null;          // the chat the room view shows
 let directMessages = [];
 let unsubDirect = null;
 const widgets = [];
@@ -259,16 +234,6 @@ const adminName = async () => {
   return myName;
 };
 
-const lastSeen = () => {
-  try { return Number(localStorage.getItem(seenKey(me?.uid))) || 0; } catch { return 0; }
-};
-const markSeen = () => {
-  try { localStorage.setItem(seenKey(me?.uid), String(Date.now())); } catch { /* storage blocked */ }
-};
-const communityUnread = () => {
-  const seen = lastSeen();
-  return community.filter((m) => m.senderId !== me?.uid && m.date.getTime() > seen).length;
-};
 const directUnread = (chat) => Number(chat.unread?.[me?.uid]) || 0;
 const isRoomOpen = (widget) => widget.panel.classList.contains('open') && widget.panel.dataset.view === 'room';
 const otherOf = (chat) => (chat.participants || []).find((uid) => uid !== me?.uid) || '';
@@ -276,20 +241,7 @@ const otherOf = (chat) => (chat.participants || []).find((uid) => uid !== me?.ui
 /* ---- The list ---- */
 
 function threads() {
-  const latest = community[community.length - 1];
-  const list = [{
-    id: 'community',
-    name: 'Community Chat',
-    avatar: '<i class="fa-solid fa-users" aria-hidden="true"></i>',
-    person: false,
-    preview: latest
-      ? (latest.type === 'removed'
-        ? 'A message was removed by an admin'
-        : `${latest.senderId === me?.uid ? 'You' : firstName(latest.senderName)}: ${latest.text || ''}`)
-      : 'No messages yet',
-    at: latest?.date || null,
-    unread: communityUnread() > 0
-  }];
+  const list = [];
   directChats.forEach((chat) => {
     const other = chat.participantInfo?.[otherOf(chat)] || {};
     const name = other.name || other.username || 'PeakPath user';
@@ -305,8 +257,8 @@ function threads() {
       unread: directUnread(chat) > 0
     });
   });
-  // The Community Chat stays on top; private chats follow, newest first.
-  return [list[0], ...list.slice(1).sort((a, b) => (b.at?.getTime() || 0) - (a.at?.getTime() || 0))];
+  // Newest first.
+  return list.sort((a, b) => (b.at?.getTime() || 0) - (a.at?.getTime() || 0));
 }
 
 function threadsHtml(widget) {
@@ -315,7 +267,10 @@ function threadsHtml(widget) {
     .filter((thread) => widget.tab !== 'unread' || thread.unread)
     .filter((thread) => !search || `${thread.name} ${thread.preview}`.toLowerCase().includes(search));
   if (!shown.length) {
-    return `<div class="chat-list-empty">${widget.tab === 'unread' ? 'No unread chats.' : 'No chats match your search.'}</div>`;
+    const message = widget.tab === 'unread'
+      ? 'No unread chats.'
+      : (search ? 'No chats match your search.' : 'No chats yet. Warnings sent with Warn User in Reports About User Behavior appear here.');
+    return `<div class="chat-list-empty">${message}</div>`;
   }
   return shown.map((thread) => `
     <button type="button" class="chat-thread${thread.unread ? ' unread' : ''}" data-thread="${escapeHtml(thread.id)}">
@@ -330,13 +285,12 @@ function threadsHtml(widget) {
 
 /* ---- One conversation ---- */
 
-const roomMessages = () => (current.kind === 'community' ? community : directMessages);
+const roomMessages = () => directMessages;
 
 function messagesHtml() {
   const list = roomMessages();
   if (!list.length) {
-    const hint = current.kind === 'community' ? 'Messages from hikers will show here.' : 'Write the first message.';
-    return `<div class="chat-empty"><i class="fa-regular fa-comments" aria-hidden="true"></i><br>No messages yet. ${hint}</div>`;
+    return '<div class="chat-empty"><i class="fa-regular fa-comments" aria-hidden="true"></i><br>No messages yet. Write the first message.</div>';
   }
   let lastDay = '';
   return list.map((message) => {
@@ -348,15 +302,8 @@ function messagesHtml() {
       return `${divider}<div class="chat-msg is-system"><div class="chat-bubble">${escapeHtml(message.text || '')}</div></div>`;
     }
     const mine = message.senderId === me?.uid;
-    if (message.type === 'removed') {
-      return `${divider}
-      <div class="chat-msg is-removed">
-        <div class="chat-meta"><strong>${escapeHtml(message.senderName || 'Hiker')}</strong><span>${timeLabel(date)}</span></div>
-        <div class="chat-bubble"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>${escapeHtml(REMOVED_NOTE)}</div>
-      </div>`;
-    }
     const isAdmin = message.senderRole === 'admin' || /\(Admin\)$/.test(message.senderName || '');
-    const name = current.kind === 'community' ? (message.senderName || 'Hiker') : current.name;
+    const name = current?.name || 'PeakPath user';
     const text = message.type === 'location' ? `📍 Shared a location${message.text ? `: ${message.text}` : ''}` : (message.text || '');
     return `${divider}
       <div class="chat-msg${mine ? ' mine' : ''}${isAdmin ? ' is-admin' : ''}">
@@ -371,10 +318,7 @@ function messagesHtml() {
 }
 
 function roomHeadHtml() {
-  if (current.kind === 'community') {
-    return `<span class="chat-avatar"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
-      <div class="chat-head-title"><strong>Community Chat</strong><span>Watching · admins can't post here</span></div>`;
-  }
+  if (!current) return '';
   return `<span class="chat-avatar is-person">${personAvatar(current.otherUid, current.name)}</span>
     <div class="chat-head-title"><strong>${escapeHtml(current.name)}</strong><span>Official notice · they can't reply${current.username ? ` · @${escapeHtml(current.username)}` : ''}</span></div>`;
 }
@@ -383,20 +327,12 @@ function roomHeadHtml() {
 
 function render() {
   // Messages arriving while a room is open on screen are already read.
-  if (widgets.some(isRoomOpen)) {
-    if (current.kind === 'community') markSeen();
-    else markDirectRead(current.chatId);
-  }
-  const unread = communityUnread() + directChats.reduce((sum, chat) => sum + directUnread(chat), 0);
+  if (current && widgets.some(isRoomOpen)) markDirectRead(current.chatId);
+  const unread = directChats.reduce((sum, chat) => sum + directUnread(chat), 0);
   widgets.forEach((widget) => {
     widget.threads.innerHTML = threadsHtml(widget);
     widget.roomHead.innerHTML = roomHeadHtml();
-    // Community Chat: admins watch only, so the message box gives way to a note.
-    const watching = current.kind === 'community';
-    widget.panel.classList.toggle('is-watching', watching);
-    widget.form.hidden = watching;
-    widget.watch.hidden = !watching;
-    if (!watching) widget.input.placeholder = `Message ${firstName(current.name)}...`;
+    if (current) widget.input.placeholder = `Message ${firstName(current.name)}...`;
     const { list } = widget;
     const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 40;
     list.innerHTML = messagesHtml();
@@ -419,14 +355,6 @@ const withDates = (snapshot) => snapshot.docs
 
 function listen() {
   stopListening();
-  const room = query(collection(db, ROOM), orderBy('createdAt', 'desc'), limit(MESSAGE_LIMIT));
-  unsubCommunity = onSnapshot(room, (snapshot) => {
-    community = withDates(snapshot);
-    render();
-  }, (error) => {
-    console.error('Could not load the Community Chat:', error);
-    widgets.forEach(({ error: el }) => { el.textContent = 'The Community Chat could not be loaded.'; });
-  });
   // This admin's private chats; group chats are the hikers' own.
   const mine = query(collection(db, 'chats'), where('participants', 'array-contains', me.uid));
   unsubDirectChats = onSnapshot(mine, (snapshot) => {
@@ -438,10 +366,9 @@ function listen() {
 }
 
 function stopListening() {
-  unsubCommunity?.();
   unsubDirectChats?.();
   unsubDirect?.();
-  unsubCommunity = unsubDirectChats = unsubDirect = null;
+  unsubDirectChats = unsubDirect = null;
 }
 
 function listenDirect(chatId) {
@@ -506,17 +433,7 @@ async function sendDirect(chatId, otherUid, text) {
 }
 
 async function deleteMessage(id) {
-  // Community Chat: the message stays as a "removed by an admin" notice, its
-  // text wiped, so hikers see why it went (firestore.rules allows only this).
-  if (current.kind === 'community') {
-    await updateDoc(doc(db, ROOM, id), {
-      type: 'removed',
-      text: '',
-      removedBy: me.uid,
-      removedAt: serverTimestamp()
-    });
-    return;
-  }
+  if (!current) return;
   const chatRef = doc(db, 'chats', current.chatId);
   const wasLatest = directMessages[directMessages.length - 1]?.id === id;
   await deleteDoc(doc(chatRef, 'messages', id));
@@ -590,12 +507,9 @@ function askDelete(id) {
   if (!confirmBox) buildConfirm();
   const message = roomMessages().find((m) => m.id === id);
   pendingDelete = id;
-  const who = message?.senderId === me?.uid
-    ? 'You'
-    : (current.kind === 'community' ? (message?.senderName || 'Hiker') : current.name);
-  confirmBox.querySelector('.chat-confirm-text').textContent = current.kind === 'community'
-    ? 'Its text will be removed for everyone. In the PeakPath app, hikers and its sender will see that an admin removed it for going against the safety guidelines. This can\'t be undone.'
-    : `It will be removed from your chat with ${current.name}, including in the PeakPath app. This can't be undone.`;
+  const who = message?.senderId === me?.uid ? 'You' : (current?.name || 'PeakPath user');
+  confirmBox.querySelector('.chat-confirm-text').textContent =
+    `It will be removed from your chat with ${current?.name || 'this user'}, including in the PeakPath app. This can't be undone.`;
   confirmBox.querySelector('.chat-confirm-quote').textContent = message ? `${who}: ${message.text || ''}` : '';
   confirmBox.querySelector('.chat-confirm-error').textContent = '';
   confirmBox.classList.add('open');
@@ -605,12 +519,6 @@ function askDelete(id) {
 /* ---- Panel ---- */
 
 function openThread(id) {
-  if (id === 'community') {
-    unsubDirect?.();
-    unsubDirect = null;
-    current = { kind: 'community' };
-    return;
-  }
   const chat = directChats.find((item) => item.id === id);
   const otherUid = chat ? otherOf(chat) : '';
   const info = chat?.participantInfo?.[otherUid] || {};
@@ -677,10 +585,6 @@ function mountOne(bell) {
         </div>
         <div class="chat-messages" aria-live="polite"><div class="chat-empty">Loading messages...</div></div>
         <div class="chat-error" role="alert"></div>
-        <div class="chat-watch" hidden>
-          <i class="fa-regular fa-eye" aria-hidden="true"></i>
-          <span><strong>You're watching.</strong> Admins can't post in the Community Chat. Use the trash icon to delete a message.</span>
-        </div>
         <form class="chat-form">
           <textarea rows="1" maxlength="${MAX_LENGTH}" placeholder="Message..." aria-label="Message"></textarea>
           <button type="submit" aria-label="Send message" disabled><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
@@ -704,7 +608,6 @@ function mountOne(bell) {
     list: wrap.querySelector('.chat-messages'),
     error: wrap.querySelector('.chat-error'),
     form: wrap.querySelector('.chat-form'),
-    watch: wrap.querySelector('.chat-watch'),
     input: wrap.querySelector('textarea'),
     sendBtn: wrap.querySelector('.chat-form button')
   };
@@ -757,8 +660,7 @@ function mountOne(bell) {
   widget.form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const text = widget.input.value.trim();
-    // Nothing is ever posted to the Community Chat from here.
-    if (!text || !me || current.kind !== 'direct') return;
+    if (!text || !me || !current) return;
     widget.sendBtn.disabled = true;
     widget.error.textContent = '';
     try {
@@ -806,7 +708,7 @@ export async function sendDirectMessage(user, text) {
 
 /* Puts a chat button just before every notification bell on the page.
    Called by notification.js once the bells are built. */
-export function mountCommunityChat() {
+export function mountChats() {
   const bells = document.querySelectorAll('.notification-center');
   if (!bells.length) return;
   const style = document.createElement('style');
@@ -837,12 +739,11 @@ export function mountCommunityChat() {
   onAuthStateChanged(auth, (user) => {
     me = user;
     myName = null;
-    current = { kind: 'community' };
+    current = null;
     if (user) {
       listen();
     } else {
       stopListening();
-      community = [];
       directChats = [];
       directMessages = [];
       render();

@@ -1,6 +1,6 @@
 import { db } from './firebase-config.js';
 import { escapeHtml } from './utils.js';
-import { mountCommunityChat } from './community-chat.js';
+import { mountChats } from './admin-chats.js';
 import { alertOf, statusOf, watchSosAlarm } from './sos-alarm.js';
 import { collection, limit, onSnapshot, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -319,8 +319,9 @@ document.querySelectorAll('.bell-wrap').forEach((bell) => {
   setupCenter(bell);
 });
 
-// The Community Chat button sits just left of every bell (community-chat.js).
-mountCommunityChat();
+// The Chats button (private chats with users) sits just left of every bell
+// (admin-chats.js).
+mountChats();
 
 // A new SOS sounds its alarm and pops up on whichever portal page is open (sos-alarm.js).
 watchSosAlarm();

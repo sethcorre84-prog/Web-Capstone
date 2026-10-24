@@ -1261,6 +1261,8 @@ input[type="password"]::-ms-clear {
    notification bell on every admin page (admin-identity.js).
    ========================================================================== */
 .profile-trigger {
+    position: relative;
+    overflow: visible !important;
     cursor: pointer;
     transition:
         transform 0.15s ease,
@@ -1275,6 +1277,35 @@ input[type="password"]::-ms-clear {
 .profile-trigger:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
+}
+/* The dropdown arrow on the profile logo: a small white badge on its
+   bottom-right edge, turning as the card opens on hover. */
+.profile-caret {
+    position: absolute;
+    right: -4px;
+    bottom: -4px;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid var(--border, #dfe5df);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+}
+.profile-caret i {
+    font-size: 8px;
+    color: var(--accent-dark, #1f6b39) !important;
+    transition: transform 0.15s ease;
+}
+.profile-trigger:hover .profile-caret i,
+.profile-trigger:focus-visible .profile-caret i {
+    transform: translateY(1px);
+}
+[data-theme="dark"] .profile-caret {
+    background: var(--card-bg, #1d241f);
+    border-color: var(--border, #2c352e);
 }
 
 .admin-profile-overlay {

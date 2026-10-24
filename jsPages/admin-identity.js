@@ -146,6 +146,11 @@ function closeProfileCard() {
 // The logo beside the bell (in .topbar-right, or loose with .topbar-logo).
 document.querySelectorAll('.topbar-right .avatar-logo, .avatar-logo.topbar-logo').forEach((logo) => {
   logo.classList.add('profile-trigger');
+  // A small dropdown arrow on the logo, so it reads as something to click.
+  if (!logo.querySelector('.profile-caret')) {
+    logo.insertAdjacentHTML('beforeend', '<span class="profile-caret" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>');
+  }
+  logo.setAttribute('aria-haspopup', 'dialog');
   logo.setAttribute('role', 'button');
   logo.setAttribute('tabindex', '0');
   logo.setAttribute('aria-label', 'View admin profile');

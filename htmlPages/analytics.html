@@ -1938,6 +1938,8 @@
   import { escapeHtml, normalizeText } from '../jsPages/utils.js';
   import { formatPortalDateTime, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
   import { collection, doc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  // Ticking the action plan is an admin's save (Settings > Last Updated).
+  import { updateDoc as savePlanTicks } from '../jsPages/firestore-tracked.js';
 
   /* Mount Makiling — the same coordinates the geomap page forecasts against. */
   const MAKILING = { latitude: 14.136, longitude: 121.197 };
@@ -3772,22 +3774,25 @@
     { priority: 'low', heading: 'This week', note: 'Low priority', color: 'var(--accent)' }
   ];
 
-  /* Ticks are remembered in this browser, one list per published analysis,
-     so a new analysis starts with a fresh checklist. */
-  const planKey = () => `analyticsActionPlan:${published.record?.date || 'none'}`;
-  const readPlanDone = () => {
+  /* Ticks are saved on the published analysis itself
+     (prescriptiveHistory/{date}.planDone), so every admin sees the same
+     checklist, live; a new analysis starts with a fresh one. Viewers can
+     read it but not tick (firestore.rules: only editors write there). */
+  const readPlanDone = () => new Set(Array.isArray(published.record?.planDone) ? published.record.planDone : []);
+  const writePlanDone = async (done) => {
+    const record = published.record;
+    if (!record?.date) return;
+    const previous = record.planDone;
+    record.planDone = [...done];
     try {
-      const stored = JSON.parse(localStorage.getItem(planKey()) || '[]');
-      return new Set(Array.isArray(stored) ? stored : []);
+      await savePlanTicks(doc(db, HISTORY_COLLECTION, record.date), { planDone: record.planDone });
     } catch (error) {
-      return new Set();
-    }
-  };
-  const writePlanDone = (done) => {
-    try {
-      localStorage.setItem(planKey(), JSON.stringify([...done]));
-    } catch (error) {
-      // Private browsing or blocked storage: ticks just won't persist.
+      console.error('Could not save the action plan:', error);
+      record.planDone = previous;
+      if (planModal) renderPlan();
+      alert(error?.code === 'permission-denied'
+        ? 'Your admin role cannot tick the action plan (Viewers can only read it).'
+        : 'The tick could not be saved. Check your connection and try again.');
     }
   };
   const planItemId = (action) => `${action.kind}|${action.title}`;
@@ -4139,7 +4144,8 @@
     };
 
     try {
-      await setDoc(doc(db, HISTORY_COLLECTION, date), record);
+      // Merged, so ticks already made on today's analysis are kept.
+      await setDoc(doc(db, HISTORY_COLLECTION, date), record, { merge: true });
       // Show it straight away; the listener below confirms it moments later.
       published.record = { ...record, updatedAt: new Date() };
     } catch (error) {
@@ -4168,6 +4174,8 @@
     published.loaded = true;
     published.record = snapshot.empty ? null : snapshot.docs[0].data();
     renderRecommendations();
+    // Another admin's ticks show straight away in an open action plan.
+    if (planModal?.classList.contains('open')) renderPlan();
     maybeAutoRefresh();
   }, (error) => {
     console.error('Failed to load the latest prescriptive analysis:', error);
