@@ -15,6 +15,9 @@
 // admin's fee table), offered in the editor as a starting point.
 
 import { doc, serverTimestamp, updateDoc } from './firestore-tracked.js';
+// The one-time fill of the published fees is not an admin's edit, so it goes
+// straight to the SDK (it doesn't move Settings > Last Updated).
+import { updateDoc as updateDocDirect } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { trailLineKey } from './makiling-area.js';
 
 const UNITS = {
@@ -148,6 +151,42 @@ function estimate(fees, hikers) {
     high += (max ?? min) * times;
   });
   return { low, high, counted };
+}
+
+/* The fees as they are saved: one amount when max equals min, a group size
+   only on per-group fees. Shared by Save Fees and the one-time fill below. */
+const toSaved = (fee) => ({
+  label: fee.label,
+  unit: fee.unit,
+  min: fee.min,
+  max: fee.max !== null && fee.max !== fee.min ? fee.max : null,
+  groupSize: fee.unit === 'group' ? fee.groupSize : null,
+  note: fee.note,
+  inEstimate: fee.inEstimate
+});
+
+/* Puts the published fees (SUGGESTED) into Firestore, trails/{id}.Fees, for
+   the main trails that have none yet, so the PeakPath app can read them.
+   Only a trail with no Fees field at all: one whose fees an admin edited or
+   cleared (an empty list) is left as it is. Runs once per page load, from
+   Trail Management's trails listener; a Viewer's write is refused quietly
+   and the next editor to open the page fills them in. */
+let seedTried = false;
+export async function seedSuggestedFees(db, trails) {
+  if (seedTried || !trails.length) return;
+  seedTried = true;
+  const missing = trails.filter((trail) => !('Fees' in trail) && SUGGESTED[trailLineKey(trail.Trail)]);
+  for (const trail of missing) {
+    try {
+      await updateDocDirect(doc(db, 'trails', trail.id), {
+        Fees: cleanFees(SUGGESTED[trailLineKey(trail.Trail)]).map(toSaved),
+        FeesUpdatedAt: serverTimestamp(),
+        FeesSource: 'published'
+      });
+    } catch (error) {
+      console.warn(`Could not add the published fees to ${trail.Trail}:`, error.code || error.message);
+    }
+  }
 }
 
 // canEdit: whether the trail is in edit mode (Edit Trail Information); Edit
@@ -290,16 +329,7 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
     if (unnamed) { errorEl.textContent = 'Give every fee a name, or remove the empty row.'; return; }
     const reversed = rows.find((fee) => fee.min !== null && fee.max !== null && fee.max < fee.min);
     if (reversed) { errorEl.textContent = `${reversed.label}: the maximum is lower than the minimum.`; return; }
-    const fees = rows.map((fee) => ({
-      label: fee.label,
-      unit: fee.unit,
-      min: fee.min,
-      // A max equal to the min is just one amount.
-      max: fee.max !== null && fee.max !== fee.min ? fee.max : null,
-      groupSize: fee.unit === 'group' ? fee.groupSize : null,
-      note: fee.note,
-      inEstimate: fee.inEstimate
-    }));
+    const fees = rows.map(toSaved);
     const save = modal.querySelector('.tf-save');
     const name = editing.Trail || 'the trail';
     save.disabled = true;

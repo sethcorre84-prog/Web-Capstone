@@ -1744,7 +1744,7 @@ import { pageList, pageGap, PAGE_GAP } from "../jsPages/pagination.js";
 import { escapeHtml } from "../jsPages/utils.js";
 import { initTrailPoints, openSuggestedCheckpointsDialog } from "../jsPages/trail-points.js";
 import { initTrailRoutes } from "../jsPages/trail-routes.js";
-import { initTrailFees } from "../jsPages/trail-fees.js";
+import { initTrailFees, seedSuggestedFees } from "../jsPages/trail-fees.js";
 import { countMapPoints } from "../jsPages/map-features.js";
 import { initStationsPanel } from "../jsPages/trail-stations.js";
 import { initStationEditor } from "../jsPages/trail-station-editor.js";
@@ -1885,6 +1885,9 @@ const stationFeatures = addMapFeatures({ map: trailMap, db, trails: () => trails
 onSnapshot(trailsCol, (snapshot) => {
   trails = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   if (!selectedId && trails.length > 0) selectedId = trails[0].id;
+  // The published fees go into Firestore for the main trails that have
+  // none yet, for the app (trail-fees.js).
+  seedSuggestedFees(db, trails);
   trailPoints.render(trails);
   stationFeatures.render();
   startRequestedAdd();

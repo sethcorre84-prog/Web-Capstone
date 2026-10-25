@@ -2182,6 +2182,9 @@
     onSnapshot,
     updateDoc
   } from '../jsPages/firestore-tracked.js';
+  // Renumbering the stored Report IDs is housekeeping, not an admin's edit,
+  // so it goes straight to the SDK (it doesn't move Settings > Last Updated).
+  import { writeBatch as writeBatchDirect } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   // Same page size as every other paginated table (trail.html, A&A.html,
   // hazardreport.html) so the number of pages is consistent across the portal.
@@ -2647,6 +2650,35 @@
         reportedBy: toPerson(report.reporterRef)
       };
     }));
+    syncStoredReportIds(state.reports);
+  };
+
+  /* Keeps the Report ID stored in Firestore (reportedUser/{id}.reportId)
+     the same as the number the list shows, so the database has no gaps
+     either: when reports are deleted, the ones after them move up
+     (UR-2026-005 becomes UR-2026-004 ...), and a report the app numbered
+     ahead (its counter never goes back) takes the next free number. Runs
+     whenever the reports change, for admins who may edit; a Viewer's write
+     is refused quietly. Writes only the ids that differ. */
+  const renumbering = new Set();
+  const syncStoredReportIds = async (reports) => {
+    const changes = reports.filter((report) => report.reportId
+      && report.storedId !== report.reportId && !renumbering.has(report.id));
+    if (!changes.length) return;
+    changes.forEach((report) => renumbering.add(report.id));
+    try {
+      for (let start = 0; start < changes.length; start += 400) {
+        const batch = writeBatchDirect(db);
+        changes.slice(start, start + 400).forEach((report) => {
+          batch.update(doc(db, REPORTS_COLLECTION, report.id), { reportId: report.reportId });
+        });
+        await batch.commit();
+      }
+    } catch (error) {
+      if (error?.code !== 'permission-denied') console.warn('Could not renumber the stored Report IDs:', error);
+    } finally {
+      changes.forEach((report) => renumbering.delete(report.id));
+    }
   };
 
   const reportDateLabel = (report) => {
@@ -2796,9 +2828,10 @@
           && (!range || inRange(report.date, range))
           && (trailFilter.value === 'all' || reportTrailId(report) === trailFilter.value);
       })
-      // Newest first: submission time, with IDs breaking ties consistently.
-      .sort((a, b) => (b.submittedAt?.getTime() || 0) - (a.submittedAt?.getTime() || 0)
-        || reportOrder(b) - reportOrder(a));
+      // By Report ID, highest first (UR-2026-009, 008, 007 ...), so the
+      // numbers always run in descending order; submission time breaks ties.
+      .sort((a, b) => reportOrder(b) - reportOrder(a)
+        || (b.submittedAt?.getTime() || 0) - (a.submittedAt?.getTime() || 0));
   };
 
   /* =====================================================================
