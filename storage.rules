@@ -48,6 +48,81 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // Hiker badge pictures (01-trail-rookie.png ... 06-mountain-legend.png),
+    // shown on the app's Home badge card and Profile. Uploaded by hand.
+    match /badge/{fileName} {
+      allow read: if request.auth != null;
+      allow create, update: if isAdmin() &&
+        request.resource.contentType.matches('image/.*') &&
+        request.resource.size <= 5 * 1024 * 1024;
+      allow delete: if isAdmin();
+    }
+
+    // Profile pictures hikers choose from on the app's Profile page. The
+    // app lists this folder, so signed-in users need read (covers list).
+    match /profileAvatar/{fileName} {
+      allow read: if request.auth != null;
+      allow create, update: if isAdmin() &&
+        request.resource.contentType.matches('image/.*') &&
+        request.resource.size <= 5 * 1024 * 1024;
+      allow delete: if isAdmin();
+    }
+
+    /* Photos hikers attach in the PeakPath app, uploaded by
+       ReportService._uploadReportPhoto as {folder}/{uid}/{timestamp}.jpg:
+         reports/     hazard reports
+         userReport/  Report User (optional photo of the reported user)
+       Readable by any signed-in account (the portal shows them beside the
+       report). Writable only into the uploader's own folder, images only,
+       under 8 MB. A submitted photo is evidence, so the reporter can't
+       replace or remove it; admins can, for takedowns. */
+    match /reports/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.size < 8 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if isAdmin();
+    }
+
+    match /userReport/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.size < 8 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if isAdmin();
+    }
+
+    /* Photos on Community threads (lib/features/community/). Readable by
+       any signed-in account; written only into the poster's own folder,
+       images only, under 8 MB. The poster can delete theirs along with
+       the post; admins can remove any. */
+    match /communityPosts/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.size < 8 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null
+                    && (request.auth.uid == userId || isAdmin());
+    }
+
+    /* A hiker's own profile photo (lib/features/profile/avatar_picker.dart,
+       AvatarService.uploadOwn), shown everywhere by the download URL saved
+       in users/{uid}.avatarUrl. Written only into the hiker's own folder,
+       images only, under 5 MB; they can delete their old ones, and admins
+       can remove any. */
+    match /userAvatars/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null
+                    && (request.auth.uid == userId || isAdmin());
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }
