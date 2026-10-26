@@ -36,6 +36,22 @@ const SUGGESTED = {
     { label: 'Camping', unit: 'groupNight', min: 500, max: null, note: 'Tayabak (Station 9) and Malaboo (Station 13).', inEstimate: false }
   ],
   sipit: [
+    { label: 'Entrance fee', unit: 'head', min: 40, max: null, inEstimate: true },
+    { label: 'Tour guide', unit: 'group', min: 1500, max: null, groupSize: 7, note: 'One guide per group of up to 7: 8–14 hikers need 2 guides (₱3,000), 15–21 need 3 (₱4,500).', inEstimate: true },
+    { label: 'Camping (Melkas Campsite)', unit: 'groupNight', min: null, max: null, note: 'Fee not published.', inEstimate: false }
+  ],
+  traverse: [
+    { label: 'Sto. Tomas side entrance fee', unit: 'head', min: 40, max: null, note: 'Same as the Sipit Trail side.', inEstimate: true },
+    { label: 'UPLB exit fee', unit: 'head', min: null, max: null, note: 'Amount not published.', inEstimate: false },
+    { label: 'Tour guide', unit: 'group', min: 1500, max: null, groupSize: 7, note: 'Same as the Sipit Trail side (one guide per group of up to 7), plus the guide\'s fare back to Sto. Tomas.', inEstimate: true }
+  ]
+};
+
+/* Published fees that SUGGESTED has since replaced. A trail still holding one
+   of these exactly (filled in by an earlier seedSuggestedFees and not edited
+   since) is given the current ones. */
+const REPLACED = {
+  sipit: [
     { label: 'Total budget (entrance & fees)', unit: 'head', min: 300, max: 550, note: 'Older data, unconfirmed.', inEstimate: true },
     { label: 'Tour guide', unit: 'group', min: 500, max: 800, note: 'Negotiable (older data).', inEstimate: true },
     { label: 'Camping (Melkas Campsite)', unit: 'groupNight', min: null, max: null, note: 'Fee not published.', inEstimate: false }
@@ -131,11 +147,14 @@ const cleanFees = (fees) => (Array.isArray(fees) ? fees : []).map((fee) => ({
 
 /* The cost for `hikers` people: per-head fees times the hikers, per-group
    fees once per group (groupSize hikers each, one group when not set), flat
-   fees once. Per-night fees are left out: they depend on the stay. */
+   fees once. Per-night fees are left out: they depend on the stay. `groups`
+   names how many of each sized per-group fee that takes ("2 × Tour guide"
+   for 8–14 hikers on a guide for up to 7). */
 function estimate(fees, hikers) {
   let low = 0;
   let high = 0;
   let counted = 0;
+  const groups = [];
   fees.forEach((fee) => {
     if (!fee.inEstimate) return;
     const min = num(fee.min);
@@ -149,8 +168,9 @@ function estimate(fees, hikers) {
     counted += 1;
     low += (min ?? max) * times;
     high += (max ?? min) * times;
+    if (fee.unit === 'group' && fee.groupSize) groups.push(`${times} × ${fee.label}`);
   });
-  return { low, high, counted };
+  return { low, high, counted, groups };
 }
 
 /* The fees as they are saved: one amount when max equals min, a group size
@@ -167,15 +187,21 @@ const toSaved = (fee) => ({
 
 /* Puts the published fees (SUGGESTED) into Firestore, trails/{id}.Fees, for
    the main trails that have none yet, so the PeakPath app can read them.
-   Only a trail with no Fees field at all: one whose fees an admin edited or
-   cleared (an empty list) is left as it is. Runs once per page load, from
-   Trail Management's trails listener; a Viewer's write is refused quietly
-   and the next editor to open the page fills them in. */
+   Only a trail with no Fees field at all, or one still holding fees that
+   were replaced (REPLACED): one whose fees an admin edited or cleared (an
+   empty list) is left as it is. Runs once per page load, from Trail
+   Management's trails listener; a Viewer's write is refused quietly and the
+   next editor to open the page fills them in. */
+const savedFees = (fees) => JSON.stringify(cleanFees(fees).map(toSaved));
+const outdated = (trail) => {
+  const replaced = REPLACED[trailLineKey(trail.Trail)];
+  return Boolean(replaced) && savedFees(trail.Fees) === savedFees(replaced);
+};
 let seedTried = false;
 export async function seedSuggestedFees(db, trails) {
   if (seedTried || !trails.length) return;
   seedTried = true;
-  const missing = trails.filter((trail) => !('Fees' in trail) && SUGGESTED[trailLineKey(trail.Trail)]);
+  const missing = trails.filter((trail) => SUGGESTED[trailLineKey(trail.Trail)] && (!('Fees' in trail) || outdated(trail)));
   for (const trail of missing) {
     try {
       await updateDocDirect(doc(db, 'trails', trail.id), {
@@ -213,7 +239,7 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
       container.innerHTML = '<div class="tf-empty">No fees set for this trail yet. Use <strong>Edit Fees</strong> to add the entrance, guide and camping fees.</div>';
       return;
     }
-    const { low, high, counted } = estimate(fees, hikers);
+    const { low, high, counted, groups } = estimate(fees, hikers);
     container.innerHTML = `
       <div class="tf-list">${fees.map((fee) => `
         <div class="tf-row">
@@ -226,6 +252,7 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
         <label>Estimated cost for <input type="number" min="1" max="99" value="${hikers}" class="tf-hikers" aria-label="Number of hikers"${canEdit() ? '' : ' disabled title="Click &quot;Edit Trail Information&quot; first to change the number of hikers"'}> hikers:</label>
         <strong>${low === high ? peso(low) : `${peso(low)} – ${peso(high)}`}</strong>
         <span>(≈ ${low === high ? peso(Math.round(low / hikers)) : `${peso(Math.round(low / hikers))} – ${peso(Math.round(high / hikers))}`} per head)</span>
+        ${groups.length ? `<span>· ${escapeHtml(groups.join(', '))}</span>` : ''}
         <small>Counts the fees marked for the estimate; camping and other per-night fees are extra.</small>
       </div>` : ''}`;
     container.querySelector('.tf-hikers:not(:disabled)')?.addEventListener('change', (event) => {

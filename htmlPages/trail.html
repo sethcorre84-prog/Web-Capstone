@@ -1886,7 +1886,7 @@ onSnapshot(trailsCol, (snapshot) => {
   trails = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   if (!selectedId && trails.length > 0) selectedId = trails[0].id;
   // The published fees go into Firestore for the main trails that have
-  // none yet, for the app (trail-fees.js).
+  // none yet (or still hold replaced ones), for the app (trail-fees.js).
   seedSuggestedFees(db, trails);
   trailPoints.render(trails);
   stationFeatures.render();
