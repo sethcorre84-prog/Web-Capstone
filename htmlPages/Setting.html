@@ -382,6 +382,24 @@
     .modal-card.dialog-wide {
         width: min(960px, 100%);
     }
+    /* Hiker Checklist keeps one size whether the list is empty or long
+       (never taller than the screen): the list scrolls inside it and Close
+       stays at the bottom. */
+    .modal-card.dialog-fixed {
+        height: min(640px, calc(100vh - 40px));
+        height: min(640px, calc(100dvh - 40px));
+    }
+    .modal-card.dialog-fixed > .modal-body {
+        display: flex;
+        flex-direction: column;
+    }
+    .modal-card.dialog-fixed > .modal-body > * {
+        flex-shrink: 0;
+    }
+    .modal-card.dialog-fixed > .modal-body > .modal-actions {
+        margin-top: auto;
+        padding-top: 14px;
+    }
     .modal-header {
         display: flex;
         align-items: center;
@@ -917,7 +935,7 @@
     .faq-tools input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--border, #e4e7e1); border-radius: 8px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 13px; }
     .faq-form { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 10px; background: var(--dm-surface-2, #f6f8f5); }
     .faq-form label { font-size: 12px; font-weight: 700; color: var(--text-secondary, #5b6b60); }
-    .faq-form input, .faq-form textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border, #e4e7e1); border-radius: 8px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 13px; }
+    .faq-form input, .faq-form select, .faq-form textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border, #e4e7e1); border-radius: 8px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 13px; }
     .faq-form textarea { min-height: 96px; resize: vertical; }
     .faq-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
     .faq-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
@@ -933,6 +951,29 @@
     .faq-actions button:disabled { opacity: .45; cursor: default; }
     .faq-actions .rm-remove { color: #c8402f; border-color: #f1c9c3; }
     .faq-actions .rm-remove.is-armed { background: #c8402f; border-color: #c8402f; color: #fff; }
+    /* Help & Support > Hiker Checklist (reuses the FAQ form and buttons) */
+    .ck-section { display: flex; align-items: baseline; gap: 6px; margin: 6px 0 -2px; color: var(--text-secondary, #5b6b60); font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .ck-section span { font-weight: 600; letter-spacing: 0; text-transform: none; }
+    .ck-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid var(--border, #e4e7e1); border-radius: 10px; background: var(--dm-surface, #fff); }
+    .ck-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
+    .ck-text strong { font-size: 13px; }
+    .ck-text small { font-size: 12px; color: var(--text-secondary, #5b6b60); }
+    .ck-item .faq-actions { flex-shrink: 0; padding: 0; }
+    .ck-type { flex-shrink: 0; padding: 2px 8px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
+    .ck-type.is-required { background: #e7f5eb; color: #1f6b39; }
+    .ck-type.is-optional { background: #eef1ec; color: #5b6b60; }
+    /* Section and Type side by side; Section keeps its suggestions but not
+       the browser's dropdown arrow. */
+    .ck-form-row { display: grid; grid-template-columns: 1fr 180px; gap: 8px; }
+    .ck-form-row > div { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .faq-form input[list]::-webkit-calendar-picker-indicator { display: none !important; }
+    .ck-form-error { margin-top: 8px; }
+    .ck-form-error:empty { display: none; }
+    @media (max-width: 560px) {
+        .ck-item { flex-wrap: wrap; }
+        .ck-item .faq-actions { width: 100%; padding-left: 32px; }
+        .ck-form-row { grid-template-columns: 1fr; }
+    }
     /* Login Sessions */
     .session-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; }
     .session-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border, #e4e7e1); border-radius: 10px; background: var(--dm-surface, #fff); }
@@ -1549,6 +1590,18 @@
             <div class="setting-text">
               <div class="label">FAQs</div>
               <div class="desc" id="faqRowDesc">Answers to common questions about PeakPath.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+
+        <!-- The app's Hiking Checklist, in the Firestore "checkListItems" collection (bindChecklist). -->
+        <div class="setting-row" data-action="hikerChecklist">
+          <div class="setting-left">
+            <div class="setting-icon">🎒</div>
+            <div class="setting-text">
+              <div class="label">Hiker Checklist</div>
+              <div class="desc" id="checklistRowDesc">What hikers should bring and arrange before a hike.</div>
             </div>
           </div>
           <div class="setting-right"><span class="chevron">›</span></div>
@@ -3415,6 +3468,320 @@
     }
   }
 
+  /* ---------------- Help & Support: Hiker Checklist ----------------
+     What hikers should bring and arrange before a hike (the app's Hiking
+     Checklist). Stored in the Firestore "checkListItems" collection, one
+     document per item:
+       label      text, e.g. "Water"
+       note       short detail shown under it (may be empty)
+       section    heading it is listed under, e.g. "Essentials"
+       type       "Required" or "Optional" (missing counts as Required)
+       order      number, lowest first; sections follow their first item
+       createdAt / updatedAt / updatedBy
+     Same editors as FAQs (Super Administrators and Administrators); Viewers
+     read only. Listened to live, like the FAQs. */
+  // [document id, section, label, note, type]: the app's built-in list. The
+  // ids match the keys hikers' ticks are saved under (users/{uid}.hikeChecklist).
+  const CHECKLIST_STARTERS = [
+    ['water', 'Essentials', 'Water', 'At least 2 liters per person', 'Required'],
+    ['snacks', 'Essentials', 'Snacks', 'Trail food and a packed meal', 'Required'],
+    ['rain_gear', 'Essentials', 'Rain gear', 'Poncho or rain jacket', 'Required'],
+    ['power_bank', 'Essentials', 'Power bank', 'Phone fully charged too', 'Optional'],
+    ['first_aid', 'Essentials', 'First-aid kit', 'Bandages, antiseptic, your medicines', 'Required'],
+    ['headlamp', 'Safety', 'Headlamp or flashlight', 'With spare batteries', 'Required'],
+    ['whistle', 'Safety', 'Whistle', 'To signal for help', 'Required'],
+    ['leech_protection', 'Safety', 'Leech protection', 'Leech socks or repellent — limatik are common on Makiling', 'Optional'],
+    ['emergency_contact', 'Safety', 'Emergency contact', 'Someone at home knows your route and return time', 'Required'],
+    ['shoes', 'Clothing', 'Hiking shoes', 'Good grip for mud and roots', 'Required'],
+    ['extra_clothes', 'Clothing', 'Extra clothes', 'A dry shirt and socks', 'Optional'],
+    ['sun_protection', 'Clothing', 'Sun protection', 'Cap and sunscreen', 'Optional'],
+    ['id_fees', 'Before you go', 'Valid ID and fees', 'For registration at the jump-off', 'Required'],
+    ['guide', 'Before you go', 'Guide arranged', 'Required on the Sipit Trail and the Traverse', 'Optional'],
+    ['trash_bag', 'Before you go', 'Trash bag', 'Leave no trace', 'Required']
+  ];
+  const CHECKLIST_TYPES = ['Required', 'Optional'];
+  const checklistType = (item) => (item?.type === 'Optional' ? 'Optional' : 'Required');
+  const checklistState = { items: null, error: null, search: '' };
+  const canEditChecklist = canEditFaqs;
+
+  auth.authStateReady().then(() => onSnapshot(collection(db, 'checkListItems'), (snapshot) => {
+    checklistState.items = snapshot.docs
+      .map((itemDoc) => ({ id: itemDoc.id, ...itemDoc.data() }))
+      .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0)
+        || String(a.label || '').localeCompare(String(b.label || '')));
+    checklistState.error = null;
+    renderChecklistRow();
+    renderChecklistList();
+  }, (error) => {
+    console.error('Could not load the hiker checklist:', error);
+    checklistState.error = error;
+    renderChecklistRow();
+    renderChecklistList();
+  }));
+
+  // [section name, its items], sections in the order of their first item.
+  function checklistSections(items) {
+    const sections = new Map();
+    items.forEach((item) => {
+      const name = String(item.section || '').trim() || 'Other';
+      if (!sections.has(name)) sections.set(name, []);
+      sections.get(name).push(item);
+    });
+    return [...sections];
+  }
+
+  function renderChecklistRow() {
+    const desc = document.getElementById('checklistRowDesc');
+    if (!desc || !checklistState.items) return;
+    const count = checklistState.items.length;
+    const sectionCount = checklistSections(checklistState.items).length;
+    desc.textContent = count
+      ? `What hikers should bring and arrange before a hike · ${count} item${count === 1 ? '' : 's'} in ${sectionCount} section${sectionCount === 1 ? '' : 's'}.`
+      : 'What hikers should bring and arrange before a hike. None added yet.';
+  }
+
+  function bindChecklist() {
+    const box = document.getElementById('checklistBox');
+    if (!box) return;
+    const editor = canEditChecklist();
+    box.innerHTML = `
+      <p class="rm-muted" style="margin:0">The items hikers tick off in the app's Hiking Checklist before setting out.${editor ? ' Add, edit or reorder them here. If the list is empty, use the starter items to get started.' : ''}</p>
+      <div class="faq-tools">
+        <input type="search" id="checklistSearch" placeholder="Search items, notes and sections…" aria-label="Search checklist items">
+        ${editor ? '<button type="button" class="primary-btn" id="checklistAddBtn"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add Item</button>' : ''}
+      </div>
+      <div id="checklistFormSlot"></div>
+      <div id="checklistList"></div>
+      <p class="rm-status" id="checklistStatus" role="status"></p>`;
+
+    const search = document.getElementById('checklistSearch');
+    search.value = checklistState.search;
+    search.addEventListener('input', () => {
+      checklistState.search = search.value;
+      renderChecklistList();
+    });
+    document.getElementById('checklistAddBtn')?.addEventListener('click', () => openChecklistForm(null));
+    renderChecklistList();
+  }
+
+  const checklistStatus = (text, ok = false) => {
+    const status = document.getElementById('checklistStatus');
+    if (!status) return;
+    status.className = `rm-status ${ok ? 'is-ok' : 'is-error'}`;
+    status.textContent = text;
+  };
+  const checklistWriteError = (error) => (error?.code === 'permission-denied'
+    ? 'Not saved: your role cannot change the checklist, or the Firestore rule for "checkListItems" has not been deployed yet.'
+    : `Not saved: ${error?.message || 'unknown error'}`);
+
+  function renderChecklistList() {
+    const list = document.getElementById('checklistList');
+    if (!list) return;
+    const editor = canEditChecklist();
+
+    if (checklistState.error) {
+      list.innerHTML = `<p class="rm-error">${escapeHTML(checklistState.error.code === 'permission-denied'
+        ? 'Checklist access was denied. Confirm you are signed in, then reload the page. If this continues, the Firestore rule for "checkListItems" may not be deployed yet.'
+        : `Could not load the checklist: ${checklistState.error.message || 'unknown error'}`)}</p>`;
+      return;
+    }
+    if (!checklistState.items) {
+      list.innerHTML = '<p class="rm-muted">Loading checklist…</p>';
+      return;
+    }
+    if (!checklistState.items.length) {
+      list.innerHTML = `<p class="rm-muted">No checklist items yet.</p>${editor
+        ? `<button type="button" class="ghost-btn" id="checklistStartersBtn">Add the app's ${CHECKLIST_STARTERS.length} starter items</button>`
+        : ''}`;
+      document.getElementById('checklistStartersBtn')?.addEventListener('click', addChecklistStarters);
+      return;
+    }
+
+    const term = checklistState.search.trim().toLowerCase();
+    const sections = checklistSections(checklistState.items)
+      .map(([name, items]) => [name, items.filter((item) => !term
+        || `${name} ${item.label || ''} ${item.note || ''} ${checklistType(item)}`.toLowerCase().includes(term))])
+      .filter(([, items]) => items.length);
+    if (!sections.length) {
+      list.innerHTML = '<p class="rm-muted">No checklist item matches your search.</p>';
+      return;
+    }
+
+    // Reordering only makes sense on the full, unfiltered list.
+    const canMove = editor && !term;
+    list.innerHTML = sections.map(([name, items]) => `
+      <div class="ck-section">${escapeHTML(name)} <span>· ${items.length}</span></div>
+      <ul class="faq-list">${items.map((item, index) => `
+        <li class="ck-item" data-ck-id="${escapeHTML(item.id)}">
+          <span class="faq-num"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
+          <span class="ck-text">
+            <strong>${escapeHTML(item.label || 'Untitled item')}</strong>
+            ${item.note ? `<small>${escapeHTML(item.note)}</small>` : ''}
+          </span>
+          <span class="ck-type is-${checklistType(item).toLowerCase()}">${checklistType(item)}</span>
+          ${editor ? `<div class="faq-actions">
+            <button type="button" data-ck-edit>Edit</button>
+            ${canMove ? `<button type="button" data-ck-move="-1" ${index === 0 ? 'disabled' : ''}>Move up</button>
+            <button type="button" data-ck-move="1" ${index === items.length - 1 ? 'disabled' : ''}>Move down</button>` : ''}
+            <button type="button" class="rm-remove" data-ck-delete>Delete</button>
+          </div>` : ''}
+        </li>`).join('')}</ul>`).join('');
+
+    list.querySelectorAll('.ck-item').forEach((itemEl) => {
+      const item = checklistState.items.find((entry) => entry.id === itemEl.dataset.ckId);
+      itemEl.querySelector('[data-ck-edit]')?.addEventListener('click', () => openChecklistForm(item));
+      itemEl.querySelectorAll('[data-ck-move]').forEach((button) => {
+        button.addEventListener('click', () => moveChecklistItem(item, Number(button.dataset.ckMove)));
+      });
+      const del = itemEl.querySelector('[data-ck-delete]');
+      del?.addEventListener('click', async () => {
+        // Two clicks, like deleting an FAQ: the first arms it.
+        if (!del.classList.contains('is-armed')) {
+          del.classList.add('is-armed');
+          del.textContent = 'Click again to delete';
+          return;
+        }
+        del.disabled = true;
+        try {
+          await deleteDoc(doc(db, 'checkListItems', item.id));
+          checklistStatus('Checklist item deleted.', true);
+        } catch (error) {
+          checklistStatus(checklistWriteError(error));
+          del.disabled = false;
+        }
+      });
+    });
+  }
+
+  function openChecklistForm(item) {
+    const slot = document.getElementById('checklistFormSlot');
+    if (!slot) return;
+    // Suggest the sections already in use, plus the app's defaults.
+    const sectionNames = [...new Set([
+      ...checklistSections(checklistState.items || []).map(([name]) => name),
+      ...CHECKLIST_STARTERS.map(([, section]) => section)
+    ])];
+    slot.innerHTML = `
+      <form class="faq-form" id="checklistForm" novalidate>
+        <div style="font-weight:700;font-size:12.5px">${item ? 'Edit checklist item' : 'New checklist item'}</div>
+        <div class="ck-form-row">
+          <div>
+            <label for="ckSection">Section</label>
+            <input id="ckSection" type="text" maxlength="40" list="ckSectionOptions" placeholder="e.g. Essentials" autocomplete="off" required>
+            <datalist id="ckSectionOptions">${sectionNames.map((name) => `<option value="${escapeHTML(name)}">`).join('')}</datalist>
+          </div>
+          <div>
+            <label for="ckType">Type</label>
+            <select id="ckType">${CHECKLIST_TYPES.map((type) => `<option value="${type}">${type}</option>`).join('')}</select>
+          </div>
+        </div>
+        <label for="ckLabel">Item</label>
+        <input id="ckLabel" type="text" maxlength="80" placeholder="e.g. Water" required>
+        <label for="ckNote">Note (optional)</label>
+        <input id="ckNote" type="text" maxlength="200" placeholder="e.g. At least 2 liters per person">
+        <div class="faq-form-actions">
+          <button type="button" class="ghost-btn" id="checklistCancelBtn">Cancel</button>
+          <button type="submit" class="primary-btn" id="checklistSaveBtn">${item ? 'Save changes' : 'Confirm'}</button>
+        </div>
+      </form>
+      <p class="rm-status is-error ck-form-error" id="checklistFormError" role="alert"></p>`;
+    const form = document.getElementById('checklistForm');
+    const section = document.getElementById('ckSection');
+    const label = document.getElementById('ckLabel');
+    const note = document.getElementById('ckNote');
+    const type = document.getElementById('ckType');
+    section.value = item?.section || '';
+    label.value = item?.label || '';
+    note.value = item?.note || '';
+    type.value = checklistType(item);
+    (item ? label : section).focus();
+    const closeForm = () => { slot.innerHTML = ''; };
+    document.getElementById('checklistCancelBtn').addEventListener('click', closeForm);
+    // Problems with the form show just below it, not at the foot of the
+    // dialog, and clear as soon as the admin starts fixing them.
+    const formError = (text) => { document.getElementById('checklistFormError').textContent = text; };
+    form.addEventListener('input', () => formError(''));
+    checklistStatus('');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const s = section.value.trim();
+      const l = label.value.trim();
+      const n = note.value.trim();
+      const t = checklistType({ type: type.value });
+      if (!s || !l) {
+        formError('Enter both a section and an item.');
+        return;
+      }
+      const duplicate = (checklistState.items || []).some((entry) => entry.id !== item?.id
+        && String(entry.section || '').trim().toLowerCase() === s.toLowerCase()
+        && String(entry.label || '').trim().toLowerCase() === l.toLowerCase());
+      if (duplicate) {
+        formError(`"${l}" is already in ${s}.`);
+        return;
+      }
+      const saveBtn = document.getElementById('checklistSaveBtn');
+      saveBtn.disabled = true;
+      try {
+        const stamp = { updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || null };
+        if (item) {
+          await updateDoc(doc(db, 'checkListItems', item.id), { section: s, label: l, note: n, type: t, ...stamp });
+          checklistStatus('Checklist item updated.', true);
+        } else {
+          const nextOrder = Math.max(0, ...(checklistState.items || []).map((entry) => Number(entry.order) || 0)) + 1;
+          await setDoc(doc(collection(db, 'checkListItems')), {
+            section: s, label: l, note: n, type: t, order: nextOrder, createdAt: serverTimestamp(), ...stamp
+          });
+          checklistStatus('Checklist item added.', true);
+        }
+        closeForm();
+      } catch (error) {
+        formError(checklistWriteError(error));
+        saveBtn.disabled = false;
+      }
+    });
+  }
+
+  // Swaps an item with its neighbour in the same section, then rewrites the
+  // orders 1..n section by section so each section stays together.
+  async function moveChecklistItem(item, step) {
+    const sections = checklistSections(checklistState.items || []);
+    const items = sections.find(([, entries]) => entries.includes(item))?.[1];
+    if (!items) return;
+    const from = items.indexOf(item);
+    const to = from + step;
+    if (to < 0 || to >= items.length) return;
+    [items[from], items[to]] = [items[to], items[from]];
+    const batch = writeBatch(db);
+    sections.flatMap(([, entries]) => entries).forEach((entry, index) => {
+      if (Number(entry.order) !== index + 1) batch.update(doc(db, 'checkListItems', entry.id), { order: index + 1 });
+    });
+    try {
+      await batch.commit();
+    } catch (error) {
+      checklistStatus(checklistWriteError(error));
+    }
+  }
+
+  async function addChecklistStarters() {
+    const button = document.getElementById('checklistStartersBtn');
+    if (button) button.disabled = true;
+    const batch = writeBatch(db);
+    CHECKLIST_STARTERS.forEach(([id, section, label, note, type], index) => {
+      batch.set(doc(db, 'checkListItems', id), {
+        section, label, note, type, order: index + 1,
+        createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || null
+      });
+    });
+    try {
+      await batch.commit();
+      checklistStatus(`Added ${CHECKLIST_STARTERS.length} checklist items.`, true);
+    } catch (error) {
+      checklistStatus(checklistWriteError(error));
+      if (button) button.disabled = false;
+    }
+  }
+
   async function bindLoginSessions() {
     const box = document.getElementById('sessionsBox');
     const endAllBtn = document.getElementById('endOtherSessionsBtn');
@@ -3703,7 +4070,7 @@
     ['users', 'suspendedAt'], ['users', 'suspensionLiftedAt'], ['users', 'lastWarningAt'], ['users', 'lastSuspendedAt'],
     ['reportedUser', 'updatedAt'], ['reportedUser', 'resolvedAt'],
     ['stations', 'updatedAt'], ['admins', 'updatedAt'], ['adminRoleLog', 'at'],
-    ['faqs', 'updatedAt'], ['settings', 'updatedAt']
+    ['faqs', 'updatedAt'], ['checkListItems', 'updatedAt'], ['settings', 'updatedAt']
   ];
   (function watchLastUpdated() {
     const el = document.getElementById('portalLastUpdated');
@@ -4170,6 +4537,16 @@
           </div>
         `
       },
+      hikerChecklist: {
+        title: 'Hiker Checklist',
+        // Filled in by bindChecklist(), live from the Firestore "checkListItems" collection.
+        content: `
+          <div id="checklistBox" class="rm"><p class="rm-muted">Loading checklist…</p></div>
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" data-close-modal>Close</button>
+          </div>
+        `
+      },
       loginSessions: {
         title: 'Login Sessions',
         // Filled in by bindLoginSessions().
@@ -4193,7 +4570,8 @@
     );
     modalCard.classList.toggle('preference-theme', ['profile', 'password', 'timezone'].includes(action));
     modalCard.classList.toggle('profile-wide', action === 'profile');
-    modalCard.classList.toggle('dialog-wide', ['roleManagement', 'accessControl', 'dataBackup', 'auditLogs', 'faqs', 'helpGuide'].includes(action));
+    modalCard.classList.toggle('dialog-wide', ['roleManagement', 'accessControl', 'dataBackup', 'auditLogs', 'faqs', 'hikerChecklist', 'helpGuide'].includes(action));
+    modalCard.classList.toggle('dialog-fixed', action === 'hikerChecklist');
     modalTitle.textContent = config.title;
     modalBody.innerHTML = config.content;
     modal.classList.add('visible');
@@ -4246,6 +4624,9 @@
     }
     if (action === 'faqs') {
       bindFaqs();
+    }
+    if (action === 'hikerChecklist') {
+      bindChecklist();
     }
 
     modalBody.querySelectorAll('[data-close-modal]').forEach((button) => {

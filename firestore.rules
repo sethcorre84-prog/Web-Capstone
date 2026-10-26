@@ -380,6 +380,46 @@ service cloud.firestore {
       allow delete: if canManageFaqs();
     }
 
+    // The app's Hiking Checklist (Settings > Help & Support > Hiker
+    // Checklist). Same editors as FAQs; hikers read it.
+    match /checkListItems/{itemId} {
+      function canManageChecklist() {
+        return isAdmin() && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('role', '')
+          in ['Super Administrator', 'Administrator'];
+      }
+      function validChecklistItem() {
+        return request.resource.data.keys().hasOnly([
+            'section', 'label', 'note', 'type', 'order', 'createdAt', 'updatedAt', 'updatedBy'
+          ])
+          // Items saved before Type existed have none; they count as Required.
+          && request.resource.data.get('type', 'Required') in ['Required', 'Optional']
+          && request.resource.data.section is string
+          && request.resource.data.section.size() > 0
+          && request.resource.data.section.size() <= 40
+          && request.resource.data.label is string
+          && request.resource.data.label.size() > 0
+          && request.resource.data.label.size() <= 80
+          && request.resource.data.note is string
+          && request.resource.data.note.size() <= 200
+          && request.resource.data.order is int
+          && request.resource.data.order > 0
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.updatedAt is timestamp
+          && request.resource.data.updatedBy is string;
+      }
+      allow read: if signedIn();
+      allow create: if canManageChecklist() && validChecklistItem()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid;
+      allow update: if canManageChecklist() && validChecklistItem()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && (changedKeys().hasOnly(['order'])
+          || (request.resource.data.updatedAt == request.time
+            && request.resource.data.updatedBy == request.auth.uid));
+      allow delete: if canManageChecklist();
+    }
+
     /* An expired advisory is read-only: past its expiry date, or marked
        Expired (by End Advisory or the A&A page catching up on a lapsed
        date). The writes still allowed are the ones that file it away:
