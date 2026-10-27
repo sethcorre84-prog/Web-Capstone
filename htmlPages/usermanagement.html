@@ -1406,6 +1406,39 @@
         }
     }
 
+    /* Password fields: an eye button inside, to show what was typed. */
+    .pw-wrap {
+        position: relative;
+        display: block;
+    }
+    .modal .field .pw-wrap input {
+        padding-right: 40px;
+    }
+    .pw-toggle {
+        position: absolute;
+        top: 50%;
+        right: 6px;
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border: 0;
+        border-radius: 6px;
+        background: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        transform: translateY(-50%);
+    }
+    .pw-toggle:hover,
+    .pw-toggle[aria-pressed="true"] {
+        color: var(--accent-dark, #1f6b39);
+    }
+    .pw-toggle:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+    }
+
     .modal .field input,
     .modal .field select {
         width: 100%;
@@ -2772,8 +2805,8 @@
     </div>
     <div class="field">
       <label for="addUserPassword">Password</label>
-      <input id="addUserPassword" name="password" type="password" autocomplete="new-password" minlength="6" aria-describedby="addUserPasswordHint" required>
-      <p id="addUserPasswordHint" class="field-hint">Use at least 6 characters.</p>
+      <input id="addUserPassword" name="password" type="password" autocomplete="new-password" minlength="6" maxlength="20" aria-describedby="addUserPasswordHint" required>
+      <p id="addUserPasswordHint" class="field-hint">6 to 20 characters, with both letters and numbers.</p>
     </div>
     <!-- A new user always starts Active; Suspend / Deactivate are on their
          details afterwards. -->
@@ -4346,6 +4379,33 @@
   });
   document.getElementById('addUserBtn').addEventListener('click', loadAddressChoices);
 
+  /* ---- Show / hide password ----
+     Every password field (Add User, Set Password) gets an eye button that
+     shows what was typed; a reset form hides it again. */
+  document.querySelectorAll('input[type="password"]').forEach((input) => {
+    const wrap = document.createElement('span');
+    wrap.className = 'pw-wrap';
+    input.replaceWith(wrap);
+    wrap.appendChild(input);
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'pw-toggle';
+    wrap.appendChild(toggle);
+    const show = (visible) => {
+      input.type = visible ? 'text' : 'password';
+      toggle.setAttribute('aria-pressed', String(visible));
+      toggle.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
+      toggle.title = visible ? 'Hide password' : 'Show password';
+      toggle.innerHTML = `<i class="fa-regular ${visible ? 'fa-eye-slash' : 'fa-eye'}" aria-hidden="true"></i>`;
+    };
+    show(false);
+    toggle.addEventListener('click', () => {
+      show(input.type === 'password');
+      input.focus();
+    });
+    input.form?.addEventListener('reset', () => show(false));
+  });
+
   /* ---- Guide Evaluation (Add User, Role = Guide) ----
      A guide needs the QR code of their evaluation (an image, uploaded to
      Storage under qrCode/{uid}/) or its link -- at least one. Saved on the
@@ -4513,7 +4573,14 @@
     const email = normalizeText(formData.get('email')).toLowerCase();
     const username = String(formData.get('username') || '').trim();
     const password = String(formData.get('password') || '');
-    if (!hasValidEmail(email) || password.length < 6) return;
+    if (!hasValidEmail(email)) return;
+    // 6 to 20 characters, at least one letter and one number.
+    if (password.length < 6 || password.length > 20 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      addUserStatusMessage.textContent = 'The password must be 6 to 20 characters, with both letters and numbers.';
+      addUserStatusMessage.className = 'action-status error';
+      document.getElementById('addUserPassword').focus();
+      return;
+    }
     if (!/^[A-Za-z0-9_.-]{1,100}$/.test(username) || username === '.' || username === '..' || /^__.*__$/.test(username)) {
       addUserStatusMessage.textContent = 'Choose a different username using letters, numbers, dots, underscores, or hyphens.';
       addUserStatusMessage.className = 'action-status error';

@@ -71,6 +71,11 @@ const SIPIT_RATES = [
   { guides: 5, from: 23, to: 25, amount: 1700 }
 ];
 
+// The Makiling Traverse's guide, on the Sipit Trail's steps (₱2,000 for
+// 1-5 hikers, +₱400 for the 6th and 7th, +₱2,000 for 8-10 with a 2nd
+// guide...). Guide only: the entrance and exit fees are per head on top.
+const TRAVERSE_GUIDE_RATES = SIPIT_RATES.map((row) => ({ ...row, amount: row.amount === 1700 ? 2000 : 400 }));
+
 const SUGGESTED = {
   mudspring: STATION1_FEES('Side trip of the Mariang Makiling Trail (Station 8); registered at Station 1.'),
   flatrocks: STATION1_FEES('Side trip of the Mariang Makiling Trail near the trailhead; registered at Station 1.'),
@@ -93,9 +98,13 @@ const SUGGESTED = {
     { label: 'Camping (Melkas Campsite)', unit: 'groupNight', min: null, max: null, note: 'Fee not published.', inEstimate: false }
   ],
   traverse: [
-    { label: 'Sto. Tomas side entrance fee', unit: 'head', min: 40, max: null, note: 'Same as the Sipit Trail side.', inEstimate: true },
-    { label: 'UPLB exit fee', unit: 'head', min: null, max: null, note: 'Amount not published.', inEstimate: false },
-    { ...GUIDE_FEE, note: `${GUIDE_NOTE} Plus the guide's fare back to Sto. Tomas.` }
+    { label: 'Tour guide (group rate)', unit: 'group', min: 2000, max: null, rates: TRAVERSE_GUIDE_RATES,
+      note: 'Same steps as the Sipit Trail: ₱2,000 for up to 5 hikers, ₱400 for each of the next 2, then another guide (₱2,000 for the next 3 hikers, ₱400 each for 2 more), and so on. Entrance and exit fees are on top.',
+      inEstimate: true },
+    { label: 'Sto. Tomas side entrance fee', unit: 'head', min: 40, max: null, note: 'Paid at the Sto. Tomas jump-off. Subject to change.', inEstimate: true },
+    { label: 'UPLB exit fee', unit: 'head', min: 30, max: null, note: 'Paid at the UPLB exit. Subject to change.', inEstimate: true },
+    { label: 'Entrance fee (students, PWD & seniors)', unit: 'head', min: 32, max: null, note: '20% off with a valid ID; replaces the regular entrance fee.', inEstimate: false },
+    { label: 'UPLB exit fee (students, PWD & seniors)', unit: 'head', min: 24, max: null, note: '20% off with a valid ID; replaces the regular exit fee.', inEstimate: false }
   ]
 };
 
@@ -378,7 +387,9 @@ export async function seedSuggestedFees(db, trails) {
     const fees = cleanFees(trail.Fees);
     const oldGuide = (fee) => fee.unit === 'group' && /guide/i.test(fee.label) && fee.extraPerHead === null;
     // The Sipit Trail: its group rate table, until it has one.
-    const sipitRates = !fill && key === 'sipit' && !fees.some((fee) => fee.rates);
+    // The Sipit Trail and the Traverse: their group rate tables, until they
+    // have one.
+    const sipitRates = !fill && (key === 'sipit' || key === 'traverse') && !fees.some((fee) => fee.rates);
     const guideFix = !fill && !sipitRates && fees.some(oldGuide);
     // Source links saved by an earlier version are no longer shown: removed.
     const hasSources = 'FeesSources' in trail;
