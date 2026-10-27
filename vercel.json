@@ -1,5 +1,15 @@
 {
   "redirects": [
     { "source": "/", "destination": "/htmlPages/landingPage.html", "permanent": false }
+  ],
+  "headers": [
+    {
+      "source": "/downloads/(.*)\\.apk",
+      "headers": [
+        { "key": "Content-Type", "value": "application/vnd.android.package-archive" },
+        { "key": "Content-Disposition", "value": "attachment; filename=\"PeakPath.apk\"" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    }
   ]
 }
