@@ -345,7 +345,7 @@
                 <h1>Hike Makiling safer with <span>PeakPath</span></h1>
                 <p class="lead">PeakPath is the hiking companion for Mount Makiling. See the trails on a map, share your live location with your group, get weather and trail advisories, and send an SOS when you need help, while park rangers and guides watch over every hike.</p>
                 <div class="hero-actions">
-                    <a class="btn btn-light" href="#get-app"><i class="fa-brands fa-android" aria-hidden="true"></i>Get the Android app</a>
+                    <a class="btn btn-light" href="https://github.com/Arctzy/Peakpath-APK/releases/latest/download/app-release.apk"><i class="fa-brands fa-android" aria-hidden="true"></i>Get the Android app</a>
                     <a class="btn btn-ghost" href="#features"><i class="fa-solid fa-circle-info" aria-hidden="true"></i>Learn more</a>
                 </div>
                 <div class="hero-facts">
@@ -367,7 +367,7 @@
 
                 <!-- On an Android phone: the download. Anywhere else: why not. -->
                 <div class="qr-actions" id="androidActions" hidden>
-                    <a class="btn btn-primary btn-wide" id="downloadApk" href="../downloads/PeakPath.apk" download="PeakPath.apk"><i class="fa-solid fa-download" aria-hidden="true"></i>Download for Android</a>
+                    <a class="btn btn-primary btn-wide" id="downloadApk" href="https://github.com/Arctzy/Peakpath-APK/releases/latest/download/app-release.apk"><i class="fa-solid fa-download" aria-hidden="true"></i>Download for Android</a>
                 </div>
                 <div class="not-android" id="notAndroid" hidden>
                     <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
@@ -382,7 +382,7 @@
                 <details class="install-help">
                     <summary>How to install</summary>
                     <ol>
-                        <li>Tap <strong>Download for Android</strong> and open <em>PeakPath.apk</em> when it finishes.</li>
+                        <li>Tap <strong>Download for Android</strong> and open <em>app-release.apk</em> when it finishes.</li>
                         <li>If asked, allow your browser to <strong>install unknown apps</strong> (Settings → Apps → your browser → Install unknown apps).</li>
                         <li>Tap <strong>Install</strong>. Already have PeakPath? This updates it and keeps your account.</li>
                     </ol>
@@ -492,12 +492,10 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-    /* The PeakPath Android app (APK), served next to this page. The QR code
-       opens this page's download section (#get-app) wherever the page is
-       hosted, so it never points at a stale address; the download itself
-       is offered only on Android phones. */
-    const APK_URL = new URL('../downloads/PeakPath.apk', location.href).href;
-    const PAGE_URL = new URL('#get-app', location.href.split('#')[0]).href;
+    /* The PeakPath Android app (APK), from the latest GitHub release. The QR
+       code points straight at it, so scanning downloads the newest build;
+       the download button is offered only on Android phones. */
+    const APK_URL = 'https://github.com/Arctzy/Peakpath-APK/releases/latest/download/app-release.apk';
     const isAndroid = /android/i.test(navigator.userAgent)
         || /android/i.test(navigator.userAgentData?.platform || '');
 
@@ -505,17 +503,14 @@
     document.getElementById('androidActions').hidden = !isAndroid;
     document.getElementById('notAndroid').hidden = isAndroid;
     const downloadBtn = document.getElementById('downloadApk');
-    downloadBtn.href = APK_URL;
     // Belt and braces: only an Android phone may start the download.
     downloadBtn.addEventListener('click', (event) => { if (!isAndroid) event.preventDefault(); });
-    // Scanned on an Android phone: straight to the download button.
-    if (isAndroid && location.hash === '#get-app') downloadBtn.focus();
 
     // High error correction, so the logo in the middle doesn't stop it scanning.
     const qrEl = document.getElementById('qrCode');
     if (window.QRCode) {
         new QRCode(qrEl, {
-            text: PAGE_URL,
+            text: APK_URL,
             width: 420,
             height: 420,
             colorDark: '#123d22',
@@ -535,10 +530,10 @@
 
     document.getElementById('copyLink').addEventListener('click', async () => {
         try {
-            await navigator.clipboard.writeText(PAGE_URL);
+            await navigator.clipboard.writeText(APK_URL);
             say('Link copied. Open it on an Android phone to download.');
         } catch {
-            say(PAGE_URL);
+            say(APK_URL);
         }
     });
 
