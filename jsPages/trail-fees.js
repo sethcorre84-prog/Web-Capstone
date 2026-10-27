@@ -2,7 +2,7 @@
 // Trail Management > Trail Details > Fees & Payments: what a hike on the
 // selected trail costs, as a list the admin edits, saved on the trail as
 // trails/{id}.Fees, an array of
-//   { label, unit, min, max, groupSize, extraPerHead, note, inEstimate }
+//   { label, unit, min, max, groupSize, extraPerHead, rates, note, inEstimate }
 //     unit        'head' | 'group' | 'groupNight' | 'night' | 'flat'
 //     min / max   pesos; max empty for a single amount, both empty when the
 //                 amount is not published (shown as "Not published")
@@ -12,6 +12,12 @@
 //                 groupSize, instead of another whole group (the guide:
 //                 ₱1,500 for up to 5, then ₱300 per extra hiker, so 6
 //                 hikers pay ₱1,800)
+//     rates       for per-group fees: a rate table, [{ guides, from, to,
+//                 amount }], each row added once the group reaches `from`
+//                 hikers (the Sipit Trail's guide & entrance rates: ₱1,700
+//                 for 1-5, +₱340 for the 6th and 7th, +₱1,700 for 8-10 with
+//                 a 2nd guide...). Past the last row it repeats the 2nd
+//                 guide's rows, one more guide each time.
 //     inEstimate  counted in "Estimated cost for N hikers" (off for
 //                 discounts and optional extras such as camping)
 //
@@ -47,6 +53,24 @@ const STATION1_FEES = (where) => [
   { ...GUIDE_FEE, note: `Mandatory (UPLB MCME). ${GUIDE_NOTE}` }
 ];
 
+// The Sipit Trail's group rates (guide and entrance together), as the
+// admin gave them: guides, the hikers the row covers, and what it adds.
+const SIPIT_RATES = [
+  { guides: 1, from: 1, to: 5, amount: 1700 },
+  { guides: 1, from: 6, to: 6, amount: 340 },
+  { guides: 1, from: 7, to: 7, amount: 340 },
+  { guides: 2, from: 8, to: 10, amount: 1700 },
+  { guides: 2, from: 11, to: 11, amount: 340 },
+  { guides: 2, from: 12, to: 12, amount: 340 },
+  { guides: 3, from: 13, to: 15, amount: 1700 },
+  { guides: 3, from: 16, to: 16, amount: 340 },
+  { guides: 3, from: 17, to: 17, amount: 340 },
+  { guides: 4, from: 18, to: 20, amount: 1700 },
+  { guides: 4, from: 21, to: 21, amount: 340 },
+  { guides: 4, from: 22, to: 22, amount: 340 },
+  { guides: 5, from: 23, to: 25, amount: 1700 }
+];
+
 const SUGGESTED = {
   mudspring: STATION1_FEES('Side trip of the Mariang Makiling Trail (Station 8); registered at Station 1.'),
   flatrocks: STATION1_FEES('Side trip of the Mariang Makiling Trail near the trailhead; registered at Station 1.'),
@@ -62,8 +86,10 @@ const SUGGESTED = {
     { label: 'Camping', unit: 'groupNight', min: 500, max: null, note: 'Tayabak (Station 9) and Malaboo (Station 13).', inEstimate: false }
   ],
   sipit: [
-    { label: 'Entrance fee', unit: 'head', min: 40, max: null, inEstimate: true },
-    { ...GUIDE_FEE, note: GUIDE_NOTE },
+    { label: 'Guide & entrance (group rate)', unit: 'group', min: 1700, max: null, rates: SIPIT_RATES,
+      note: 'Covers the guide and each hiker\'s entrance fee: ₱1,700 for up to 5 hikers, ₱340 for each of the next 2, then another guide (₱1,700 for the next 3 hikers, ₱340 each for 2 more), and so on.',
+      inEstimate: true },
+    { label: 'Entrance fee', unit: 'head', min: 40, max: null, note: 'Included in the group rate above.', inEstimate: false },
     { label: 'Camping (Melkas Campsite)', unit: 'groupNight', min: null, max: null, note: 'Fee not published.', inEstimate: false }
   ],
   traverse: [
@@ -128,6 +154,10 @@ const CSS = `
 .tf-amount { text-align:right; white-space:nowrap; font-weight:700; color:var(--accent-dark, #1f6b3a); }
 .tf-amount small { font-weight:500; text-align:right; }
 .tf-amount.is-none { color:var(--text-muted); font-weight:600; }
+.tf-rates { margin-top:6px; display:grid; grid-template-columns:auto auto auto; gap:1px 10px; font-size:11px; color:var(--text-secondary); }
+.tf-rates span:nth-child(3n) { text-align:right; font-weight:600; color:var(--text-primary); }
+.tf-rates-head { font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:9.5px; color:var(--text-muted) !important; }
+.tf-edit-row .tf-rates-in { grid-column:1 / -1; min-height:72px; resize:vertical; font-family:ui-monospace, monospace; font-size:12px; }
 .tf-empty { padding:10px; border:1px dashed var(--border); border-radius:8px; font-size:12.5px; color:var(--text-secondary); text-align:center; }
 .tf-estimate { display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; padding:8px 10px; border-radius:8px;
   background:var(--accent-light, #e7f5eb); font-size:12.5px; color:var(--text-primary); margin-bottom:8px; }
@@ -192,6 +222,63 @@ function amountText(fee) {
   return peso(min ?? max);
 }
 
+/* A rate table, cleaned: rows with whole guides / from / to and an amount,
+   in order. Null when there is none. */
+const cleanRates = (rates) => {
+  if (!Array.isArray(rates)) return null;
+  const rows = rates.map((row) => ({
+    guides: Math.max(1, Math.round(num(row?.guides) ?? 1)),
+    from: Math.round(num(row?.from) ?? 0),
+    to: Math.round(num(row?.to) ?? num(row?.from) ?? 0),
+    amount: num(row?.amount)
+  })).filter((row) => row.from >= 1 && row.to >= row.from && row.amount !== null)
+    .sort((a, b) => a.from - b.from);
+  return rows.length ? rows : null;
+};
+
+/* The rate table's rows up to `hikers`: the listed ones, then (past the
+   last) the 2nd guide's rows again, one more guide and one period further
+   each time. */
+function ratesUpTo(rates, hikers) {
+  const rows = rates.filter((row) => row.from <= hikers);
+  const last = rates[rates.length - 1];
+  const cycleGuide = rates.find((row) => row.guides > rates[0].guides)?.guides;
+  if (hikers <= last.to || cycleGuide === undefined) return rows;
+  const cycle = rates.filter((row) => row.guides === cycleGuide);
+  const period = cycle[cycle.length - 1].to - cycle[0].from + 1;
+  for (let k = 1; ; k += 1) {
+    const shifted = cycle.map((row) => ({ ...row, guides: row.guides + k, from: row.from + k * period, to: row.to + k * period }));
+    if (shifted[0].from > hikers) break;
+    shifted.forEach((row) => { if (row.from > last.to && row.from <= hikers) rows.push(row); });
+  }
+  return rows;
+}
+
+// "1:5 1700" / "1:6 +340" / "2:8 - 2:10 +1700", one row a line (the admin's
+// own way of writing it), and back.
+const ratesText = (rates) => (rates || []).map((row, i) => `${row.from === row.to || (i === 0 && row.from === 1) ? `${row.guides}:${row.to}`
+  : `${row.guides}:${row.from} - ${row.guides}:${row.to}`} ${i ? '+' : ''}${row.amount}`).join('\n');
+function parseRates(text) {
+  const rows = [];
+  const bad = [];
+  String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean).forEach((line) => {
+    const m = /^(\d+)\s*:\s*(\d+)(?:\s*-\s*(?:(\d+)\s*:\s*)?(\d+))?\s+\+?\s*₱?\s*([\d,]+(?:\.\d+)?)$/.exec(line);
+    if (!m) { bad.push(line); return; }
+    const to = Number(m[4] ?? m[2]);
+    const first = m[4] ? Number(m[2]) : null;
+    rows.push({ guides: Number(m[1]), first, to, amount: Number(m[5].replace(/,/g, '')) });
+  });
+  // A row with one number covers the hikers after the row before it, up to
+  // that number ("1:5" is hikers 1-5).
+  let next = 1;
+  const rates = rows.map((row) => {
+    const from = row.first ?? next;
+    next = row.to + 1;
+    return { guides: row.guides, from, to: row.to, amount: row.amount };
+  });
+  return { rates: cleanRates(rates), bad };
+}
+
 const cleanFees = (fees) => (Array.isArray(fees) ? fees : []).map((fee) => ({
   label: String(fee?.label || '').trim(),
   unit: UNITS[fee?.unit] ? fee.unit : 'head',
@@ -199,6 +286,7 @@ const cleanFees = (fees) => (Array.isArray(fees) ? fees : []).map((fee) => ({
   max: num(fee?.max),
   groupSize: num(fee?.groupSize),
   extraPerHead: num(fee?.extraPerHead),
+  rates: fee?.unit === 'group' ? cleanRates(fee?.rates) : null,
   note: String(fee?.note || '').trim(),
   inEstimate: fee?.inEstimate !== false
 })).filter((fee) => fee.label);
@@ -218,6 +306,16 @@ function estimate(fees, hikers) {
     if (!fee.inEstimate) return;
     const min = num(fee.min);
     const max = num(fee.max);
+    if (fee.rates) {
+      const rows = ratesUpTo(fee.rates, hikers);
+      const total = rows.reduce((sum, row) => sum + row.amount, 0);
+      counted += 1;
+      low += total;
+      high += total;
+      const guides = rows[rows.length - 1]?.guides || 1;
+      groups.push(`${guides} guide${guides === 1 ? '' : 's'}`);
+      return;
+    }
     if (min === null && max === null) return;
     const extra = num(fee.extraPerHead);
     if (fee.unit === 'group' && fee.groupSize && extra !== null) {
@@ -251,6 +349,7 @@ const toSaved = (fee) => ({
   groupSize: fee.unit === 'group' ? fee.groupSize : null,
   // Only beside a group size it applies to.
   extraPerHead: fee.unit === 'group' && fee.groupSize ? fee.extraPerHead : null,
+  rates: fee.unit === 'group' && fee.rates ? fee.rates : null,
   note: fee.note,
   inEstimate: fee.inEstimate
 });
@@ -278,13 +377,15 @@ export async function seedSuggestedFees(db, trails) {
     // group "guide" fee without it): given the rule, the rest left as is.
     const fees = cleanFees(trail.Fees);
     const oldGuide = (fee) => fee.unit === 'group' && /guide/i.test(fee.label) && fee.extraPerHead === null;
-    const guideFix = !fill && fees.some(oldGuide);
+    // The Sipit Trail: its group rate table, until it has one.
+    const sipitRates = !fill && key === 'sipit' && !fees.some((fee) => fee.rates);
+    const guideFix = !fill && !sipitRates && fees.some(oldGuide);
     // Source links saved by an earlier version are no longer shown: removed.
     const hasSources = 'FeesSources' in trail;
-    if (!fill && !guideFix && !hasSources) continue;
+    if (!fill && !sipitRates && !guideFix && !hasSources) continue;
     try {
       await updateDocDirect(doc(db, 'trails', trail.id), {
-        ...(fill ? {
+        ...(fill || sipitRates ? {
           Fees: cleanFees(SUGGESTED[key]).map(toSaved),
           FeesUpdatedAt: serverTimestamp(),
           FeesSource: 'published'
@@ -312,6 +413,12 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
   let hikers = 5;
 
   /* ---- Display ---- */
+  // A rate table: guides, hikers, and what each row adds.
+  const ratesTableHtml = (rates) => `<div class="tf-rates" role="table" aria-label="Group rates">
+    <span class="tf-rates-head">Guides</span><span class="tf-rates-head">Hikers</span><span class="tf-rates-head">Adds</span>
+    ${rates.map((row, i) => `<span>${row.guides}</span><span>${row.from === row.to ? (i ? `${row.to}th` : row.to) : `${row.from}–${row.to}`}</span><span>${i ? '+' : ''}${escapeHtml(peso(row.amount))}</span>`).join('')}
+  </div>`;
+
   function render(trail = getSelected()) {
     if (!container) return;
     const fees = cleanFees(trail?.Fees);
@@ -331,9 +438,9 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
     container.innerHTML = `
       <div class="tf-list">${fees.map((fee) => `
         <div class="tf-row">
-          <div><strong>${escapeHtml(fee.label)}</strong>${fee.note ? `<small>${escapeHtml(fee.note)}</small>` : ''}</div>
+          <div><strong>${escapeHtml(fee.label)}</strong>${fee.note ? `<small>${escapeHtml(fee.note)}</small>` : ''}${fee.rates ? ratesTableHtml(fee.rates) : ''}</div>
           <div class="tf-amount${num(fee.min) === null && num(fee.max) === null ? ' is-none' : ''}">${escapeHtml(amountText(fee))}
-            <small>${escapeHtml(UNITS[fee.unit])}${fee.unit === 'group' && fee.groupSize ? ` (up to ${fee.groupSize})` : ''}</small>
+            <small>${fee.rates ? `group rate (${fee.rates[0].from}–${fee.rates[0].to} hikers)` : `${escapeHtml(UNITS[fee.unit])}${fee.unit === 'group' && fee.groupSize ? ` (up to ${fee.groupSize})` : ''}`}</small>
             ${fee.unit === 'group' && fee.groupSize && num(fee.extraPerHead) !== null ? `<small>+ ${escapeHtml(peso(fee.extraPerHead))} per extra hiker</small>` : ''}</div>
         </div>`).join('')}
       </div>
@@ -386,6 +493,7 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
       <input class="tf-note" type="text" maxlength="160" placeholder="Note (optional), e.g. Mandatory for Peak 2" value="${escapeHtml(fee.note || '')}" aria-label="Note">
       <input class="tf-extra" type="number" min="0" step="1" placeholder="+₱ extra" value="${num(fee.extraPerHead) ?? ''}" aria-label="Pesos for each hiker past the group size (per-group fees)" title="Per-group fees: pesos for each hiker past the group size (e.g. ₱300 after 5). Empty: another whole group instead.">
       <label class="tf-in"><input class="tf-in-box" type="checkbox"${fee.inEstimate === false ? '' : ' checked'}> In estimate</label>
+      <textarea class="tf-rates-in" aria-label="Group rate table (per-group fees)" title="Optional, for per-group fees: one row a line, guides:hikers amount. The first row is the base; the rest add to it. Past the last row, the 2nd guide's rows repeat." placeholder="Group rate table (optional, per-group fees), one row a line, e.g.&#10;1:5 1700&#10;1:6 +340&#10;2:8 - 2:10 +1700">${escapeHtml(ratesText(fee.rates))}</textarea>
     </div>`;
 
   const readRows = () => [...rowsEl.querySelectorAll('.tf-edit-row')].map((row) => ({
@@ -395,6 +503,8 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
     max: num(row.querySelector('.tf-max').value),
     groupSize: num(row.querySelector('.tf-group').value),
     extraPerHead: num(row.querySelector('.tf-extra').value),
+    rates: parseRates(row.querySelector('.tf-rates-in').value).rates,
+    ratesBad: parseRates(row.querySelector('.tf-rates-in').value).bad,
     note: row.querySelector('.tf-note').value.trim(),
     inEstimate: row.querySelector('.tf-in-box').checked
   }));
@@ -447,7 +557,12 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
     if (unnamed) { errorEl.textContent = 'Give every fee a name, or remove the empty row.'; return; }
     const reversed = rows.find((fee) => fee.min !== null && fee.max !== null && fee.max < fee.min);
     if (reversed) { errorEl.textContent = `${reversed.label}: the maximum is lower than the minimum.`; return; }
-    const fees = rows.map(toSaved);
+    const badRates = rows.find((fee) => fee.ratesBad.length);
+    if (badRates) { errorEl.textContent = `${badRates.label}: the rate table line "${badRates.ratesBad[0]}" is not like "1:6 +340" or "2:8 - 2:10 +1700".`; return; }
+    const misplaced = rows.find((fee) => fee.rates && fee.unit !== 'group');
+    if (misplaced) { errorEl.textContent = `${misplaced.label}: a rate table needs "per group".`; return; }
+    // With a rate table, its first row is the fee's amount.
+    const fees = rows.map((fee) => toSaved(fee.rates ? { ...fee, min: fee.rates[0].amount, max: null } : fee));
     const save = modal.querySelector('.tf-save');
     const name = editing.Trail || 'the trail';
     save.disabled = true;
