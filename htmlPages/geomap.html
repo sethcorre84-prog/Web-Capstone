@@ -467,6 +467,22 @@
           scrollbar-color: var(--border) transparent;
           padding: 2px 2px 0;
       }
+      .legend-jumpoff {
+          display: grid;
+          place-items: center;
+          width: 22px;
+          height: 22px;
+          flex-shrink: 0;
+          border-radius: 50%;
+          background: #2f8f4e;
+          border: 2px solid #fff;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+          box-sizing: border-box;
+      }
+      .legend-jumpoff i {
+          font-size: 10px;
+          color: #fff !important;
+      }
       .legend-group + .legend-group {
           margin-top: 6px;
       }
@@ -590,8 +606,22 @@
           border-radius: 3px;
           box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.5px rgba(0, 0, 0, .15);
       }
+      /* A side trail as the map draws it: thin yellow dashes on a white
+         casing (makiling-area.js), three whole dashes. */
       .legend-line.is-dashed {
-          background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 8px);
+          position: relative;
+          background: #fff;
+      }
+      .legend-line.is-dashed::after {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 1px;
+          right: 1px;
+          height: 4px;
+          border-radius: 1px;
+          background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px);
+          transform: translateY(-50%);
       }
       .legend-pin {
           display: grid;
@@ -657,20 +687,6 @@
           height: 16px;
           border-width: 1px;
           flex-shrink: 0;
-      }
-      /* The Lost / Missing swatch at legend size, still (hiker-layer.js's
-         map pin is larger, with a pulse). */
-      .legend-row .hiker-pin.lost,
-      .legend-list .hiker-pin.lost,
-      .legend-row .hiker-pin.off-trail,
-      .legend-list .hiker-pin.off-trail {
-          width: 20px;
-          height: 20px;
-          font-size: 10px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
-      }
-      .legend-row .hiker-pin.lost::after {
-          display: none;
       }
       .legend-row .hiker-pin i {
           width: auto;
@@ -1024,6 +1040,7 @@
                 <h4 class="legend-group-title">Trail Points</h4>
                 <div class="legend-grid">
                   <div class="legend-row"><span class="legend-pin" style="background:#2f6b45" aria-hidden="true"><i class="fa-solid fa-flag"></i></span><span>Checkpoint</span></div>
+                  <div class="legend-row" title="Sto. Tomas City Eco Park: Sipit Trail jump-off and registration"><span class="legend-jumpoff" aria-hidden="true"><i class="fa-solid fa-clipboard-check"></i></span><span>Jump-off / registration</span></div>
                   <div class="legend-row" title="Placed with + Add Campsites in Trail Management"><span class="legend-pin" style="background:#8a5a1f" aria-hidden="true"><i class="fa-solid fa-campground"></i></span><span>Campsite</span></div>
                 </div>
               </section>
@@ -1040,9 +1057,8 @@
                 <div class="legend-grid">
                   <div class="legend-row"><span class="hiker-pin online" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Online now</span></div>
                   <div class="legend-row"><span class="hiker-pin offline" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Last seen</span></div>
-                  <div class="legend-row" title="Started a hike in the PeakPath app"><span class="hiker-pin online on-hike" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>On a hike</span></div>
-                  <div class="legend-row" title="An open Lost / Missing emergency: reported by a companion in the app, or marked from their SOS"><span class="hiker-pin lost" aria-hidden="true"><i class="fa-solid fa-person-circle-question"></i></span><span>Lost / Missing</span></div>
-                  <div class="legend-row" title="On a hike and more than 60 m from every trail: strayed from the trail"><span class="hiker-pin off-trail" aria-hidden="true"><i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i></span><span>Off trail</span></div>
+                  <div class="legend-row" title="A guide on the Mariang Makiling Trail (UPLB MCME)"><span class="guide-pin sm" aria-hidden="true"><span class="guide-text">MCME</span><span class="hiker-crown"><i class="fa-solid fa-crown"></i></span></span><span>MCME guide</span></div>
+                  <div class="legend-row" title="A guide on the Sipit Trail (City ENRO)"><span class="guide-pin sm" aria-hidden="true"><span class="guide-text"><small>CITY</small>ENRO</span><span class="hiker-crown"><i class="fa-solid fa-crown"></i></span></span><span>City ENRO guide</span></div>
                 </div>
               </section>
               <section class="legend-group">
@@ -1572,8 +1588,9 @@
       db,
       bounds: makilingBounds,
       layer: hikerLayer,
-      // Hikers who stray from every trail are flagged off trail.
-      trailLines,
+      // Only Online now and Last seen here. On a hike, Lost / Missing and
+      // Off trail (and their alarms) are Emergency Monitoring's.
+      emergencyStatuses: false,
       onCaption: (text) => {
         hikerCaption = text;
         updateMapCaption();

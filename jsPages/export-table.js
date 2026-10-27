@@ -25,6 +25,10 @@
 //   chart: { type: 'donut', items: [{ label, value, color }], centerLabel, centerValue }
 //   chart: { type: 'bar',   items: [{ label, value }], color }
 //
+// Formats: PDF and Excel by default. A page can list its own, e.g.
+//   openExportMenu(button, { formats: ['pdf', 'word'], getTable })
+// 'word' saves a .docx with the same headings, tables and charts as the PDF.
+//
 // The PDF looks like the archive exports always have: landscape, PeakPath
 // green header row, a "Generated ..." line. The Excel file gets the same
 // green header row, so the column names stand out from the data. jsPDF, its
@@ -37,7 +41,9 @@ const LIBRARIES = {
   jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
   autotable: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
   // ExcelJS, not SheetJS: the free SheetJS build cannot colour cells.
-  exceljs: 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js'
+  exceljs: 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
+  // Word (.docx) files; not on cdnjs, so jsDelivr (sets window.docx).
+  docx: 'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js'
 };
 
 const loading = {};
@@ -332,6 +338,84 @@ async function savePdf(table) {
   pdf.save(`${table.filename}-${today()}.pdf`);
 }
 
+/* ---- Word (.docx) ----
+   The same report as the PDF: a title and "Generated" line, then per
+   section its heading, note, chart (as a picture) and table, with the
+   PeakPath green header row. */
+const dataUrlBytes = (dataUrl) => {
+  const binary = atob(dataUrl.split(',')[1]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+};
+
+async function saveWord(table) {
+  if (!window.docx) await loadScript(LIBRARIES.docx);
+  const {
+    Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell,
+    WidthType, ShadingType, AlignmentType
+  } = window.docx;
+  const sections = table.sections || [{ title: table.title, headers: table.headers, rows: table.rows }];
+
+  const cell = (text, header = false, shaded = false) => new TableCell({
+    shading: header
+      ? { fill: '2F8F4E', type: ShadingType.CLEAR, color: 'auto' }
+      : (shaded ? { fill: 'F7F9F7', type: ShadingType.CLEAR, color: 'auto' } : undefined),
+    margins: { top: 60, bottom: 60, left: 100, right: 100 },
+    children: [new Paragraph({ children: [new TextRun({ text: cellText(text), bold: header, color: header ? 'FFFFFF' : '1B211B', size: 19 })] })]
+  });
+
+  const body = [
+    new Paragraph({ children: [new TextRun({ text: `PeakPath — ${table.title}`, bold: true, size: 32, color: '1B211B' })] }),
+    new Paragraph({
+      spacing: { after: 240 },
+      children: [new TextRun({ text: `Generated ${formatPortalDateTime(new Date())}${table.countLabel ? ` • ${table.countLabel}` : ''}`, size: 19, color: '646464' })]
+    })
+  ];
+  sections.forEach((section) => {
+    body.push(new Paragraph({
+      spacing: { before: 280, after: 80 },
+      keepNext: true,
+      children: [new TextRun({ text: section.title, bold: true, size: 26, color: '1F6B39' })]
+    }));
+    if (section.note) {
+      body.push(new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: section.note, size: 18, color: '6E6E6E' })] }));
+    }
+    const image = chartImage(section.chart);
+    if (image) {
+      body.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 120 },
+        children: [new ImageRun({ data: dataUrlBytes(image), transformation: { width: 480, height: Math.round(480 * (CHART_H / CHART_W)) } })]
+      }));
+    }
+    const rows = section.rows?.length ? section.rows : [];
+    body.push(new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({ tableHeader: true, children: section.headers.map((header) => cell(header, true)) }),
+        ...(rows.length
+          ? rows.map((row, index) => new TableRow({ children: row.map((value) => cell(value, false, index % 2 === 1)) }))
+          : [new TableRow({ children: [new TableCell({ columnSpan: section.headers.length, children: [new Paragraph({ children: [new TextRun({ text: 'Nothing to show.', italics: true, color: '828282', size: 19 })] })] })] })])
+      ]
+    }));
+  });
+
+  const doc = new Document({
+    creator: 'PeakPath Admin Portal',
+    title: `PeakPath — ${table.title}`,
+    sections: [{ properties: {}, children: body }]
+  });
+  const blob = await Packer.toBlob(doc);
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${table.filename}-${today()}.docx`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+}
+
 const HEADER_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F8F4E' } }; // PeakPath green
 const ZEBRA_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7F9F7' } };
 const RULE = { style: 'thin', color: { argb: 'FFDCE6DF' } };
@@ -421,6 +505,8 @@ const STYLES = `
 .export-menu button i { width: 18px; font-size: 16px; text-align: center; }
 .export-menu .fa-file-pdf { color: #c8402f; }
 .export-menu .fa-file-excel { color: #1f7a45; }
+.export-menu .fa-file-word { color: #2b5797; }
+.export-menu button[hidden] { display: none; }
 .export-menu-error { padding: 6px 10px 4px; font-size: 11.5px; color: var(--danger); }
 .export-menu-error:empty { display: none; }
 `;
@@ -445,6 +531,7 @@ function buildMenu() {
     <div class="export-menu-title">Export as</div>
     <button type="button" role="menuitem" data-format="pdf"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i>PDF document</button>
     <button type="button" role="menuitem" data-format="excel"><i class="fa-solid fa-file-excel" aria-hidden="true"></i>Excel spreadsheet</button>
+    <button type="button" role="menuitem" data-format="word"><i class="fa-solid fa-file-word" aria-hidden="true"></i>Word document</button>
     <div class="export-menu-error" role="alert"></div>`;
   document.body.appendChild(menu);
 
@@ -464,6 +551,7 @@ function buildMenu() {
       const table = options.getTable?.();
       if (options.onExport) await options.onExport(format);
       else if (format === 'pdf') await savePdf(table);
+      else if (format === 'word') await saveWord(table);
       else await saveExcel(table);
       closeMenu();
       options.onDone?.(format, table);
@@ -502,6 +590,11 @@ export function openExportMenu(anchor, options) {
   }
 
   current = { anchor, options };
+  // Only the formats this page offers (PDF and Excel unless it says).
+  const formats = options.formats || ['pdf', 'excel'];
+  menu.querySelectorAll('[data-format]').forEach((button) => {
+    button.hidden = !formats.includes(button.dataset.format);
+  });
   menu.querySelector('.export-menu-error').textContent = '';
   menu.hidden = false;
   anchor.setAttribute('aria-haspopup', 'menu');
@@ -517,5 +610,5 @@ export function openExportMenu(anchor, options) {
     : below;
   menu.style.left = `${left}px`;
   menu.style.top = `${top}px`;
-  menu.querySelector('[data-format]').focus();
+  menu.querySelector('[data-format]:not([hidden])').focus();
 }

@@ -1310,6 +1310,83 @@
     .field-pair-top {
         align-items: start;
     }
+    /* Guide Evaluation (Add User, Role = Guide): the QR code beside the link. */
+    .guide-eval[hidden],
+    #addUserGuideTrailField[hidden] {
+        display: none;
+    }
+    .guide-eval-grid {
+        display: grid;
+        grid-template-columns: 120px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+    }
+    .guide-eval-qr {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .guide-eval-pick {
+        display: grid;
+        place-items: center;
+        width: 120px;
+        height: 120px;
+        padding: 6px;
+        border: 1px dashed var(--dm-border, #cfd8cd);
+        border-radius: 10px;
+        background: var(--dm-surface-2, #fbfcfa);
+        color: var(--dm-text-2, #5b6b60);
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    .guide-eval-pick:hover {
+        border-color: var(--accent, #2f8f4e);
+        color: var(--accent, #2f8f4e);
+    }
+    .guide-eval-pick span {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        text-align: center;
+    }
+    .guide-eval-pick i {
+        font-size: 26px;
+    }
+    .guide-eval-pick img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+    /* hidden must win over the label's display:flex (and the image's size),
+       or "Upload QR code" stays under the chosen QR code. */
+    .guide-eval-pick span[hidden],
+    .guide-eval-pick img[hidden] {
+        display: none;
+    }
+    .guide-eval-pick:has(img:not([hidden])) {
+        padding: 4px;
+        border-style: solid;
+    }
+    .guide-eval-clear {
+        border: 0;
+        background: none;
+        padding: 0;
+        font: inherit;
+        font-size: 11.5px;
+        color: var(--danger, #c8402f);
+        cursor: pointer;
+        align-self: center;
+    }
+    .guide-eval-clear[hidden] {
+        display: none;
+    }
+    @media (max-width: 560px) {
+        .guide-eval-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
     .address-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1539,6 +1616,69 @@
         padding: 16px 24px 0;
     }
 
+    /* View Profile, guides: the evaluation QR code beside its link. */
+    .profile-eval {
+        margin: 16px 24px 0;
+        padding-top: 14px;
+        border-top: 1px solid var(--dm-border, #e7ebe7);
+    }
+    .profile-eval[hidden],
+    .profile-eval [hidden] {
+        display: none;
+    }
+    .profile-eval > .info-label {
+        margin-bottom: 8px;
+        color: var(--accent-dark);
+        font-size: 12.5px;
+        font-weight: 700;
+    }
+    .profile-eval-body {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-width: 0;
+    }
+    .profile-eval-qr,
+    .profile-eval-none {
+        flex-shrink: 0;
+        width: 110px;
+        height: 110px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+    }
+    .profile-eval-qr img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        padding: 6px;
+        box-sizing: border-box;
+        object-fit: contain;
+    }
+    .profile-eval-none {
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 6px;
+        color: var(--text-muted);
+        font-size: 11.5px;
+        background: var(--dm-surface, #fff);
+    }
+    .profile-eval-none i {
+        font-size: 22px;
+    }
+    .profile-eval-link {
+        min-width: 0;
+    }
+    .profile-eval-link a {
+        display: block;
+        margin-top: 2px;
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
     .profile-info {
         display: flex;
         gap: 10px;
@@ -1734,6 +1874,16 @@
         box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
     }
 
+    /* User Details ends where the user list ends and scrolls the rest
+       (its max-height is set from the list card's height in the script). */
+    #userDetailCard {
+        overflow-y: auto;
+        scrollbar-width: thin;
+    }
+    #userDetailCard > * {
+        flex-shrink: 0;
+    }
+
     .tabs {
         display: flex;
         gap: 24px;
@@ -1903,90 +2053,202 @@
     }
     img[data-user-avatar][hidden] { display: none; }
 
-    /* ---- Hikes per Month by Gender ----
-       Stacked columns, one per month: Male, Female, Not specified, in that
-       order from the baseline (blue / orange / violet, checked for colour
-       blindness in both themes). Totals sit above each column; the exact
-       split is in the hover card and the hidden table. */
-    .hike-gender-card {
+    /* Hiker Analytics' gender colours: Male, Female, Not specified (blue /
+       orange / violet, checked for colour blindness in both themes). */
+    .hiker-analytics-card {
         --hg-male: #2a78d6;
         --hg-female: #eb6834;
         --hg-other: #6250d6;
         margin-top: 20px;
     }
     @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) .hike-gender-card {
+        :root:not([data-theme="light"]) .hiker-analytics-card {
             --hg-male: #3987e5;
             --hg-female: #d95926;
             --hg-other: #9085e9;
         }
     }
-    :root[data-theme="dark"] .hike-gender-card {
+    :root[data-theme="dark"] .hiker-analytics-card {
         --hg-male: #3987e5;
         --hg-female: #d95926;
         --hg-other: #9085e9;
     }
-    .hike-gender-card .card-head select {
+    .hiker-analytics-card .card-head select {
         padding: 7px 10px;
         font-size: 13px;
         border-radius: 8px;
     }
-    .hg-legend {
+
+    /* ---- Hiker Analytics (monthly) ----
+       Headline numbers, then one panel per category in a bordered grid (as
+       Reports About User Behavior's charts). Donuts for parts of the month's
+       hikers, columns for age (it has an order). Categorical colours in a
+       fixed order (validated for colour blindness, light and dark), grey for
+       Other / Not given; values always in text colours in the legend. */
+    .hiker-analytics-card {
+        --ha-1: #2a78d6;
+        --ha-2: #eb6834;
+        --ha-3: #1baf7a;
+        --ha-4: #eda100;
+        --ha-other: #a3aca5;
+        --ha-bar: #2f8f4e;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) .hiker-analytics-card {
+            --ha-1: #3987e5;
+            --ha-2: #d95926;
+            --ha-3: #199e70;
+            --ha-4: #c98500;
+            --ha-other: #6f7a72;
+            --ha-bar: #3fa860;
+        }
+    }
+    :root[data-theme="dark"] .hiker-analytics-card {
+        --ha-1: #3987e5;
+        --ha-2: #d95926;
+        --ha-3: #199e70;
+        --ha-4: #c98500;
+        --ha-other: #6f7a72;
+        --ha-bar: #3fa860;
+    }
+    .hiker-analytics-card .card-head-actions {
         display: flex;
-        flex-wrap: wrap;
-        gap: 6px 18px;
-        margin: -4px 0 14px;
-        font-size: 12.5px;
+        align-items: center;
+        gap: 8px;
+    }
+    .ha-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .ha-stat {
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--dm-surface-2, #f7f9f6);
+    }
+    .ha-stat strong {
+        display: block;
+        font-size: 26px;
+        line-height: 1.1;
+        color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+    }
+    .ha-stat span {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
         color: var(--text-secondary);
     }
-    .hg-legend span {
-        display: inline-flex;
+    .ha-stat small {
+        display: block;
+        margin-top: 2px;
+        font-size: 11.5px;
+        color: var(--text-muted);
+    }
+    .ha-charts {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .ha-col {
+        min-width: 0;
+        padding: 16px 18px 18px;
+        box-shadow: -1px -1px 0 var(--border);
+    }
+    .ha-col h3 {
+        margin: 0 0 12px;
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--accent-dark, #1f6b39);
+    }
+    .ha-donut-block {
+        display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 16px;
+        flex-wrap: wrap;
     }
-    .hg-legend strong {
+    .ha-donut {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        flex-shrink: 0;
+    }
+    .ha-donut svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+    }
+    .ha-donut circle {
+        cursor: default;
+    }
+    .ha-donut-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+    .ha-donut-center span {
+        font-size: 10.5px;
+        color: var(--text-secondary);
+    }
+    .ha-donut-center strong {
+        font-size: 20px;
+        line-height: 1.1;
         color: var(--text-primary);
-        font-weight: 600;
     }
-    .hg-swatch {
+    .ha-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1 1 150px;
+        min-width: 0;
+        font-size: 12px;
+    }
+    .ha-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+    .ha-dot {
         width: 10px;
         height: 10px;
         border-radius: 3px;
-        flex: none;
+        flex-shrink: 0;
     }
-    .hg-chart {
-        position: relative;
-        display: grid;
-        grid-template-columns: 34px 1fr;
-        grid-template-rows: 240px auto;
-        margin-top: 18px;
+    .ha-legend-item .name {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        color: var(--text-primary);
     }
-    .hg-axis {
-        position: relative;
-        font-size: 11px;
-        color: var(--text-muted);
-    }
-    .hg-axis span {
-        position: absolute;
-        right: 8px;
-        transform: translateY(50%);
+    .ha-legend-item .value {
+        margin-left: auto;
+        padding-left: 8px;
+        white-space: nowrap;
+        color: var(--text-secondary);
         font-variant-numeric: tabular-nums;
     }
-    .hg-plot {
-        position: relative;
+    .ha-legend-item .value b {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+    /* Age: columns on a baseline, the count above each, the bracket under it. */
+    .ha-columns {
         display: flex;
         align-items: stretch;
-        gap: 2px;
+        gap: 6px;
+        height: 170px;
+        padding-top: 18px;
         border-bottom: 1px solid var(--border);
     }
-    .hg-grid {
-        position: absolute;
-        left: 0;
-        right: 0;
-        border-top: 1px dashed var(--border);
-        pointer-events: none;
-    }
-    .hg-col {
+    .ha-column {
         position: relative;
         flex: 1;
         min-width: 0;
@@ -1994,118 +2256,56 @@
         flex-direction: column;
         justify-content: flex-end;
         align-items: center;
-        padding: 0 18%;
         border-radius: 6px 6px 0 0;
-        cursor: default;
     }
-    .hg-col:hover,
-    .hg-col:focus-visible {
+    .ha-column:hover {
         background: var(--dm-surface-2, #f5f7f3);
-        outline: none;
     }
-    .hg-total {
-        position: absolute;
+    .ha-column .bar {
+        width: 60%;
+        max-width: 30px;
+        border-radius: 4px 4px 0 0;
+        background: var(--ha-bar);
+    }
+    .ha-column .bar.is-unknown {
+        background: var(--ha-other);
+    }
+    .ha-column .count {
+        margin-bottom: 4px;
         font-size: 11px;
         font-weight: 600;
         color: var(--text-secondary);
         font-variant-numeric: tabular-nums;
     }
-    .hg-stack {
+    .ha-column-labels {
         display: flex;
-        flex-direction: column-reverse;
-        gap: 2px;
-        width: 100%;
-        max-width: 36px;
-    }
-    .hg-seg {
-        width: 100%;
-        min-height: 2px;
-    }
-    .hg-seg:last-child {
-        border-radius: 4px 4px 0 0;
-    }
-    .hg-labels {
-        grid-column: 2;
-        display: flex;
-        gap: 2px;
+        gap: 6px;
         padding-top: 6px;
-        font-size: 11px;
-        color: var(--text-muted);
     }
-    .hg-labels span {
+    .ha-column-labels span {
         flex: 1;
         min-width: 0;
+        font-size: 10.5px;
+        line-height: 1.25;
         text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-    }
-    .hg-labels small {
-        display: block;
-        font-size: 10px;
-    }
-    .hg-empty {
-        position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        font-size: 13px;
         color: var(--text-muted);
-        pointer-events: none;
     }
-    .hg-tip {
-        position: absolute;
-        z-index: 5;
-        min-width: 150px;
-        padding: 8px 10px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--dm-surface, #fff);
-        box-shadow: 0 8px 22px rgba(15, 23, 42, .14);
-        font-size: 12px;
-        color: var(--text-secondary);
-        pointer-events: none;
-        white-space: nowrap;
+    .ha-empty {
+        padding: 30px 6px;
+        text-align: center;
+        font-size: 12.5px;
+        color: var(--text-muted);
     }
-    .hg-tip[hidden] { display: none; }
-    .hg-tip strong {
-        display: block;
-        margin-bottom: 4px;
-        color: var(--text-primary);
+    @media (max-width: 760px) {
+        .ha-stats,
+        .ha-charts {
+            grid-template-columns: minmax(0, 1fr);
+        }
     }
-    .hg-tip div {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .hg-tip b {
-        margin-left: auto;
-        padding-left: 12px;
-        color: var(--text-primary);
-        font-variant-numeric: tabular-nums;
-    }
-    .hg-tip .hg-tip-total {
-        margin-top: 4px;
-        padding-top: 4px;
-        border-top: 1px solid var(--border);
-    }
-    .hg-note {
+    .ha-note {
         margin: 12px 0 0;
         font-size: 12px;
         color: var(--text-muted);
-    }
-    .hg-table {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
-        white-space: nowrap;
-    }
-    @media (max-width: 600px) {
-        .hg-chart { grid-template-rows: 200px auto; }
-        .hg-col { padding: 0 8%; }
-        .hg-total { font-size: 10px; }
-        .hg-labels { font-size: 10px; }
     }
 </style>
 </head>
@@ -2293,6 +2493,7 @@
         </div>
 
         <div class="detail-rows">
+          <div class="detail-row" id="detailAssociateRow" hidden><i class="fa-solid fa-mountain"></i><span class="detail-label">Associate with</span><span class="detail-value" id="detailAssociate">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-phone"></i><span class="detail-label">Phone</span><span class="detail-value" id="detailPhone">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-people-group"></i><span class="detail-label">Team / Group</span><span class="detail-value" id="detailTeam">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-calendar-check"></i><span class="detail-label">Member Since</span><span class="detail-value" id="detailMemberSince">—</span></div>
@@ -2336,25 +2537,41 @@
       </div>
     </section>
 
-    <section class="card hike-gender-card" aria-labelledby="hikeGenderTitle">
+
+    <!-- Monthly hiker analytics: who hiked in the chosen month (Start Hike in
+         the app), by gender, nationality, province and age bracket, from
+         their profiles. -->
+    <section class="card hiker-analytics-card" aria-labelledby="hikerAnalyticsTitle">
       <div class="card-head">
-        <h2 id="hikeGenderTitle">Hikes per Month by Gender</h2>
+        <h2 id="hikerAnalyticsTitle">Hiker Analytics</h2>
         <div class="card-head-actions">
-          <select id="hikeGenderRange" aria-label="Months shown">
-            <option value="6">Last 6 months</option>
-            <option value="12" selected>Last 12 months</option>
-          </select>
+          <select id="hikerAnalyticsMonth" aria-label="Month"></select>
+          <button type="button" class="btn-ghost icon-only" id="hikerAnalyticsExport" aria-haspopup="menu" aria-expanded="false" aria-label="Download as PDF or Word"><i class="fa-solid fa-download" aria-hidden="true"></i><span class="btn-tooltip">Download</span></button>
         </div>
       </div>
-      <div class="hg-legend" id="hikeGenderLegend"></div>
-      <div class="hg-chart">
-        <div class="hg-axis" id="hikeGenderAxis" aria-hidden="true"></div>
-        <div class="hg-plot" id="hikeGenderPlot"></div>
-        <div class="hg-labels" id="hikeGenderLabels" aria-hidden="true"></div>
-        <div class="hg-tip" id="hikeGenderTip" hidden></div>
+      <div class="ha-stats" id="hikerAnalyticsStats"></div>
+      <!-- One panel per category, as Reports About User Behavior's charts:
+           parts of the month's hikers as donuts with a legend; age, which has
+           an order, as columns. -->
+      <div class="ha-charts">
+        <div class="ha-col">
+          <h3>Gender</h3>
+          <div id="hikerAnalyticsGender"></div>
+        </div>
+        <div class="ha-col">
+          <h3>Age Brackets</h3>
+          <div id="hikerAnalyticsAge"></div>
+        </div>
+        <div class="ha-col">
+          <h3>Nationality</h3>
+          <div id="hikerAnalyticsNationality"></div>
+        </div>
+        <div class="ha-col">
+          <h3>Province (Address)</h3>
+          <div id="hikerAnalyticsProvince"></div>
+        </div>
       </div>
-      <table class="hg-table" id="hikeGenderTable"></table>
-      <p class="hg-note">Hikes started in the PeakPath app (Start Hike) each month, by the hiker's gender in their profile.</p>
+      <p class="ha-note">Different hikers who started at least one hike in the PeakPath app that month, from their profiles: gender, nationality, address and age (from the birthdate, at the month's end). Hikers from abroad give where they are staying in the Philippines.</p>
     </section>
 
   </main>
@@ -2550,6 +2767,32 @@
         <p class="team-picker-hint" id="addUserTeamsHint"></p>
       </div>
     </div>
+    <!-- A Guide's trail: one of the major trails (no side trails). -->
+    <div class="field" id="addUserGuideTrailField" hidden>
+      <label for="addUserGuideTrail">Associate with?</label>
+      <select id="addUserGuideTrail" name="guideTrail">
+        <option value="" disabled selected>Select a major trail</option>
+      </select>
+    </div>
+    <!-- A Guide's evaluation: a QR code image (saved to Storage, qrCode/) or a
+         link hikers use to rate the guide. One of the two is required. -->
+    <div class="field guide-eval" id="addUserGuideEval" hidden>
+      <label for="addUserEvalLink">Guide Evaluation</label>
+      <div class="guide-eval-grid">
+        <div class="guide-eval-qr">
+          <input id="addUserEvalQr" type="file" accept="image/*" hidden>
+          <button type="button" class="guide-eval-pick" id="addUserEvalQrBtn">
+            <img id="addUserEvalQrPreview" alt="" hidden>
+            <span id="addUserEvalQrText"><i class="fa-solid fa-qrcode" aria-hidden="true"></i>Upload QR code</span>
+          </button>
+          <button type="button" class="guide-eval-clear" id="addUserEvalQrClear" hidden>Remove QR code</button>
+        </div>
+        <div class="guide-eval-link">
+          <input id="addUserEvalLink" name="evaluationLink" type="url" maxlength="500" placeholder="https://forms.gle/..." autocomplete="off" aria-describedby="addUserEvalHint">
+        </div>
+      </div>
+      <p class="field-hint" id="addUserEvalHint">Upload the QR code for the guide's evaluation, or paste its link (or both). Images up to 5 MB.</p>
+    </div>
     <p id="addUserStatusMessage" class="action-status" role="status" aria-live="polite"></p>
     <div class="modal-actions">
       <button id="cancelAddUserBtn" class="modal-cancel" type="button">Cancel</button>
@@ -2600,8 +2843,8 @@
         <div><div class="info-label">Phone</div><div id="profileModalPhone" class="profile-modal-value">—</div></div>
       </div>
       <div class="profile-info">
-        <span class="info-icon"><i class="fa-solid fa-truck-medical" aria-hidden="true"></i></span>
-        <div><div class="info-label">Emergency Contact</div><div id="profileModalEmergencyContact" class="profile-modal-value">—</div></div>
+        <span class="info-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+        <div><div class="info-label">Emergency Alerts</div><div id="profileModalAlertCount" class="profile-modal-value">—</div></div>
       </div>
       <div class="profile-info">
         <span class="info-icon"><i class="fa-solid fa-location-dot" aria-hidden="true"></i></span>
@@ -2610,6 +2853,39 @@
       <div class="profile-info">
         <span class="info-icon"><i class="fa-solid fa-clock" aria-hidden="true"></i></span>
         <div><div class="info-label">Last Active</div><div id="profileModalLastActive" class="profile-modal-value">—</div></div>
+      </div>
+      <!-- From the sign-up profile; shown here only, not in User Details. -->
+      <div class="profile-info">
+        <span class="info-icon"><i class="fa-solid fa-cake-candles" aria-hidden="true"></i></span>
+        <div><div class="info-label">Age</div><div id="profileModalAge" class="profile-modal-value">—</div></div>
+      </div>
+      <div class="profile-info">
+        <span class="info-icon"><i class="fa-solid fa-venus-mars" aria-hidden="true"></i></span>
+        <div><div class="info-label">Gender</div><div id="profileModalGender" class="profile-modal-value">—</div></div>
+      </div>
+      <div class="profile-info">
+        <span class="info-icon"><i class="fa-solid fa-flag" aria-hidden="true"></i></span>
+        <div><div class="info-label">Nationality</div><div id="profileModalNationality" class="profile-modal-value">—</div></div>
+      </div>
+      <div class="profile-info">
+        <span class="info-icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
+        <div><div class="info-label">Address</div><div id="profileModalAddress" class="profile-modal-value">—</div></div>
+      </div>
+    </div>
+
+    <!-- Guides only: their evaluation QR code and link (from Add User). -->
+    <div class="profile-eval" id="profileModalEval" hidden>
+      <div class="info-label">Guide Evaluation</div>
+      <div class="profile-eval-body">
+        <a class="profile-eval-qr" id="profileModalEvalQrLink" target="_blank" rel="noopener noreferrer" title="Open the QR code in a new tab">
+          <img id="profileModalEvalQr" alt="Evaluation QR code">
+        </a>
+        <div class="profile-eval-none" id="profileModalEvalQrNone"><i class="fa-solid fa-qrcode" aria-hidden="true"></i>No QR code</div>
+        <div class="profile-eval-link">
+          <div class="info-label">Evaluation link</div>
+          <a id="profileModalEvalUrl" target="_blank" rel="noopener noreferrer"></a>
+          <span id="profileModalEvalUrlNone" class="profile-modal-value">—</span>
+        </div>
       </div>
     </div>
 
@@ -2621,7 +2897,7 @@
 
 <script type="module">
   import { auth, db, storage } from '../jsPages/firebase-config.js';
-  import { ref, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
+  import { ref, getDownloadURL, uploadBytes, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
   import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
   import { escapeHtml, normalizeText } from '../jsPages/utils.js';
   import { formatPortalDate, formatPortalDateTime, formatPortalTime, portalTimeZone, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
@@ -3266,6 +3542,7 @@
         .forEach(id => { document.getElementById(id).textContent = '—'; });
       detailActionButtons.forEach(button => { if (button) button.disabled = true; });
       document.getElementById('detailSuspensionRow').hidden = true;
+      document.getElementById('detailAssociateRow').hidden = true;
       if (suspendUserBtn) {
         suspendUserBtn.disabled = true;
         suspendUserBtn.innerHTML = '<i class="fa-solid fa-ban"></i>Suspend User';
@@ -3324,6 +3601,13 @@
 
     const alerts = getUserAlerts(user);
 
+    // Guides only: the major trail they guide on (Add User's "Guide from
+    // what trail?"), by its current name in Trail Management.
+    const isGuide = user.role.toLowerCase() === 'guide';
+    document.getElementById('detailAssociateRow').hidden = !isGuide;
+    document.getElementById('detailAssociate').textContent = isGuide
+      ? (state.trailNames?.get(normalizeText(user.raw?.guideTrailId)) || normalizeText(user.raw?.guideTrail) || '—')
+      : '—';
     document.getElementById('detailPhone').textContent = user.phone || '—';
     const detailTeam = document.getElementById('detailTeam');
     detailTeam.classList.add('team-value');
@@ -3400,12 +3684,55 @@
       ? `Team / Group: ${teamNames.join(', ')}`
       : 'Team / Group: not in a team';
     document.getElementById('profileModalPhone').textContent = user.phone;
-    document.getElementById('profileModalEmergencyContact').textContent = user.emergencyContact;
+    // Every emergency alert they sent from the app (SOS, Lost / Missing),
+    // counted as User Details' Emergency Alerts is.
+    document.getElementById('profileModalAlertCount').textContent = String(getUserAlerts(user).length);
     document.getElementById('profileModalArea').textContent = userAreaText(user);
     document.getElementById('profileModalMemberSince').textContent = formatDisplayDate(user.memberSince);
     document.getElementById('profileModalLastActive').textContent = formatDisplayDateTime(user.lastActive);
     document.getElementById('profileModalTotalHikes').textContent = user.totalHikes;
     document.getElementById('profileModalTotalDistance').textContent = user.totalDistance;
+    // Age today from the birthdate (with the date), gender, nationality and
+    // address, as saved at sign-up (the app's or Add User's).
+    const born = birthdateOf(user.raw);
+    const age = born ? ageOn(born, new Date()) : null;
+    document.getElementById('profileModalAge').textContent = age !== null && age >= 0 && age <= 120
+      ? `${age} (born ${born.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })})`
+      : '—';
+    document.getElementById('profileModalGender').textContent = normalizeText(user.raw?.gender) || '—';
+    document.getElementById('profileModalNationality').textContent = normalizeText(user.raw?.nationality) || '—';
+    const parts = user.raw?.addressParts || {};
+    document.getElementById('profileModalAddress').textContent = normalizeText(user.raw?.address)
+      || [parts.street, parts.barangay, parts.city, parts.province].map(normalizeText).filter(Boolean).join(', ')
+      || '—';
+
+    // Guides: their evaluation QR code and link, when saved.
+    const isGuide = user.role.toLowerCase() === 'guide';
+    document.getElementById('profileModalEval').hidden = !isGuide;
+    if (isGuide) {
+      const qrUrl = /^https:\/\//.test(String(user.raw?.evaluationQrUrl || '')) ? user.raw.evaluationQrUrl : '';
+      const link = /^https?:\/\//.test(String(user.raw?.evaluationLink || '')) ? user.raw.evaluationLink : '';
+      const qrLink = document.getElementById('profileModalEvalQrLink');
+      qrLink.hidden = !qrUrl;
+      document.getElementById('profileModalEvalQrNone').hidden = Boolean(qrUrl);
+      if (qrUrl) {
+        qrLink.href = qrUrl;
+        document.getElementById('profileModalEvalQr').src = qrUrl;
+      } else {
+        qrLink.removeAttribute('href');
+        document.getElementById('profileModalEvalQr').removeAttribute('src');
+      }
+      const urlEl = document.getElementById('profileModalEvalUrl');
+      urlEl.hidden = !link;
+      document.getElementById('profileModalEvalUrlNone').hidden = Boolean(link);
+      if (link) {
+        urlEl.href = link;
+        urlEl.textContent = link;
+      } else {
+        urlEl.removeAttribute('href');
+        urlEl.textContent = '';
+      }
+    }
 
     viewProfileModal.classList.add('open');
 
@@ -3980,6 +4307,90 @@
   });
   document.getElementById('addUserBtn').addEventListener('click', loadAddressChoices);
 
+  /* ---- Guide Evaluation (Add User, Role = Guide) ----
+     A guide needs the QR code of their evaluation (an image, uploaded to
+     Storage under qrCode/{uid}/) or its link -- at least one. Saved on the
+     guide's profile: evaluationQrUrl / evaluationQrPath and evaluationLink.
+     The app doesn't use them yet. */
+  const MAX_QR_BYTES = 5 * 1024 * 1024;
+  const addUserRole = document.getElementById('addUserRole');
+  const guideEvalBox = document.getElementById('addUserGuideEval');
+  const evalQrInput = document.getElementById('addUserEvalQr');
+  const evalQrPreview = document.getElementById('addUserEvalQrPreview');
+  const evalQrText = document.getElementById('addUserEvalQrText');
+  const evalQrClear = document.getElementById('addUserEvalQrClear');
+  const evalLinkInput = document.getElementById('addUserEvalLink');
+  let evalQrFile = null;
+
+  const isGuideRole = () => normalizeText(addUserRole.value).toLowerCase() === 'guide';
+  const guideTrailField = document.getElementById('addUserGuideTrailField');
+  const guideTrailSelect = document.getElementById('addUserGuideTrail');
+  const syncGuideEval = () => {
+    guideEvalBox.hidden = !isGuideRole();
+    guideTrailField.hidden = !isGuideRole();
+  };
+
+  // The major trails for "Guide from what trail?": Type "Major Trail" in
+  // Trail Management; side trails (and Undefined) are left out. A trail with
+  // no Type yet counts unless it is the Mud Spring or Flat Rocks side trail.
+  const isMajorTrail = (data) => {
+    const type = normalizeText(data.Type).toLowerCase();
+    if (type) return type === 'major trail';
+    return !/mud\s*spring|flat\s*rocks?/i.test(normalizeText(data.Trail || data.name));
+  };
+  const renderGuideTrails = (trails) => {
+    const chosen = guideTrailSelect.value;
+    guideTrailSelect.innerHTML = '<option value="" disabled>Select a major trail</option>' +
+      trails.map((trail) => `<option value="${escapeHtml(trail.id)}">${escapeHtml(trail.name)}</option>`).join('');
+    guideTrailSelect.value = trails.some((trail) => trail.id === chosen) ? chosen : '';
+    if (!trails.length) guideTrailSelect.options[0].textContent = 'No major trails yet (Trail Management)';
+  };
+  const clearEvalQr = () => {
+    if (evalQrPreview.src) URL.revokeObjectURL(evalQrPreview.src);
+    evalQrFile = null;
+    evalQrInput.value = '';
+    evalQrPreview.removeAttribute('src');
+    evalQrPreview.hidden = true;
+    evalQrText.hidden = false;
+    evalQrClear.hidden = true;
+  };
+  addUserRole.addEventListener('change', syncGuideEval);
+  document.getElementById('addUserEvalQrBtn').addEventListener('click', () => evalQrInput.click());
+  evalQrInput.addEventListener('change', () => {
+    const file = evalQrInput.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/') || file.size > MAX_QR_BYTES) {
+      evalQrInput.value = '';
+      addUserStatusMessage.textContent = 'The QR code must be an image of 5 MB or less.';
+      addUserStatusMessage.className = 'action-status error';
+      return;
+    }
+    clearEvalQr();
+    evalQrFile = file;
+    evalQrPreview.src = URL.createObjectURL(file);
+    evalQrPreview.hidden = false;
+    evalQrText.hidden = true;
+    evalQrClear.hidden = false;
+    addUserStatusMessage.textContent = '';
+  });
+  evalQrClear.addEventListener('click', clearEvalQr);
+  addUserForm.addEventListener('reset', () => setTimeout(() => {
+    clearEvalQr();
+    syncGuideEval();
+  }));
+
+  // The link, if one was typed: a full http(s) address, or null (and '' when empty).
+  const evaluationLinkOf = () => {
+    const value = normalizeText(evalLinkInput.value);
+    if (!value) return '';
+    try {
+      const url = new URL(value);
+      return /^https?:$/.test(url.protocol) ? url.href : null;
+    } catch {
+      return null;
+    }
+  };
+
   /* The profile fields as the app saves them (AuthService.signUp): the
      birthdate at midnight UTC of the day picked, the address as one line and
      as its parts. Null when something is missing. */
@@ -4038,6 +4449,28 @@
       addUserStatusMessage.className = 'action-status error';
       return;
     }
+    // A Guide needs their evaluation: the QR code or the link.
+    const guideLink = isGuideRole() ? evaluationLinkOf() : '';
+    const guideTrailId = isGuideRole() ? guideTrailSelect.value : '';
+    if (isGuideRole()) {
+      if (!guideTrailId) {
+        addUserStatusMessage.textContent = 'Choose the major trail this guide is from.';
+        addUserStatusMessage.className = 'action-status error';
+        guideTrailSelect.focus();
+        return;
+      }
+      if (guideLink === null) {
+        addUserStatusMessage.textContent = 'Enter the evaluation link as a full address, starting with https://.';
+        addUserStatusMessage.className = 'action-status error';
+        evalLinkInput.focus();
+        return;
+      }
+      if (!evalQrFile && !guideLink) {
+        addUserStatusMessage.textContent = 'A guide needs their evaluation: upload the QR code or enter the link.';
+        addUserStatusMessage.className = 'action-status error';
+        return;
+      }
+    }
     const email = normalizeText(formData.get('email')).toLowerCase();
     const username = String(formData.get('username') || '').trim();
     const password = String(formData.get('password') || '');
@@ -4062,6 +4495,7 @@
     const createdUser = signup.user;
     const role = normalizeText(formData.get('role')) || 'Hiker';
     let profileSaved = false;
+    let qrUploadFailed = false;
     try {
       // Email and password, so username sign-in works (as the app's sign-up).
       await linkWithCredential(createdUser, EmailAuthProvider.credential(email, password));
@@ -4109,10 +4543,35 @@
       profileSaved = true;
       verifiedPhone = null; // added: nothing to clean up any more
       if (role.toLowerCase() !== 'hiker') {
-        await updateDoc(doc(db, 'users', createdUser.uid), { role });
+        // A Guide: the evaluation QR code goes to Storage (qrCode/{uid}/...)
+        // and its link, with the link typed, onto the profile with the role.
+        const roleUpdate = { role };
+        if (role.toLowerCase() === 'guide') {
+          roleUpdate.guideTrailId = guideTrailId;
+          roleUpdate.guideTrail = state.trailNames.get(guideTrailId) || '';
+          if (guideLink) roleUpdate.evaluationLink = guideLink;
+          if (evalQrFile) {
+            const safeName = evalQrFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const qrPath = `qrCode/${createdUser.uid}/${Date.now()}-${safeName}`;
+            try {
+              const qrRef = ref(storage, qrPath);
+              await uploadBytes(qrRef, evalQrFile, { contentType: evalQrFile.type });
+              roleUpdate.evaluationQrUrl = await getDownloadURL(qrRef);
+              roleUpdate.evaluationQrPath = qrPath;
+            } catch (qrError) {
+              console.error('Could not upload the guide\'s QR code:', qrError);
+              qrUploadFailed = true;
+              deleteObject(ref(storage, qrPath)).catch(() => {});
+            }
+          }
+          roleUpdate.evaluationUpdatedAt = serverTimestamp();
+        }
+        await updateDoc(doc(db, 'users', createdUser.uid), roleUpdate);
       }
       await applyTeamMembership(createdUser.uid, wantedTeamIds);
-      setResetPasswordStatus(`New ${role} added with a verified phone number. Mobile username: ${username}. Sign in with the password entered here.`, 'success');
+      setResetPasswordStatus(qrUploadFailed
+        ? `New ${role} added, but the evaluation QR code could not be uploaded (check the Storage rules are deployed). Mobile username: ${username}.`
+        : `New ${role} added with a verified phone number. Mobile username: ${username}. Sign in with the password entered here.`, qrUploadFailed ? 'error' : 'success');
     } catch (error) {
       console.error('Add user failed:', error.code || '', error);
       if (profileSaved) {
@@ -4525,12 +4984,11 @@
 
   let pendingUserLink = new URLSearchParams(window.location.search).get('user');
 
-  /* ---- Hikes per Month by Gender ----
+  /* ---- Hikers' gender and the months, for Hiker Analytics ----
      From Start Hike in the PeakPath app: each start adds to the hiker's own
      users/{uid}.hikeStarts.{m2026_10}.count (HikeSessionService), the month
-     in Philippine time, as the Dashboard's Visitors per Trail reads it. Each
-     month's hikes are split by the hiker's profile gender; "Prefer not to
-     say" and a missing gender are Not specified. */
+     in Philippine time, as the Dashboard's Visitors per Trail reads it.
+     "Prefer not to say" and a missing gender are Not specified. */
   const HIKE_GENDERS = [
     { key: 'male', label: 'Male', color: 'var(--hg-male)' },
     { key: 'female', label: 'Female', color: 'var(--hg-female)' },
@@ -4542,11 +5000,6 @@
     if (gender === 'female' || gender === 'f') return 'female';
     return 'other';
   };
-  const hikeGenderRange = document.getElementById('hikeGenderRange');
-  try {
-    const saved = localStorage.getItem('peakpath-hike-gender-range');
-    if (saved === '6' || saved === '12') hikeGenderRange.value = saved;
-  } catch { /* storage blocked: the default range */ }
 
   // The last `count` months, oldest first, in the portal time zone.
   const recentMonths = (count) => {
@@ -4556,99 +5009,242 @@
       const index = now - (count - 1 - i);
       const y = Math.floor(index / 12);
       const m = (index % 12) + 1;
-      return {
-        key: `m${y}_${String(m).padStart(2, '0')}`,
-        date: new Date(y, m - 1, 1),
-        male: 0,
-        female: 0,
-        other: 0
-      };
+      return { key: `m${y}_${String(m).padStart(2, '0')}`, date: new Date(y, m - 1, 1) };
     });
   };
-  // A round axis top above the busiest month: 1, 2, 5 or 10 times a power of ten.
-  const niceMax = (value) => {
-    if (value <= 4) return 4;
-    const power = 10 ** Math.floor(Math.log10(value));
-    return [1, 2, 2.5, 5, 10].map((step) => step * power).find((top) => top >= value);
+
+  /* ---- Hiker Analytics (monthly) ----
+     The hikers of one month: every user with hikeStarts.{month}.count above
+     0 (Start Hike in the app), described by
+     their profile -- gender, nationality, address province and age bracket
+     (age at the month's last day, from birthdate, as the app's sign-up
+     saves it). Each hiker counts once a month, however many hikes. */
+  const hikerAnalyticsMonth = document.getElementById('hikerAnalyticsMonth');
+  hikerAnalyticsMonth.innerHTML = recentMonths(12).reverse().map((month, i) => `<option value="${month.key}">${
+    i === 0 ? 'This month' : month.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</option>`).join('');
+
+  const AGE_BRACKETS = [
+    { label: 'Under 18', max: 17 },
+    { label: '18–24', max: 24 },
+    { label: '25–34', max: 34 },
+    { label: '35–44', max: 44 },
+    { label: '45–54', max: 54 },
+    { label: '55–64', max: 64 },
+    { label: '65 and over', max: Infinity }
+  ];
+  const NOT_GIVEN = 'Not given';
+  const birthdateOf = (raw) => {
+    const value = raw?.birthdate ?? raw?.birthDate ?? raw?.birthday;
+    const date = value?.toDate ? value.toDate() : (value ? new Date(value) : null);
+    return date && !Number.isNaN(date.getTime()) ? date : null;
+  };
+  // Whole years on `on`, read in UTC (the app saves midnight UTC of the day).
+  const ageOn = (born, on) => {
+    let age = on.getFullYear() - born.getUTCFullYear();
+    if (on.getMonth() < born.getUTCMonth() || (on.getMonth() === born.getUTCMonth() && on.getDate() < born.getUTCDate())) age -= 1;
+    return age;
+  };
+  const isFilipino = (value) => /^(filipino|filipina|pilipino|philippine)s?$/i.test(normalizeText(value));
+
+  // Label -> count, biggest first; past `limit` rows the rest fold into Other.
+  const ranked = (counts, limit = 5) => {
+    const rows = [...counts].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    if (rows.length <= limit) return rows;
+    const kept = rows.slice(0, limit - 1);
+    const other = rows.slice(limit - 1).reduce((sum, [, n]) => sum + n, 0);
+    return [...kept, ['Other', other]];
   };
 
-  const renderHikeGenderChart = () => {
-    const months = recentMonths(Number(hikeGenderRange.value) || 12);
-    (state.users || []).forEach((user) => {
-      const starts = user.raw?.hikeStarts || {};
-      const key = genderKey(user.raw?.gender);
-      months.forEach((month) => {
-        const count = Number(starts[month.key]?.count) || 0;
-        if (count > 0) month[key] += count;
-      });
+  /* Colours: the page shows CSS variables (so dark mode gets its own
+     steps); the PDF / Word export draws on white, with the light ones. */
+  const HA_SLOTS = [
+    ['var(--ha-1)', '#2a78d6'], ['var(--ha-2)', '#eb6834'], ['var(--ha-3)', '#1baf7a'], ['var(--ha-4)', '#eda100']
+  ];
+  const HA_OTHER = ['var(--ha-other)', '#a3aca5'];
+  const GENDER_EXPORT = { male: '#2a78d6', female: '#eb6834', other: '#6250d6' };
+  const isRest = (label) => label === 'Other' || label === NOT_GIVEN;
+  // Slots in order for the named rows; Other / Not given always grey.
+  const withColours = (rows, fixed = {}) => {
+    // Slots kept for named entities (Filipino) are not handed out again.
+    const free = HA_SLOTS.filter((slot) => !Object.values(fixed).includes(slot));
+    let next = 0;
+    return rows.map(([label, value]) => {
+      const pair = fixed[label] || (isRest(label) ? HA_OTHER : free[Math.min(next++, free.length - 1)]);
+      return { label, value, color: pair[0], exportColor: pair[1] };
     });
-    months.forEach((month) => { month.total = month.male + month.female + month.other; });
-    const top = niceMax(Math.max(0, ...months.map((month) => month.total)));
-    const monthName = (month, withYear) => month.date.toLocaleDateString('en-US', withYear
-      ? { month: 'long', year: 'numeric' } : { month: 'short' });
+  };
+  const pctOf = (value, total) => (total ? Math.round((value / total) * 100) : 0);
 
-    const totals = HIKE_GENDERS.map((g) => months.reduce((sum, month) => sum + month[g.key], 0));
-    document.getElementById('hikeGenderLegend').innerHTML = HIKE_GENDERS.map((g, i) => `
-      <span><i class="hg-swatch" style="background:${g.color}"></i>${g.label} <strong>${totals[i]}</strong></span>`).join('');
-
-    const ticks = [0, 0.25, 0.5, 0.75, 1];
-    document.getElementById('hikeGenderAxis').innerHTML = ticks
-      .map((t) => `<span style="bottom:${t * 100}%">${Math.round(t * top)}</span>`).join('');
-
-    const plot = document.getElementById('hikeGenderPlot');
-    const grandTotal = months.reduce((sum, month) => sum + month.total, 0);
-    plot.innerHTML = ticks.slice(1).map((t) => `<div class="hg-grid" style="bottom:${t * 100}%"></div>`).join('')
-      + months.map((month, i) => `
-        <div class="hg-col" tabindex="0" data-index="${i}" aria-label="${escapeHtml(monthName(month, true))}: ${month.total} hike${month.total === 1 ? '' : 's'}, ${month.male} male, ${month.female} female, ${month.other} not specified">
-          ${month.total ? `<span class="hg-total" style="bottom:calc(${(month.total / top) * 100}% + 4px)">${month.total}</span>` : ''}
-          <div class="hg-stack" style="height:${(month.total / top) * 100}%">${HIKE_GENDERS.filter((g) => month[g.key] > 0).map((g) =>
-            `<div class="hg-seg" style="flex:${month[g.key]} 1 0;background:${g.color}"></div>`).join('')}</div>
-        </div>`).join('')
-      + (grandTotal ? '' : '<div class="hg-empty">No hikes started in these months yet.</div>');
-    plot.hikeMonths = months;
-
-    // The year under January and under the first month, so the axis reads across a new year.
-    document.getElementById('hikeGenderLabels').innerHTML = months.map((month, i) => `<span>${monthName(month)}${
-      i === 0 || month.date.getMonth() === 0 ? `<small>${month.date.getFullYear()}</small>` : ''}</span>`).join('');
-
-    document.getElementById('hikeGenderTable').innerHTML = `<caption>Hikes per month by gender</caption>
-      <thead><tr><th>Month</th>${HIKE_GENDERS.map((g) => `<th>${g.label}</th>`).join('')}<th>Total</th></tr></thead>
-      <tbody>${months.map((month) => `<tr><td>${escapeHtml(monthName(month, true))}</td>${HIKE_GENDERS.map((g) =>
-        `<td>${month[g.key]}</td>`).join('')}<td>${month.total}</td></tr>`).join('')}</tbody>`;
+  // A donut with its legend, like Reports About User Behavior's.
+  const donutHtml = (items, total) => {
+    if (!total) return '<p class="ha-empty">No hikers this month.</p>';
+    const radius = 46;
+    const circumference = 2 * Math.PI * radius;
+    const shown = items.filter((item) => item.value > 0);
+    const gap = shown.length > 1 ? 2 : 0;
+    let offset = 0;
+    const arcs = shown.map((item) => {
+      const length = (item.value / total) * circumference;
+      const arc = `<circle cx="60" cy="60" r="${radius}" fill="none" stroke="${item.color}" stroke-width="20"
+        stroke-dasharray="${Math.max(length - gap, 0.5)} ${circumference}" stroke-dashoffset="${-offset}">
+        <title>${escapeHtml(item.label)}: ${item.value} hiker${item.value === 1 ? '' : 's'} (${pctOf(item.value, total)}%)</title></circle>`;
+      offset += length;
+      return arc;
+    }).join('');
+    return `<div class="ha-donut-block">
+      <div class="ha-donut">
+        <svg viewBox="0 0 120 120" role="img" aria-label="${escapeHtml(items.map((item) => `${item.label} ${item.value}`).join(', '))}">
+          <circle cx="60" cy="60" r="${radius}" fill="none" style="stroke:var(--dm-surface-2, #eef1ec)" stroke-width="20"/>
+          ${arcs}
+        </svg>
+        <div class="ha-donut-center"><span>Hikers</span><strong>${total.toLocaleString()}</strong></div>
+      </div>
+      <div class="ha-legend">${items.map((item) => `
+        <div class="ha-legend-item">
+          <span class="ha-dot" style="background:${item.color}"></span>
+          <span class="name">${escapeHtml(item.label)}</span>
+          <span class="value"><b>${item.value}</b> (${pctOf(item.value, total)}%)</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
   };
 
-  // The hover card: the month's split by gender, beside its column.
-  const hikeGenderPlot = document.getElementById('hikeGenderPlot');
-  const hikeGenderTip = document.getElementById('hikeGenderTip');
-  const showHikeGenderTip = (column) => {
-    const month = hikeGenderPlot.hikeMonths?.[Number(column.dataset.index)];
-    if (!month) return;
-    hikeGenderTip.innerHTML = `<strong>${escapeHtml(month.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))}</strong>`
-      + HIKE_GENDERS.map((g) => `<div><i class="hg-swatch" style="background:${g.color}"></i>${g.label}<b>${month[g.key]}</b></div>`).join('')
-      + `<div class="hg-tip-total">Total<b>${month.total}</b></div>`;
-    hikeGenderTip.hidden = false;
-    const chart = hikeGenderTip.parentElement.getBoundingClientRect();
-    const box = column.getBoundingClientRect();
-    const tip = hikeGenderTip.getBoundingClientRect();
-    let left = box.right - chart.left + 6;
-    if (left + tip.width > chart.width) left = box.left - chart.left - tip.width - 6;
-    hikeGenderTip.style.left = `${Math.max(0, left)}px`;
-    hikeGenderTip.style.top = '8px';
+  // Age brackets as columns, youngest first; Not given in grey, last.
+  const columnsHtml = (rows, total) => {
+    if (!total) return '<p class="ha-empty">No hikers this month.</p>';
+    const top = Math.max(...rows.map(([, n]) => n), 1);
+    return `<div class="ha-columns" role="img" aria-label="${escapeHtml(rows.map(([label, n]) => `${label}: ${n}`).join(', '))}">${rows.map(([label, n]) => `
+        <div class="ha-column" title="${escapeHtml(label)}: ${n} hiker${n === 1 ? '' : 's'} (${pctOf(n, total)}%)">
+          <span class="count">${n}</span>
+          <div class="bar${label === NOT_GIVEN ? ' is-unknown' : ''}" style="height:${n ? Math.max((n / top) * 100, 2) : 0}%"></div>
+        </div>`).join('')}
+      </div>
+      <div class="ha-column-labels" aria-hidden="true">${rows.map(([label]) => `<span>${escapeHtml(label)}</span>`).join('')}</div>`;
   };
-  const hideHikeGenderTip = () => { hikeGenderTip.hidden = true; };
-  hikeGenderPlot.addEventListener('pointerover', (event) => {
-    const column = event.target.closest('.hg-col');
-    if (column) showHikeGenderTip(column);
-  });
-  hikeGenderPlot.addEventListener('pointerleave', hideHikeGenderTip);
-  hikeGenderPlot.addEventListener('focusin', (event) => {
-    const column = event.target.closest('.hg-col');
-    if (column) showHikeGenderTip(column);
-  });
-  hikeGenderPlot.addEventListener('focusout', hideHikeGenderTip);
-  hikeGenderRange.addEventListener('change', () => {
-    try { localStorage.setItem('peakpath-hike-gender-range', hikeGenderRange.value); } catch { /* not remembered */ }
-    renderHikeGenderChart();
+
+  // What the panels show, kept for the PDF / Word download.
+  let hikerReport = null;
+
+  const renderHikerAnalytics = () => {
+    const key = hikerAnalyticsMonth.value;
+    if (!key) return;
+    const [, y, m] = /^m(\d{4})_(\d{2})$/.exec(key) || [];
+    const monthEnd = new Date(Number(y), Number(m), 0);
+    const monthLabel = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const previous = new Date(Number(y), Number(m) - 2, 1);
+    const previousKey = `m${previous.getFullYear()}_${String(previous.getMonth() + 1).padStart(2, '0')}`;
+    const startsIn = (user, monthKey) => Number(user.raw?.hikeStarts?.[monthKey]?.count) || 0;
+
+    const users = state.users || [];
+    const hikers = users.filter((user) => startsIn(user, key) > 0);
+    const hikes = hikers.reduce((sum, user) => sum + startsIn(user, key), 0);
+    const lastMonth = users.filter((user) => startsIn(user, previousKey) > 0).length;
+    const total = hikers.length;
+    const change = !lastMonth
+      ? (total ? 'None the month before' : 'None the month before either')
+      : (total === lastMonth ? 'Same as the month before'
+        : `${total > lastMonth ? '▲' : '▼'} ${Math.abs(Math.round(((total - lastMonth) / lastMonth) * 100))}% vs the month before (${lastMonth})`);
+    const filipinos = hikers.filter((user) => isFilipino(user.raw?.nationality)).length;
+    document.getElementById('hikerAnalyticsStats').innerHTML = `
+      <div class="ha-stat"><strong>${total.toLocaleString()}</strong><span>Total hikers</span><small>${escapeHtml(change)}</small></div>
+      <div class="ha-stat"><strong>${hikes.toLocaleString()}</strong><span>Hikes started</span><small>${total ? `${(hikes / total).toFixed(1)} per hiker` : '—'}</small></div>
+      <div class="ha-stat"><strong>${(total - filipinos).toLocaleString()}</strong><span>Foreign or unstated nationality</span><small>${filipinos} Filipino</small></div>`;
+
+    // Gender, in the gender chart's own colours.
+    const genderCounts = new Map(HIKE_GENDERS.map((g) => [g.key, 0]));
+    hikers.forEach((user) => {
+      const k = genderKey(user.raw?.gender);
+      genderCounts.set(k, genderCounts.get(k) + 1);
+    });
+    const genderItems = HIKE_GENDERS.map((g) => ({
+      label: g.label, value: genderCounts.get(g.key), color: g.color, exportColor: GENDER_EXPORT[g.key]
+    }));
+
+    // Age brackets, in age order (every bracket listed, 0 included).
+    const ageCounts = new Map([...AGE_BRACKETS.map((b) => [b.label, 0]), [NOT_GIVEN, 0]]);
+    hikers.forEach((user) => {
+      const born = birthdateOf(user.raw);
+      const age = born ? ageOn(born, monthEnd) : null;
+      const bracket = age === null || age < 0 || age > 120 ? NOT_GIVEN : AGE_BRACKETS.find((b) => age <= b.max).label;
+      ageCounts.set(bracket, ageCounts.get(bracket) + 1);
+    });
+    const ageRows = [...ageCounts].filter(([label, n]) => label !== NOT_GIVEN || n > 0);
+
+    // Nationality (Filipino keeps the first colour) and province.
+    const nationalities = new Map();
+    const provinces = new Map();
+    hikers.forEach((user) => {
+      const nationality = isFilipino(user.raw?.nationality) ? 'Filipino' : (normalizeText(user.raw?.nationality) || NOT_GIVEN);
+      nationalities.set(nationality, (nationalities.get(nationality) || 0) + 1);
+      const province = normalizeText(user.raw?.addressParts?.province) || NOT_GIVEN;
+      provinces.set(province, (provinces.get(province) || 0) + 1);
+    });
+    const nationalityItems = withColours(ranked(nationalities), { Filipino: HA_SLOTS[0] });
+    const provinceItems = withColours(ranked(provinces));
+
+    document.getElementById('hikerAnalyticsGender').innerHTML = donutHtml(genderItems, total);
+    document.getElementById('hikerAnalyticsAge').innerHTML = columnsHtml(ageRows, total);
+    document.getElementById('hikerAnalyticsNationality').innerHTML = donutHtml(nationalityItems, total);
+    document.getElementById('hikerAnalyticsProvince').innerHTML = donutHtml(provinceItems, total);
+
+    hikerReport = {
+      monthLabel, key, total, hikes, change, filipinos,
+      gender: genderItems, age: ageRows, nationality: nationalityItems, province: provinceItems
+    };
+  };
+  hikerAnalyticsMonth.addEventListener('change', renderHikerAnalytics);
+  renderHikerAnalytics();
+
+  /* Download: the same month as one report, PDF or Word (export-table.js),
+     a section per category with its chart and table. */
+  const hikerAnalyticsExport = document.getElementById('hikerAnalyticsExport');
+  hikerAnalyticsExport.addEventListener('click', (event) => {
+    event.stopPropagation();
+    openExportMenu(hikerAnalyticsExport, {
+      formats: ['pdf', 'word'],
+      getTable: () => {
+        const r = hikerReport;
+        const share = (n) => `${pctOf(n, r.total)}%`;
+        const tableRows = (items) => items.map((item) => [item.label, item.value, share(item.value)]);
+        const donut = (title, items) => ({
+          type: 'donut',
+          title,
+          items: items.map((item) => ({ label: item.label, value: item.value, color: item.exportColor })),
+          centerLabel: 'Hikers',
+          centerValue: r.total.toLocaleString()
+        });
+        return {
+          title: `Hiker Analytics — ${r.monthLabel}`,
+          filename: `hiker-analytics-${r.monthLabel.toLowerCase().replace(/\s+/g, '-')}`,
+          countLabel: `${r.total} hiker(s), ${r.hikes} hike(s) started`,
+          sections: [
+            {
+              title: 'Total Hikers',
+              note: 'Different hikers who started at least one hike in the PeakPath app this month.',
+              headers: ['Measure', 'Value'],
+              rows: [
+                ['Total hikers', r.total],
+                ['Hikes started', r.hikes],
+                ['Hikes per hiker', r.total ? (r.hikes / r.total).toFixed(1) : '—'],
+                ['Filipino', r.filipinos],
+                ['Foreign or unstated nationality', r.total - r.filipinos],
+                ['Compared with the month before', r.change]
+              ]
+            },
+            { title: 'Gender', headers: ['Gender', 'Hikers', 'Share'], rows: tableRows(r.gender), chart: r.total ? donut('Hikers by gender', r.gender) : null },
+            {
+              title: 'Age Brackets',
+              note: 'Age on the last day of the month, from the birthdate in the profile.',
+              headers: ['Age bracket', 'Hikers', 'Share'],
+              rows: r.age.map(([label, n]) => [label, n, share(n)]),
+              chart: r.total ? { type: 'bar', title: 'Hikers by age bracket', items: r.age.map(([label, value]) => ({ label, value })), color: '#2f8f4e' } : null
+            },
+            { title: 'Nationality', headers: ['Nationality', 'Hikers', 'Share'], rows: tableRows(r.nationality), chart: r.total ? donut('Hikers by nationality', r.nationality) : null },
+            { title: 'Province (Address)', note: 'Hikers from abroad give where they are staying in the Philippines.', headers: ['Province', 'Hikers', 'Share'], rows: tableRows(r.province), chart: r.total ? donut('Hikers by province', r.province) : null }
+          ]
+        };
+      }
+    });
   });
 
   const refreshAll = () => {
@@ -4656,7 +5252,7 @@
     renderStats();
     renderUserTable();
     renderSelectedUser();
-    renderHikeGenderChart();
+    renderHikerAnalytics();
   };
 
   /* A suspension is already over the moment its date passes -- every access
@@ -4788,10 +5384,25 @@
       const data = trailDoc.data() || {};
       return [trailDoc.id, normalizeText(data.Trail || data.name || data.trailName)];
     }));
+    renderGuideTrails(snapshot.docs
+      .filter((trailDoc) => isMajorTrail(trailDoc.data() || {}))
+      .map((trailDoc) => ({ id: trailDoc.id, name: state.trailNames.get(trailDoc.id) }))
+      .filter((trail) => trail.name)
+      .sort((a, b) => a.name.localeCompare(b.name)));
     renderSelectedUser();
   }, (error) => {
     console.error('Error loading trails:', error);
   });
+
+  // User Details as tall as the user list beside it (scrolling the rest);
+  // its own height when the two stack on narrow screens.
+  const userListCard = userDetailCard.previousElementSibling;
+  const syncDetailHeight = () => {
+    const sideBySide = userListCard.getBoundingClientRect().top === userDetailCard.getBoundingClientRect().top;
+    userDetailCard.style.maxHeight = sideBySide ? `${userListCard.offsetHeight}px` : '';
+  };
+  new ResizeObserver(syncDetailHeight).observe(userListCard);
+  window.addEventListener('resize', syncDetailHeight);
 
   watchCollection('reports', 'hazardReports');
   watchCollection('emergency', 'emergencies');

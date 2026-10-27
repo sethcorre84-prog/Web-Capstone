@@ -11,13 +11,15 @@
 //     inEstimate  counted in "Estimated cost for N hikers" (off for
 //                 discounts and optional extras such as camping)
 //
-// SUGGESTED holds the published amounts for the three main trails (from the
-// admin's fee table), offered in the editor as a starting point.
+// SUGGESTED holds suggested fees for every trail (suggestedKeyFor): the
+// main trails, the Mud Spring and Flat Rocks side trips, the Makiling Botanic
+// Gardens, and the standard Mount Makiling Forest Reserve rates for any
+// other trail.
 
 import { doc, serverTimestamp, updateDoc } from './firestore-tracked.js';
 // The one-time fill of the published fees is not an admin's edit, so it goes
 // straight to the SDK (it doesn't move Settings > Last Updated).
-import { updateDoc as updateDocDirect } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { deleteField, updateDoc as updateDocDirect } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { trailLineKey } from './makiling-area.js';
 
 const UNITS = {
@@ -28,7 +30,22 @@ const UNITS = {
   flat: 'flat fee'
 };
 
+// Registration at Station 1 (UPLB) and the mandatory guide: what every trail
+// starting on the UPLB side shares.
+const STATION1_FEES = (where) => [
+  { label: 'Entrance fee (regular)', unit: 'head', min: 40, max: null, note: `${where} Field reports, 2025–2026; the last official MCME notice (2019) lists ₱25. Confirm at Station 1.`, inEstimate: true },
+  { label: 'Entrance fee (students, seniors & PWD)', unit: 'head', min: 30, max: null, note: 'Discounted rate with a valid ID; replaces the regular fee.', inEstimate: false },
+  { label: 'Tour guide', unit: 'group', min: 1200, max: null, groupSize: 5, note: 'Mandatory (UPLB MCME): one guide per group of up to 5.', inEstimate: true }
+];
+
 const SUGGESTED = {
+  mudspring: STATION1_FEES('Side trip of the Mariang Makiling Trail (Station 8); registered at Station 1.'),
+  flatrocks: STATION1_FEES('Side trip of the Mariang Makiling Trail near the trailhead; registered at Station 1.'),
+  botanic: [
+    { label: 'Entrance fee (regular)', unit: 'head', min: 50, max: 60, note: 'Makiling Botanic Gardens: ₱50 in the last official MCME notice (2019); ₱60 reported by visitors in 2025.', inEstimate: true },
+    { label: 'Entrance fee (students, seniors & PWD)', unit: 'head', min: 40, max: 45, note: 'Discounted rate with a valid ID; replaces the regular fee.', inEstimate: false }
+  ],
+  standard: STATION1_FEES('Standard Mount Makiling Forest Reserve rates (UPLB MCME); confirm the rate for this trail.'),
   mariang: [
     { label: 'Entrance fee (regular)', unit: 'head', min: 40, max: null, note: 'Some reports range from ₱10 to ₱60.', inEstimate: true },
     { label: 'Entrance fee (students & seniors)', unit: 'head', min: 30, max: null, note: 'Discounted rate; replaces the regular fee.', inEstimate: false },
@@ -62,6 +79,14 @@ const REPLACED = {
     { label: 'Tour guide', unit: 'group', min: 500, max: 800, note: 'Same as the Sto. Tomas side, plus the guide\'s fare back to Sto. Tomas.', inEstimate: true }
   ]
 };
+
+/* Which suggested set a trail gets: its line's key (mariang, sipit,
+   traverse, mudspring, flatrocks), the Botanic Gardens by name, otherwise
+   the standard Forest Reserve rates, so every trail has suggested fees. */
+export function suggestedKeyFor(trail) {
+  const name = String(trail?.Trail || '');
+  return trailLineKey(name) || (/botanic/i.test(name) ? 'botanic' : 'standard');
+}
 
 const CSS = `
 .tf-list { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
@@ -194,23 +219,30 @@ const toSaved = (fee) => ({
    next editor to open the page fills them in. */
 const savedFees = (fees) => JSON.stringify(cleanFees(fees).map(toSaved));
 const outdated = (trail) => {
-  const replaced = REPLACED[trailLineKey(trail.Trail)];
+  const replaced = REPLACED[suggestedKeyFor(trail)];
   return Boolean(replaced) && savedFees(trail.Fees) === savedFees(replaced);
 };
 let seedTried = false;
 export async function seedSuggestedFees(db, trails) {
   if (seedTried || !trails.length) return;
   seedTried = true;
-  const missing = trails.filter((trail) => SUGGESTED[trailLineKey(trail.Trail)] && (!('Fees' in trail) || outdated(trail)));
-  for (const trail of missing) {
+  for (const trail of trails) {
+    const key = suggestedKeyFor(trail);
+    const fill = !('Fees' in trail) || outdated(trail);
+    // Source links saved by an earlier version are no longer shown: removed.
+    const hasSources = 'FeesSources' in trail;
+    if (!fill && !hasSources) continue;
     try {
       await updateDocDirect(doc(db, 'trails', trail.id), {
-        Fees: cleanFees(SUGGESTED[trailLineKey(trail.Trail)]).map(toSaved),
-        FeesUpdatedAt: serverTimestamp(),
-        FeesSource: 'published'
+        ...(fill ? {
+          Fees: cleanFees(SUGGESTED[key]).map(toSaved),
+          FeesUpdatedAt: serverTimestamp(),
+          FeesSource: 'published'
+        } : {}),
+        ...(hasSources ? { FeesSources: deleteField() } : {})
       });
     } catch (error) {
-      console.warn(`Could not add the published fees to ${trail.Trail}:`, error.code || error.message);
+      console.warn(`Could not add the suggested fees to ${trail.Trail}:`, error.code || error.message);
     }
   }
 }
@@ -318,7 +350,7 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
     if (!trail) { notify('Select a trail in the Trail List first.'); return; }
     if (!canEdit()) return;
     editing = trail;
-    const key = trailLineKey(trail.Trail);
+    const key = suggestedKeyFor(trail);
     const suggested = SUGGESTED[key];
     modal.querySelector('.tf-intro').textContent = `Fees for ${trail.Trail || 'this trail'}. Enter one amount in Min, or Min and Max for a range; leave both empty when the amount is not published.`;
     modal.querySelector('.tf-suggest').hidden = !suggested;
@@ -339,7 +371,7 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
     rowsEl.lastElementChild.querySelector('.tf-label').focus();
   });
   modal.querySelector('.tf-suggest').addEventListener('click', () => {
-    const suggested = SUGGESTED[trailLineKey(editing?.Trail)];
+    const suggested = SUGGESTED[suggestedKeyFor(editing)];
     if (!suggested) return;
     rowsEl.innerHTML = suggested.map(rowHtml).join('');
   });

@@ -1776,7 +1776,7 @@ import {
   serverTimestamp
 } from "../jsPages/firestore-tracked.js";
 import { deleteObject, getDownloadURL, listAll, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { createMakilingMap, trailLineKey, lineKeyFor, trailForLineKey, trailStart } from "../jsPages/makiling-area.js";
+import { createMakilingMap, trailLineKey, lineKeyFor, trailForLineKey, trailStart, validRoute } from "../jsPages/makiling-area.js";
 import { addMapFeatures } from "../jsPages/map-features.js";
 import { pageList, pageGap, PAGE_GAP } from "../jsPages/pagination.js";
 import { escapeHtml } from "../jsPages/utils.js";
@@ -2288,7 +2288,25 @@ function entryTypeLabel(value) {
 const needsRouteToRegister = (trail, entryType) =>
   entryTypeLabel(entryType) === 'Registered Trail'
   && entryTypeLabel(trail?.EntryType) !== 'Registered Trail'
-  && !trailRoutes?.hasLine(trail);
+  && !trailRoutes?.hasLine(trail)
+  && !mappedRouteFor(trail?.Trail, trail?.id);
+
+/* A trail already on the map under the same name (another trail in the
+   list with a saved route): a new or newly registered trail of that name
+   uses the same route, with nothing to draw or import. Names match
+   ignoring case, punctuation, "Trail" and "Mt." / "Mount". (Trails with a
+   standard line, such as Sipit, already match by name: trailLineKey.) */
+const trailNameKey = (name) => String(name || '').toLowerCase()
+  .replace(/[^a-z0-9ñ]+/g, ' ')
+  .split(' ')
+  .filter((word) => word && !['trail', 'trails', 'mt', 'mount'].includes(word))
+  .join(' ');
+function mappedRouteFor(name, excludeId = null) {
+  const key = trailNameKey(name);
+  if (!key) return null;
+  const match = trails.find((other) => other.id !== excludeId && validRoute(other.route) && trailNameKey(other.Trail) === key);
+  return match ? { route: match.route, routeSource: match.routeSource || 'drawn', from: match.Trail } : null;
+}
 
 async function registerThroughRoute(trail) {
   const ok = await trailRoutes.registerWithRoute(trail);
@@ -2615,6 +2633,13 @@ async function saveEdit() {
   }
   // StatusUpdatedAt still records when the status itself last changed.
   if (changed.includes('Status')) updated.StatusUpdatedAt = serverTimestamp();
+  // Registered with no line of its own, but the same trail is already on
+  // the map: it takes that route.
+  if (changed.includes('EntryType') && entryTypeLabel(current.EntryType) === 'Registered Trail'
+    && !trailRoutes?.hasLine(t)) {
+    const mapped = mappedRouteFor(t.Trail, t.id);
+    if (mapped) Object.assign(updated, { route: mapped.route, routeSource: mapped.routeSource, routeUpdatedAt: serverTimestamp() });
+  }
 
   // The photo: a new one is uploaded first (trails/{id}/...), and the old
   // file goes once the trail points at the new one (or at none).
@@ -2767,15 +2792,18 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     const publishDate = fromDateInputValue(document.getElementById('newTrailPublishDate').value);
 
     // A new trail has no line yet: chosen as Registered, it is added as
-    // Unregistered and registered once its route is saved (below).
+    // Unregistered and registered once its route is saved (below) -- unless
+    // the same trail is already on the map, whose route it then uses.
     const wantsRegistered = entryTypeLabel(document.getElementById('newTrailEntryType').value) === 'Registered Trail';
+    const mapped = wantsRegistered && !trailLineKey(name) ? mappedRouteFor(name) : null;
 
     const newTrail = {
     Trail: name,
     Description: document.getElementById('newTrailDesc').value,
     Difficulty: document.getElementById('newTrailDiff').value,
     Type: document.getElementById('newTrailType').value,
-    EntryType: wantsRegistered ? 'Unregistered Trail' : document.getElementById('newTrailEntryType').value,
+    EntryType: wantsRegistered && !mapped ? 'Unregistered Trail' : document.getElementById('newTrailEntryType').value,
+    ...(mapped ? { route: mapped.route, routeSource: mapped.routeSource, routeUpdatedAt: serverTimestamp() } : {}),
     "Approximate Distance": document.getElementById('newTrailDist').value,
     Duration: document.getElementById('newTrailDur').value,
     Elevation: document.getElementById('newTrailElev').value,
@@ -2811,10 +2839,18 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     document.getElementById('newTrailPublishDate').value = '';
     photoInput.value = '';
     resetPhotoPicker();
-    if (wantsRegistered) {
+    if (wantsRegistered && !mapped) {
       const added = { id: docRef.id, ...newTrail };
-      if (needsRouteToRegister(added, 'Registered Trail')) await registerThroughRoute(added);
-      else await updateDoc(docRef, { EntryType: 'Registered Trail' });
+      if (!needsRouteToRegister(added, 'Registered Trail')) await updateDoc(docRef, { EntryType: 'Registered Trail' });
+      else if (!(await trailRoutes.registerWithRoute(added))) {
+        // The route was cancelled: the new trail is not kept (no
+        // Unregistered leftover in the Trail List), nor its photo.
+        await deleteDoc(docRef);
+        if (selectedId === docRef.id) selectedId = null;
+        await deleteTrailPhotos(docRef.id).catch(() => {});
+        await showNotice(`${name} was not added: a Registered Trail needs a route on the map. `
+          + 'Add it again and draw or import its route.', { title: 'Trail not added', tone: 'warning' });
+      }
     }
   } catch (err) {
     console.error(err);

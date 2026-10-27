@@ -166,7 +166,7 @@ export const trailForLineKey = (trails, key) => {
    is drawn with. Null when it has neither. */
 const KNOWN_STARTS = {
   mariang: [14.14814, 121.23185],   // MCME registration, Station 1
-  sipit: [14.10642, 121.18826],     // Sto. Tomas jump-off
+  sipit: [14.0995828, 121.1957954], // Sto. Tomas City Eco Park, where its line now starts (JUMP_OFFS)
   traverse: [14.1091, 121.1657]     // Sto. Tomas start, up the Sipit side
 };
 export function trailStart(trail, latLngs) {
@@ -199,6 +199,53 @@ const PEAK_ICON_HTML = '<div style="display:grid;place-items:center;width:24px;h
   + 'border-radius:50%;background:#fff;border:2px solid #1f3a28;box-shadow:0 1px 4px rgba(0,0,0,.4);'
   + 'box-sizing:border-box"><i class="fa-solid fa-mountain" style="font-size:11px;color:#1f3a28" aria-hidden="true"></i></div>';
 
+/* Jump-off and registration points shown on every map (with the summit, as
+   markers above the lines). The Sto. Tomas City Eco Park is where hikers
+   register for the Sipit Trail; its location was taken from Google Maps, as
+   the park is not mapped in OpenStreetMap. */
+export const JUMP_OFFS = [
+  {
+    name: 'Sto. Tomas City Eco Park',
+    role: 'Sipit Trail jump-off & registration',
+    // The trail line it leads to, and the way there: the road from the park
+    // to where it meets the Sipit trail (the trail's first point), traced
+    // along OpenStreetMap's roads (about 1.4 km; the park sits ~50 m off the
+    // road). addTrailLines makes it the start of the trail's own line.
+    connectsTo: 'sipit',
+    approach: [
+      [14.100001, 121.195769], [14.100014, 121.195683], [14.100016, 121.195577], [14.100011, 121.195453],
+      [14.100034, 121.19529], [14.100063, 121.195243], [14.100132, 121.195203], [14.100208, 121.195162],
+      [14.100405, 121.195054], [14.100517, 121.194999], [14.100653, 121.194963], [14.100824, 121.19494],
+      [14.100998, 121.194941], [14.101146, 121.19492], [14.101299, 121.194845], [14.101374, 121.194823],
+      [14.101493, 121.19475], [14.101612, 121.19463], [14.101745, 121.194484], [14.101923, 121.194362],
+      [14.102024, 121.194257], [14.10213, 121.194147], [14.102273, 121.194017], [14.102386, 121.193939],
+      [14.102482, 121.193886], [14.102578, 121.193856], [14.10264, 121.193848], [14.102669, 121.193844],
+      [14.102722, 121.193832], [14.102816, 121.19381], [14.10284, 121.193786], [14.102877, 121.193723],
+      [14.102908, 121.193656], [14.10291, 121.193577], [14.102782, 121.19337], [14.10269, 121.193165],
+      [14.102584, 121.192886], [14.102499, 121.192654], [14.102404, 121.192392], [14.102248, 121.191943],
+      [14.102104, 121.191536], [14.102109, 121.1914], [14.102176, 121.191256], [14.102289, 121.191128],
+      [14.102474, 121.190906], [14.102652, 121.190595], [14.102661, 121.190536], [14.102673, 121.190458],
+      [14.102635, 121.190277], [14.102593, 121.19006], [14.102583, 121.189787], [14.102594, 121.189426],
+      [14.102602, 121.189339], [14.10261, 121.189255], [14.102625, 121.189093], [14.102689, 121.188873],
+      [14.102707, 121.188747], [14.102759, 121.188698], [14.102828, 121.18866], [14.102934, 121.188646],
+      [14.103048, 121.188647], [14.103157, 121.188656], [14.103913, 121.188744], [14.104252, 121.188735],
+      [14.104357, 121.188757], [14.104457, 121.188751], [14.104543, 121.18872], [14.104644, 121.188673],
+      [14.104917, 121.188632], [14.105379, 121.188562], [14.106425, 121.188262]
+    ],
+    // The barangay is left out: OpenStreetMap puts this spot in Santa Elena,
+    // next to San Vicente, so it isn't certain.
+    place: 'City of Sto. Tomas, Batangas',
+    // Pinned by the admin from Google Maps (the park's own location).
+    latLng: [14.0995828, 121.1957954]
+  }
+];
+const JUMP_OFF_ICON_HTML = '<div style="display:grid;place-items:center;width:26px;height:26px;'
+  + 'border-radius:50%;background:#2f8f4e;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);'
+  + 'box-sizing:border-box"><i class="fa-solid fa-clipboard-check" style="font-size:12px;color:#fff" aria-hidden="true"></i></div>';
+const escapeText = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}[c]));
+
 /* Draws every trail line on a map. Each line is a white casing under a
    coloured stroke, which keeps it readable on both forest and cloud.
    colorFor(key) picks a line's colour (Trail Management colours by open or
@@ -230,7 +277,17 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
       }).bindTooltip(`${name}${elevation ? ` · ${elevation}` : ''}`, { direction: 'top', offset: [0, -12] }));
       continue;
     }
-    const latLngs = feature.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+    let latLngs = feature.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+    // A trail reached from a jump-off (the Sipit Trail from the Sto. Tomas
+    // City Eco Park): the road from the park becomes the start of the same
+    // line, so park, road and trail are one unbroken line with no join.
+    const spot = JUMP_OFFS.find((item) => item.connectsTo === key && item.approach?.length);
+    if (spot) {
+      const here = L.latLng(spot.latLng);
+      if (here.distanceTo(latLngs[latLngs.length - 1]) < here.distanceTo(latLngs[0])) latLngs = latLngs.reverse();
+      // The road's last point is the trail's first: kept once.
+      latLngs = [spot.latLng, ...spot.approach.slice(0, -1), ...latLngs];
+    }
     const side = kind === 'side';
     const color = colorFor?.(key) || (side ? SIDE_TRAIL_COLOR : TRAIL_COLOR);
     const casing = L.polyline(latLngs, {
@@ -242,6 +299,18 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
     if (onClick) stroke.on('click', () => onClick(key));
     lines.set(key, { casing, stroke, side, name });
   }
+
+  // The jump-off / registration points, with the peaks above every line.
+  JUMP_OFFS.forEach((spot) => {
+    peaks.push(L.marker(spot.latLng, {
+      icon: L.divIcon({ className: '', html: JUMP_OFF_ICON_HTML, iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -14] }),
+      title: `${spot.name} (${spot.role})`,
+      keyboard: false,
+      zIndexOffset: 400
+    })
+      .bindTooltip(`${escapeText(spot.name)} · ${escapeText(spot.role)}`, { direction: 'top', offset: [0, -13] })
+      .bindPopup(`<strong>${escapeText(spot.name)}</strong><br>${escapeText(spot.role)}<br><small>${escapeText(spot.place)}</small>`));
+  });
 
   // Markers draw above every line, so Peak 2 sits on top of the trails that
   // end there.
@@ -333,9 +402,10 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
   }
 
   function recolor() {
-    lines.forEach((line, key) => line.stroke.setStyle({
-      color: colorFor?.(key) || (line.trail ? statusColor(line.trail) : (line.side ? SIDE_TRAIL_COLOR : TRAIL_COLOR))
-    }));
+    lines.forEach((line, key) => {
+      const color = colorFor?.(key) || (line.trail ? statusColor(line.trail) : (line.side ? SIDE_TRAIL_COLOR : TRAIL_COLOR));
+      line.stroke.setStyle({ color });
+    });
   }
 
   // onChange(listener): called after the saved routes are redrawn.

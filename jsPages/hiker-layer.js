@@ -26,6 +26,10 @@
 //     trailLines the promise createMakilingMap returns; without it no hiker
 //                is checked for being off trail
 //     announceOffTrail  sound the alarm and pop up when a hiker strays
+//     emergencyStatuses  true (Emergency Monitoring): On a hike, Lost / Missing
+//                and Off trail, with the off-trail alert box and alarm. false
+//                (GeoMap): only Online now and Last seen, and no alarms --
+//                watching for those is Emergency Monitoring's job.
 
 import { escapeHtml } from './utils.js';
 import { announceAlert } from './sos-alarm.js';
@@ -175,6 +179,142 @@ const CSS = `
     font-weight: 700;
     letter-spacing: .02em;
 }
+/* A guide (users/{uid}.role "Guide"): their office's logo -- a green disc
+   reading MCME (Mariang Makiling) or CITY ENRO (Sipit) -- with a gold crown
+   on a short stem above it. The disc takes the status colours (grey last
+   seen, blue on a hike, orange lost, red off trail). A guide with no trail
+   yet shows the hiker figure. */
+.guide-pin {
+    position: relative;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: #2e8b47;
+    color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .35);
+    font-family: "Montserrat", "Arial Black", system-ui, sans-serif;
+    font-weight: 900;
+    line-height: 1;
+    text-align: center;
+}
+.guide-pin.offline { background: #8a948c; }
+.guide-pin.on-hike { background: #1a73e8; }
+.guide-pin.lost {
+    background: #e0962a;
+    box-shadow: 0 0 0 3px rgba(224, 150, 42, .45), 0 2px 5px rgba(0, 0, 0, .35);
+}
+.guide-pin.off-trail {
+    background: #d64532;
+    box-shadow: 0 0 0 3px rgba(214, 69, 50, .45), 0 2px 5px rgba(0, 0, 0, .35);
+}
+.guide-text {
+    font-size: 9px;
+    letter-spacing: -.02em;
+}
+.guide-text.long {
+    font-size: 7.5px;
+}
+.guide-pin.sm .guide-text.long { font-size: 5.5px; }
+.guide-text small {
+    display: block;
+    margin-bottom: 1px;
+    padding-left: .3em;
+    font-size: 5px;
+    font-weight: 800;
+    letter-spacing: .3em;
+}
+.guide-pin > i {
+    font-size: 14px;
+}
+.hiker-crown {
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: #f2b705;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+    transform: translateX(-50%);
+}
+.hiker-crown::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 3px;
+    height: 3px;
+    background: #fff;
+    transform: translateX(-50%);
+}
+.hiker-crown i {
+    color: #4a3300 !important;
+    font-size: 8px !important;
+    width: auto !important;
+}
+/* The map's size ('sm'). */
+.guide-pin.sm {
+    width: 30px;
+    height: 30px;
+    border-width: 1.5px;
+    flex-shrink: 0;
+}
+.guide-pin.sm .guide-text { font-size: 6.5px; }
+.guide-pin.sm .guide-text small { font-size: 3.6px; }
+.guide-pin.sm .hiker-crown {
+    top: -13px;
+    width: 13px;
+    height: 13px;
+    border-width: 1.5px;
+}
+.guide-pin.sm .hiker-crown i { font-size: 6px !important; }
+/* In a map legend: the size of the legend's other icons (20px on the
+   GeoMap, 18px on Emergency Monitoring), with a small crown. */
+.legend-row .guide-pin.sm,
+.legend-item .guide-pin.sm {
+    width: 20px;
+    height: 20px;
+    margin-top: 8px;
+    border-width: 1px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+}
+.legend-item .guide-pin.sm {
+    width: 18px;
+    height: 18px;
+}
+.legend-row .guide-pin.sm .guide-text,
+.legend-item .guide-pin.sm .guide-text { font-size: 4.6px; letter-spacing: 0; }
+.legend-row .guide-pin.sm .guide-text.long,
+.legend-item .guide-pin.sm .guide-text.long { font-size: 3.8px; }
+.legend-row .guide-pin.sm .guide-text small,
+.legend-item .guide-pin.sm .guide-text small { font-size: 2.6px; margin-bottom: 0; }
+.legend-row .guide-pin.sm .hiker-crown,
+.legend-item .guide-pin.sm .hiker-crown {
+    top: -8px;
+    width: 10px;
+    height: 10px;
+    border-width: 1px;
+}
+.legend-row .guide-pin.sm .hiker-crown::after,
+.legend-item .guide-pin.sm .hiker-crown::after { height: 1px; width: 2px; }
+.legend-row .guide-pin.sm .hiker-crown i,
+.legend-item .guide-pin.sm .hiker-crown i { font-size: 5px !important; }
+.hiker-guide-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #9a6b00;
+    font-weight: 700;
+}
 @keyframes hikerPulse {
     from {
         transform: scale(0.8);
@@ -235,6 +375,37 @@ const nearestOnLine = ([lat, lng], latLngs) => {
   return best;
 };
 
+// The office a guide works for, from their trail (User Management's
+// "Guide from what trail?"): City ENRO for Sipit, MCME for Mariang Makiling.
+export const guideAgencyOf = (trailName) => {
+  const name = String(trailName || '');
+  if (/sipit/i.test(name)) return 'City ENRO';
+  if (/mariang/i.test(name)) return 'MCME';
+  return trailAcronym(name);
+};
+
+// Any other trail: its acronym, from the first letter of each word, leaving
+// out "Trail", "Mt." / "Mount" and small words ("Malaboo Ridge Trail" ->
+// MR). A one-word name gives its first three letters (MAL). At most 5.
+const ACRONYM_SKIP = new Set(['trail', 'trails', 'mt', 'mount', 'of', 'the', 'and', 'to', 'via', 'de', 'ng']);
+export const trailAcronym = (trailName) => {
+  const words = String(trailName || '').split(/[^A-Za-z0-9ÑñÀ-ÿ]+/)
+    .filter((word) => word && !ACRONYM_SKIP.has(word.toLowerCase()));
+  if (!words.length) return '';
+  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
+  return words.map((word) => word[0]).join('').slice(0, 5).toUpperCase();
+};
+
+// A guide's logo: their office (MCME, or CITY over ENRO) on a disc with
+// the crown above. `classes`: the status (online, offline, on-hike, lost,
+// off-trail) and 'sm' for a legend.
+export const guidePinHtml = (agency, classes = 'online') => {
+  const text = agency === 'City ENRO'
+    ? '<span class="guide-text"><small>CITY</small>ENRO</span>'
+    : agency ? `<span class="guide-text${agency.length > 4 ? ' long' : ''}">${escapeHtml(agency)}</span>` : '<i class="fa-solid fa-person-hiking"></i>';
+  return `<span class="guide-pin ${classes}">${text}<span class="hiker-crown"><i class="fa-solid fa-crown"></i></span></span>`;
+};
+
 const readAnnounced = () => {
   try { return new Set(JSON.parse(localStorage.getItem(OFF_TRAIL_ANNOUNCED_KEY) || '[]')); } catch { return new Set(); }
 };
@@ -242,7 +413,14 @@ const saveAnnounced = (keys) => {
   try { localStorage.setItem(OFF_TRAIL_ANNOUNCED_KEY, JSON.stringify([...keys])); } catch { /* may then repeat on the next page */ }
 };
 
-export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () => {}, showLostAlerts = true, trailLines = null, announceOffTrail = true }) {
+export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () => {}, showLostAlerts = true, trailLines = null, announceOffTrail = true, emergencyStatuses = true }) {
+  // Without the emergency statuses: no off-trail check (so no alarm), no
+  // lost hikers, no on-hike colour.
+  if (!emergencyStatuses) {
+    trailLines = null;
+    announceOffTrail = false;
+    showLostAlerts = false;
+  }
   if (!document.getElementById('hiker-layer-css')) {
     const style = document.createElement('style');
     style.id = 'hiker-layer-css';
@@ -272,8 +450,26 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
     return `${hours} hr${hours === 1 ? '' : 's'} ago`;
   };
 
-  const hikerIcon = (online, onHike, lost = false, offTrail = false) => (lost
+  /* Guides, by uid: role "Guide" on their profile, with their trail. */
+  const guidesByUid = new Map();
+  onSnapshot(query(collection(db, 'users'), where('role', 'in', ['Guide', 'guide', 'GUIDE'])), (snapshot) => {
+    guidesByUid.clear();
+    snapshot.docs.forEach((snap) => {
+      const data = snap.data() || {};
+      const trail = String(data.guideTrail || '').trim();
+      guidesByUid.set(snap.id, { trail, agency: guideAgencyOf(trail) });
+    });
+    renderHikers();
+  }, (error) => console.warn('Could not read the guides:', error.message));
+  const hikerIcon = (online, onHike, lost = false, offTrail = false, guide = null) => (guide
     ? L.divIcon({
+      className: 'hiker-marker',
+      html: guidePinHtml(guide.agency, `sm ${lost ? 'lost' : offTrail ? 'off-trail' : `${online ? 'online' : 'offline'}${onHike ? ' on-hike' : ''}`}`),
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+      popupAnchor: [0, -30]
+    })
+    : lost ? L.divIcon({
       className: 'hiker-marker',
       html: '<span class="hiker-pin lost"><i class="fa-solid fa-person-circle-question"></i></span>',
       iconSize: [30, 30],
@@ -351,7 +547,7 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
         name: data?.name || 'Hiker',
         place: `${Math.round(nearest.distance)} m off ${nearest.name}`,
         created: toDate(data?.updatedAt),
-        href: 'geomap.html',
+        href: 'emergency.html',
         icon: 'fa-person-walking-dashed-line-arrow-right'
       });
     });
@@ -368,7 +564,7 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
   L.DomEvent.disableScrollPropagation(alertBox);
   const alertControl = L.control({ position: 'bottomleft' });
   alertControl.onAdd = () => alertBox;
-  alertControl.addTo(map);
+  if (emergencyStatuses) alertControl.addTo(map);
   alertBox.addEventListener('click', (event) => {
     const marker = hikerMarkers.get(event.target.closest('button')?.dataset.uid);
     if (!marker) return;
@@ -413,10 +609,12 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
     if (Number.isFinite(accuracy) && accuracy > 0) details.push(`±${Math.round(accuracy)} m`);
     const teammates = Array.isArray(data.sharedWith) ? data.sharedWith.length : 0;
     // The hike in progress, from the app's Start Hike.
-    const hike = data.hike?.trail ? data.hike : null;
+    const hike = emergencyStatuses && data.hike?.trail ? data.hike : null;
     const hikeSince = hike ? toDate(hike.startedAt) : null;
+    const guide = guidesByUid.get(data.id);
     return `
       <strong>${escapeHtml(data.name || 'Hiker')}</strong><br>
+      ${guide ? `<span class="hiker-guide-line"><i class="fa-solid fa-crown" aria-hidden="true"></i>Guide${guide.agency ? ` · ${escapeHtml(guide.agency)}` : ''}${guide.trail ? ` (${escapeHtml(guide.trail)})` : ''}</span><br>` : ''}
       ${lostAlert ? lostLine(lostAlert) : ''}
       ${offTrail ? offTrailLine(offTrail) : ''}
       ${hike ? `<span style="display:inline-flex;align-items:center;gap:5px;color:#1a73e8;font-weight:600"><i class="fa-solid fa-route" aria-hidden="true"></i>Hiking ${escapeHtml(hike.trail)}${hikeSince ? ` · since ${escapeHtml(hikeSince.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}` : ''}</span><br>` : ''}
@@ -445,11 +643,13 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
         return;
       }
       const isOnline = now - updatedAt.getTime() <= HIKER_ONLINE_MS;
-      const isHiking = Boolean(data.hike?.trail);
+      const isHiking = emergencyStatuses && Boolean(data.hike?.trail);
       const lostAlert = lostByUid.get(data.id) || null;
       const isLost = Boolean(lostAlert);
       const offTrail = offTrailByUid.get(data.id) || null;
       const isOffTrail = Boolean(offTrail);
+      const guide = guidesByUid.get(data.id) || null;
+      const guideKey = guide ? `${guide.agency}|${guide.trail}` : '';
       if (isOnline) online += 1; else offline += 1;
       if (isHiking) onHike += 1;
       if (isLost) lostShown += 1;
@@ -472,21 +672,23 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
       const zIndex = isLost ? 1500 : (isOffTrail ? 1400 : (isHiking ? 1100 : 1000));
       const marker = hikerMarkers.get(data.id);
       if (!marker) {
-        const created = L.marker(coordinates, { icon: hikerIcon(isOnline, isHiking, isLost, isOffTrail), zIndexOffset: zIndex })
+        const created = L.marker(coordinates, { icon: hikerIcon(isOnline, isHiking, isLost, isOffTrail, guide), zIndexOffset: zIndex })
           .bindPopup(popup)
           .addTo(layer);
         created.isOnline = isOnline;
         created.isHiking = isHiking;
         created.isLost = isLost;
         created.isOffTrail = isOffTrail;
+        created.guideKey = guideKey;
         hikerMarkers.set(data.id, created);
         return;
       }
       // Moved in place rather than redrawn, so an open popup stays open.
       marker.setLatLng(coordinates).setPopupContent(popup);
       if (marker.isOnline !== isOnline || marker.isHiking !== isHiking || marker.isLost !== isLost
-        || marker.isOffTrail !== isOffTrail) {
-        marker.setIcon(hikerIcon(isOnline, isHiking, isLost, isOffTrail));
+        || marker.isOffTrail !== isOffTrail || marker.guideKey !== guideKey) {
+        marker.setIcon(hikerIcon(isOnline, isHiking, isLost, isOffTrail, guide));
+        marker.guideKey = guideKey;
         marker.setZIndexOffset(zIndex);
         marker.isOnline = isOnline;
         marker.isHiking = isHiking;
@@ -563,7 +765,7 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
 
   // Open Lost / Missing alerts (type "Lost": the app's reports and the
   // portal's "Mark as Lost / Missing" both write it).
-  onSnapshot(query(collection(db, 'emergency'), where('type', '==', 'Lost')), (snapshot) => {
+  if (emergencyStatuses) onSnapshot(query(collection(db, 'emergency'), where('type', '==', 'Lost')), (snapshot) => {
     lostByUid.clear();
     snapshot.docs.forEach((snap) => {
       const data = { id: snap.id, ...snap.data() };
