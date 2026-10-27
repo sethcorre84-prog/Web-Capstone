@@ -587,6 +587,35 @@
         box-shadow: var(--shadow-card);
     }
 
+    .detail-photo-edit {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: -6px 0 14px;
+    }
+    .detail-photo-edit[hidden] {
+        display: none;
+    }
+    .detail-photo-edit .btn-secondary {
+        flex: 1 1 140px;
+        width: auto;
+        margin: 0;
+        padding: 7px 10px;
+        font-size: 12.5px;
+    }
+    .detail-photo-edit .photo-remove-btn {
+        color: var(--danger, #c8402f);
+    }
+    .detail-photo-note {
+        flex-basis: 100%;
+        margin: 0;
+        font-size: 11.5px;
+        color: var(--text-secondary);
+    }
+    .detail-photo-note:empty {
+        display: none;
+    }
+
     .detail-photo::after {
         content: "";
         position: absolute;
@@ -1499,6 +1528,14 @@
           <div id="detailPhoto" class="detail-photo" title="View full size">
             <span class="badge open detail-status-badge" id="detailPhotoStatus">Open</span>
           </div>
+          <!-- Edit mode only: change or remove the trail's own photo. Saved
+               with Save Changes; the old file is deleted from Storage. -->
+          <div class="detail-photo-edit" id="detailPhotoEdit" hidden>
+            <button type="button" class="btn-secondary" id="changePhotoBtn"><i class="fa-solid fa-image" aria-hidden="true"></i> <span id="changePhotoLabel">Change Photo</span></button>
+            <button type="button" class="btn-secondary photo-remove-btn" id="removePhotoBtn"><i class="fa-regular fa-trash-can" aria-hidden="true"></i> Remove Photo</button>
+            <input type="file" id="editPhotoInput" accept="image/*" hidden>
+            <p class="detail-photo-note" id="detailPhotoNote"></p>
+          </div>
           <div class="detail-name" id="detailName">Mariang Makiling Trail</div>
           <div class="detail-meta">
             <span class="detail-chip"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>Laguna, Philippines</span>
@@ -1735,9 +1772,10 @@ import {
   updateDoc,
   addDoc,
   deleteDoc,
+  deleteField,
   serverTimestamp
 } from "../jsPages/firestore-tracked.js";
-import { getDownloadURL, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { deleteObject, getDownloadURL, listAll, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { createMakilingMap, trailLineKey, lineKeyFor, trailForLineKey, trailStart } from "../jsPages/makiling-area.js";
 import { addMapFeatures } from "../jsPages/map-features.js";
 import { pageList, pageGap, PAGE_GAP } from "../jsPages/pagination.js";
@@ -2260,9 +2298,22 @@ async function registerThroughRoute(trail) {
   }
 }
 
+// A trail's highest point as shown: the saved value, else the summit for
+// the trails that end at Peak 2.
+const SUMMIT_POINT = '1,090 m (Peak 2, summit)';
+function highestPointOf(t) {
+  const saved = String(t?.HighestPoint || '').trim();
+  if (saved) return saved;
+  return ['mariang', 'sipit', 'traverse'].includes(trailLineKey(t?.Trail)) ? SUMMIT_POINT : '';
+}
+
 function renderDetail() {
   const t = getSelected();
   if (!t) return;
+  if (!editing) {
+    clearPendingPhoto();
+    photoEditBox.hidden = true;
+  }
   // One Last Updated for the trail: its newest change, whether an edit of
   // its information (UpdatedAt) or of its status (StatusUpdatedAt).
   const millis = (v) => (v?.toMillis ? v.toMillis() : (v ? new Date(v).getTime() : 0)) || 0;
@@ -2284,13 +2335,10 @@ function renderDetail() {
   document.getElementById('detailElev').textContent = t.Elevation || "—";
   // "Location" is the municipality (this row's id is a leftover name).
   document.getElementById('detailPeak').textContent = t.Municipality || "—";
-  // Highest point: the summit, Peak 2 at 1,090 MASL, for the trails that
-  // reach it (they end there, see makiling-trails.geojson); otherwise the
-  // trail's own HighestPoint field, if one was saved.
-  const reachesSummit = ['mariang', 'sipit', 'traverse'].includes(trailLineKey(t.Trail));
-  document.getElementById('detailHighest').textContent = reachesSummit
-    ? '1,090 m (Peak 2, summit)'
-    : (t.HighestPoint || '—');
+  // Highest point: what was saved for the trail (HighestPoint, editable in
+  // Edit Trail Information); without one, the summit, Peak 2 at 1,090 MASL,
+  // for the trails that reach it (they end there, see makiling-trails.geojson).
+  document.getElementById('detailHighest').textContent = highestPointOf(t) || '—';
   document.getElementById('detailType').textContent = t.Type || "Undefined";
   document.getElementById('detailEntryType').textContent = entryTypeLabel(t.EntryType) || "Undefined";
   document.getElementById('detailStatus').textContent = status;
@@ -2315,6 +2363,99 @@ function renderDetail() {
   editBtn.style.opacity = visible ? '1' : '0.5';
   editBtn.style.cursor = visible ? 'pointer' : 'not-allowed';
   editBtn.onclick = visible ? openEditMode : null;
+}
+
+// ---- Trail photo (edit mode) ----
+/* The trail's own photo: imageUrl (its download URL) and imagePath (where it
+   is in Storage, trails/{id}/...). Changed or removed in edit mode, but only
+   saved with Save Changes, like the other fields; Discard drops it. A
+   replaced or removed photo is deleted from Storage, and so is the folder
+   of a deleted trail. Pictures in trailPicture/ (matched by trail name,
+   trail-images.js) are shared and never deleted from here. */
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+let pendingPhoto = null;   // { file, url } | { remove: true } | null
+const photoEditBox = document.getElementById('detailPhotoEdit');
+const editPhotoInput = document.getElementById('editPhotoInput');
+
+const hasOwnPhoto = (t) => Boolean(String(t?.imageUrl || '').trim());
+
+function clearPendingPhoto() {
+  if (pendingPhoto?.url) URL.revokeObjectURL(pendingPhoto.url);
+  pendingPhoto = null;
+  editPhotoInput.value = '';
+}
+
+// The photo box and its buttons for what is staged right now.
+function showPhotoEdit(t) {
+  const photo = document.getElementById('detailPhoto');
+  let image = getTrailImage(t);
+  if (pendingPhoto?.url) image = pendingPhoto.url;
+  else if (pendingPhoto?.remove) image = getTrailImage({ ...t, imageUrl: '' });
+  photo.style.backgroundImage = `url('${image}')`;
+  const owns = pendingPhoto?.file ? true : (pendingPhoto?.remove ? false : hasOwnPhoto(t));
+  document.getElementById('changePhotoLabel').textContent = owns ? 'Change Photo' : 'Add Photo';
+  document.getElementById('removePhotoBtn').hidden = !owns;
+  document.getElementById('detailPhotoNote').textContent = pendingPhoto?.file
+    ? `New photo: ${pendingPhoto.file.name}. It is saved with Save Changes.`
+    : (pendingPhoto?.remove ? 'The photo will be removed when you save.' : '');
+  photoEditBox.hidden = false;
+}
+
+document.getElementById('changePhotoBtn').addEventListener('click', () => editPhotoInput.click());
+editPhotoInput.addEventListener('change', () => {
+  const file = editPhotoInput.files[0];
+  const t = getSelected();
+  if (!file || !t || !editing) return;
+  if (!file.type.startsWith('image/')) {
+    editPhotoInput.value = '';
+    showNotice('Please choose an image file.', { title: 'Photo not added', tone: 'error' });
+    return;
+  }
+  if (file.size > MAX_PHOTO_BYTES) {
+    editPhotoInput.value = '';
+    showNotice('Trail photos must be 5 MB or smaller.', { title: 'Photo not added', tone: 'error' });
+    return;
+  }
+  if (pendingPhoto?.url) URL.revokeObjectURL(pendingPhoto.url);
+  pendingPhoto = { file, url: URL.createObjectURL(file) };
+  showPhotoEdit(t);
+  updateDiscardButton();
+});
+document.getElementById('removePhotoBtn').addEventListener('click', () => {
+  const t = getSelected();
+  if (!t || !editing) return;
+  if (pendingPhoto?.url) URL.revokeObjectURL(pendingPhoto.url);
+  editPhotoInput.value = '';
+  // Undoing a just-picked photo returns to the saved one; otherwise the
+  // saved photo is marked for removal.
+  pendingPhoto = pendingPhoto?.file || !hasOwnPhoto(t) ? null : { remove: true };
+  showPhotoEdit(t);
+  updateDiscardButton();
+});
+
+/* Deletes a photo file from Storage: by its saved path, or by its download
+   URL (photos saved before imagePath existed). Only files under trails/;
+   a missing file is fine. */
+async function deleteStoredPhoto(path, url) {
+  try {
+    const fileRef = ref(storage, path || url);
+    if (!fileRef.fullPath.startsWith('trails/')) return;
+    await deleteObject(fileRef);
+  } catch (error) {
+    if (error?.code !== 'storage/object-not-found') console.warn('Could not delete the old trail photo:', error?.code || error);
+  }
+}
+
+// Everything uploaded for a trail (its trails/{id}/ folder).
+async function deleteTrailPhotos(trailId) {
+  try {
+    const { items } = await listAll(ref(storage, `trails/${trailId}`));
+    await Promise.all(items.map((item) => deleteObject(item).catch((error) => {
+      console.warn(`Could not delete ${item.fullPath}:`, error?.code || error);
+    })));
+  } catch (error) {
+    console.warn('Could not list the trail\'s photos:', error?.code || error);
+  }
 }
 
 // ---- EDIT MODE ----
@@ -2343,6 +2484,10 @@ function openEditMode() {
 
   document.getElementById('detailPeak').innerHTML =
     `<input type="text" id="editMunicipality" value="${(t.Municipality || '').replace(/"/g, '&quot;')}" style="width:130px;padding:4px;border:1px solid var(--border);border-radius:6px;text-align:right;">`;
+
+  // Starts on what the row shows (the saved value, or the summit default).
+  document.getElementById('detailHighest').innerHTML =
+    `<input type="text" id="editHighest" maxlength="60" value="${highestPointOf(t).replace(/"/g, '&quot;')}" placeholder="e.g. 1,090 m (Peak 2)" style="width:170px;padding:4px;border:1px solid var(--border);border-radius:6px;text-align:right;">`;
 
     const currentType = t.Type || "Undefined";
   document.getElementById('detailType').innerHTML = `
@@ -2385,6 +2530,8 @@ function openEditMode() {
 
   // What the form showed when editing began, so Save can tell what changed.
   editBaseline = readEditForm();
+  clearPendingPhoto();
+  showPhotoEdit(t);
 
   const editBtn = document.getElementById('editTrailBtn');
   editBtn.textContent = '💾 Save Changes';
@@ -2399,6 +2546,7 @@ const EDIT_FIELDS = {
   Duration: 'editDur',
   Elevation: 'editElev',
   Municipality: 'editMunicipality',
+  HighestPoint: 'editHighest',
   Type: 'editType',
   EntryType: 'editEntryType',
   Difficulty: 'editDiff',
@@ -2422,7 +2570,7 @@ const discardEditBtn = document.getElementById('discardEditBtn');
 function updateDiscardButton() {
   const current = editing && editBaseline ? readEditForm() : null;
   discardEditBtn.hidden = !current
-    || Object.keys(EDIT_FIELDS).every((field) => current[field] === editBaseline[field]);
+    || (Object.keys(EDIT_FIELDS).every((field) => current[field] === editBaseline[field]) && !pendingPhoto);
 }
 
 const detailPanel = discardEditBtn.closest('.panel');
@@ -2447,7 +2595,8 @@ async function saveEdit() {
   // opens on the current one, and saving must still write it.
   const saved = { ...editBaseline, EntryType: t.EntryType || '' };
   const changed = Object.keys(EDIT_FIELDS).filter((field) => current[field] !== saved[field]);
-  if (!changed.length) {
+  const photoChange = pendingPhoto;
+  if (!changed.length && !photoChange) {
     editing = false;
     editBaseline = null;
     renderDetail();
@@ -2467,8 +2616,31 @@ async function saveEdit() {
   // StatusUpdatedAt still records when the status itself last changed.
   if (changed.includes('Status')) updated.StatusUpdatedAt = serverTimestamp();
 
+  // The photo: a new one is uploaded first (trails/{id}/...), and the old
+  // file goes once the trail points at the new one (or at none).
+  let uploadedPath = null;
   try {
-    if (changed.length) await updateDoc(doc(db, "trails", t.id), updated);
+    if (photoChange?.file) {
+      const safeName = photoChange.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      uploadedPath = `trails/${t.id}/${Date.now()}-${safeName}`;
+      const imageRef = ref(storage, uploadedPath);
+      await uploadBytes(imageRef, photoChange.file, { contentType: photoChange.file.type });
+      updated.imageUrl = await getDownloadURL(imageRef);
+      updated.imagePath = uploadedPath;
+    } else if (photoChange?.remove) {
+      updated.imageUrl = deleteField();
+      updated.imagePath = deleteField();
+    }
+  } catch (err) {
+    console.error('Could not upload the trail photo:', err);
+    if (uploadedPath) deleteStoredPhoto(uploadedPath);
+    showNotice(`The photo could not be uploaded: ${err.message}`, { title: 'Not saved', tone: 'error' });
+    return;
+  }
+
+  try {
+    if (changed.length || photoChange) await updateDoc(doc(db, "trails", t.id), updated);
+    if (photoChange && hasOwnPhoto(t)) await deleteStoredPhoto(t.imagePath, t.imageUrl);
     editing = false;
     editBaseline = null;
     // The live listener skipped its redraw while editing was still on.
@@ -2476,6 +2648,8 @@ async function saveEdit() {
     if (registerAfter) await registerThroughRoute(t);
   } catch (err) {
     console.error(err);
+    // The trail kept its old photo: the one just uploaded isn't used.
+    if (uploadedPath) deleteStoredPhoto(uploadedPath);
     showNotice(`Your changes could not be saved: ${err.message}`, { title: 'Not saved', tone: 'error' });
   }
 }
@@ -2619,9 +2793,10 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     const photoFile = photoInput.files[0];
     if (photoFile) {
       const safeName = photoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const imageRef = ref(storage, `trails/${docRef.id}/${Date.now()}-${safeName}`);
+      const imagePath = `trails/${docRef.id}/${Date.now()}-${safeName}`;
+      const imageRef = ref(storage, imagePath);
       await uploadBytes(imageRef, photoFile, { contentType: photoFile.type });
-      await updateDoc(docRef, { imageUrl: await getDownloadURL(imageRef) });
+      await updateDoc(docRef, { imageUrl: await getDownloadURL(imageRef), imagePath });
     }
     selectedId = docRef.id;
     addTrailModal.style.display = 'none';
@@ -2700,8 +2875,12 @@ deleteConfirmModal.addEventListener('click', (e) => {
 document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
   if (!trailPendingDelete) return;
   try {
-    await deleteDoc(doc(db, "trails", trailPendingDelete.id));
-    if (selectedId === trailPendingDelete.id) selectedId = null;
+    const deleted = trailPendingDelete;
+    await deleteDoc(doc(db, "trails", deleted.id));
+    if (selectedId === deleted.id) selectedId = null;
+    // Its uploaded photos (trails/{id}/), and a photo saved elsewhere.
+    await deleteTrailPhotos(deleted.id);
+    if (hasOwnPhoto(deleted)) await deleteStoredPhoto(deleted.imagePath, deleted.imageUrl);
   } catch (err) {
     console.error(err);
     showNotice(`The trail could not be deleted: ${err.message}`, { title: 'Not deleted', tone: 'error' });

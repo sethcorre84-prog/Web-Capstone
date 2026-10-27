@@ -967,6 +967,37 @@
         font-weight: 600;
         color: var(--dm-text-2, #93a199);
     }
+    /* The form's field rules (.field label: block, uppercase; .field input:
+       full width, padded) must not reach the team list: each team is one
+       row, the checkbox beside its name. */
+    .field .team-picker .team-option {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0;
+        padding: 7px 8px;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: normal;
+        text-transform: none;
+        color: var(--dm-text, #1c231c);
+    }
+    .field .team-picker .team-option input {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        flex: 0 0 auto;
+    }
+    /* Four rows show; from the fifth team on, the list scrolls inside. */
+    .field .team-picker {
+        max-height: 150px;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: var(--dm-border, #e4e7e1) transparent;
+    }
     .team-picker-empty {
         margin: 0;
         padding: 8px;
@@ -1264,6 +1295,38 @@
         color: var(--dm-text-2, #5b6b60);
         font-size: 12.5px;
         font-weight: 600;
+    }
+
+    /* Add User: gender and birthdate side by side; the address as a grid of
+       province / city / barangay, with the street under them. */
+    .field-pair {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+    .field-pair .field {
+        min-width: 0;
+    }
+    .field-pair-top {
+        align-items: start;
+    }
+    .address-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .address-grid input {
+        grid-column: 1 / -1;
+    }
+    .address-grid select:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    @media (max-width: 560px) {
+        .field-pair,
+        .address-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
     }
 
     .modal .field input,
@@ -2203,6 +2266,42 @@
       <p id="addUserPhoneHint" class="field-hint verify-status">Philippine mobile number only (+63). Send a code to it, then enter the code the user receives by SMS.</p>
       <div id="addUserRecaptcha"></div>
     </div>
+    <!-- The rest of the app's Sign Up profile (sign_up_screen.dart), with the
+         same choices and the same Firestore fields (signup-options.js). -->
+    <div class="field-pair">
+      <div class="field">
+        <label for="addUserGender">Gender</label>
+        <select id="addUserGender" name="gender" required>
+          <option value="" disabled selected>Select gender</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="addUserBirthdate">Birthdate</label>
+        <input id="addUserBirthdate" name="birthdate" type="date" required>
+      </div>
+    </div>
+    <div class="field">
+      <label for="addUserProvince">Address</label>
+      <div class="address-grid">
+        <select id="addUserProvince" name="province" required aria-label="Province">
+          <option value="" disabled selected>Province</option>
+        </select>
+        <select id="addUserCity" name="city" required disabled aria-label="City or municipality">
+          <option value="" disabled selected>City / Municipality</option>
+        </select>
+        <select id="addUserBarangay" name="barangay" required disabled aria-label="Barangay">
+          <option value="" disabled selected>Barangay</option>
+        </select>
+        <input id="addUserStreet" name="street" type="text" maxlength="120" autocomplete="off" placeholder="House no., street, subdivision" required aria-label="Street">
+      </div>
+      <p class="field-hint" id="addUserAddressHint">Pick the province first, then the city and barangay, as in the app. Not from the Philippines? Enter where they are currently staying in the Philippines (hotel, rental or host's address).</p>
+    </div>
+    <div class="field">
+      <label for="addUserNationality">Nationality</label>
+      <select id="addUserNationality" name="nationality" required>
+        <option value="" disabled selected>Select nationality</option>
+      </select>
+    </div>
     <div class="field">
       <label for="addUserPassword">Password</label>
       <input id="addUserPassword" name="password" type="password" autocomplete="new-password" minlength="6" aria-describedby="addUserPasswordHint" required>
@@ -2210,17 +2309,20 @@
     </div>
     <!-- A new user always starts Active; Suspend / Deactivate are on their
          details afterwards. -->
-    <div class="field">
-      <label for="addUserRole">Role</label>
-      <select id="addUserRole" name="role">
-        <option>Hiker</option>
-        <option>Guide</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Teams</label>
-      <div class="team-picker" id="addUserTeams"></div>
-      <p class="team-picker-hint" id="addUserTeamsHint"></p>
+    <!-- Role and Teams side by side. -->
+    <div class="field-pair field-pair-top">
+      <div class="field">
+        <label for="addUserRole">Role</label>
+        <select id="addUserRole" name="role">
+          <option>Hiker</option>
+          <option>Guide</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Teams</label>
+        <div class="team-picker" id="addUserTeams"></div>
+        <p class="team-picker-hint" id="addUserTeamsHint"></p>
+      </div>
     </div>
     <p id="addUserStatusMessage" class="action-status" role="status" aria-live="polite"></p>
     <div class="modal-actions">
@@ -2315,8 +2417,10 @@
     doc,
     onSnapshot,
     serverTimestamp,
+    Timestamp,
     updateDoc
   } from '../jsPages/firestore-tracked.js';
+  import { GENDERS, NATIONALITIES, loadPhAddresses } from '../jsPages/signup-options.js';
 
   const PAGE_SIZE = 10;
 
@@ -3579,6 +3683,101 @@
   };
   addUserNameInput.addEventListener('input', checkAddUserName);
 
+  /* ---- Add User: the app's Sign Up profile fields ----
+     Gender, birthdate, address (province -> city -> barangay, then the
+     street) and nationality, with the app's own choices
+     (signup-options.js). */
+  const addUserGender = document.getElementById('addUserGender');
+  const addUserBirthdate = document.getElementById('addUserBirthdate');
+  const addUserProvince = document.getElementById('addUserProvince');
+  const addUserCity = document.getElementById('addUserCity');
+  const addUserBarangay = document.getElementById('addUserBarangay');
+  const addUserStreet = document.getElementById('addUserStreet');
+  const addUserNationality = document.getElementById('addUserNationality');
+  const addUserAddressHint = document.getElementById('addUserAddressHint');
+  const optionHtml = (values) => values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('');
+  const fillSelect = (select, placeholder, values) => {
+    select.innerHTML = `<option value="" disabled selected>${placeholder}</option>${optionHtml(values)}`;
+  };
+  fillSelect(addUserGender, 'Select gender', GENDERS);
+  fillSelect(addUserNationality, 'Select nationality', NATIONALITIES);
+
+  // Birthdate: a past day, up to 120 years back, as the app's date picker.
+  const isoDay = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const setBirthdateLimits = () => {
+    const today = new Date();
+    addUserBirthdate.max = isoDay(today);
+    addUserBirthdate.min = isoDay(new Date(today.getFullYear() - 120, today.getMonth(), today.getDate()));
+  };
+  setBirthdateLimits();
+
+  let phAddresses = null;
+  const resetAddressPicks = () => {
+    fillSelect(addUserCity, 'City / Municipality', []);
+    fillSelect(addUserBarangay, 'Barangay', []);
+    addUserCity.disabled = true;
+    addUserBarangay.disabled = true;
+  };
+  const loadAddressChoices = async () => {
+    if (phAddresses) return;
+    addUserProvince.disabled = true;
+    addUserAddressHint.textContent = 'Loading the list of provinces...';
+    try {
+      phAddresses = await loadPhAddresses();
+      fillSelect(addUserProvince, 'Province', Object.keys(phAddresses).sort((a, b) => a.localeCompare(b)));
+      addUserAddressHint.textContent = "Pick the province first, then the city and barangay, as in the app. Not from the Philippines? Enter where they are currently staying in the Philippines (hotel, rental or host's address).";
+    } catch (error) {
+      console.error('Could not load the address list:', error);
+      addUserAddressHint.textContent = 'The list of provinces could not be loaded. Close and reopen Add User to try again.';
+    } finally {
+      addUserProvince.disabled = false;
+    }
+  };
+  addUserProvince.addEventListener('change', () => {
+    const cities = Object.keys(phAddresses?.[addUserProvince.value] || {}).sort((a, b) => a.localeCompare(b));
+    fillSelect(addUserCity, 'City / Municipality', cities);
+    fillSelect(addUserBarangay, 'Barangay', []);
+    addUserCity.disabled = !cities.length;
+    addUserBarangay.disabled = true;
+  });
+  addUserCity.addEventListener('change', () => {
+    const barangays = [...(phAddresses?.[addUserProvince.value]?.[addUserCity.value] || [])].sort((a, b) => a.localeCompare(b));
+    fillSelect(addUserBarangay, 'Barangay', barangays);
+    addUserBarangay.disabled = !barangays.length;
+  });
+  // A fresh form clears the address picks too (form.reset() can't refill them).
+  addUserForm.addEventListener('reset', () => {
+    setTimeout(() => {
+      resetAddressPicks();
+      setBirthdateLimits();
+    });
+  });
+  document.getElementById('addUserBtn').addEventListener('click', loadAddressChoices);
+
+  /* The profile fields as the app saves them (AuthService.signUp): the
+     birthdate at midnight UTC of the day picked, the address as one line and
+     as its parts. Null when something is missing. */
+  const readSignupProfile = (formData) => {
+    const gender = normalizeText(formData.get('gender'));
+    const birthdate = String(formData.get('birthdate') || '');
+    const province = normalizeText(formData.get('province'));
+    const city = normalizeText(formData.get('city'));
+    const barangay = normalizeText(formData.get('barangay'));
+    const street = normalizeText(formData.get('street'));
+    const nationality = normalizeText(formData.get('nationality'));
+    const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthdate);
+    if (!gender || !day || !province || !city || !barangay || !street || !nationality) return null;
+    const born = new Date(Date.UTC(Number(day[1]), Number(day[2]) - 1, Number(day[3])));
+    if (born.getTime() > Date.now()) return null;
+    return {
+      gender,
+      birthdate: Timestamp.fromDate(born),
+      address: [street, barangay, city, province].filter(Boolean).join(', '),
+      addressParts: { street, barangay, city, province },
+      nationality
+    };
+  };
+
   addUserForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!checkAddUserName()) {
@@ -3607,6 +3806,12 @@
       return;
     }
     const formData = new FormData(addUserForm);
+    const signupProfile = readSignupProfile(formData);
+    if (!signupProfile) {
+      addUserStatusMessage.textContent = 'Please fill in the gender, birthdate, full address and nationality, as in the app\'s sign-up.';
+      addUserStatusMessage.className = 'action-status error';
+      return;
+    }
     const email = normalizeText(formData.get('email')).toLowerCase();
     const username = String(formData.get('username') || '').trim();
     const password = String(formData.get('password') || '');
@@ -3661,6 +3866,8 @@
           team: teamMirror || '—',
           phone,
           phoneE164,
+          // Gender, birthdate, address and nationality, as the app saves them.
+          ...signupProfile,
           phoneLinked: true,
           phoneVerifiedAt: serverTimestamp(),
           emailVerified: false,
