@@ -94,7 +94,7 @@ const dismiss = (toast) => {
 
 // Newest at the bottom, so earlier pop-ups are pushed up; past the limit the
 // oldest (top) one goes.
-const showToast = ({ title, name, place, created }) => {
+const showToast = ({ title, name, place, created, href = 'emergency.html', icon = 'fa-triangle-exclamation' }) => {
   if (!stack) {
     stack = document.createElement('div');
     stack.className = 'sos-toasts';
@@ -109,8 +109,8 @@ const showToast = ({ title, name, place, created }) => {
   toast.className = 'sos-toast';
   toast.setAttribute('role', 'alert');
   toast.innerHTML = `
-    <a class="sos-toast-link" href="emergency.html">
-      <span class="sos-toast-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+    <a class="sos-toast-link" href="${escapeHtml(href)}">
+      <span class="sos-toast-icon"><i class="fa-solid ${escapeHtml(icon)}" aria-hidden="true"></i></span>
       <span class="sos-toast-copy">
         <strong>${escapeHtml(title)}</strong>
         <span class="sos-toast-name">${escapeHtml(name)}</span>
@@ -171,10 +171,26 @@ const unlock = () => {
   } catch { /* no sound */ }
 };
 
-export const watchSosAlarm = () => {
+let started = false;
+const start = () => {
+  if (started) return;
+  started = true;
   document.head.appendChild(Object.assign(document.createElement('style'), { textContent: CSS }));
   document.addEventListener('pointerdown', unlock);
   document.addEventListener('keydown', unlock);
+};
+
+// An alert raised by the page itself rather than an emergency document
+// (hiker-layer.js's off-trail alert): the same tone and pop-up. `href` is
+// where the pop-up leads, `icon` its Font Awesome icon.
+export const announceAlert = (alert) => {
+  start();
+  showToast(alert);
+  soundAlarm();
+};
+
+export const watchSosAlarm = () => {
+  start();
 
   onSnapshot(collection(db, 'emergency'), (snapshot) => {
     const awaiting = snapshot.docs.filter((snap) => statusOf(snap.data() || {}) === 'active');

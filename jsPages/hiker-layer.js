@@ -10,15 +10,25 @@
 // `showLostAlerts` is false, as on the Emergency map, which draws the alerts
 // itself).
 //
-//   addHikerLayer({ map, db, bounds, layer, onCaption }) -> the Leaflet layer
+// OFF TRAIL (red) is worked out here: a hiker on a hike whose position stays
+// more than OFF_TRAIL_M from every trail line for two polls in a row has
+// strayed from the trail, and is flagged on the map with a dashed line back to
+// the nearest trail, listed in an alert box on the map, and announced with
+// the SOS alarm's tone and pop-up (sos-alarm.js) once per stray.
+//
+//   addHikerLayer({ map, db, bounds, layer, onCaption, trailLines }) -> the Leaflet layer
 //     layer      optional layer group to draw into (e.g. one already in a
 //                layers control); a new one is added to the map otherwise
 //     bounds     the Mount Makiling bounds (createMakilingMap); hikers outside
 //                them are counted, not drawn
 //     onCaption  called with a one-line summary ("3 hikers online · ...")
 //     showLostAlerts  draw lost hikers with no live pin at the alert's position
+//     trailLines the promise createMakilingMap returns; without it no hiker
+//                is checked for being off trail
+//     announceOffTrail  sound the alarm and pop up when a hiker strays
 
 import { escapeHtml } from './utils.js';
+import { announceAlert } from './sos-alarm.js';
 import { toPortalDate as toDate } from './datetime-prefs.js';
 import { Timestamp, collection, getDocs, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -82,6 +92,78 @@ const CSS = `
     border: 2px solid #e0962a;
     animation: hikerPulse 1.2s ease-out infinite;
 }
+/* Off trail: red, with a fast pulse, above every pin but a lost hiker. */
+.hiker-pin.off-trail {
+    background: #d64532;
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+    box-shadow: 0 0 0 3px rgba(214, 69, 50, .35), 0 1px 5px rgba(0, 0, 0, .45);
+}
+.hiker-pin.off-trail::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 2px solid #d64532;
+    animation: hikerPulse 1.2s ease-out infinite;
+}
+.hiker-off-tag {
+    display: inline-block;
+    margin: 2px 0;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: #d64532;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .02em;
+}
+/* The alert box on the map: one row per hiker off trail; a row zooms to them. */
+.hiker-alerts {
+    max-width: min(300px, calc(100vw - 60px));
+    border-left: 4px solid #d64532;
+    border-radius: 8px;
+    background: var(--card-bg, #fff);
+    color: var(--text-primary, #1c231c);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .25);
+    font-size: 12px;
+    overflow: hidden;
+}
+.hiker-alerts[hidden] {
+    display: none;
+}
+.hiker-alerts-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px 5px;
+    color: #d64532;
+    font-weight: 700;
+}
+.hiker-alerts-title i {
+    color: inherit;
+}
+.hiker-alerts button {
+    display: block;
+    width: 100%;
+    padding: 5px 10px 6px;
+    border: 0;
+    border-top: 1px solid var(--border, #e4e7e1);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.hiker-alerts button:hover,
+.hiker-alerts button:focus-visible {
+    background: rgba(214, 69, 50, .08);
+}
+.hiker-alerts button small {
+    display: block;
+    color: var(--text-secondary, #5b6b60);
+}
 .hiker-lost-tag {
     display: inline-block;
     margin: 2px 0;
@@ -104,7 +186,8 @@ const CSS = `
     }
 }
 @media (prefers-reduced-motion: reduce) {
-    .hiker-pin.online::after {
+    .hiker-pin.online::after,
+    .hiker-pin.off-trail::after {
         animation: none;
         opacity: 0;
     }
@@ -121,7 +204,45 @@ const getCoordinates = (data) => {
     : null;
 };
 
-export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () => {}, showLostAlerts = true }) {
+/* Off trail. Farther than OFF_TRAIL_M from every trail line (plus the
+   phone's own stated accuracy, up to MAX_ACCURACY_M, so a weak fix under the
+   canopy is not taken for a stray) for OFF_TRAIL_POLLS polls in a row. The
+   OSM trail lines are themselves off by a few metres in places, which the
+   margin also absorbs. */
+const OFF_TRAIL_M = 60;
+const MAX_ACCURACY_M = 40;
+const OFF_TRAIL_POLLS = 2;
+const OFF_TRAIL_ANNOUNCED_KEY = 'peakpath:off-trail-announced';
+
+/* The nearest point of a line to a position, in metres, on a flat local
+   projection (plenty accurate over a mountain). */
+const nearestOnLine = ([lat, lng], latLngs) => {
+  const ky = 111320;
+  const kx = ky * Math.cos(lat * Math.PI / 180);
+  let best = { distance: Infinity, point: null };
+  for (let i = 1; i < latLngs.length; i += 1) {
+    const ax = (latLngs[i - 1].lng - lng) * kx;
+    const ay = (latLngs[i - 1].lat - lat) * ky;
+    const dx = (latLngs[i].lng - lng) * kx - ax;
+    const dy = (latLngs[i].lat - lat) * ky - ay;
+    const length = dx * dx + dy * dy;
+    const t = length ? Math.min(1, Math.max(0, -(ax * dx + ay * dy) / length)) : 0;
+    const px = ax + t * dx;
+    const py = ay + t * dy;
+    const distance = Math.hypot(px, py);
+    if (distance < best.distance) best = { distance, point: [lat + py / ky, lng + px / kx] };
+  }
+  return best;
+};
+
+const readAnnounced = () => {
+  try { return new Set(JSON.parse(localStorage.getItem(OFF_TRAIL_ANNOUNCED_KEY) || '[]')); } catch { return new Set(); }
+};
+const saveAnnounced = (keys) => {
+  try { localStorage.setItem(OFF_TRAIL_ANNOUNCED_KEY, JSON.stringify([...keys])); } catch { /* may then repeat on the next page */ }
+};
+
+export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () => {}, showLostAlerts = true, trailLines = null, announceOffTrail = true }) {
   if (!document.getElementById('hiker-layer-css')) {
     const style = document.createElement('style');
     style.id = 'hiker-layer-css';
@@ -151,10 +272,17 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
     return `${hours} hr${hours === 1 ? '' : 's'} ago`;
   };
 
-  const hikerIcon = (online, onHike, lost = false) => (lost
+  const hikerIcon = (online, onHike, lost = false, offTrail = false) => (lost
     ? L.divIcon({
       className: 'hiker-marker',
       html: '<span class="hiker-pin lost"><i class="fa-solid fa-person-circle-question"></i></span>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+      popupAnchor: [0, -16]
+    })
+    : offTrail ? L.divIcon({
+      className: 'hiker-marker',
+      html: '<span class="hiker-pin off-trail"><i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i></span>',
       iconSize: [30, 30],
       iconAnchor: [15, 15],
       popupAnchor: [0, -16]
@@ -166,6 +294,96 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
       iconAnchor: [13, 13],
       popupAnchor: [0, -14]
     }));
+
+  /* Trail lines (makiling-area.js), from the file and the routes saved on
+     trails; read afresh on every check, so a newly drawn route counts. */
+  let trails = null;
+  Promise.resolve(trailLines).then((loaded) => { trails = loaded; }).catch(() => {});
+  const nearestTrail = (coordinates) => {
+    let best = null;
+    trails?.lines.forEach((line) => {
+      const found = nearestOnLine(coordinates, line.stroke.getLatLngs().flat(Infinity));
+      if (found.point && (!best || found.distance < best.distance)) best = { ...found, name: line.name || 'the trail' };
+    });
+    return best;
+  };
+
+  const offTrailStreak = new Map(); // uid -> polls in a row off every trail
+  const offTrailByUid = new Map();  // uid -> { distance, point, name } once flagged
+  const offTrailLines = new Map();  // uid -> dashed line back to the trail
+  const announced = readAnnounced();
+
+  // Run once per poll, on fresh positions: who is off trail now.
+  const checkOffTrail = () => {
+    if (!trails?.lines.size) return;
+    const now = Date.now();
+    const seen = new Set();
+    hikerDocs.forEach((data) => {
+      const updatedAt = toDate(data.updatedAt);
+      const coordinates = data.position ? getCoordinates(data.position) : null;
+      if (!data.hike?.trail || !updatedAt || !coordinates || !bounds.contains(coordinates)
+        || now - updatedAt.getTime() > HIKER_EXPIRY_MS) return;
+      const nearest = nearestTrail(coordinates);
+      if (!nearest) return;
+      const accuracy = Math.min(MAX_ACCURACY_M, Math.max(0, Number(data.accuracy) || 0));
+      if (nearest.distance <= OFF_TRAIL_M + accuracy) return;
+      seen.add(data.id);
+      const streak = (offTrailStreak.get(data.id) || 0) + 1;
+      offTrailStreak.set(data.id, streak);
+      if (streak >= OFF_TRAIL_POLLS) offTrailByUid.set(data.id, nearest);
+    });
+    [...offTrailStreak.keys()].forEach((uid) => {
+      if (seen.has(uid)) return;
+      offTrailStreak.delete(uid);
+      offTrailByUid.delete(uid);
+    });
+
+    // One alarm per stray: a hiker back on the trail who strays again is
+    // announced again. Kept across pages, like the SOS alarm.
+    const current = new Set();
+    offTrailByUid.forEach((nearest, uid) => {
+      const data = hikerDocs.find((d) => d.id === uid);
+      const key = `${uid}:${toDate(data?.hike?.startedAt)?.getTime() || ''}`;
+      current.add(key);
+      if (!announceOffTrail || announced.has(key) || lostByUid.has(uid)) return;
+      announceAlert({
+        title: 'Off-trail alert',
+        name: data?.name || 'Hiker',
+        place: `${Math.round(nearest.distance)} m off ${nearest.name}`,
+        created: toDate(data?.updatedAt),
+        href: 'geomap.html',
+        icon: 'fa-person-walking-dashed-line-arrow-right'
+      });
+    });
+    announced.clear();
+    current.forEach((key) => announced.add(key));
+    saveAnnounced(announced);
+  };
+
+  // The alert box on the map, listing every hiker off trail.
+  const alertBox = L.DomUtil.create('div', 'hiker-alerts');
+  alertBox.hidden = true;
+  alertBox.setAttribute('role', 'status');
+  L.DomEvent.disableClickPropagation(alertBox);
+  L.DomEvent.disableScrollPropagation(alertBox);
+  const alertControl = L.control({ position: 'bottomleft' });
+  alertControl.onAdd = () => alertBox;
+  alertControl.addTo(map);
+  alertBox.addEventListener('click', (event) => {
+    const marker = hikerMarkers.get(event.target.closest('button')?.dataset.uid);
+    if (!marker) return;
+    map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 16));
+    marker.openPopup();
+  });
+  const renderAlertBox = (rows) => {
+    alertBox.hidden = !rows.length;
+    if (!rows.length) return;
+    alertBox.innerHTML = `<div class="hiker-alerts-title"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>${rows.length} hiker${rows.length === 1 ? '' : 's'} off trail</div>`
+      + rows.map(({ uid, name, nearest, online }) => `<button type="button" data-uid="${escapeHtml(uid)}">
+          <strong>${escapeHtml(name)}</strong>
+          <small>${Math.round(nearest.distance)} m off ${escapeHtml(nearest.name)}${online ? '' : ' · signal lost'}</small>
+        </button>`).join('');
+  };
 
   /* Open Lost / Missing alerts, by the hiker they are about. Live: the pin
      turns orange the moment a companion reports them or an admin marks
@@ -183,7 +401,9 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
     return `<span class="hiker-lost-tag">LOST / MISSING</span><br><small>${by}${since ? ` · ${escapeHtml(since.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}` : ''}</small><br>`;
   };
 
-  const hikerPopup = (data, coordinates, updatedAt, online, lostAlert = null) => {
+  const offTrailLine = (nearest) => `<span class="hiker-off-tag">OFF TRAIL</span><br><small>${Math.round(nearest.distance)} m from ${escapeHtml(nearest.name)}</small><br>`;
+
+  const hikerPopup = (data, coordinates, updatedAt, online, lostAlert = null, offTrail = null) => {
     const details = [];
     const speed = Number(data.speed);
     if (Number.isFinite(speed) && speed >= 0) details.push(`${(speed * 3.6).toFixed(1)} km/h`);
@@ -198,6 +418,7 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
     return `
       <strong>${escapeHtml(data.name || 'Hiker')}</strong><br>
       ${lostAlert ? lostLine(lostAlert) : ''}
+      ${offTrail ? offTrailLine(offTrail) : ''}
       ${hike ? `<span style="display:inline-flex;align-items:center;gap:5px;color:#1a73e8;font-weight:600"><i class="fa-solid fa-route" aria-hidden="true"></i>Hiking ${escapeHtml(hike.trail)}${hikeSince ? ` · since ${escapeHtml(hikeSince.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}` : ''}</span><br>` : ''}
       <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${online ? '#2f8f4e' : '#8a948c'}"></span>${online ? 'Online' : 'Offline · last seen'} ${escapeHtml(formatAgo(updatedAt))}</span><br>
       ${teammates ? `Sharing with ${teammates} teammate${teammates === 1 ? '' : 's'}` : 'Solo hiker'}<br>
@@ -213,6 +434,7 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
     let offMountain = 0;
     let onHike = 0;
     let lostShown = 0;
+    const offTrailRows = [];
 
     hikerDocs.forEach((data) => {
       const updatedAt = toDate(data.updatedAt);
@@ -226,34 +448,58 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
       const isHiking = Boolean(data.hike?.trail);
       const lostAlert = lostByUid.get(data.id) || null;
       const isLost = Boolean(lostAlert);
+      const offTrail = offTrailByUid.get(data.id) || null;
+      const isOffTrail = Boolean(offTrail);
       if (isOnline) online += 1; else offline += 1;
       if (isHiking) onHike += 1;
       if (isLost) lostShown += 1;
       shown.add(data.id);
 
-      const popup = hikerPopup(data, coordinates, updatedAt, isOnline, lostAlert);
-      const zIndex = isLost ? 1500 : (isHiking ? 1100 : 1000);
+      // The dashed line from an off-trail hiker back to the nearest trail.
+      const backLine = offTrailLines.get(data.id);
+      if (isOffTrail) {
+        offTrailRows.push({ uid: data.id, name: data.name || 'Hiker', nearest: offTrail, online: isOnline });
+        if (backLine) backLine.setLatLngs([coordinates, offTrail.point]);
+        else offTrailLines.set(data.id, L.polyline([coordinates, offTrail.point], {
+          color: '#d64532', weight: 3, dashArray: '6 6', interactive: false
+        }).addTo(layer));
+      } else if (backLine) {
+        layer.removeLayer(backLine);
+        offTrailLines.delete(data.id);
+      }
+
+      const popup = hikerPopup(data, coordinates, updatedAt, isOnline, lostAlert, offTrail);
+      const zIndex = isLost ? 1500 : (isOffTrail ? 1400 : (isHiking ? 1100 : 1000));
       const marker = hikerMarkers.get(data.id);
       if (!marker) {
-        const created = L.marker(coordinates, { icon: hikerIcon(isOnline, isHiking, isLost), zIndexOffset: zIndex })
+        const created = L.marker(coordinates, { icon: hikerIcon(isOnline, isHiking, isLost, isOffTrail), zIndexOffset: zIndex })
           .bindPopup(popup)
           .addTo(layer);
         created.isOnline = isOnline;
         created.isHiking = isHiking;
         created.isLost = isLost;
+        created.isOffTrail = isOffTrail;
         hikerMarkers.set(data.id, created);
         return;
       }
       // Moved in place rather than redrawn, so an open popup stays open.
       marker.setLatLng(coordinates).setPopupContent(popup);
-      if (marker.isOnline !== isOnline || marker.isHiking !== isHiking || marker.isLost !== isLost) {
-        marker.setIcon(hikerIcon(isOnline, isHiking, isLost));
+      if (marker.isOnline !== isOnline || marker.isHiking !== isHiking || marker.isLost !== isLost
+        || marker.isOffTrail !== isOffTrail) {
+        marker.setIcon(hikerIcon(isOnline, isHiking, isLost, isOffTrail));
         marker.setZIndexOffset(zIndex);
         marker.isOnline = isOnline;
         marker.isHiking = isHiking;
         marker.isLost = isLost;
+        marker.isOffTrail = isOffTrail;
       }
     });
+    offTrailLines.forEach((line, id) => {
+      if (shown.has(id)) return;
+      layer.removeLayer(line);
+      offTrailLines.delete(id);
+    });
+    renderAlertBox(offTrailRows);
 
     // Lost hikers with no live pin: at the alert's last known position.
     const drawnAlerts = new Set();
@@ -289,6 +535,7 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
     });
 
     onCaption((lostShown ? `${lostShown} lost / missing · ` : '') +
+      (offTrailRows.length ? `${offTrailRows.length} off trail · ` : '') +
       `${online} hiker${online === 1 ? '' : 's'} online` +
       (onHike ? ` · ${onHike} on a hike` : '') +
       (offline ? ` · ${offline} recently offline` : '') +
@@ -302,6 +549,7 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
       const cutoff = Timestamp.fromMillis(Date.now() - HIKER_EXPIRY_MS);
       const snapshot = await getDocs(query(collection(db, 'locations'), where('updatedAt', '>', cutoff)));
       hikerDocs = snapshot.docs.map((snap) => ({ id: snap.id, ...snap.data() }));
+      checkOffTrail();
       renderHikers();
     } catch (error) {
       console.error('Error loading hiker locations:', error);

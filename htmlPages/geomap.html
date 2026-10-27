@@ -661,7 +661,9 @@
       /* The Lost / Missing swatch at legend size, still (hiker-layer.js's
          map pin is larger, with a pulse). */
       .legend-row .hiker-pin.lost,
-      .legend-list .hiker-pin.lost {
+      .legend-list .hiker-pin.lost,
+      .legend-row .hiker-pin.off-trail,
+      .legend-list .hiker-pin.off-trail {
           width: 20px;
           height: 20px;
           font-size: 10px;
@@ -1040,6 +1042,7 @@
                   <div class="legend-row"><span class="hiker-pin offline" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>Last seen</span></div>
                   <div class="legend-row" title="Started a hike in the PeakPath app"><span class="hiker-pin online on-hike" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span><span>On a hike</span></div>
                   <div class="legend-row" title="An open Lost / Missing emergency: reported by a companion in the app, or marked from their SOS"><span class="hiker-pin lost" aria-hidden="true"><i class="fa-solid fa-person-circle-question"></i></span><span>Lost / Missing</span></div>
+                  <div class="legend-row" title="On a hike and more than 60 m from every trail: strayed from the trail"><span class="hiker-pin off-trail" aria-hidden="true"><i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i></span><span>Off trail</span></div>
                 </div>
               </section>
               <section class="legend-group">
@@ -1569,6 +1572,8 @@
       db,
       bounds: makilingBounds,
       layer: hikerLayer,
+      // Hikers who stray from every trail are flagged off trail.
+      trailLines,
       onCaption: (text) => {
         hikerCaption = text;
         updateMapCaption();

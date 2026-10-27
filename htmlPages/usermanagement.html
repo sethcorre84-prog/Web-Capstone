@@ -1902,6 +1902,211 @@
         border-radius: inherit;
     }
     img[data-user-avatar][hidden] { display: none; }
+
+    /* ---- Hikes per Month by Gender ----
+       Stacked columns, one per month: Male, Female, Not specified, in that
+       order from the baseline (blue / orange / violet, checked for colour
+       blindness in both themes). Totals sit above each column; the exact
+       split is in the hover card and the hidden table. */
+    .hike-gender-card {
+        --hg-male: #2a78d6;
+        --hg-female: #eb6834;
+        --hg-other: #6250d6;
+        margin-top: 20px;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) .hike-gender-card {
+            --hg-male: #3987e5;
+            --hg-female: #d95926;
+            --hg-other: #9085e9;
+        }
+    }
+    :root[data-theme="dark"] .hike-gender-card {
+        --hg-male: #3987e5;
+        --hg-female: #d95926;
+        --hg-other: #9085e9;
+    }
+    .hike-gender-card .card-head select {
+        padding: 7px 10px;
+        font-size: 13px;
+        border-radius: 8px;
+    }
+    .hg-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        margin: -4px 0 14px;
+        font-size: 12.5px;
+        color: var(--text-secondary);
+    }
+    .hg-legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .hg-legend strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+    .hg-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex: none;
+    }
+    .hg-chart {
+        position: relative;
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        grid-template-rows: 240px auto;
+        margin-top: 18px;
+    }
+    .hg-axis {
+        position: relative;
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+    .hg-axis span {
+        position: absolute;
+        right: 8px;
+        transform: translateY(50%);
+        font-variant-numeric: tabular-nums;
+    }
+    .hg-plot {
+        position: relative;
+        display: flex;
+        align-items: stretch;
+        gap: 2px;
+        border-bottom: 1px solid var(--border);
+    }
+    .hg-grid {
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: 1px dashed var(--border);
+        pointer-events: none;
+    }
+    .hg-col {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 0 18%;
+        border-radius: 6px 6px 0 0;
+        cursor: default;
+    }
+    .hg-col:hover,
+    .hg-col:focus-visible {
+        background: var(--dm-surface-2, #f5f7f3);
+        outline: none;
+    }
+    .hg-total {
+        position: absolute;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-variant-numeric: tabular-nums;
+    }
+    .hg-stack {
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 2px;
+        width: 100%;
+        max-width: 36px;
+    }
+    .hg-seg {
+        width: 100%;
+        min-height: 2px;
+    }
+    .hg-seg:last-child {
+        border-radius: 4px 4px 0 0;
+    }
+    .hg-labels {
+        grid-column: 2;
+        display: flex;
+        gap: 2px;
+        padding-top: 6px;
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+    .hg-labels span {
+        flex: 1;
+        min-width: 0;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+    .hg-labels small {
+        display: block;
+        font-size: 10px;
+    }
+    .hg-empty {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        color: var(--text-muted);
+        pointer-events: none;
+    }
+    .hg-tip {
+        position: absolute;
+        z-index: 5;
+        min-width: 150px;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--dm-surface, #fff);
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .14);
+        font-size: 12px;
+        color: var(--text-secondary);
+        pointer-events: none;
+        white-space: nowrap;
+    }
+    .hg-tip[hidden] { display: none; }
+    .hg-tip strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--text-primary);
+    }
+    .hg-tip div {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .hg-tip b {
+        margin-left: auto;
+        padding-left: 12px;
+        color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+    }
+    .hg-tip .hg-tip-total {
+        margin-top: 4px;
+        padding-top: 4px;
+        border-top: 1px solid var(--border);
+    }
+    .hg-note {
+        margin: 12px 0 0;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+    .hg-table {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+    @media (max-width: 600px) {
+        .hg-chart { grid-template-rows: 200px auto; }
+        .hg-col { padding: 0 8%; }
+        .hg-total { font-size: 10px; }
+        .hg-labels { font-size: 10px; }
+    }
 </style>
 </head>
 <body>
@@ -2129,6 +2334,27 @@
 
         <button class="contact-btn" id="contactUserBtn" type="button" disabled><i class="fa-solid fa-phone"></i>Contact User (Emergency)</button>
       </div>
+    </section>
+
+    <section class="card hike-gender-card" aria-labelledby="hikeGenderTitle">
+      <div class="card-head">
+        <h2 id="hikeGenderTitle">Hikes per Month by Gender</h2>
+        <div class="card-head-actions">
+          <select id="hikeGenderRange" aria-label="Months shown">
+            <option value="6">Last 6 months</option>
+            <option value="12" selected>Last 12 months</option>
+          </select>
+        </div>
+      </div>
+      <div class="hg-legend" id="hikeGenderLegend"></div>
+      <div class="hg-chart">
+        <div class="hg-axis" id="hikeGenderAxis" aria-hidden="true"></div>
+        <div class="hg-plot" id="hikeGenderPlot"></div>
+        <div class="hg-labels" id="hikeGenderLabels" aria-hidden="true"></div>
+        <div class="hg-tip" id="hikeGenderTip" hidden></div>
+      </div>
+      <table class="hg-table" id="hikeGenderTable"></table>
+      <p class="hg-note">Hikes started in the PeakPath app (Start Hike) each month, by the hiker's gender in their profile.</p>
     </section>
 
   </main>
@@ -2398,7 +2624,7 @@
   import { ref, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
   import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
   import { escapeHtml, normalizeText } from '../jsPages/utils.js';
-  import { formatPortalDate, formatPortalDateTime, formatPortalTime, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
+  import { formatPortalDate, formatPortalDateTime, formatPortalTime, portalTimeZone, toPortalDate as toDate } from '../jsPages/datetime-prefs.js';
   // The same rule login.js and dashboard-guard.js enforce, and the one the
   // mobile app has to mirror. Suspensions end on their own date.
   import { suspensionState } from '../jsPages/account-status.js';
@@ -4299,11 +4525,138 @@
 
   let pendingUserLink = new URLSearchParams(window.location.search).get('user');
 
+  /* ---- Hikes per Month by Gender ----
+     From Start Hike in the PeakPath app: each start adds to the hiker's own
+     users/{uid}.hikeStarts.{m2026_10}.count (HikeSessionService), the month
+     in Philippine time, as the Dashboard's Visitors per Trail reads it. Each
+     month's hikes are split by the hiker's profile gender; "Prefer not to
+     say" and a missing gender are Not specified. */
+  const HIKE_GENDERS = [
+    { key: 'male', label: 'Male', color: 'var(--hg-male)' },
+    { key: 'female', label: 'Female', color: 'var(--hg-female)' },
+    { key: 'other', label: 'Not specified', color: 'var(--hg-other)' }
+  ];
+  const genderKey = (value) => {
+    const gender = normalizeText(value).toLowerCase();
+    if (gender === 'male' || gender === 'm') return 'male';
+    if (gender === 'female' || gender === 'f') return 'female';
+    return 'other';
+  };
+  const hikeGenderRange = document.getElementById('hikeGenderRange');
+  try {
+    const saved = localStorage.getItem('peakpath-hike-gender-range');
+    if (saved === '6' || saved === '12') hikeGenderRange.value = saved;
+  } catch { /* storage blocked: the default range */ }
+
+  // The last `count` months, oldest first, in the portal time zone.
+  const recentMonths = (count) => {
+    const [year, month] = new Date().toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).split('-').map(Number);
+    const now = year * 12 + (month - 1);
+    return Array.from({ length: count }, (_, i) => {
+      const index = now - (count - 1 - i);
+      const y = Math.floor(index / 12);
+      const m = (index % 12) + 1;
+      return {
+        key: `m${y}_${String(m).padStart(2, '0')}`,
+        date: new Date(y, m - 1, 1),
+        male: 0,
+        female: 0,
+        other: 0
+      };
+    });
+  };
+  // A round axis top above the busiest month: 1, 2, 5 or 10 times a power of ten.
+  const niceMax = (value) => {
+    if (value <= 4) return 4;
+    const power = 10 ** Math.floor(Math.log10(value));
+    return [1, 2, 2.5, 5, 10].map((step) => step * power).find((top) => top >= value);
+  };
+
+  const renderHikeGenderChart = () => {
+    const months = recentMonths(Number(hikeGenderRange.value) || 12);
+    (state.users || []).forEach((user) => {
+      const starts = user.raw?.hikeStarts || {};
+      const key = genderKey(user.raw?.gender);
+      months.forEach((month) => {
+        const count = Number(starts[month.key]?.count) || 0;
+        if (count > 0) month[key] += count;
+      });
+    });
+    months.forEach((month) => { month.total = month.male + month.female + month.other; });
+    const top = niceMax(Math.max(0, ...months.map((month) => month.total)));
+    const monthName = (month, withYear) => month.date.toLocaleDateString('en-US', withYear
+      ? { month: 'long', year: 'numeric' } : { month: 'short' });
+
+    const totals = HIKE_GENDERS.map((g) => months.reduce((sum, month) => sum + month[g.key], 0));
+    document.getElementById('hikeGenderLegend').innerHTML = HIKE_GENDERS.map((g, i) => `
+      <span><i class="hg-swatch" style="background:${g.color}"></i>${g.label} <strong>${totals[i]}</strong></span>`).join('');
+
+    const ticks = [0, 0.25, 0.5, 0.75, 1];
+    document.getElementById('hikeGenderAxis').innerHTML = ticks
+      .map((t) => `<span style="bottom:${t * 100}%">${Math.round(t * top)}</span>`).join('');
+
+    const plot = document.getElementById('hikeGenderPlot');
+    const grandTotal = months.reduce((sum, month) => sum + month.total, 0);
+    plot.innerHTML = ticks.slice(1).map((t) => `<div class="hg-grid" style="bottom:${t * 100}%"></div>`).join('')
+      + months.map((month, i) => `
+        <div class="hg-col" tabindex="0" data-index="${i}" aria-label="${escapeHtml(monthName(month, true))}: ${month.total} hike${month.total === 1 ? '' : 's'}, ${month.male} male, ${month.female} female, ${month.other} not specified">
+          ${month.total ? `<span class="hg-total" style="bottom:calc(${(month.total / top) * 100}% + 4px)">${month.total}</span>` : ''}
+          <div class="hg-stack" style="height:${(month.total / top) * 100}%">${HIKE_GENDERS.filter((g) => month[g.key] > 0).map((g) =>
+            `<div class="hg-seg" style="flex:${month[g.key]} 1 0;background:${g.color}"></div>`).join('')}</div>
+        </div>`).join('')
+      + (grandTotal ? '' : '<div class="hg-empty">No hikes started in these months yet.</div>');
+    plot.hikeMonths = months;
+
+    // The year under January and under the first month, so the axis reads across a new year.
+    document.getElementById('hikeGenderLabels').innerHTML = months.map((month, i) => `<span>${monthName(month)}${
+      i === 0 || month.date.getMonth() === 0 ? `<small>${month.date.getFullYear()}</small>` : ''}</span>`).join('');
+
+    document.getElementById('hikeGenderTable').innerHTML = `<caption>Hikes per month by gender</caption>
+      <thead><tr><th>Month</th>${HIKE_GENDERS.map((g) => `<th>${g.label}</th>`).join('')}<th>Total</th></tr></thead>
+      <tbody>${months.map((month) => `<tr><td>${escapeHtml(monthName(month, true))}</td>${HIKE_GENDERS.map((g) =>
+        `<td>${month[g.key]}</td>`).join('')}<td>${month.total}</td></tr>`).join('')}</tbody>`;
+  };
+
+  // The hover card: the month's split by gender, beside its column.
+  const hikeGenderPlot = document.getElementById('hikeGenderPlot');
+  const hikeGenderTip = document.getElementById('hikeGenderTip');
+  const showHikeGenderTip = (column) => {
+    const month = hikeGenderPlot.hikeMonths?.[Number(column.dataset.index)];
+    if (!month) return;
+    hikeGenderTip.innerHTML = `<strong>${escapeHtml(month.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))}</strong>`
+      + HIKE_GENDERS.map((g) => `<div><i class="hg-swatch" style="background:${g.color}"></i>${g.label}<b>${month[g.key]}</b></div>`).join('')
+      + `<div class="hg-tip-total">Total<b>${month.total}</b></div>`;
+    hikeGenderTip.hidden = false;
+    const chart = hikeGenderTip.parentElement.getBoundingClientRect();
+    const box = column.getBoundingClientRect();
+    const tip = hikeGenderTip.getBoundingClientRect();
+    let left = box.right - chart.left + 6;
+    if (left + tip.width > chart.width) left = box.left - chart.left - tip.width - 6;
+    hikeGenderTip.style.left = `${Math.max(0, left)}px`;
+    hikeGenderTip.style.top = '8px';
+  };
+  const hideHikeGenderTip = () => { hikeGenderTip.hidden = true; };
+  hikeGenderPlot.addEventListener('pointerover', (event) => {
+    const column = event.target.closest('.hg-col');
+    if (column) showHikeGenderTip(column);
+  });
+  hikeGenderPlot.addEventListener('pointerleave', hideHikeGenderTip);
+  hikeGenderPlot.addEventListener('focusin', (event) => {
+    const column = event.target.closest('.hg-col');
+    if (column) showHikeGenderTip(column);
+  });
+  hikeGenderPlot.addEventListener('focusout', hideHikeGenderTip);
+  hikeGenderRange.addEventListener('change', () => {
+    try { localStorage.setItem('peakpath-hike-gender-range', hikeGenderRange.value); } catch { /* not remembered */ }
+    renderHikeGenderChart();
+  });
+
   const refreshAll = () => {
     syncFilterOptions();
     renderStats();
     renderUserTable();
     renderSelectedUser();
+    renderHikeGenderChart();
   };
 
   /* A suspension is already over the moment its date passes -- every access

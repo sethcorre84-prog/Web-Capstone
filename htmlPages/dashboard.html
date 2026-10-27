@@ -1347,6 +1347,7 @@
         import { createMakilingMap } from "../jsPages/makiling-area.js";
         import { addMapFeatures } from "../jsPages/map-features.js";
         import { watchActiveHikers } from "../jsPages/active-hikers.js";
+        import { addHikerLayer } from "../jsPages/hiker-layer.js";
         import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, watchWeatherLocation, weatherUrlFor } from "../jsPages/weather-locations.js";
         import { openExportMenu } from "../jsPages/export-table.js";
 
@@ -1596,7 +1597,7 @@
         /* Mount Makiling only: the same rectangle as the Geomap page, from
            makiling-area.js. The view cannot be panned or zoomed off the
            mountain. */
-        const { map: dashboardMap, bounds: makilingBounds } = createMakilingMap('dashboardMap');
+        const { map: dashboardMap, bounds: makilingBounds, trailLines } = createMakilingMap('dashboardMap');
         // Peak 2 is the summit badge drawn with the trail lines
         // (makiling-area.js), as on GeoMap.
         const trailLayer = L.layerGroup().addTo(dashboardMap);
@@ -1607,6 +1608,10 @@
         // The map fills its row, whose height follows the cards beside it, so
         // Leaflet is told whenever that box changes size.
         new ResizeObserver(() => dashboardMap.invalidateSize()).observe(document.getElementById('dashboardMap'));
+        // Emergency monitoring: live hikers as on GeoMap (hiker-layer.js),
+        // with Lost / Missing hikers and hikers who stray off the trails
+        // flagged and alerted on this map too.
+        addHikerLayer({ map: dashboardMap, db, bounds: makilingBounds, trailLines });
 
         const getCoordinates = (trail) => {
             const latitude = Number(trail.latitude ?? trail.lat ?? trail.coordinates?.latitude);

@@ -1108,6 +1108,7 @@
             <span class="legend-item"><span class="type-icon sm lost"><i class="fa-solid fa-person-walking"></i></span>Lost / Missing</span>
             <span class="legend-item" title="Signed in to the PeakPath app on Mount Makiling"><span class="hiker-pin online" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span>Hiker</span>
             <span class="legend-item" title="Started a hike in the PeakPath app"><span class="hiker-pin online on-hike" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span>On a hike</span>
+            <span class="legend-item" title="On a hike and more than 60 m from every trail: strayed from the trail"><span class="hiker-pin off-trail" aria-hidden="true"><i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i></span>Off trail</span>
             <button class="map-fullscreen" id="mapFullscreenBtn" type="button" title="Full screen" aria-label="Show the map full screen"><i class="fa-solid fa-expand"></i></button>
           </div>
         </div>
@@ -1438,7 +1439,7 @@
   // ---------------------------------------------------------------------
   // Map
   // ---------------------------------------------------------------------
-  const { map, bounds: makilingBounds } = createMakilingMap('emergencyMap');
+  const { map, bounds: makilingBounds, trailLines } = createMakilingMap('emergencyMap');
   // Hikers on the mountain (hiker-layer.js, as on the GeoMap), under the
   // emergency markers, so responders see who is near an alert.
   let emergencyCaption = '';
@@ -1452,6 +1453,8 @@
     bounds: makilingBounds,
     // The Lost / Missing alerts are already this map's own markers.
     showLostAlerts: false,
+    // Hikers who stray from every trail are flagged off trail.
+    trailLines,
     onCaption: (text) => {
       hikerCaption = text;
       showMapCaption();
