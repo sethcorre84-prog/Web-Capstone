@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeakPath Mobile App</title>
+    <meta name="description" content="PeakPath: the hiking companion for Mount Makiling. Trail maps, live location sharing, SOS alerts, hazard reports and weather, in one app.">
+    <link rel="icon" href="../assets/images/logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        /* PeakPath's greens, as in the admin portal. */
+        :root {
+            --bg: #f4f7f3;
+            --surface: #ffffff;
+            --surface-2: #eef4ee;
+            --text: #16241a;
+            --text-2: #4c5e51;
+            --muted: #7a887d;
+            --border: #dde6dc;
+            --accent: #2f8f4e;
+            --accent-dark: #1f6b39;
+            --accent-light: #e3f3e8;
+            --hero-from: #123d22;
+            --hero-to: #2f8f4e;
+            --gold: #f2b705;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #0f1511;
+                --surface: #17201a;
+                --surface-2: #1d2a21;
+                --text: #e6efe8;
+                --text-2: #b4c3b8;
+                --muted: #8a9a8e;
+                --border: #2a3a2f;
+                --accent: #46b06a;
+                --accent-dark: #7fd39b;
+                --accent-light: #1f3426;
+                --hero-from: #0b2414;
+                --hero-to: #1f6b39;
+            }
+        }
+        :root[data-theme="dark"] {
+            --bg: #0f1511;
+            --surface: #17201a;
+            --surface-2: #1d2a21;
+            --text: #e6efe8;
+            --text-2: #b4c3b8;
+            --muted: #8a9a8e;
+            --border: #2a3a2f;
+            --accent: #46b06a;
+            --accent-dark: #7fd39b;
+            --accent-light: #1f3426;
+            --hero-from: #0b2414;
+            --hero-to: #1f6b39;
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 15px/1.6 "Inter", system-ui, sans-serif;
+        }
+        h1, h2, h3 { font-family: "Montserrat", system-ui, sans-serif; line-height: 1.2; }
+        a { color: inherit; }
+        .wrap { width: min(1120px, 100%); margin: 0 auto; padding: 0 16px; }
+
+        /* ---- Top bar ---- */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: color-mix(in srgb, var(--hero-from) 92%, transparent);
+            backdrop-filter: blur(8px);
+            color: #fff;
+        }
+        .topbar .wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            height: 60px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            font-family: "Montserrat", sans-serif;
+            font-weight: 800;
+            font-size: 18px;
+        }
+        .brand img { width: 34px; height: 34px; border-radius: 9px; }
+        .brand span { color: #9be3b0; }
+        .topnav { display: flex; gap: 18px; font-size: 14px; }
+        .topnav a { text-decoration: none; opacity: .85; }
+        .topnav a:hover { opacity: 1; }
+
+        /* ---- Hero ---- */
+        .hero {
+            background: linear-gradient(135deg, var(--hero-from), var(--hero-to));
+            color: #fff;
+            padding: 56px 0 64px;
+        }
+        .hero .wrap {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+            gap: 40px;
+            align-items: center;
+        }
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .14);
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .hero h1 { margin: 16px 0 12px; font-size: clamp(32px, 5vw, 50px); font-weight: 800; }
+        .hero h1 span { color: #9be3b0; }
+        .hero p.lead { margin: 0 0 24px; font-size: 17px; color: rgba(255, 255, 255, .86); max-width: 560px; }
+        .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 18px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            font: 600 14px "Inter", sans-serif;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .btn-light { background: #fff; color: #1f6b39; }
+        .btn-light:hover { background: #eaf6ee; }
+        .btn-ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .45); }
+        .btn-ghost:hover { background: rgba(255, 255, 255, .1); }
+        .hero-facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 26px; font-size: 13.5px; color: rgba(255, 255, 255, .8); }
+        .hero-facts i { color: #9be3b0; margin-right: 6px; }
+
+        /* ---- QR card ---- */
+        .qr-card {
+            background: var(--surface);
+            color: var(--text);
+            border-radius: 18px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 24px 50px rgba(0, 0, 0, .25);
+        }
+        .qr-card h2 { margin: 0 0 4px; font-size: 19px; color: var(--accent-dark); }
+        .qr-card > p { margin: 0 0 16px; font-size: 13.5px; color: var(--text-2); }
+        .qr-box {
+            position: relative;
+            display: inline-grid;
+            place-items: center;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #fff;
+        }
+        #qrCode { width: 210px; height: 210px; }
+        /* qrcodejs draws a canvas and copies it to an img: show the img. */
+        #qrCode canvas { display: none !important; }
+        #qrCode img { display: block !important; width: 210px !important; height: 210px !important; }
+        /* The logo in the middle (the code has high error correction). */
+        .qr-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 46px;
+            height: 46px;
+            padding: 4px;
+            border-radius: 11px;
+            background: #fff;
+            transform: translate(-50%, -50%);
+        }
+        .qr-logo img { display: block; width: 100%; height: 100%; border-radius: 8px; }
+        .qr-link {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 16px 0 10px;
+            padding: 6px 6px 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface-2);
+        }
+        .qr-link a {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-align: left;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--accent-dark);
+        }
+        .icon-btn {
+            flex-shrink: 0;
+            width: 34px;
+            height: 34px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--text-2);
+            cursor: pointer;
+        }
+        .icon-btn:hover { color: var(--accent-dark); border-color: var(--accent); }
+        .qr-actions { display: flex; gap: 8px; }
+        .qr-actions .btn { flex: 1; justify-content: center; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-dark); }
+        .btn-outline { background: var(--surface); color: var(--text); border-color: var(--border); }
+        .btn-outline:hover { border-color: var(--accent); color: var(--accent-dark); }
+        .copy-note { min-height: 18px; margin: 8px 0 0; font-size: 12px; color: var(--accent); }
+
+        /* ---- Sections ---- */
+        section.block { padding: 64px 0; }
+        section.block.alt { background: var(--surface); border-block: 1px solid var(--border); }
+        .section-head { max-width: 680px; margin: 0 auto 32px; text-align: center; }
+        .section-head h2 { margin: 0 0 8px; font-size: clamp(24px, 3.4vw, 32px); color: var(--accent-dark); }
+        .section-head p { margin: 0; color: var(--text-2); }
+        .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+        .feature {
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface);
+        }
+        section.alt .feature { background: var(--bg); }
+        .feature .ico {
+            display: grid;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            margin-bottom: 12px;
+            border-radius: 11px;
+            background: var(--accent-light);
+            color: var(--accent-dark);
+            font-size: 17px;
+        }
+        .feature .ico.red { background: rgba(200, 64, 47, .12); color: #c8402f; }
+        .feature h3 { margin: 0 0 6px; font-size: 16px; }
+        .feature p { margin: 0; font-size: 14px; color: var(--text-2); }
+
+        /* Trails */
+        .trail {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface);
+        }
+        .trail h3 { margin: 0; font-size: 17px; }
+        .trail p { margin: 0; font-size: 14px; color: var(--text-2); }
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: var(--surface-2);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-2);
+        }
+        .chip.office { background: #2e8b47; color: #fff; }
+
+        /* Steps */
+        .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; counter-reset: step; }
+        .step { position: relative; padding: 20px; border-radius: 14px; background: var(--bg); border: 1px solid var(--border); }
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            display: grid;
+            place-items: center;
+            width: 32px;
+            height: 32px;
+            margin-bottom: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            font: 800 14px "Montserrat", sans-serif;
+        }
+        .step h3 { margin: 0 0 4px; font-size: 15px; }
+        .step p { margin: 0; font-size: 13.5px; color: var(--text-2); }
+
+        /* Reminders */
+        .reminders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 24px; max-width: 860px; margin: 0 auto; padding: 0; list-style: none; }
+        .reminders li { display: flex; gap: 10px; font-size: 14.5px; color: var(--text-2); }
+        .reminders i { margin-top: 4px; color: var(--accent); }
+
+        footer { padding: 28px 0; background: var(--hero-from); color: rgba(255, 255, 255, .78); font-size: 13px; }
+        footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+        footer a { color: #9be3b0; }
+
+        @media (max-width: 900px) {
+            .hero .wrap { grid-template-columns: minmax(0, 1fr); }
+            .qr-card { max-width: 380px; margin: 0 auto; width: 100%; }
+            .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 600px) {
+            .topnav { display: none; }
+            .hero { padding: 36px 0 44px; }
+            .grid, .steps, .reminders { grid-template-columns: minmax(0, 1fr); }
+            section.block { padding: 44px 0; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="wrap">
+        <a class="brand" href="#top"><img src="../assets/images/logo.png" alt=""><b>Peak<span>Path</span></b></a>
+        <nav class="topnav" aria-label="Sections">
+            <a href="#features">Features</a>
+            <a href="#trails">Trails</a>
+            <a href="#how">How it works</a>
+            <a href="#get-app">Get the app</a>
+        </nav>
+    </div>
+</header>
+
+<main id="top">
+    <!-- ===== Hero, with the QR code ===== -->
+    <section class="hero">
+        <div class="wrap">
+            <div>
+                <span class="eyebrow"><i class="fa-solid fa-mountain-sun" aria-hidden="true"></i>Mount Makiling, Laguna &amp; Batangas</span>
+                <h1>Hike Makiling safer with <span>PeakPath</span></h1>
+                <p class="lead">PeakPath is the hiking companion for Mount Makiling. See the trails on a map, share your live location with your group, get weather and trail advisories, and send an SOS when you need help, while park rangers and guides watch over every hike.</p>
+                <div class="hero-actions">
+                    <a class="btn btn-light" id="openAppHero" href="https://peakpath-ccd4a.web.app" target="_blank" rel="noopener"><i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>Open PeakPath</a>
+                    <a class="btn btn-ghost" href="#features"><i class="fa-solid fa-circle-info" aria-hidden="true"></i>Learn more</a>
+                </div>
+                <div class="hero-facts">
+                    <span><i class="fa-solid fa-route" aria-hidden="true"></i>Mariang Makiling, Sipit &amp; the Traverse</span>
+                    <span><i class="fa-solid fa-mountain" aria-hidden="true"></i>Peak 2 · 1,090 MASL</span>
+                    <span><i class="fa-solid fa-shield-heart" aria-hidden="true"></i>SOS &amp; live tracking</span>
+                </div>
+            </div>
+
+            <aside class="qr-card" id="get-app" aria-labelledby="qrTitle">
+                <h2 id="qrTitle">Scan to get PeakPath</h2>
+                <p>Point your phone's camera at the code to open the app.</p>
+                <div class="qr-box">
+                    <div id="qrCode" role="img" aria-label="QR code that opens the PeakPath app"></div>
+                    <span class="qr-logo" aria-hidden="true"><img src="../assets/images/logo.png" alt=""></span>
+                </div>
+                <div class="qr-link">
+                    <a id="appLink" href="https://peakpath-ccd4a.web.app" target="_blank" rel="noopener">peakpath-ccd4a.web.app</a>
+                    <button type="button" class="icon-btn" id="copyLink" title="Copy link" aria-label="Copy the link"><i class="fa-regular fa-copy" aria-hidden="true"></i></button>
+                </div>
+                <div class="qr-actions">
+                    <a class="btn btn-primary" id="openApp" href="https://peakpath-ccd4a.web.app" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>Open link</a>
+                    <button type="button" class="btn btn-outline" id="downloadQr"><i class="fa-solid fa-download" aria-hidden="true"></i>Save QR</button>
+                </div>
+                <p class="copy-note" id="copyNote" role="status" aria-live="polite"></p>
+            </aside>
+        </div>
+    </section>
+
+    <!-- ===== What PeakPath does ===== -->
+    <section class="block" id="features">
+        <div class="wrap">
+            <div class="section-head">
+                <h2>Everything you need on the trail</h2>
+                <p>Made for hikers of Mount Makiling and the rangers, guides and admins who keep them safe.</p>
+            </div>
+            <div class="grid">
+                <div class="feature"><span class="ico"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i></span>
+                    <h3>Trail maps</h3><p>Every trail drawn on satellite imagery, with stations, campsites, rivers, jump-off points and Peaks 2 and 3.</p></div>
+                <div class="feature"><span class="ico"><i class="fa-solid fa-person-hiking" aria-hidden="true"></i></span>
+                    <h3>Start Hike tracking</h3><p>Start your hike and PeakPath follows your progress, distance and time, and tells you when you stray from the trail.</p></div>
+                <div class="feature"><span class="ico"><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i></span>
+                    <h3>Live location sharing</h3><p>See your teammates on the map in real time, so no one in your group gets left behind.</p></div>
+                <div class="feature"><span class="ico red"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span>
+                    <h3>SOS &amp; Lost / Missing alerts</h3><p>One tap sends your location to the monitoring team. Companions can report a missing hiker, and every hiker on the mountain is alerted.</p></div>
+                <div class="feature"><span class="ico red"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+                    <h3>Hazard reports</h3><p>Report landslides, fallen trees or flooded crossings with a photo; verified hazards appear on everyone's map.</p></div>
+                <div class="feature"><span class="ico"><i class="fa-solid fa-cloud-sun-rain" aria-hidden="true"></i></span>
+                    <h3>Weather &amp; advisories</h3><p>Summit weather and trail advisories from the park office, pushed to your phone when conditions change.</p></div>
+                <div class="feature"><span class="ico"><i class="fa-solid fa-peso-sign" aria-hidden="true"></i></span>
+                    <h3>Fees &amp; trail details</h3><p>Entrance and guide fees, an estimate for your group, distance, difficulty and each trail's stations before you go.</p></div>
+                <div class="feature"><span class="ico"><i class="fa-solid fa-crown" aria-hidden="true"></i></span>
+                    <h3>Accredited guides</h3><p>Guides from UPLB MCME and City ENRO lead the climb and appear on the rangers' map, so help is always nearby.</p></div>
+                <div class="feature"><span class="ico"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
+                    <h3>Teams &amp; group chat</h3><p>Hike as a team, chat with your group and keep everyone's emergency contact in one place.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Trails ===== -->
+    <section class="block alt" id="trails">
+        <div class="wrap">
+            <div class="section-head">
+                <h2>Trails on Mount Makiling</h2>
+                <p>The main routes up the mountain, mapped in PeakPath. Always check the trail's status in the app before you go.</p>
+            </div>
+            <div class="grid">
+                <div class="trail">
+                    <h3>Mariang Makiling Trail</h3>
+                    <p>From the MCME office in Los Baños, up the concrete road to Agila Base and through the forest to Peak 2.</p>
+                    <div class="chips"><span class="chip"><i class="fa-solid fa-ruler" aria-hidden="true"></i>About 8 km to Peak 2</span><span class="chip"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>30 stations</span><span class="chip office">MCME</span></div>
+                </div>
+                <div class="trail">
+                    <h3>Sipit Trail</h3>
+                    <p>The Sto. Tomas, Batangas route, from the Sto. Tomas City Eco Park through Melkas Ridge to the summit.</p>
+                    <div class="chips"><span class="chip"><i class="fa-solid fa-person-hiking" aria-hidden="true"></i>Steep, roped sections</span><span class="chip"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>21 stations</span><span class="chip office">City ENRO</span></div>
+                </div>
+                <div class="trail">
+                    <h3>Makiling Traverse</h3>
+                    <p>Up the Sipit Trail from Sto. Tomas and down the Mariang Makiling Trail to Los Baños, crossing the summit.</p>
+                    <div class="chips"><span class="chip"><i class="fa-solid fa-arrows-left-right" aria-hidden="true"></i>Sto. Tomas → Los Baños</span><span class="chip"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i>For experienced hikers</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== How it works ===== -->
+    <section class="block" id="how">
+        <div class="wrap">
+            <div class="section-head">
+                <h2>How it works</h2>
+                <p>From your phone to the summit in four steps.</p>
+            </div>
+            <div class="steps">
+                <div class="step"><h3>Get the app</h3><p>Scan the QR code above or open the link, then sign up with your phone number.</p></div>
+                <div class="step"><h3>Pick a trail</h3><p>Check its status, fees, weather and advisories, and join your team.</p></div>
+                <div class="step"><h3>Register &amp; start</h3><p>Log in at the jump-off with your guide, then tap Start Hike.</p></div>
+                <div class="step"><h3>Hike, share, stay safe</h3><p>Follow the map, keep your location on, and use SOS if anything goes wrong.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Reminders ===== -->
+    <section class="block alt">
+        <div class="wrap">
+            <div class="section-head">
+                <h2>Before you climb</h2>
+                <p>A few reminders from the park rangers.</p>
+            </div>
+            <ul class="reminders">
+                <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>A guide is required for the summit: ₱1,500 for up to 5 hikers, plus ₱300 for each extra hiker, and ₱40 entrance per hiker.</li>
+                <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Register at the jump-off station and log out when you come down.</li>
+                <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Start early: rangers enforce a morning cut-off for going to the peak.</li>
+                <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Bring water, rain gear and a charged phone; keep location sharing on.</li>
+                <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Stay on the marked trail and follow your guide.</li>
+                <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Leave no trace: bring your trash back down.</li>
+            </ul>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div class="wrap">
+        <span>© <span id="year"></span> PeakPath · A capstone project for safer hiking on Mount Makiling</span>
+        <span><a href="Home.html">Admin portal</a></span>
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    // Where the QR code and the buttons lead: the PeakPath app. Change it
+    // here (one place) to point the code somewhere else.
+    const APP_URL = 'https://peakpath-ccd4a.web.app';
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+    ['appLink', 'openApp', 'openAppHero'].forEach((id) => { document.getElementById(id).href = APP_URL; });
+    document.getElementById('appLink').textContent = APP_URL.replace(/^https?:\/\//, '');
+
+    // High error correction, so the logo in the middle doesn't stop it scanning.
+    const qrEl = document.getElementById('qrCode');
+    if (window.QRCode) {
+        new QRCode(qrEl, {
+            text: APP_URL,
+            width: 420,
+            height: 420,
+            colorDark: '#123d22',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    } else {
+        qrEl.innerHTML = '<p style="font-size:13px;color:#7a887d;padding:20px">The QR code could not load. Use the link below.</p>';
+    }
+
+    const note = document.getElementById('copyNote');
+    const say = (text) => {
+        note.textContent = text;
+        clearTimeout(say.timer);
+        say.timer = setTimeout(() => { note.textContent = ''; }, 2500);
+    };
+
+    document.getElementById('copyLink').addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(APP_URL);
+            say('Link copied.');
+        } catch {
+            say(APP_URL);
+        }
+    });
+
+    // Save QR: the code with the logo and the link under it, as a PNG.
+    document.getElementById('downloadQr').addEventListener('click', () => {
+        const source = qrEl.querySelector('canvas');
+        if (!source) { say('The QR code is not ready yet.'); return; }
+        const size = 600;
+        const pad = 40;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size + 70;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(source, pad, pad, size - pad * 2, size - pad * 2);
+        const finish = () => {
+            ctx.fillStyle = '#123d22';
+            ctx.font = '700 22px Montserrat, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('PeakPath · Scan to open the app', size / 2, size + 8);
+            ctx.font = '500 17px Inter, sans-serif';
+            ctx.fillStyle = '#4c5e51';
+            ctx.fillText(APP_URL.replace(/^https?:\/\//, ''), size / 2, size + 38);
+            const link = document.createElement('a');
+            link.download = 'peakpath-qr.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        };
+        const logo = new Image();
+        logo.onload = () => {
+            const box = 112;
+            const x = (size - box) / 2;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(x, x, box, box);
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(logo, x + 10, x + 10, box - 20, box - 20);
+            finish();
+        };
+        logo.onerror = finish;
+        logo.src = '../assets/images/logo.png';
+    });
+</script>
+</body>
+</html>

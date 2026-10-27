@@ -1703,6 +1703,24 @@
         font-weight: 600;
     }
 
+    /* View Profile: First-timer / Repeat hiker tag. */
+    .hiker-type {
+        display: inline-block;
+        margin-right: 4px;
+        padding: 1px 8px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 700;
+    }
+    .hiker-type.is-first {
+        background: rgba(42, 120, 214, .12);
+        color: #1f5fae;
+    }
+    .hiker-type.is-repeat {
+        background: rgba(47, 143, 78, .12);
+        color: var(--accent-dark, #1f6b39);
+    }
+
     .profile-modal-value {
         min-height: 20px;
         margin-top: 2px;
@@ -2118,7 +2136,7 @@
     }
     .ha-stats {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 12px;
         margin-bottom: 16px;
     }
@@ -2158,6 +2176,9 @@
         min-width: 0;
         padding: 16px 18px 18px;
         box-shadow: -1px -1px 0 var(--border);
+    }
+    .ha-col-wide {
+        grid-column: 1 / -1;
     }
     .ha-col h3 {
         margin: 0 0 12px;
@@ -2570,8 +2591,12 @@
           <h3>Province (Address)</h3>
           <div id="hikerAnalyticsProvince"></div>
         </div>
+        <div class="ha-col ha-col-wide">
+          <h3>First-time vs Repeat Hikers</h3>
+          <div id="hikerAnalyticsVisits"></div>
+        </div>
       </div>
-      <p class="ha-note">Different hikers who started at least one hike in the PeakPath app that month, from their profiles: gender, nationality, address and age (from the birthdate, at the month's end). Hikers from abroad give where they are staying in the Philippines.</p>
+      <p class="ha-note">Different hikers who started at least one hike in the PeakPath app that month, from their profiles: gender, nationality, address and age (from the birthdate, at the month's end). First-time hikers had their first hike on Mount Makiling that month; repeat hikers had hiked in an earlier month (hikes from before they used PeakPath are not known). Hikers from abroad give where they are staying in the Philippines.</p>
     </section>
 
   </main>
@@ -2870,6 +2895,10 @@
       <div class="profile-info">
         <span class="info-icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
         <div><div class="info-label">Address</div><div id="profileModalAddress" class="profile-modal-value">—</div></div>
+      </div>
+      <div class="profile-info">
+        <span class="info-icon"><i class="fa-solid fa-person-hiking" aria-hidden="true"></i></span>
+        <div><div class="info-label">Makiling Hikes</div><div id="profileModalHikerType" class="profile-modal-value">—</div></div>
       </div>
     </div>
 
@@ -3705,6 +3734,16 @@
     document.getElementById('profileModalAddress').textContent = normalizeText(user.raw?.address)
       || [parts.street, parts.barangay, parts.city, parts.province].map(normalizeText).filter(Boolean).join(', ')
       || '—';
+    // First-timer or repeat hiker, from their Start Hike history.
+    const history = hikeHistory(user.raw);
+    const hikerTypeEl = document.getElementById('profileModalHikerType');
+    if (!history.total) {
+      hikerTypeEl.textContent = 'No hikes yet';
+    } else {
+      const firstMonth = monthLabelOf(history.first);
+      hikerTypeEl.innerHTML = `<span class="hiker-type ${history.total > 1 ? 'is-repeat' : 'is-first'}">${history.total > 1 ? 'Repeat hiker' : 'First-timer'}</span>`
+        + ` ${escapeHtml(`${history.total} hike${history.total === 1 ? '' : 's'}${firstMonth ? ` · first in ${firstMonth}` : ''}`)}`;
+    }
 
     // Guides: their evaluation QR code and link, when saved.
     const isGuide = user.role.toLowerCase() === 'guide';
@@ -5013,6 +5052,25 @@
     });
   };
 
+  /* ---- First-timer or repeat hiker ----
+     From Start Hike in the PeakPath app (users/{uid}.hikeStarts.{m2026_10}
+     .count): their hikes on Mount Makiling in all, and the month of the
+     first. One hike in all is a first-timer; more, a repeat hiker. Hikes
+     from before they used PeakPath are not known. */
+  const hikeHistory = (raw) => {
+    const months = Object.entries(raw?.hikeStarts || {})
+      .filter(([monthKey, value]) => /^m\d{4}_\d{2}$/.test(monthKey) && Number(value?.count) > 0)
+      .sort(([a], [b]) => a.localeCompare(b));
+    return {
+      total: months.reduce((sum, [, value]) => sum + Number(value.count), 0),
+      first: months[0]?.[0] || null
+    };
+  };
+  const monthLabelOf = (monthKey) => {
+    const [, y, m] = /^m(\d{4})_(\d{2})$/.exec(monthKey || '') || [];
+    return y ? new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
+  };
+
   /* ---- Hiker Analytics (monthly) ----
      The hikers of one month: every user with hikeStarts.{month}.count above
      0 (Start Hike in the app), described by
@@ -5147,6 +5205,7 @@
     const filipinos = hikers.filter((user) => isFilipino(user.raw?.nationality)).length;
     document.getElementById('hikerAnalyticsStats').innerHTML = `
       <div class="ha-stat"><strong>${total.toLocaleString()}</strong><span>Total hikers</span><small>${escapeHtml(change)}</small></div>
+      <div class="ha-stat"><strong>${hikers.filter((user) => hikeHistory(user.raw).first === key).length.toLocaleString()}</strong><span>First-time hikers</span><small>First hike on Mount Makiling this month</small></div>
       <div class="ha-stat"><strong>${hikes.toLocaleString()}</strong><span>Hikes started</span><small>${total ? `${(hikes / total).toFixed(1)} per hiker` : '—'}</small></div>
       <div class="ha-stat"><strong>${(total - filipinos).toLocaleString()}</strong><span>Foreign or unstated nationality</span><small>${filipinos} Filipino</small></div>`;
 
@@ -5182,14 +5241,24 @@
     const nationalityItems = withColours(ranked(nationalities), { Filipino: HA_SLOTS[0] });
     const provinceItems = withColours(ranked(provinces));
 
+    // First-time: the month is their first on Mount Makiling (no hikes
+    // before it). Repeat: they had hiked in an earlier month.
+    const firstTimers = hikers.filter((user) => hikeHistory(user.raw).first === key).length;
+    const visitItems = [
+      { label: 'First-time', value: firstTimers, color: HA_SLOTS[0][0], exportColor: HA_SLOTS[0][1] },
+      { label: 'Repeat', value: total - firstTimers, color: HA_SLOTS[1][0], exportColor: HA_SLOTS[1][1] }
+    ];
+
     document.getElementById('hikerAnalyticsGender').innerHTML = donutHtml(genderItems, total);
     document.getElementById('hikerAnalyticsAge').innerHTML = columnsHtml(ageRows, total);
     document.getElementById('hikerAnalyticsNationality').innerHTML = donutHtml(nationalityItems, total);
     document.getElementById('hikerAnalyticsProvince').innerHTML = donutHtml(provinceItems, total);
+    document.getElementById('hikerAnalyticsVisits').innerHTML = donutHtml(visitItems, total);
 
     hikerReport = {
       monthLabel, key, total, hikes, change, filipinos,
-      gender: genderItems, age: ageRows, nationality: nationalityItems, province: provinceItems
+      gender: genderItems, age: ageRows, nationality: nationalityItems, province: provinceItems,
+      visits: visitItems, firstTimers
     };
   };
   hikerAnalyticsMonth.addEventListener('change', renderHikerAnalytics);
@@ -5226,6 +5295,8 @@
                 ['Total hikers', r.total],
                 ['Hikes started', r.hikes],
                 ['Hikes per hiker', r.total ? (r.hikes / r.total).toFixed(1) : '—'],
+                ['First-time hikers', r.firstTimers],
+                ['Repeat hikers', r.total - r.firstTimers],
                 ['Filipino', r.filipinos],
                 ['Foreign or unstated nationality', r.total - r.filipinos],
                 ['Compared with the month before', r.change]
@@ -5240,7 +5311,8 @@
               chart: r.total ? { type: 'bar', title: 'Hikers by age bracket', items: r.age.map(([label, value]) => ({ label, value })), color: '#2f8f4e' } : null
             },
             { title: 'Nationality', headers: ['Nationality', 'Hikers', 'Share'], rows: tableRows(r.nationality), chart: r.total ? donut('Hikers by nationality', r.nationality) : null },
-            { title: 'Province (Address)', note: 'Hikers from abroad give where they are staying in the Philippines.', headers: ['Province', 'Hikers', 'Share'], rows: tableRows(r.province), chart: r.total ? donut('Hikers by province', r.province) : null }
+            { title: 'Province (Address)', note: 'Hikers from abroad give where they are staying in the Philippines.', headers: ['Province', 'Hikers', 'Share'], rows: tableRows(r.province), chart: r.total ? donut('Hikers by province', r.province) : null },
+            { title: 'First-time vs Repeat Hikers', note: 'First-time: their first hike on Mount Makiling (Start Hike in the PeakPath app) was this month. Repeat: they had hiked in an earlier month. Hikes from before they used PeakPath are not known.', headers: ['Hikers', 'Count', 'Share'], rows: tableRows(r.visits), chart: r.total ? donut('First-time vs repeat hikers', r.visits) : null }
           ]
         };
       }

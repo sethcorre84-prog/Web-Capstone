@@ -2,12 +2,16 @@
 // Trail Management > Trail Details > Fees & Payments: what a hike on the
 // selected trail costs, as a list the admin edits, saved on the trail as
 // trails/{id}.Fees, an array of
-//   { label, unit, min, max, groupSize, note, inEstimate }
+//   { label, unit, min, max, groupSize, extraPerHead, note, inEstimate }
 //     unit        'head' | 'group' | 'groupNight' | 'night' | 'flat'
 //     min / max   pesos; max empty for a single amount, both empty when the
 //                 amount is not published (shown as "Not published")
 //     groupSize   for per-group fees: how many hikers one group covers
-//                 (a ₱1,200 guide for up to 5), used by the estimate
+//                 (a ₱1,500 guide for up to 5), used by the estimate
+//     extraPerHead  for per-group fees: pesos for each hiker past
+//                 groupSize, instead of another whole group (the guide:
+//                 ₱1,500 for up to 5, then ₱300 per extra hiker, so 6
+//                 hikers pay ₱1,800)
 //     inEstimate  counted in "Estimated cost for N hikers" (off for
 //                 discounts and optional extras such as camping)
 //
@@ -30,12 +34,17 @@ const UNITS = {
   flat: 'flat fee'
 };
 
+// The guide, on every trail: ₱1,500 for a group of up to 5 hikers, and ₱300
+// for each hiker after that (on top of each hiker's entrance fee).
+const GUIDE_NOTE = '₱1,500 for up to 5 hikers, plus ₱300 for each hiker after the 5th.';
+const GUIDE_FEE = { label: 'Tour guide', unit: 'group', min: 1500, max: null, groupSize: 5, extraPerHead: 300, inEstimate: true };
+
 // Registration at Station 1 (UPLB) and the mandatory guide: what every trail
 // starting on the UPLB side shares.
 const STATION1_FEES = (where) => [
   { label: 'Entrance fee (regular)', unit: 'head', min: 40, max: null, note: `${where} Field reports, 2025–2026; the last official MCME notice (2019) lists ₱25. Confirm at Station 1.`, inEstimate: true },
   { label: 'Entrance fee (students, seniors & PWD)', unit: 'head', min: 30, max: null, note: 'Discounted rate with a valid ID; replaces the regular fee.', inEstimate: false },
-  { label: 'Tour guide', unit: 'group', min: 1200, max: null, groupSize: 5, note: 'Mandatory (UPLB MCME): one guide per group of up to 5.', inEstimate: true }
+  { ...GUIDE_FEE, note: `Mandatory (UPLB MCME). ${GUIDE_NOTE}` }
 ];
 
 const SUGGESTED = {
@@ -49,35 +58,57 @@ const SUGGESTED = {
   mariang: [
     { label: 'Entrance fee (regular)', unit: 'head', min: 40, max: null, note: 'Some reports range from ₱10 to ₱60.', inEstimate: true },
     { label: 'Entrance fee (students & seniors)', unit: 'head', min: 30, max: null, note: 'Discounted rate; replaces the regular fee.', inEstimate: false },
-    { label: 'Tour guide', unit: 'group', min: 1200, max: null, groupSize: 5, note: 'Per group of up to 5. Mandatory for Peak 2 (summit).', inEstimate: true },
+    { ...GUIDE_FEE, note: `Mandatory for Peak 2 (summit). ${GUIDE_NOTE}` },
     { label: 'Camping', unit: 'groupNight', min: 500, max: null, note: 'Tayabak (Station 9) and Malaboo (Station 13).', inEstimate: false }
   ],
   sipit: [
     { label: 'Entrance fee', unit: 'head', min: 40, max: null, inEstimate: true },
-    { label: 'Tour guide', unit: 'group', min: 1500, max: null, groupSize: 7, note: 'One guide per group of up to 7: 8–14 hikers need 2 guides (₱3,000), 15–21 need 3 (₱4,500).', inEstimate: true },
+    { ...GUIDE_FEE, note: GUIDE_NOTE },
     { label: 'Camping (Melkas Campsite)', unit: 'groupNight', min: null, max: null, note: 'Fee not published.', inEstimate: false }
   ],
   traverse: [
     { label: 'Sto. Tomas side entrance fee', unit: 'head', min: 40, max: null, note: 'Same as the Sipit Trail side.', inEstimate: true },
     { label: 'UPLB exit fee', unit: 'head', min: null, max: null, note: 'Amount not published.', inEstimate: false },
-    { label: 'Tour guide', unit: 'group', min: 1500, max: null, groupSize: 7, note: 'Same as the Sipit Trail side (one guide per group of up to 7), plus the guide\'s fare back to Sto. Tomas.', inEstimate: true }
+    { ...GUIDE_FEE, note: `${GUIDE_NOTE} Plus the guide's fare back to Sto. Tomas.` }
   ]
 };
 
 /* Published fees that SUGGESTED has since replaced. A trail still holding one
-   of these exactly (filled in by an earlier seedSuggestedFees and not edited
-   since) is given the current ones. */
+   of these sets exactly (filled in by an earlier seedSuggestedFees and not
+   edited since) is given the current ones. */
+const OLD_STATION1 = (where) => [
+  { label: 'Entrance fee (regular)', unit: 'head', min: 40, max: null, note: `${where} Field reports, 2025–2026; the last official MCME notice (2019) lists ₱25. Confirm at Station 1.`, inEstimate: true },
+  { label: 'Entrance fee (students, seniors & PWD)', unit: 'head', min: 30, max: null, note: 'Discounted rate with a valid ID; replaces the regular fee.', inEstimate: false },
+  { label: 'Tour guide', unit: 'group', min: 1200, max: null, groupSize: 5, note: 'Mandatory (UPLB MCME): one guide per group of up to 5.', inEstimate: true }
+];
 const REPLACED = {
-  sipit: [
+  mudspring: [OLD_STATION1('Side trip of the Mariang Makiling Trail (Station 8); registered at Station 1.')],
+  flatrocks: [OLD_STATION1('Side trip of the Mariang Makiling Trail near the trailhead; registered at Station 1.')],
+  standard: [OLD_STATION1('Standard Mount Makiling Forest Reserve rates (UPLB MCME); confirm the rate for this trail.')],
+  mariang: [[
+    { label: 'Entrance fee (regular)', unit: 'head', min: 40, max: null, note: 'Some reports range from ₱10 to ₱60.', inEstimate: true },
+    { label: 'Entrance fee (students & seniors)', unit: 'head', min: 30, max: null, note: 'Discounted rate; replaces the regular fee.', inEstimate: false },
+    { label: 'Tour guide', unit: 'group', min: 1200, max: null, groupSize: 5, note: 'Per group of up to 5. Mandatory for Peak 2 (summit).', inEstimate: true },
+    { label: 'Camping', unit: 'groupNight', min: 500, max: null, note: 'Tayabak (Station 9) and Malaboo (Station 13).', inEstimate: false }
+  ]],
+  sipit: [[
+    { label: 'Entrance fee', unit: 'head', min: 40, max: null, inEstimate: true },
+    { label: 'Tour guide', unit: 'group', min: 1500, max: null, groupSize: 7, note: 'One guide per group of up to 7: 8–14 hikers need 2 guides (₱3,000), 15–21 need 3 (₱4,500).', inEstimate: true },
+    { label: 'Camping (Melkas Campsite)', unit: 'groupNight', min: null, max: null, note: 'Fee not published.', inEstimate: false }
+  ], [
     { label: 'Total budget (entrance & fees)', unit: 'head', min: 300, max: 550, note: 'Older data, unconfirmed.', inEstimate: true },
     { label: 'Tour guide', unit: 'group', min: 500, max: 800, note: 'Negotiable (older data).', inEstimate: true },
     { label: 'Camping (Melkas Campsite)', unit: 'groupNight', min: null, max: null, note: 'Fee not published.', inEstimate: false }
-  ],
-  traverse: [
+  ]],
+  traverse: [[
+    { label: 'Sto. Tomas side entrance fee', unit: 'head', min: 40, max: null, note: 'Same as the Sipit Trail side.', inEstimate: true },
+    { label: 'UPLB exit fee', unit: 'head', min: null, max: null, note: 'Amount not published.', inEstimate: false },
+    { label: 'Tour guide', unit: 'group', min: 1500, max: null, groupSize: 7, note: 'Same as the Sipit Trail side (one guide per group of up to 7), plus the guide\'s fare back to Sto. Tomas.', inEstimate: true }
+  ], [
     { label: 'Sto. Tomas side fees', unit: 'head', min: 300, max: 550, note: 'Same as the Sipit Trail side.', inEstimate: true },
     { label: 'UPLB exit fee', unit: 'head', min: null, max: null, note: 'Amount not published.', inEstimate: false },
     { label: 'Tour guide', unit: 'group', min: 500, max: 800, note: 'Same as the Sto. Tomas side, plus the guide\'s fare back to Sto. Tomas.', inEstimate: true }
-  ]
+  ]]
 };
 
 /* Which suggested set a trail gets: its line's key (mariang, sipit,
@@ -119,7 +150,8 @@ const CSS = `
   padding:8px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; }
 .tf-edit-row input, .tf-edit-row select { width:100%; min-width:0; padding:6px 7px; border:1px solid var(--border); border-radius:6px;
   font:inherit; font-size:12.5px; background:var(--dm-surface-2, #fbfcfa); color:var(--text-primary); box-sizing:border-box; }
-.tf-edit-row .tf-note { grid-column:1 / 5; }
+.tf-edit-row .tf-note { grid-column:1 / 4; }
+.tf-edit-row .tf-extra { grid-column:4 / 5; }
 .tf-edit-row .tf-in { grid-column:5 / 7; display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-secondary); }
 .tf-edit-row .tf-in input { width:auto; }
 .tf-remove { width:30px; height:30px; border:0; border-radius:6px; background:none; color:var(--danger, #c8402f); cursor:pointer; }
@@ -166,13 +198,15 @@ const cleanFees = (fees) => (Array.isArray(fees) ? fees : []).map((fee) => ({
   min: num(fee?.min),
   max: num(fee?.max),
   groupSize: num(fee?.groupSize),
+  extraPerHead: num(fee?.extraPerHead),
   note: String(fee?.note || '').trim(),
   inEstimate: fee?.inEstimate !== false
 })).filter((fee) => fee.label);
 
 /* The cost for `hikers` people: per-head fees times the hikers, per-group
-   fees once per group (groupSize hikers each, one group when not set), flat
-   fees once. Per-night fees are left out: they depend on the stay. `groups`
+   fees once per group (groupSize hikers each, one group when not set) --
+   or, with extraPerHead, once plus that much for each hiker past groupSize
+   (the guide: 6 hikers pay ₱1,500 + ₱300) -- flat fees once. Per-night fees are left out: they depend on the stay. `groups`
    names how many of each sized per-group fee that takes ("2 × Tour guide"
    for 8–14 hikers on a guide for up to 7). */
 function estimate(fees, hikers) {
@@ -185,6 +219,15 @@ function estimate(fees, hikers) {
     const min = num(fee.min);
     const max = num(fee.max);
     if (min === null && max === null) return;
+    const extra = num(fee.extraPerHead);
+    if (fee.unit === 'group' && fee.groupSize && extra !== null) {
+      const over = Math.max(0, hikers - fee.groupSize);
+      counted += 1;
+      low += (min ?? max) + over * extra;
+      high += (max ?? min) + over * extra;
+      if (over) groups.push(`${fee.label}: ${peso(min ?? max)} + ${over} × ${peso(extra)}`);
+      return;
+    }
     let times = 0;
     if (fee.unit === 'head') times = hikers;
     else if (fee.unit === 'group') times = fee.groupSize ? Math.ceil(hikers / fee.groupSize) : 1;
@@ -206,6 +249,8 @@ const toSaved = (fee) => ({
   min: fee.min,
   max: fee.max !== null && fee.max !== fee.min ? fee.max : null,
   groupSize: fee.unit === 'group' ? fee.groupSize : null,
+  // Only beside a group size it applies to.
+  extraPerHead: fee.unit === 'group' && fee.groupSize ? fee.extraPerHead : null,
   note: fee.note,
   inEstimate: fee.inEstimate
 });
@@ -219,8 +264,8 @@ const toSaved = (fee) => ({
    next editor to open the page fills them in. */
 const savedFees = (fees) => JSON.stringify(cleanFees(fees).map(toSaved));
 const outdated = (trail) => {
-  const replaced = REPLACED[suggestedKeyFor(trail)];
-  return Boolean(replaced) && savedFees(trail.Fees) === savedFees(replaced);
+  const saved = savedFees(trail.Fees);
+  return (REPLACED[suggestedKeyFor(trail)] || []).some((set) => saved === savedFees(set));
 };
 let seedTried = false;
 export async function seedSuggestedFees(db, trails) {
@@ -229,15 +274,26 @@ export async function seedSuggestedFees(db, trails) {
   for (const trail of trails) {
     const key = suggestedKeyFor(trail);
     const fill = !('Fees' in trail) || outdated(trail);
+    // A saved guide fee from before the ₱300-per-extra-hiker rule (any per-
+    // group "guide" fee without it): given the rule, the rest left as is.
+    const fees = cleanFees(trail.Fees);
+    const oldGuide = (fee) => fee.unit === 'group' && /guide/i.test(fee.label) && fee.extraPerHead === null;
+    const guideFix = !fill && fees.some(oldGuide);
     // Source links saved by an earlier version are no longer shown: removed.
     const hasSources = 'FeesSources' in trail;
-    if (!fill && !hasSources) continue;
+    if (!fill && !guideFix && !hasSources) continue;
     try {
       await updateDocDirect(doc(db, 'trails', trail.id), {
         ...(fill ? {
           Fees: cleanFees(SUGGESTED[key]).map(toSaved),
           FeesUpdatedAt: serverTimestamp(),
           FeesSource: 'published'
+        } : {}),
+        ...(guideFix ? {
+          Fees: fees.map((fee) => (oldGuide(fee)
+            ? { ...fee, min: GUIDE_FEE.min, max: null, groupSize: GUIDE_FEE.groupSize, extraPerHead: GUIDE_FEE.extraPerHead, note: GUIDE_NOTE }
+            : fee)).map(toSaved),
+          FeesUpdatedAt: serverTimestamp()
         } : {}),
         ...(hasSources ? { FeesSources: deleteField() } : {})
       });
@@ -277,7 +333,8 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
         <div class="tf-row">
           <div><strong>${escapeHtml(fee.label)}</strong>${fee.note ? `<small>${escapeHtml(fee.note)}</small>` : ''}</div>
           <div class="tf-amount${num(fee.min) === null && num(fee.max) === null ? ' is-none' : ''}">${escapeHtml(amountText(fee))}
-            <small>${escapeHtml(UNITS[fee.unit])}${fee.unit === 'group' && fee.groupSize ? ` (up to ${fee.groupSize})` : ''}</small></div>
+            <small>${escapeHtml(UNITS[fee.unit])}${fee.unit === 'group' && fee.groupSize ? ` (up to ${fee.groupSize})` : ''}</small>
+            ${fee.unit === 'group' && fee.groupSize && num(fee.extraPerHead) !== null ? `<small>+ ${escapeHtml(peso(fee.extraPerHead))} per extra hiker</small>` : ''}</div>
         </div>`).join('')}
       </div>
       ${counted ? `<div class="tf-estimate">
@@ -327,6 +384,7 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
       <input class="tf-group" type="number" min="1" step="1" placeholder="—" value="${num(fee.groupSize) ?? ''}" aria-label="Hikers per group (per-group fees)" title="Hikers per group, for per-group fees">
       <button type="button" class="tf-remove" title="Remove this fee" aria-label="Remove this fee"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button>
       <input class="tf-note" type="text" maxlength="160" placeholder="Note (optional), e.g. Mandatory for Peak 2" value="${escapeHtml(fee.note || '')}" aria-label="Note">
+      <input class="tf-extra" type="number" min="0" step="1" placeholder="+₱ extra" value="${num(fee.extraPerHead) ?? ''}" aria-label="Pesos for each hiker past the group size (per-group fees)" title="Per-group fees: pesos for each hiker past the group size (e.g. ₱300 after 5). Empty: another whole group instead.">
       <label class="tf-in"><input class="tf-in-box" type="checkbox"${fee.inEstimate === false ? '' : ' checked'}> In estimate</label>
     </div>`;
 
@@ -336,6 +394,7 @@ export function initTrailFees({ db, getSelected, container, editButton, canEdit 
     min: num(row.querySelector('.tf-min').value),
     max: num(row.querySelector('.tf-max').value),
     groupSize: num(row.querySelector('.tf-group').value),
+    extraPerHead: num(row.querySelector('.tf-extra').value),
     note: row.querySelector('.tf-note').value.trim(),
     inEstimate: row.querySelector('.tf-in-box').checked
   }));

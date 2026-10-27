@@ -458,6 +458,13 @@
         }
 
         /* ---- Trail Status Overview: photo, name, distance, status ---- */
+        /* Five trails show; the rest scroll (max-height set from the rows in
+           fitTrailStatusList). */
+        #trailStatusList {
+            overflow-y: auto;
+            scrollbar-width: thin;
+            overscroll-behavior: contain;
+        }
         .trail-row {
             gap: 10px;
         }
@@ -1317,7 +1324,6 @@
                                 <option value="quarter">Last 3 Months</option>
                                 <option value="year">This Year</option>
                             </select>
-                            <a class="card-link" href="hazardreport.html">Download reports</a>
                         </div>
                     </div>
                     <div class="bar-chart" id="hazardTrends"><div class="empty-state"><span>Loading hazard trends...</span></div></div>
@@ -1516,7 +1522,7 @@
             container.innerHTML = `
                 <div class="bar-legend">Number of Reports · ${total} total${change}</div>
                 <div class="bars">${bars.map(([type, value]) => `
-                    <a class="bar-col" href="${reportsLink(type)}"${tipFor(type, value)} aria-label="${escapeHtml(type)}: ${value} report${value === 1 ? '' : 's'}. Download reports">
+                    <a class="bar-col" href="${reportsLink(type)}"${tipFor(type, value)} aria-label="${escapeHtml(type)}: ${value} report${value === 1 ? '' : 's'}. View in Hazard Reports">
                         <span class="bar-value">${value}</span>
                         <span class="bar" style="height:${Math.max(4, (value / max) * 100)}%"></span>
                     </a>`).join('')}
@@ -1655,7 +1661,23 @@
                     </li>`;
                 }).join('')
                 : '<li class="pill-item"><span>No trails found.</span></li>';
+            fitTrailStatusList();
         }
+
+        // As tall as the first five trails; scrolls when there are more.
+        const TRAIL_STATUS_VISIBLE = 5;
+        function fitTrailStatusList() {
+            const list = document.getElementById('trailStatusList');
+            const rows = list.children;
+            if (rows.length <= TRAIL_STATUS_VISIBLE) {
+                list.style.maxHeight = '';
+                return;
+            }
+            const top = rows[0].getBoundingClientRect().top;
+            const fifth = rows[TRAIL_STATUS_VISIBLE - 1].getBoundingClientRect().bottom;
+            list.style.maxHeight = `${Math.ceil(fifth - top)}px`;
+        }
+        window.addEventListener('resize', fitTrailStatusList);
 
         /* Visitors come from Start Hike in the PeakPath app: each start adds
            to the hiker's own users/{uid}.hikeStarts.{m2026_10} =

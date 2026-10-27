@@ -1770,7 +1770,7 @@ import {
   onSnapshot,
   doc,
   updateDoc,
-  addDoc,
+  setDoc,
   deleteDoc,
   deleteField,
   serverTimestamp
@@ -1784,7 +1784,7 @@ import { initTrailPoints, openSuggestedCheckpointsDialog } from "../jsPages/trai
 import { initTrailRoutes } from "../jsPages/trail-routes.js";
 import { initTrailFees, seedSuggestedFees } from "../jsPages/trail-fees.js";
 import { countMapPoints } from "../jsPages/map-features.js";
-import { initStationsPanel } from "../jsPages/trail-stations.js";
+import { initStationsPanel, REFERENCE_STATIONS, STATION_COORDS } from "../jsPages/trail-stations.js";
 import { initStationEditor } from "../jsPages/trail-station-editor.js";
 
 const makilingCenter = [14.136, 121.197];
@@ -2305,7 +2305,73 @@ function mappedRouteFor(name, excludeId = null) {
   const key = trailNameKey(name);
   if (!key) return null;
   const match = trails.find((other) => other.id !== excludeId && validRoute(other.route) && trailNameKey(other.Trail) === key);
-  return match ? { route: match.route, routeSource: match.routeSource || 'drawn', from: match.Trail } : null;
+  if (match) return { route: match.route, routeSource: match.routeSource || 'drawn', from: match.Trail };
+  return tracedRouteFor(name, excludeId);
+}
+
+/* A trail named after a place already on the map -- a station landmark
+   (Agila Base, Melkas Campsite...), a checkpoint or campsite pinned on a
+   trail, or a peak -- is traced: it follows that trail's line from its
+   start up to the place, and no route has to be drawn or imported.
+   "Agila Base Trail" -> the Mariang Makiling Trail from the trailhead to
+   Agila Base. Names match as above, and also with a word left off ("Agila
+   Trail" finds Agila Base). */
+const placeKey = (name) => trailNameKey(String(name || '').replace(/^\s*station\s*\d+\s*[·:-]?\s*/i, ''));
+function namedPlaces() {
+  const places = [];
+  const docFor = (lineKey) => trails.find((t) => trailLineKey(t.Trail) === lineKey);
+  // The reference stations' landmarks, on the Mariang Makiling and Sipit lines.
+  Object.entries(REFERENCE_STATIONS).forEach(([lineKey, ref]) => {
+    Object.entries(ref.stations).forEach(([n, info]) => {
+      const at = STATION_COORDS[lineKey]?.[n];
+      if (info.landmark && at) places.push({ name: info.landmark, at, trail: docFor(lineKey), lineKey });
+    });
+  });
+  // Checkpoints and campsites pinned on each trail.
+  trails.forEach((trail) => {
+    [...(trail.checkpoints || []), ...(trail.campsites || [])].forEach((point) => {
+      const lat = Number(point?.lat), lng = Number(point?.lng);
+      if (point?.name && Number.isFinite(lat) && Number.isFinite(lng)) {
+        places.push({ name: point.name, at: [lat, lng], trail, lineKey: lineKeyFor(trail) });
+      }
+    });
+  });
+  return places;
+}
+function tracedRouteFor(name, excludeId = null) {
+  const key = trailNameKey(name);
+  if (!key || !trailLines) return null;
+  const words = key.split(' ');
+  const matches = (place) => {
+    const placeWords = placeKey(place.name).split(' ').filter(Boolean);
+    if (!placeWords.length) return false;
+    if (placeWords.join(' ') === key) return true;
+    // A word left off: every word of the name is in the place's name.
+    return key.length >= 4 && words.every((word) => placeWords.includes(word));
+  };
+  const place = namedPlaces().find((p) => p.trail?.id !== excludeId && matches(p));
+  if (!place) return null;
+  const line = trailLines.lines.get((place.trail && lineKeyFor(place.trail)) || place.lineKey);
+  const latLngs = line?.stroke.getLatLngs().flat(Infinity);
+  if (!latLngs?.length) return null;
+  // From the start of the line to the vertex nearest the place, then the
+  // place itself.
+  const target = L.latLng(place.at);
+  let nearest = 0;
+  latLngs.forEach((point, i) => {
+    if (point.distanceTo(target) < latLngs[nearest].distanceTo(target)) nearest = i;
+  });
+  if (latLngs[nearest].distanceTo(target) > 150) return null; // not on this line
+  const traced = latLngs.slice(0, nearest + 1);
+  if (traced[traced.length - 1].distanceTo(target) > 3) traced.push(target);
+  if (traced.length < 2) return null;
+  return {
+    route: traced.map((p) => ({ lat: Number(p.lat.toFixed(6)), lng: Number(p.lng.toFixed(6)) })),
+    routeSource: 'traced',
+    from: place.trail?.Trail || line.name || 'the trail',
+    place: place.name,
+    traced: true
+  };
 }
 
 async function registerThroughRoute(trail) {
@@ -2795,7 +2861,8 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     // Unregistered and registered once its route is saved (below) -- unless
     // the same trail is already on the map, whose route it then uses.
     const wantsRegistered = entryTypeLabel(document.getElementById('newTrailEntryType').value) === 'Registered Trail';
-    const mapped = wantsRegistered && !trailLineKey(name) ? mappedRouteFor(name) : null;
+    const mapped = trailLineKey(name) ? null
+      : (wantsRegistered ? mappedRouteFor(name) : tracedRouteFor(name));
 
     const newTrail = {
     Trail: name,
@@ -2816,18 +2883,39 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     StatusUpdatedAt: serverTimestamp()
   };
 
+  /* Quick: the trail goes into the list as soon as Add Trail is clicked
+     (Firestore shows a write on this page at once and sends it on), rather
+     than after the server has answered and the photo has uploaded. The
+     photo then uploads in the background; a failure is reported. */
+  const addBtn = document.getElementById('submitAddTrail');
+  if (addBtn.disabled) return;
+  addBtn.disabled = true;
   try {
-    const docRef = await addDoc(collection(db, "trails"), newTrail);
+    const docRef = doc(collection(db, "trails"));
+    const saved = setDoc(docRef, newTrail);
+    saved.catch((err) => {
+      console.error(err);
+      if (selectedId === docRef.id) selectedId = null;
+      showNotice(`${name} could not be added: ${err.message}`, { title: 'Not added', tone: 'error' });
+    });
     const photoFile = photoInput.files[0];
     if (photoFile) {
-      const safeName = photoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const imagePath = `trails/${docRef.id}/${Date.now()}-${safeName}`;
-      const imageRef = ref(storage, imagePath);
-      await uploadBytes(imageRef, photoFile, { contentType: photoFile.type });
-      await updateDoc(docRef, { imageUrl: await getDownloadURL(imageRef), imagePath });
+      (async () => {
+        await saved;
+        const safeName = photoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const imagePath = `trails/${docRef.id}/${Date.now()}-${safeName}`;
+        const imageRef = ref(storage, imagePath);
+        await uploadBytes(imageRef, photoFile, { contentType: photoFile.type });
+        await updateDoc(docRef, { imageUrl: await getDownloadURL(imageRef), imagePath });
+      })().catch((err) => {
+        console.error(err);
+        showNotice(`${name} was added, but its photo could not be uploaded: ${err.message}. Add it with Edit Trail Information.`,
+          { title: 'Photo not added', tone: 'warning' });
+      });
     }
     selectedId = docRef.id;
     addTrailModal.style.display = 'none';
+    addBtn.disabled = false;
 
         // Reset the form for next time
     document.getElementById('newTrailName').value = '';
@@ -2839,6 +2927,10 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     document.getElementById('newTrailPublishDate').value = '';
     photoInput.value = '';
     resetPhotoPicker();
+    if (mapped?.traced) {
+      showNotice(`${name} follows ${mapped.from} from its start up to ${mapped.place}, and is highlighted on the map.`,
+        { title: 'Route has been traced', tone: 'info' });
+    }
     if (wantsRegistered && !mapped) {
       const added = { id: docRef.id, ...newTrail };
       if (!needsRouteToRegister(added, 'Registered Trail')) await updateDoc(docRef, { EntryType: 'Registered Trail' });
@@ -2855,6 +2947,8 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
   } catch (err) {
     console.error(err);
     showNotice(`The trail could not be added: ${err.message}`, { title: 'Not added', tone: 'error' });
+  } finally {
+    addBtn.disabled = false;
   }
 });
 
