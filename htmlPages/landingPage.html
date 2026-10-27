@@ -166,9 +166,10 @@
             background: #fff;
         }
         #qrCode { width: 210px; height: 210px; }
-        /* qrcodejs draws a canvas and copies it to an img: show the img. */
-        #qrCode canvas { display: none !important; }
-        #qrCode img { display: block !important; width: 210px !important; height: 210px !important; }
+        /* qrcodejs draws a canvas and copies it to an img (late, or not at
+           all on Android): show the canvas. */
+        #qrCode img { display: none !important; }
+        #qrCode canvas { display: block !important; width: 210px !important; height: 210px !important; }
         /* The logo in the middle (the code has high error correction). */
         .qr-logo {
             position: absolute;
@@ -362,7 +363,7 @@
                     <div id="qrCode" role="img" aria-label="QR code that opens the PeakPath Android download"></div>
                     <span class="qr-logo" aria-hidden="true"><img src="../assets/images/logo.png" alt=""></span>
                 </div>
-                <div class="apk-meta" id="apkMeta">PeakPath for Android · version __APK_VERSION__ · __APK_SIZE__</div>
+                <div class="apk-meta" id="apkMeta">PeakPath for Android · version 1.0.0 · 67.6 MB · updated Oct 27, 2026</div>
 
                 <!-- On an Android phone: the download. Anywhere else: why not. -->
                 <div class="qr-actions" id="androidActions" hidden>
