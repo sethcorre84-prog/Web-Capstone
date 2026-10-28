@@ -332,10 +332,12 @@ function createAddTrailModal() {
       const photoFile = photoInput.files[0];
       if (photoFile) {
         saveBtn.textContent = 'Uploading photo…';
+        // trailPicture/{trailId}-{time}-{file}, as Trail Management saves it.
         const safeName = photoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const imageRef = storageRef(storage, `trails/${docRef.id}/${Date.now()}-${safeName}`);
+        const imagePath = `trailPicture/${docRef.id}-${Date.now()}-${safeName}`;
+        const imageRef = storageRef(storage, imagePath);
         await uploadBytes(imageRef, photoFile, { contentType: photoFile.type });
-        await updateDoc(docRef, { imageUrl: await getDownloadURL(imageRef) });
+        await updateDoc(docRef, { imageUrl: await getDownloadURL(imageRef), imagePath });
       }
       saving = false;
       modal.close();

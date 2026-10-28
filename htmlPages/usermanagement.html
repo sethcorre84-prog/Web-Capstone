@@ -1311,6 +1311,15 @@
         align-items: start;
     }
     /* Guide Evaluation (Add User, Role = Guide): the QR code beside the link. */
+    .field-optional {
+        margin-left: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: normal;
+        color: var(--text-muted);
+    }
+    #addUserEmergencyField[hidden],
     .guide-eval[hidden],
     #addUserGuideTrailField[hidden] {
         display: none;
@@ -1716,6 +1725,13 @@
         display: flex;
         gap: 10px;
         min-width: 0;
+    }
+    .profile-info[hidden] {
+        display: none;
+    }
+    .profile-modal-value a {
+        color: var(--accent-dark, #1f6b39);
+        font-weight: 600;
     }
 
     .profile-info .info-icon {
@@ -2767,6 +2783,18 @@
       <p id="addUserPhoneHint" class="field-hint verify-status">Philippine mobile number only (+63). Send a code to it, then enter the code the user receives by SMS.</p>
       <div id="addUserRecaptcha"></div>
     </div>
+    <!-- Hikers only (hidden for a Guide): who to call if something happens
+         on the trail. Saved on the profile as emergencyContactName /
+         emergencyContactPhone, and emergencyContact ("Name · 09...") for
+         the pages that show it. -->
+    <div class="field" id="addUserEmergencyField">
+      <label for="addUserEmergencyName">Emergency contact <span class="field-optional">for hikers</span></label>
+      <div class="field-pair">
+        <input id="addUserEmergencyName" name="emergencyContactName" type="text" maxlength="80" autocomplete="off" placeholder="Full name (e.g. parent, spouse)" aria-label="Emergency contact name">
+        <input id="addUserEmergencyPhone" name="emergencyContactPhone" type="tel" inputmode="tel" maxlength="17" autocomplete="off" placeholder="09XX XXX XXXX" aria-label="Emergency contact number" aria-describedby="addUserEmergencyHint">
+      </div>
+      <p id="addUserEmergencyHint" class="field-hint">Someone not on the hike, on a Philippine mobile number, who can be called in an emergency.</p>
+    </div>
     <!-- The rest of the app's Sign Up profile (sign_up_screen.dart), with the
          same choices and the same Firestore fields (signup-options.js). -->
     <div class="field-pair">
@@ -2900,6 +2928,11 @@
         <span class="info-icon"><i class="fa-solid fa-phone" aria-hidden="true"></i></span>
         <div><div class="info-label">Phone</div><div id="profileModalPhone" class="profile-modal-value">—</div></div>
       </div>
+      <!-- Hikers only: who to call (Add User's Emergency contact). -->
+      <div class="profile-info" id="profileModalEmergencyItem" hidden>
+        <span class="info-icon"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></span>
+        <div><div class="info-label">Emergency Contact</div><div id="profileModalEmergencyContact" class="profile-modal-value">—</div></div>
+      </div>
       <div class="profile-info">
         <span class="info-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
         <div><div class="info-label">Emergency Alerts</div><div id="profileModalAlertCount" class="profile-modal-value">—</div></div>
@@ -2929,7 +2962,7 @@
         <span class="info-icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
         <div><div class="info-label">Address</div><div id="profileModalAddress" class="profile-modal-value">—</div></div>
       </div>
-      <div class="profile-info">
+      <div class="profile-info" id="profileModalHikesItem" hidden>
         <span class="info-icon"><i class="fa-solid fa-person-hiking" aria-hidden="true"></i></span>
         <div><div class="info-label">Makiling Hikes</div><div id="profileModalHikerType" class="profile-modal-value">—</div></div>
       </div>
@@ -3767,6 +3800,22 @@
     document.getElementById('profileModalAddress').textContent = normalizeText(user.raw?.address)
       || [parts.street, parts.barangay, parts.city, parts.province].map(normalizeText).filter(Boolean).join(', ')
       || '—';
+    // Hikers only: their emergency contact and their Makiling hikes (a
+    // guide has neither; they lead the hikes).
+    const isHiker = user.role.toLowerCase() === 'hiker';
+    document.getElementById('profileModalEmergencyItem').hidden = !isHiker;
+    document.getElementById('profileModalHikesItem').hidden = !isHiker;
+    const contactEl = document.getElementById('profileModalEmergencyContact');
+    const contactName = normalizeText(user.raw?.emergencyContactName);
+    const contactPhone = normalizeText(user.raw?.emergencyContactPhone);
+    if (contactName || contactPhone) {
+      contactEl.innerHTML = `${escapeHtml(contactName || 'No name given')}${contactPhone
+        ? `<br><a href="tel:${escapeHtml(contactPhone)}">${escapeHtml(contactPhone)}</a>` : ''}`;
+    } else {
+      // Older profiles: the single emergencyContact text, if any.
+      contactEl.textContent = user.emergencyContact && user.emergencyContact !== '—' ? user.emergencyContact : 'Not given';
+    }
+
     // First-timer or repeat hiker, from their Start Hike history.
     const history = hikeHistory(user.raw);
     const hikerTypeEl = document.getElementById('profileModalHikerType');
@@ -4424,9 +4473,12 @@
   const isGuideRole = () => normalizeText(addUserRole.value).toLowerCase() === 'guide';
   const guideTrailField = document.getElementById('addUserGuideTrailField');
   const guideTrailSelect = document.getElementById('addUserGuideTrail');
+  const emergencyField = document.getElementById('addUserEmergencyField');
   const syncGuideEval = () => {
     guideEvalBox.hidden = !isGuideRole();
     guideTrailField.hidden = !isGuideRole();
+    // The emergency contact is the hiker's: hidden for a Guide.
+    emergencyField.hidden = isGuideRole();
   };
 
   // The major trails for "Guide from what trail?": Type "Major Trail" in
@@ -4548,6 +4600,29 @@
       addUserStatusMessage.className = 'action-status error';
       return;
     }
+    // A hiker needs an emergency contact: a name and a Philippine mobile
+    // number that isn't their own.
+    let emergencyContact = null;
+    if (!isGuideRole()) {
+      const contactName = normalizeText(formData.get('emergencyContactName'));
+      const contactPhone = parsePhilippinePhone(formData.get('emergencyContactPhone'));
+      const ownPhone = parsePhilippinePhone(formData.get('phone'));
+      const problem = !contactName ? "Enter the name of the hiker's emergency contact."
+        : !contactPhone ? "Enter the emergency contact's Philippine mobile number (09XX XXX XXXX)."
+          : ownPhone && contactPhone.e164 === ownPhone.e164 ? "The emergency contact needs a different number from the hiker's own."
+            : '';
+      if (problem) {
+        addUserStatusMessage.textContent = problem;
+        addUserStatusMessage.className = 'action-status error';
+        document.getElementById(contactName ? 'addUserEmergencyPhone' : 'addUserEmergencyName').focus();
+        return;
+      }
+      emergencyContact = {
+        emergencyContactName: contactName,
+        emergencyContactPhone: contactPhone.local,
+        emergencyContact: `${contactName} · ${contactPhone.local}`
+      };
+    }
     // A Guide needs their evaluation: the QR code or the link.
     const guideLink = isGuideRole() ? evaluationLinkOf() : '';
     const guideTrailId = isGuideRole() ? guideTrailSelect.value : '';
@@ -4634,6 +4709,8 @@
           phoneE164,
           // Gender, birthdate, address and nationality, as the app saves them.
           ...signupProfile,
+          // Hikers: their emergency contact.
+          ...(emergencyContact || {}),
           phoneLinked: true,
           phoneVerifiedAt: serverTimestamp(),
           emailVerified: false,

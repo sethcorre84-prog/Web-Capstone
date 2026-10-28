@@ -3897,10 +3897,56 @@
           <p class="rm-muted" style="margin:8px 0 0">Excel and CSV turn lists and nested details (e.g. a trail's checkpoints) into text, so only JSON keeps the data whole.</p>`
           : '<p class="rm-muted"><i class="fa-solid fa-lock" aria-hidden="true"></i> Only a Super Administrator can download a backup.</p>'}
         <p class="rm-status" id="backupStatus" role="status"></p>
-      </div>`;
+      </div>
+      ${allowed ? `
+      <div class="rm-add">
+        <div class="rm-add-title">Storage cleanup</div>
+        <p class="rm-muted" style="margin:0 0 10px">Pictures and videos are deleted from Firebase Storage when what they belong to is deleted. This finds files left behind from before that (or missed), which no record uses any more. Trail pictures, badges and the avatars hikers pick from are never touched. It also runs by itself every day at 3:00 AM.</p>
+        <button type="button" class="ghost-btn" id="sweepCheckBtn"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Check for unused files</button>
+        <div id="sweepResult" class="rm-muted" style="margin-top:10px"></div>
+      </div>` : ''}`;
 
     box.querySelectorAll('[data-backup-format]').forEach((button) => {
       button.addEventListener('click', () => downloadBackup(button.dataset.backupFormat, box));
+    });
+    bindStorageSweep(box);
+  }
+
+  /* Storage cleanup (functions sweepStorageNow): a dry run lists the files no
+     record uses; "Delete" then removes them. */
+  const callSweep = httpsCallable(getFunctions(auth.app, 'asia-southeast1'), 'sweepStorageNow', { timeout: 300000 });
+  const sizeText = (bytes) => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
+  function bindStorageSweep(box) {
+    const checkBtn = box.querySelector('#sweepCheckBtn');
+    const result = box.querySelector('#sweepResult');
+    if (!checkBtn) return;
+    checkBtn.addEventListener('click', async () => {
+      checkBtn.disabled = true;
+      result.textContent = 'Checking every record and every file… this can take a minute.';
+      try {
+        const { data } = await callSweep({ dryRun: true });
+        if (!data.count) {
+          result.textContent = 'No unused files: everything in Storage belongs to a record.';
+          return;
+        }
+        result.innerHTML = `<strong>${data.count.toLocaleString()} unused file${data.count === 1 ? '' : 's'}</strong> (${escapeHTML(sizeText(data.bytes))}) no record uses:
+          <ul style="margin:6px 0 8px;padding-left:18px;max-height:140px;overflow:auto;font-size:12px">${data.files.map((f) => `<li>${escapeHTML(f)}</li>`).join('')}${data.count > data.files.length ? `<li>…and ${data.count - data.files.length} more</li>` : ''}</ul>
+          <button type="button" class="ghost-btn" id="sweepDeleteBtn" style="color:var(--danger, #c8402f)"><i class="fa-regular fa-trash-can" aria-hidden="true"></i> Delete ${data.count === 1 ? 'it' : `these ${data.count} files`}</button>`;
+        result.querySelector('#sweepDeleteBtn').addEventListener('click', async (event) => {
+          event.target.disabled = true;
+          result.textContent = 'Deleting…';
+          try {
+            const { data: done } = await callSweep({ dryRun: false });
+            result.textContent = `Deleted ${done.count.toLocaleString()} unused file${done.count === 1 ? '' : 's'} (${sizeText(done.bytes)}).`;
+          } catch (error) {
+            result.textContent = `Could not delete them: ${error.message}`;
+          }
+        });
+      } catch (error) {
+        result.textContent = `Could not check Storage: ${error.message}`;
+      } finally {
+        checkBtn.disabled = false;
+      }
     });
   }
 

@@ -1782,6 +1782,7 @@ import { pageList, pageGap, PAGE_GAP } from "../jsPages/pagination.js";
 import { escapeHtml } from "../jsPages/utils.js";
 import { initTrailPoints, openSuggestedCheckpointsDialog } from "../jsPages/trail-points.js";
 import { initTrailRoutes } from "../jsPages/trail-routes.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 import { initTrailFees, seedSuggestedFees } from "../jsPages/trail-fees.js";
 import { countMapPoints } from "../jsPages/map-features.js";
 import { initStationsPanel, REFERENCE_STATIONS, STATION_COORDS } from "../jsPages/trail-stations.js";
@@ -1926,6 +1927,7 @@ onSnapshot(trailsCol, (snapshot) => {
   // The published fees go into Firestore for the main trails that have
   // none yet (or still hold replaced ones), for the app (trail-fees.js).
   seedSuggestedFees(db, trails);
+  moveOldTrailPhotos(trails);
   trailPoints.render(trails);
   stationFeatures.render();
   startRequestedAdd();
@@ -2451,7 +2453,7 @@ function renderDetail() {
 
 // ---- Trail photo (edit mode) ----
 /* The trail's own photo: imageUrl (its download URL) and imagePath (where it
-   is in Storage, trails/{id}/...). Changed or removed in edit mode, but only
+   is in Storage, trailPicture/{id}-...). Changed or removed in edit mode, but only
    saved with Save Changes, like the other fields; Discard drops it. A
    replaced or removed photo is deleted from Storage, and so is the folder
    of a deleted trail. Pictures in trailPicture/ (matched by trail name,
@@ -2517,23 +2519,52 @@ document.getElementById('removePhotoBtn').addEventListener('click', () => {
   updateDiscardButton();
 });
 
+/* Photos uploaded before trailPicture/ was used (trails/{id}/...) are moved
+   there by the moveTrailPhotos function, once per page load, for an admin:
+   it copies each file, points the trail at the copy and deletes the old. */
+let movedOldPhotos = false;
+function moveOldTrailPhotos(list) {
+  if (movedOldPhotos) return;
+  const old = list.filter((t) => /^trails\//.test(String(t.imagePath || ''))
+    || /\/o\/trails%2F/.test(String(t.imageUrl || '')));
+  if (!old.length) return;
+  movedOldPhotos = true;
+  httpsCallable(getFunctions(undefined, 'asia-southeast1'), 'moveTrailPhotos')()
+    .then(({ data }) => { if (data?.moved) console.info(`Moved ${data.moved} trail photo(s) to trailPicture/.`); })
+    .catch((error) => console.warn('Could not move the old trail photos:', error?.message || error));
+}
+
+/* Trail photos are uploaded to trailPicture/ as {trailId}-{time}-{file}, so
+   they never match a trail by name the way the folder's own pictures do
+   (sipitTrail.jpg, trail-images.js). Older uploads are in trails/{id}/. */
+const trailPhotoPath = (trailId, file) =>
+  `trailPicture/${trailId}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+// Only a trail's own upload may be deleted: never one of the name-matched
+// pictures in trailPicture/.
+const isUploadedTrailPhoto = (path) => path.startsWith('trails/') || /^trailPicture\/[A-Za-z0-9]{20}-\d{13}-/.test(path);
+
 /* Deletes a photo file from Storage: by its saved path, or by its download
-   URL (photos saved before imagePath existed). Only files under trails/;
+   URL (photos saved before imagePath existed). Only a trail's own upload;
    a missing file is fine. */
 async function deleteStoredPhoto(path, url) {
   try {
     const fileRef = ref(storage, path || url);
-    if (!fileRef.fullPath.startsWith('trails/')) return;
+    if (!isUploadedTrailPhoto(fileRef.fullPath)) return;
     await deleteObject(fileRef);
   } catch (error) {
     if (error?.code !== 'storage/object-not-found') console.warn('Could not delete the old trail photo:', error?.code || error);
   }
 }
 
-// Everything uploaded for a trail (its trails/{id}/ folder).
+// Everything uploaded for a trail: trailPicture/{id}-..., and the older
+// trails/{id}/ folder.
 async function deleteTrailPhotos(trailId) {
   try {
-    const { items } = await listAll(ref(storage, `trails/${trailId}`));
+    const [pictures, older] = await Promise.all([
+      listAll(ref(storage, 'trailPicture')),
+      listAll(ref(storage, `trails/${trailId}`)).catch(() => ({ items: [] }))
+    ]);
+    const items = [...pictures.items.filter((item) => item.name.startsWith(`${trailId}-`)), ...older.items];
     await Promise.all(items.map((item) => deleteObject(item).catch((error) => {
       console.warn(`Could not delete ${item.fullPath}:`, error?.code || error);
     })));
@@ -2707,13 +2738,12 @@ async function saveEdit() {
     if (mapped) Object.assign(updated, { route: mapped.route, routeSource: mapped.routeSource, routeUpdatedAt: serverTimestamp() });
   }
 
-  // The photo: a new one is uploaded first (trails/{id}/...), and the old
+  // The photo: a new one is uploaded first (trailPicture/{id}-...), and the old
   // file goes once the trail points at the new one (or at none).
   let uploadedPath = null;
   try {
     if (photoChange?.file) {
-      const safeName = photoChange.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      uploadedPath = `trails/${t.id}/${Date.now()}-${safeName}`;
+      uploadedPath = trailPhotoPath(t.id, photoChange.file);
       const imageRef = ref(storage, uploadedPath);
       await uploadBytes(imageRef, photoChange.file, { contentType: photoChange.file.type });
       updated.imageUrl = await getDownloadURL(imageRef);
@@ -2902,8 +2932,7 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     if (photoFile) {
       (async () => {
         await saved;
-        const safeName = photoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const imagePath = `trails/${docRef.id}/${Date.now()}-${safeName}`;
+        const imagePath = trailPhotoPath(docRef.id, photoFile);
         const imageRef = ref(storage, imagePath);
         await uploadBytes(imageRef, photoFile, { contentType: photoFile.type });
         await updateDoc(docRef, { imageUrl: await getDownloadURL(imageRef), imagePath });
@@ -3008,7 +3037,8 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async () =
     const deleted = trailPendingDelete;
     await deleteDoc(doc(db, "trails", deleted.id));
     if (selectedId === deleted.id) selectedId = null;
-    // Its uploaded photos (trails/{id}/), and a photo saved elsewhere.
+    // Its uploaded photos (trailPicture/{id}-..., or trails/{id}/ before),
+    // and a photo saved elsewhere.
     await deleteTrailPhotos(deleted.id);
     if (hasOwnPhoto(deleted)) await deleteStoredPhoto(deleted.imagePath, deleted.imageUrl);
   } catch (err) {

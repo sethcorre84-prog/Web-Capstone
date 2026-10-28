@@ -1503,3 +1503,186 @@ exports.emailUser = onCall(
     return { sentFrom, to };
   }
 );
+
+/* ---- Storage cleanup ----
+   When something with pictures is deleted -- from the portal or the app --
+   or its picture is replaced or removed, the files it no longer uses are
+   deleted from Storage. Each collection only cleans the folders that belong
+   to it, so a shared picture (trailPicture/, badge/, profileAvatar/) or
+   someone's avatar copied onto a post is never touched:
+     Advisory/{id}        advisories/{id}/
+     trails/{id}          trailPicture/{id}-... (and trails/{id}/ before)
+     users/{uid}          qrCode/{uid}/, userAvatars/{uid}/
+     reports/{id}         reports/   (hazard report photos)
+     reportedUser/{id}    userReport/ (Report User photos)
+     communityPosts/{id}  communityPosts/
+   A file is found from any download URL, gs:// address or plain path saved
+   anywhere in the document (imageUrl, imagePath, imageUrls, media...).
+   Deleting the whole document also empties its own folder (advisories/{id}/,
+   trails/{id}/ and its trailPicture/{id}-... files, and a user's qrCode/{uid}/
+   and userAvatars/{uid}/). The name-matched pictures in trailPicture/
+   (sipitTrail.jpg) are no trail's own and are never deleted. */
+const { getStorage } = require("firebase-admin/storage");
+
+// Storage paths a document points to, wherever they are saved in it.
+const storagePathsIn = (value, found = new Set()) => {
+  if (typeof value === "string") {
+    const text = value.trim();
+    const download = /^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/[^/]+\/o\/([^?#]+)/.exec(text);
+    const gs = /^gs:\/\/[^/]+\/(.+)$/.exec(text);
+    if (download) {
+      try { found.add(decodeURIComponent(download[1])); } catch { /* not a path */ }
+    } else if (gs) {
+      found.add(gs[1]);
+    } else if (/^[A-Za-z]+\/[^\s]+\.[A-Za-z0-9]{2,5}$/.test(text)) {
+      found.add(text);
+    }
+  } else if (Array.isArray(value)) {
+    value.forEach((item) => storagePathsIn(item, found));
+  } else if (value && typeof value === "object" && !(value instanceof Timestamp)) {
+    Object.values(value).forEach((item) => storagePathsIn(item, found));
+  }
+  return found;
+};
+
+async function deleteStorageFiles(paths, why) {
+  const bucket = getStorage().bucket();
+  for (const path of paths) {
+    try {
+      await bucket.file(path).delete();
+      logger.info(`Deleted ${path} (${why})`);
+    } catch (error) {
+      if (error?.code !== 404) logger.warn(`Could not delete ${path}: ${error.message}`);
+    }
+  }
+}
+
+async function deleteStorageFolder(prefix, why) {
+  try {
+    const [files] = await getStorage().bucket().getFiles({ prefix });
+    await deleteStorageFiles(files.map((file) => file.name), why);
+  } catch (error) {
+    logger.warn(`Could not empty ${prefix}: ${error.message}`);
+  }
+}
+
+/* One cleanup per collection: `folders(id)` are the folders its files live
+   in; `own(id)` the folders that are the document's alone, emptied when it
+   is deleted. */
+function storageCleanup(document, folders, own = () => []) {
+  return onDocumentWritten({ document, region: FIRESTORE_REGION }, async (event) => {
+    const id = Object.values(event.params)[0];
+    const prefixes = folders(id);
+    const ours = (path) => prefixes.some((prefix) => path.startsWith(prefix));
+    const before = event.data?.before?.exists ? event.data.before.data() : null;
+    const after = event.data?.after?.exists ? event.data.after.data() : null;
+    if (!before) return;
+    const kept = after ? storagePathsIn(after) : new Set();
+    const gone = [...storagePathsIn(before)].filter((path) => ours(path) && !kept.has(path));
+    const why = `${document.replace(/\{[^}]+\}/, id)} ${after ? "no longer uses it" : "was deleted"}`;
+    if (gone.length) await deleteStorageFiles(gone, why);
+    if (!after) for (const prefix of own(id)) await deleteStorageFolder(prefix, why);
+  });
+}
+
+exports.cleanupAdvisoryFiles = storageCleanup("Advisory/{id}",
+  (id) => [`advisories/${id}/`], (id) => [`advisories/${id}/`]);
+exports.cleanupTrailFiles = storageCleanup("trails/{id}",
+  (id) => [`trails/${id}/`, `trailPicture/${id}-`], (id) => [`trails/${id}/`, `trailPicture/${id}-`]);
+
+/* Moves trail photos uploaded before trailPicture/ was used (trails/{id}/)
+   into trailPicture/{id}-{file}: copies the file with a new download token,
+   points the trail at it, then deletes the old file. Admins only; Trail
+   Management calls it when it sees a trail with an old photo. */
+exports.moveTrailPhotos = onCall({ region: FIRESTORE_REGION }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid || !(await db.collection("admins").doc(uid).get()).exists) {
+    throw new HttpsError("permission-denied", "Only admins can move trail photos.");
+  }
+  const bucket = getStorage().bucket();
+  const trails = await db.collection("trails").get();
+  let moved = 0;
+  for (const trailDoc of trails.docs) {
+    const data = trailDoc.data();
+    const oldPath = [...storagePathsIn({ a: data.imagePath, b: data.imageUrl })].find((path) => path.startsWith(`trails/${trailDoc.id}/`));
+    if (!oldPath) continue;
+    const newPath = `trailPicture/${trailDoc.id}-${oldPath.split("/").pop()}`;
+    try {
+      const token = crypto.randomUUID();
+      await bucket.file(oldPath).copy(bucket.file(newPath), {
+        metadata: { metadata: { firebaseStorageDownloadTokens: token } }
+      });
+      const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(newPath)}?alt=media&token=${token}`;
+      await trailDoc.ref.update({ imageUrl: url, imagePath: newPath });
+      await bucket.file(oldPath).delete().catch(() => {});
+      moved += 1;
+      logger.info(`Moved ${oldPath} to ${newPath}`);
+    } catch (error) {
+      logger.warn(`Could not move ${oldPath}: ${error.message}`);
+    }
+  }
+  return { moved };
+});
+exports.cleanupUserFiles = storageCleanup("users/{id}",
+  (id) => [`qrCode/${id}/`, `userAvatars/${id}/`], (id) => [`qrCode/${id}/`, `userAvatars/${id}/`]);
+exports.cleanupHazardReportFiles = storageCleanup("reports/{id}", () => ["reports/"]);
+exports.cleanupUserReportFiles = storageCleanup("reportedUser/{id}", () => ["userReport/"]);
+exports.cleanupCommunityPostFiles = storageCleanup("communityPosts/{id}", () => ["communityPosts/"]);
+
+/* ---- Storage sweep ----
+   Files left behind by things deleted before the cleanups above existed (or
+   by a cleanup that failed): every file in a folder that belongs to records
+   -- advisories/, trails/, a trail's own trailPicture/{id}-... upload,
+   qrCode/, userAvatars/, reports/, userReport/, communityPosts/ -- that no
+   Firestore document points to any more is deleted. Shared pictures
+   (trailPicture/ by name, badge/, profileAvatar/) are never touched, and a
+   file uploaded in the last day is kept (its document may not be saved
+   yet). Runs every day, and from Settings > Data & Backup (a dry run first
+   shows what would go). */
+const SWEPT_FOLDERS = ["advisories/", "trails/", "trailPicture/", "qrCode/", "userAvatars/", "reports/", "userReport/", "communityPosts/"];
+const sweepable = (path) => SWEPT_FOLDERS.some((prefix) => path.startsWith(prefix))
+  && (!path.startsWith("trailPicture/") || /^trailPicture\/[A-Za-z0-9]{20}-\d{13}-/.test(path));
+const SWEEP_GRACE_MS = 24 * 60 * 60 * 1000;
+
+async function sweepStorage({ dryRun }) {
+  // Every path any document points to: all collections (live positions
+  // aside, which hold none), and the comments and messages under them.
+  const referenced = new Set();
+  const collections = (await db.listCollections()).filter((c) => c.id !== "locations");
+  for (const ref of collections) {
+    (await ref.get()).docs.forEach((d) => storagePathsIn(d.data(), referenced));
+  }
+  for (const group of ["comments", "messages"]) {
+    (await db.collectionGroup(group).get()).docs.forEach((d) => storagePathsIn(d.data(), referenced));
+  }
+  const [files] = await getStorage().bucket().getFiles();
+  const now = Date.now();
+  const unused = files.filter((file) => {
+    const updated = Date.parse(file.metadata?.updated || file.metadata?.timeCreated || "");
+    return sweepable(file.name) && !referenced.has(file.name)
+      && !file.name.endsWith("/") && Number.isFinite(updated) && now - updated > SWEEP_GRACE_MS;
+  });
+  const bytes = unused.reduce((sum, file) => sum + Number(file.metadata?.size || 0), 0);
+  if (!dryRun) await deleteStorageFiles(unused.map((file) => file.name), "no record uses it (sweep)");
+  logger.info(`Storage sweep${dryRun ? " (dry run)" : ""}: ${unused.length} unused file(s), ${bytes} bytes`);
+  return {
+    count: unused.length,
+    bytes,
+    deleted: !dryRun,
+    // A sample for the dry run's list.
+    files: unused.slice(0, 50).map((file) => file.name)
+  };
+}
+
+exports.sweepStorageNow = onCall({ region: FIRESTORE_REGION, timeoutSeconds: 300 }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid || !(await db.collection("admins").doc(uid).get()).exists) {
+    throw new HttpsError("permission-denied", "Only admins can clean up Storage.");
+  }
+  return sweepStorage({ dryRun: request.data?.dryRun !== false });
+});
+
+exports.sweepStorageDaily = onSchedule(
+  { schedule: "every day 03:00", timeZone: "Asia/Manila", region: FIRESTORE_REGION, timeoutSeconds: 540 },
+  async () => { await sweepStorage({ dryRun: false }); }
+);
