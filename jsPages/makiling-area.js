@@ -7,6 +7,7 @@
 // pages' module scripts, so the global `L` is ready whenever this is called.
 
 import { db } from './firebase-config.js';
+import { loadMapData } from './map-data.js';
 import { collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 export const MAKILING_CENTER = [14.1325, 121.1936];
@@ -108,24 +109,13 @@ export function createMakilingMap(element, { trailLineOptions, center = MAKILING
 /* ---- Trail lines ----
    The trails themselves, drawn over the satellite imagery: Mariang Makiling,
    Sipit, the Makiling Traverse and the Mud Spring and Flat Rocks side trails.
-   The lines are OpenStreetMap data, copied once into
-   assets/data/makiling-trails.geojson (see its "attribution") so the maps
-   do not depend on a live OSM service. The Botanic Gardens trail is not
-   mapped in OSM, so it has no line. */
-const TRAILS_URL = new URL('../assets/data/makiling-trails.geojson', import.meta.url).href;
-let trailsRequest = null;
-
+   The lines are OpenStreetMap data, kept in Firestore (settings/map,
+   map-data.js) so the app draws the same and follows any change; the copy
+   in assets/data/makiling-trails.geojson (see its "attribution") is the
+   starting point and the fallback. The Botanic Gardens trail is not mapped
+   in OSM, so it has no line. */
 export function loadTrailLines() {
-  trailsRequest ||= fetch(TRAILS_URL)
-    .then((response) => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.json();
-    })
-    .catch((error) => {
-      trailsRequest = null; // let a later call try again
-      throw error;
-    });
-  return trailsRequest;
+  return loadMapData(JUMP_OFFS).then((data) => data.trails);
 }
 
 // A trails/{id} document's name -> the line it is drawn with, or null.
@@ -254,10 +244,13 @@ const escapeText = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
 export async function addTrailLines(map, { colorFor, onClick } = {}) {
   // A file that will not load costs only its own lines: the routes saved on
   // trails are still drawn.
-  const data = await loadTrailLines().catch((error) => {
-    console.warn('Could not load the trail lines file:', error.message);
-    return { features: [] };
+  const mapData = await loadMapData(JUMP_OFFS).catch((error) => {
+    console.warn('Could not load the trail lines:', error.message);
+    return { trails: { features: [] }, jumpOffs: JUMP_OFFS };
   });
+  const data = mapData.trails;
+  // The jump-offs as stored (settings/map), or the built-in list.
+  const jumpOffs = Array.isArray(mapData.jumpOffs) ? mapData.jumpOffs : JUMP_OFFS;
   const lines = new Map();
   const peaks = [];
   const group = L.layerGroup().addTo(map);
@@ -281,7 +274,7 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
     // A trail reached from a jump-off (the Sipit Trail from the Sto. Tomas
     // City Eco Park): the road from the park becomes the start of the same
     // line, so park, road and trail are one unbroken line with no join.
-    const spot = JUMP_OFFS.find((item) => item.connectsTo === key && item.approach?.length);
+    const spot = jumpOffs.find((item) => item.connectsTo === key && item.approach?.length);
     if (spot) {
       const here = L.latLng(spot.latLng);
       if (here.distanceTo(latLngs[latLngs.length - 1]) < here.distanceTo(latLngs[0])) latLngs = latLngs.reverse();
@@ -301,7 +294,7 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
   }
 
   // The jump-off / registration points, with the peaks above every line.
-  JUMP_OFFS.forEach((spot) => {
+  jumpOffs.filter((spot) => Array.isArray(spot?.latLng)).forEach((spot) => {
     peaks.push(L.marker(spot.latLng, {
       icon: L.divIcon({ className: '', html: JUMP_OFF_ICON_HTML, iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -14] }),
       title: `${spot.name} (${spot.role})`,

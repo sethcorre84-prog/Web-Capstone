@@ -1522,7 +1522,7 @@ exports.emailUser = onCall(
    trails/{id}/ and its trailPicture/{id}-... files, and a user's qrCode/{uid}/
    and userAvatars/{uid}/). The name-matched pictures in trailPicture/
    (sipitTrail.jpg) are no trail's own and are never deleted. */
-const { getStorage } = require("firebase-admin/storage");
+const { getStorage, getDownloadURL } = require("firebase-admin/storage");
 
 // Storage paths a document points to, wherever they are saved in it.
 const storagePathsIn = (value, found = new Set()) => {
@@ -1591,9 +1591,32 @@ exports.cleanupTrailFiles = storageCleanup("trails/{id}",
   (id) => [`trails/${id}/`, `trailPicture/${id}-`], (id) => [`trails/${id}/`, `trailPicture/${id}-`]);
 
 /* Moves trail photos uploaded before trailPicture/ was used (trails/{id}/)
-   into trailPicture/{id}-{file}: copies the file with a new download token,
-   points the trail at it, then deletes the old file. Admins only; Trail
-   Management calls it when it sees a trail with an old photo. */
+   into trailPicture/{id}-{file}: copies the file, points the trail at its
+   download link (getDownloadURL, Firebase's own), then deletes the old
+   file. It also repairs the link of a photo already in trailPicture/ whose
+   saved link is not the file's (the first moves wrote links by hand that
+   did not load). Admins only; Trail Management calls it. */
+// Whether a picture link loads (first byte only).
+const linkLoads = async (url) => {
+  try {
+    const response = await fetch(url, { headers: { Range: "bytes=0-0" } });
+    return { ok: response.ok, status: response.status };
+  } catch (error) {
+    return { ok: false, status: error.message };
+  }
+};
+
+/* A fresh, working link for a file: a new download token on it, the link
+   built from it, and checked to load. */
+async function freshDownloadUrl(bucket, path) {
+  const file = bucket.file(path);
+  const token = crypto.randomUUID();
+  const [meta] = await file.getMetadata();
+  const tokens = [token, ...String(meta.metadata?.firebaseStorageDownloadTokens || "").split(",").filter(Boolean)];
+  await file.setMetadata({ metadata: { firebaseStorageDownloadTokens: tokens.join(",") } });
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+}
+
 exports.moveTrailPhotos = onCall({ region: FIRESTORE_REGION }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid || !(await db.collection("admins").doc(uid).get()).exists) {
@@ -1602,26 +1625,73 @@ exports.moveTrailPhotos = onCall({ region: FIRESTORE_REGION }, async (request) =
   const bucket = getStorage().bucket();
   const trails = await db.collection("trails").get();
   let moved = 0;
+  const report = [];
   for (const trailDoc of trails.docs) {
     const data = trailDoc.data();
-    const oldPath = [...storagePathsIn({ a: data.imagePath, b: data.imageUrl })].find((path) => path.startsWith(`trails/${trailDoc.id}/`));
-    if (!oldPath) continue;
-    const newPath = `trailPicture/${trailDoc.id}-${oldPath.split("/").pop()}`;
-    try {
-      const token = crypto.randomUUID();
-      await bucket.file(oldPath).copy(bucket.file(newPath), {
-        metadata: { metadata: { firebaseStorageDownloadTokens: token } }
-      });
-      const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(newPath)}?alt=media&token=${token}`;
-      await trailDoc.ref.update({ imageUrl: url, imagePath: newPath });
-      await bucket.file(oldPath).delete().catch(() => {});
-      moved += 1;
-      logger.info(`Moved ${oldPath} to ${newPath}`);
-    } catch (error) {
-      logger.warn(`Could not move ${oldPath}: ${error.message}`);
+    const name = data.Trail || trailDoc.id;
+    const paths = [...storagePathsIn({ a: data.imagePath, b: data.imageUrl })];
+
+    // An old upload in trails/{id}/: copied into trailPicture/ first.
+    const oldPath = paths.find((path) => path.startsWith(`trails/${trailDoc.id}/`));
+    if (oldPath) {
+      const newPath = `trailPicture/${trailDoc.id}-${oldPath.split("/").pop()}`;
+      try {
+        if ((await bucket.file(oldPath).exists())[0]) {
+          await bucket.file(oldPath).copy(bucket.file(newPath));
+          const url = await freshDownloadUrl(bucket, newPath);
+          await trailDoc.ref.update({ imageUrl: url, imagePath: newPath });
+          await bucket.file(oldPath).delete().catch(() => {});
+          moved += 1;
+          logger.info(`${name}: moved ${oldPath} to ${newPath}`);
+          report.push(`${name}: moved`);
+          continue;
+        }
+      } catch (error) {
+        logger.warn(`${name}: could not move ${oldPath}: ${error.message}`);
+      }
+    }
+
+    if (!data.imageUrl) {
+      report.push(`${name}: no photo saved`);
+      continue;
+    }
+    // A saved link: does it load? If not, give its file a fresh one.
+    const check = await linkLoads(data.imageUrl);
+    if (check.ok) {
+      report.push(`${name}: ok`);
+      continue;
+    }
+    logger.warn(`${name}: its photo link does not load (${check.status}): ${data.imageUrl}`);
+    const candidates = [data.imagePath, ...paths].filter(Boolean);
+    const [own] = await bucket.getFiles({ prefix: `trailPicture/${trailDoc.id}-` });
+    candidates.push(...own.map((file) => file.name));
+    let fixed = false;
+    for (const path of [...new Set(candidates)]) {
+      try {
+        if (!(await bucket.file(path).exists())[0]) continue;
+        const url = await freshDownloadUrl(bucket, path);
+        const recheck = await linkLoads(url);
+        if (!recheck.ok) {
+          logger.warn(`${name}: a fresh link for ${path} does not load either (${recheck.status})`);
+          continue;
+        }
+        await trailDoc.ref.update({ imageUrl: url, imagePath: path });
+        moved += 1;
+        fixed = true;
+        logger.info(`${name}: repaired its photo link (${path})`);
+        report.push(`${name}: repaired`);
+        break;
+      } catch (error) {
+        logger.warn(`${name}: could not repair with ${path}: ${error.message}`);
+      }
+    }
+    if (!fixed) {
+      logger.warn(`${name}: no file of its photo was found (${candidates.join(", ") || "none"})`);
+      report.push(`${name}: photo file missing`);
     }
   }
-  return { moved };
+  logger.info(`Trail photos: ${report.join(" | ")}`);
+  return { moved, report };
 });
 exports.cleanupUserFiles = storageCleanup("users/{id}",
   (id) => [`qrCode/${id}/`, `userAvatars/${id}/`], (id) => [`qrCode/${id}/`, `userAvatars/${id}/`]);
@@ -1686,3 +1756,46 @@ exports.sweepStorageDaily = onSchedule(
   { schedule: "every day 03:00", timeZone: "Asia/Manila", region: FIRESTORE_REGION, timeoutSeconds: 540 },
   async () => { await sweepStorage({ dryRun: false }); }
 );
+
+/* ---- Map data ----
+   settings/map holds what every map draws besides records: the trail lines
+   and peaks, the rivers and the jump-offs (see jsPages/map-data.js), as
+   JSON text, so the PeakPath app follows a change at once. Firestore rules
+   only let the weather setting be written from a page, so the portal saves
+   these through here: admins only, each field checked to be the right kind
+   of JSON. Only the fields sent are changed. */
+const MAP_FIELDS = {
+  trails: (value) => Array.isArray(value?.features),
+  waterways: (value) => Array.isArray(value?.features),
+  jumpOffs: (value) => Array.isArray(value)
+};
+
+exports.saveMapData = onCall({ region: FIRESTORE_REGION }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid || !(await db.collection("admins").doc(uid).get()).exists) {
+    throw new HttpsError("permission-denied", "Only admins can change the map data.");
+  }
+  const input = request.data || {};
+  const update = {};
+  for (const [field, valid] of Object.entries(MAP_FIELDS)) {
+    if (!(field in input)) continue;
+    const text = input[field];
+    if (typeof text !== "string" || text.length > 400000) {
+      throw new HttpsError("invalid-argument", `${field}: send it as JSON text of 400 KB at most.`);
+    }
+    let value;
+    try { value = JSON.parse(text); } catch {
+      throw new HttpsError("invalid-argument", `${field}: not valid JSON.`);
+    }
+    if (!valid(value)) throw new HttpsError("invalid-argument", `${field}: not the expected shape.`);
+    update[field] = JSON.stringify(value);
+  }
+  if (!Object.keys(update).length) throw new HttpsError("invalid-argument", "Nothing to save.");
+  await db.collection("settings").doc("map").set({
+    ...update,
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedBy: uid
+  }, { merge: true });
+  logger.info(`settings/map saved by ${uid}: ${Object.keys(update).join(", ")}`);
+  return { saved: Object.keys(update) };
+});

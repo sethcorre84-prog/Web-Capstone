@@ -473,6 +473,13 @@
         color: var(--danger);
     }
 
+    /* On the selected (green) row the green tags would vanish into it: they
+       sit on the card colour there, with a thin ring. */
+    tbody tr.selected .badge {
+        background: var(--dm-surface, #fff);
+        box-shadow: inset 0 0 0 1px currentColor;
+    }
+
     /* ==========================================
        ACTION BUTTONS
     ========================================== */
@@ -2146,7 +2153,7 @@ tr.innerHTML = `
 <td><div class="trail-cell"><div class="thumb" style="background-image:url('${getTrailImage(t)}');background-size:cover;background-position:center;"></div><div><div class="trail-name">${t.Trail || "Untitled Trail"}</div><div class="trail-loc">${t.Municipality || ""}</div></div></div></td>
   <td><span class="badge ${diffClass(t.Difficulty)}">${t.Difficulty || "—"}</span></td>
   <td>${t["Approximate Distance"] || "—"}</td>
-  <td>${t.Elevation || "—"}</td>
+  <td>${escapeHtml(elevationText(t.Elevation))}</td>
   <td>${t.Duration || "—"}</td>
   <td>${entryTypeLabel(t.EntryType) || "—"}</td>
   <td><span class="badge ${status.toLowerCase()}">${status}</span></td>
@@ -2418,7 +2425,7 @@ function renderDetail() {
   renderDetailRating();
   document.getElementById('discardEditBtn').hidden = true;
   document.getElementById('detailDesc').textContent = t.Description || "";
-  document.getElementById('detailElev').textContent = t.Elevation || "—";
+  document.getElementById('detailElev').textContent = elevationText(t.Elevation);
   // "Location" is the municipality (this row's id is a leftover name).
   document.getElementById('detailPeak').textContent = t.Municipality || "—";
   // Highest point: what was saved for the trail (HighestPoint, editable in
@@ -2462,6 +2469,13 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 let pendingPhoto = null;   // { file, url } | { remove: true } | null
 const photoEditBox = document.getElementById('detailPhotoEdit');
 const editPhotoInput = document.getElementById('editPhotoInput');
+
+// Elevation as shown: a bare number ("160") reads "160 m", like the rest.
+function elevationText(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return '—';
+  return /^[\d.,]+$/.test(text) ? `${text} m` : text;
+}
 
 const hasOwnPhoto = (t) => Boolean(String(t?.imageUrl || '').trim());
 
@@ -2523,14 +2537,23 @@ document.getElementById('removePhotoBtn').addEventListener('click', () => {
    there by the moveTrailPhotos function, once per page load, for an admin:
    it copies each file, points the trail at the copy and deletes the old. */
 let movedOldPhotos = false;
+// Once per browser after the link repair: photos moved before it got links
+// that did not load.
+const PHOTO_LINKS_CHECKED = 'peakpath:trail-photo-links-v3';
 function moveOldTrailPhotos(list) {
   if (movedOldPhotos) return;
   const old = list.filter((t) => /^trails\//.test(String(t.imagePath || ''))
     || /\/o\/trails%2F/.test(String(t.imageUrl || '')));
-  if (!old.length) return;
+  let checked = false;
+  try { checked = localStorage.getItem(PHOTO_LINKS_CHECKED) === '1'; } catch { /* check again */ }
+  const withPhoto = list.some((t) => String(t.imageUrl || '').trim());
+  if (!old.length && (checked || !withPhoto)) return;
   movedOldPhotos = true;
   httpsCallable(getFunctions(undefined, 'asia-southeast1'), 'moveTrailPhotos')()
-    .then(({ data }) => { if (data?.moved) console.info(`Moved ${data.moved} trail photo(s) to trailPicture/.`); })
+    .then(({ data }) => {
+      try { localStorage.setItem(PHOTO_LINKS_CHECKED, '1'); } catch { /* checked again next time */ }
+      if (data?.report) console.info('Trail photos:', data.report.join(' | '));
+    })
     .catch((error) => console.warn('Could not move the old trail photos:', error?.message || error));
 }
 

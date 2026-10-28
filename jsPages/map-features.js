@@ -24,8 +24,9 @@
 
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { STATION_COORDS, TAGS, referenceDocs, referenceKeyFor } from "./trail-stations.js";
+import { loadMapData } from "./map-data.js";
+import { JUMP_OFFS } from "./makiling-area.js";
 
-const dataUrl = (name) => new URL(`../assets/data/${name}`, import.meta.url).href;
 
 // Colours shared with the legend swatches in geomap.html; picked to read on
 // the satellite imagery (dark forest green).
@@ -95,11 +96,6 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[c]));
 
-async function loadJson(name) {
-  const response = await fetch(dataUrl(name));
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.json();
-}
 
 /* ---- Which stations the map draws, and where ----
    Shared by the GeoMap (render below) and Trail Management's Total
@@ -176,7 +172,8 @@ export function addMapFeatures({ map, db, trails = () => [], stationsOnly = fals
   const waterways = L.layerGroup().addTo(map);
   const stations = L.layerGroup().addTo(map);
 
-  if (!stationsOnly) loadJson('makiling-waterways.geojson').then((data) => {
+  // The rivers, from Firestore (settings/map) like the trail lines.
+  if (!stationsOnly) loadMapData(JUMP_OFFS).then(({ waterways: data }) => {
     // Drawn like the trails, so they read on satellite imagery as they do
     // on the app's map: a white edge under a strong blue line, rivers wider
     // than creeks. The edge is drawn first and takes no clicks.
