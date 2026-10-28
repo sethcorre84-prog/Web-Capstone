@@ -3965,6 +3965,27 @@
   const emailUserStatus = document.getElementById('emailUserStatus');
   const sendEmailUserBtn = document.getElementById('sendEmailUserBtn');
   const sendUserEmail = httpsCallable(getFunctions(auth.app), 'emailUser');
+
+  /* Every hiker's and guide's details are kept on their users/{uid} document
+     (missing fields filled in, and summary: alert count, last active, teams,
+     area, first-timer / repeat, age) by Cloud Functions as things change and
+     every night. Once a day the first admin page here also runs it for every
+     user, so nobody waits for the night. */
+  (() => {
+    const SYNC_KEY = 'peakpath:users-synced';
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    try { if (localStorage.getItem(SYNC_KEY) === today) return; } catch { /* run it */ }
+    const run = () => httpsCallable(getFunctions(auth.app, 'asia-southeast1'), 'syncUsersNow', { timeout: 540000 })()
+      .then(({ data }) => {
+        try { localStorage.setItem(SYNC_KEY, today); } catch { /* again next time */ }
+        console.info(`User details saved to Firestore: ${data.changed} of ${data.users} users updated.`);
+      })
+      .catch((error) => console.info('User details not synced:', error?.message || error));
+    if (auth.currentUser) run();
+    else {
+      const stop = auth.onAuthStateChanged((user) => { if (user) { stop(); run(); } });
+    }
+  })();
   let emailTarget = null;
 
   const setEmailUserStatus = (message, type = '') => {

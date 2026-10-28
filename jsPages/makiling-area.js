@@ -155,9 +155,9 @@ export const trailForLineKey = (trails, key) => {
    the end farther from the summit). `latLngs` are the points of the line it
    is drawn with. Null when it has neither. */
 const KNOWN_STARTS = {
-  mariang: [14.14814, 121.23185],   // MCME registration, Station 1
+  mariang: [14.156768816265368, 121.23416031455696], // its registration (JUMP_OFFS), where its line now starts
   sipit: [14.0995828, 121.1957954], // Sto. Tomas City Eco Park, where its line now starts (JUMP_OFFS)
-  traverse: [14.1091, 121.1657]     // Sto. Tomas start, up the Sipit side
+  traverse: [14.099953324593944, 121.19592880324568] // MakTrav jump-off, Sipit side (JUMP_OFFS)
 };
 export function trailStart(trail, latLngs) {
   if (validRoute(trail?.route)) {
@@ -189,6 +189,46 @@ const PEAK_ICON_HTML = '<div style="display:grid;place-items:center;width:24px;h
   + 'border-radius:50%;background:#fff;border:2px solid #1f3a28;box-shadow:0 1px 4px rgba(0,0,0,.4);'
   + 'box-sizing:border-box"><i class="fa-solid fa-mountain" style="font-size:11px;color:#1f3a28" aria-hidden="true"></i></div>';
 
+// The road from the Sto. Tomas City Eco Park to where it meets the Sipit
+// Trail (the trail's first point), traced along OpenStreetMap's roads
+// (about 1.4 km; the park sits ~50 m off the road). Both Sto. Tomas
+// jump-offs use it.
+const ECO_PARK_ROAD = [
+  [14.100001, 121.195769], [14.100014, 121.195683], [14.100016, 121.195577], [14.100011, 121.195453],
+  [14.100034, 121.19529], [14.100063, 121.195243], [14.100132, 121.195203], [14.100208, 121.195162],
+  [14.100405, 121.195054], [14.100517, 121.194999], [14.100653, 121.194963], [14.100824, 121.19494],
+  [14.100998, 121.194941], [14.101146, 121.19492], [14.101299, 121.194845], [14.101374, 121.194823],
+  [14.101493, 121.19475], [14.101612, 121.19463], [14.101745, 121.194484], [14.101923, 121.194362],
+  [14.102024, 121.194257], [14.10213, 121.194147], [14.102273, 121.194017], [14.102386, 121.193939],
+  [14.102482, 121.193886], [14.102578, 121.193856], [14.10264, 121.193848], [14.102669, 121.193844],
+  [14.102722, 121.193832], [14.102816, 121.19381], [14.10284, 121.193786], [14.102877, 121.193723],
+  [14.102908, 121.193656], [14.10291, 121.193577], [14.102782, 121.19337], [14.10269, 121.193165],
+  [14.102584, 121.192886], [14.102499, 121.192654], [14.102404, 121.192392], [14.102248, 121.191943],
+  [14.102104, 121.191536], [14.102109, 121.1914], [14.102176, 121.191256], [14.102289, 121.191128],
+  [14.102474, 121.190906], [14.102652, 121.190595], [14.102661, 121.190536], [14.102673, 121.190458],
+  [14.102635, 121.190277], [14.102593, 121.19006], [14.102583, 121.189787], [14.102594, 121.189426],
+  [14.102602, 121.189339], [14.10261, 121.189255], [14.102625, 121.189093], [14.102689, 121.188873],
+  [14.102707, 121.188747], [14.102759, 121.188698], [14.102828, 121.18866], [14.102934, 121.188646],
+  [14.103048, 121.188647], [14.103157, 121.188656], [14.103913, 121.188744], [14.104252, 121.188735],
+  [14.104357, 121.188757], [14.104457, 121.188751], [14.104543, 121.18872], [14.104644, 121.188673],
+  [14.104917, 121.188632], [14.105379, 121.188562], [14.106425, 121.188262]
+];
+
+// The road from the Mariang Makiling Trail's registration (UPLB, Los Baños)
+// to the trail's first point, along OpenStreetMap's roads (Domingo M.
+// Lantican Avenue and Makiling Road, about 750 m).
+const UPLB_ROAD = [
+  [14.156628, 121.234074], [14.156535, 121.234225], [14.156465, 121.234336], [14.156357, 121.23451],
+  [14.156239, 121.234691], [14.156079, 121.234912], [14.155818, 121.235221], [14.155786, 121.235199],
+  [14.155369, 121.234908], [14.155309, 121.2349], [14.155131, 121.234748], [14.155, 121.234616],
+  [14.154886, 121.234533], [14.154822, 121.234516], [14.154694, 121.234547], [14.154412, 121.234932],
+  [14.154326, 121.235049], [14.154253, 121.235039], [14.154086, 121.234976], [14.153739, 121.234813],
+  [14.153605, 121.23478], [14.153465, 121.23478], [14.153233, 121.23494], [14.152781, 121.234586],
+  [14.152486, 121.23436], [14.152318, 121.234242], [14.152157, 121.234122], [14.151924, 121.234026],
+  [14.151828, 121.233975], [14.151728, 121.233935], [14.151677, 121.233914], [14.151518, 121.233849],
+  [14.151325, 121.233755]
+];
+
 /* Jump-off and registration points shown on every map (with the summit, as
    markers above the lines). The Sto. Tomas City Eco Park is where hikers
    register for the Sipit Trail; its location was taken from Google Maps, as
@@ -197,36 +237,40 @@ export const JUMP_OFFS = [
   {
     name: 'Sto. Tomas City Eco Park',
     role: 'Sipit Trail jump-off & registration',
-    // The trail line it leads to, and the way there: the road from the park
-    // to where it meets the Sipit trail (the trail's first point), traced
-    // along OpenStreetMap's roads (about 1.4 km; the park sits ~50 m off the
-    // road). addTrailLines makes it the start of the trail's own line.
+    // The trail line it leads to, and the way there (ECO_PARK_ROAD);
+    // addTrailLines makes it the start of the trail's own line.
     connectsTo: 'sipit',
-    approach: [
-      [14.100001, 121.195769], [14.100014, 121.195683], [14.100016, 121.195577], [14.100011, 121.195453],
-      [14.100034, 121.19529], [14.100063, 121.195243], [14.100132, 121.195203], [14.100208, 121.195162],
-      [14.100405, 121.195054], [14.100517, 121.194999], [14.100653, 121.194963], [14.100824, 121.19494],
-      [14.100998, 121.194941], [14.101146, 121.19492], [14.101299, 121.194845], [14.101374, 121.194823],
-      [14.101493, 121.19475], [14.101612, 121.19463], [14.101745, 121.194484], [14.101923, 121.194362],
-      [14.102024, 121.194257], [14.10213, 121.194147], [14.102273, 121.194017], [14.102386, 121.193939],
-      [14.102482, 121.193886], [14.102578, 121.193856], [14.10264, 121.193848], [14.102669, 121.193844],
-      [14.102722, 121.193832], [14.102816, 121.19381], [14.10284, 121.193786], [14.102877, 121.193723],
-      [14.102908, 121.193656], [14.10291, 121.193577], [14.102782, 121.19337], [14.10269, 121.193165],
-      [14.102584, 121.192886], [14.102499, 121.192654], [14.102404, 121.192392], [14.102248, 121.191943],
-      [14.102104, 121.191536], [14.102109, 121.1914], [14.102176, 121.191256], [14.102289, 121.191128],
-      [14.102474, 121.190906], [14.102652, 121.190595], [14.102661, 121.190536], [14.102673, 121.190458],
-      [14.102635, 121.190277], [14.102593, 121.19006], [14.102583, 121.189787], [14.102594, 121.189426],
-      [14.102602, 121.189339], [14.10261, 121.189255], [14.102625, 121.189093], [14.102689, 121.188873],
-      [14.102707, 121.188747], [14.102759, 121.188698], [14.102828, 121.18866], [14.102934, 121.188646],
-      [14.103048, 121.188647], [14.103157, 121.188656], [14.103913, 121.188744], [14.104252, 121.188735],
-      [14.104357, 121.188757], [14.104457, 121.188751], [14.104543, 121.18872], [14.104644, 121.188673],
-      [14.104917, 121.188632], [14.105379, 121.188562], [14.106425, 121.188262]
-    ],
+    approach: ECO_PARK_ROAD,
     // The barangay is left out: OpenStreetMap puts this spot in Santa Elena,
     // next to San Vicente, so it isn't certain.
     place: 'City of Sto. Tomas, Batangas',
     // Pinned by the admin from Google Maps (the park's own location).
     latLng: [14.0995828, 121.1957954]
+  },
+  {
+    // The Makiling Traverse starts on the Sipit side: from here, along the
+    // same road and up the Sipit Trail to Station 9, where the traverse line
+    // takes its own way over the summit to Los Baños. (OpenStreetMap's line
+    // started on the old Palanggana trail, now closed; the file's traverse
+    // line was rerouted up the Sipit Trail.)
+    name: 'MakTrav jump-off (Sipit side)',
+    role: 'Makiling Traverse jump-off & registration, Sto. Tomas side',
+    connectsTo: 'traverse',
+    approach: ECO_PARK_ROAD,
+    place: 'City of Sto. Tomas, Batangas',
+    // Pinned by the admin.
+    latLng: [14.099953324593944, 121.19592880324568]
+  },
+  {
+    // Where hikers register before the Mariang Makiling Trail, on the
+    // Los Baños side; the road from here leads to the trail's start.
+    name: 'Mariang Makiling Trail registration',
+    role: 'Mariang Makiling Trail entrance & registration',
+    connectsTo: 'mariang',
+    approach: UPLB_ROAD,
+    place: 'Los Baños, Laguna',
+    // Pinned by the admin.
+    latLng: [14.156768816265368, 121.23416031455696]
   }
 ];
 const JUMP_OFF_ICON_HTML = '<div style="display:grid;place-items:center;width:26px;height:26px;'

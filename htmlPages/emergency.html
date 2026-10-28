@@ -320,6 +320,23 @@
     /* Hiker pins (hiker-layer.js) at legend size. */
     /* Every swatch the same size: the lost and off-trail map pins are
        larger, with a ring, so they are sized down here too. */
+    /* Off Trail rows in Active Emergencies: the map's red off-trail pin, at
+       the table's icon size. */
+    #emergencyTableBody .hiker-pin.table-pin {
+        width: 24px;
+        height: 24px;
+        border-width: 1.5px;
+        font-size: 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+    }
+    #emergencyTableBody .hiker-pin.table-pin::after {
+        display: none;
+    }
+    .status-badge.offtrail {
+        background: rgba(214, 69, 50, .12);
+        color: #b8392a;
+    }
+
     .map-legend .legend-item .hiker-pin {
         width: 18px;
         height: 18px;
@@ -770,31 +787,33 @@
     }
     .weather-card {
         position: absolute;
-        right: 12px;
-        bottom: 12px;
+        right: 10px;
+        bottom: 24px;
         z-index: 500;
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 10px 14px;
-        border-radius: 12px;
+        gap: 7px;
+        padding: 6px 10px;
+        border-radius: 9px;
         background: rgba(255, 255, 255, 0.94);
         color: #1d2a20;
         box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
         pointer-events: none;
     }
     .weather-card > i {
-        font-size: 24px;
+        font-size: 17px;
         color: #2a63b5;
     }
     .weather-card strong {
         display: block;
-        font-size: 18px;
+        font-size: 14px;
+        line-height: 1.2;
     }
     .weather-card span,
     .weather-card small {
         display: block;
-        font-size: 11.5px;
+        font-size: 10px;
+        line-height: 1.3;
         color: #4b5a4f;
     }
 
@@ -1152,6 +1171,7 @@
           <button class="tab active" type="button" role="tab" data-type="all" aria-selected="true">All (<span data-count="all">0</span>)</button>
           <button class="tab" type="button" role="tab" data-type="sos" aria-selected="false">SOS Alerts (<span data-count="sos">0</span>)</button>
           <button class="tab" type="button" role="tab" data-type="lost" aria-selected="false">Lost / Missing (<span data-count="lost">0</span>)</button>
+          <button class="tab" type="button" role="tab" data-type="offtrail" aria-selected="false" title="Hikers on a hike now more than 60 m from every trail, from their live location">Off Trail (<span data-count="offtrail">0</span>)</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -1499,6 +1519,9 @@
   let loadError = null;
   let records = [];
   let activeTab = 'all';
+  // Hikers off trail now (hiker-layer.js, from their live location): rows of
+  // the table beside the emergencies, under their own Off Trail tab.
+  let offTrailRows = [];
   let showClosed = false;
   let showAllRows = false;      // table: first TABLE_LIMIT rows, or all
   let activityPage = 1;         // activity feed: ACTIVITY_LIMIT per page
@@ -1526,8 +1549,18 @@
     bounds: makilingBounds,
     // The Lost / Missing alerts are already this map's own markers.
     showLostAlerts: false,
-    // Hikers who stray from every trail are flagged off trail.
+    // Hikers who stray from every trail are flagged off trail, and listed in
+    // Active Emergencies (Off Trail).
     trailLines,
+    onOffTrail: (rows) => {
+      const before = offTrailRows.map((row) => `${row.uid}:${Math.round(row.nearest?.distance || 0)}:${row.online}`).join('|');
+      offTrailRows = rows;
+      const after = rows.map((row) => `${row.uid}:${Math.round(row.nearest?.distance || 0)}:${row.online}`).join('|');
+      if (before === after) return;
+      const base = visibleRecords();
+      renderTabs(base);
+      renderTable(base);
+    },
     onCaption: (text) => {
       hikerCaption = text;
       showMapCaption();
@@ -1664,7 +1697,7 @@
   const visibleRecords = () => records.filter((r) => showClosed || isOpen(r));
 
   const renderTabs = (base) => {
-    const counts = { all: base.length, sos: 0, lost: 0 };
+    const counts = { all: base.length + offTrailRows.length, sos: 0, lost: 0, offtrail: offTrailRows.length };
     base.forEach((r) => { if (r.type in counts) counts[r.type] += 1; });
     document.querySelectorAll('[data-count]').forEach((el) => { el.textContent = counts[el.dataset.count]; });
     document.querySelectorAll('.tabs .tab').forEach((tab) => {
@@ -1698,11 +1731,19 @@
     }
     if (emergencySnaps === null) return;
 
-    const rows = base
+    const rows = activeTab === 'offtrail' ? [] : base
       .filter((r) => activeTab === 'all' || r.type === activeTab)
       .sort(byPriority);
+    // Off-trail hikers: after the emergencies, longest off trail first.
+    const strays = activeTab === 'all' || activeTab === 'offtrail'
+      ? [...offTrailRows].sort((a, b) => (a.since?.getTime() || 0) - (b.since?.getTime() || 0))
+      : [];
 
-    if (!rows.length) {
+    if (!rows.length && !strays.length) {
+      if (activeTab === 'offtrail') {
+        body.innerHTML = '<tr><td colspan="6" class="table-empty">No hikers off trail. A hiker on a hike more than 60 m from every trail shows here, from their live location.</td></tr>';
+        return;
+      }
       const scope = activeTab === 'all' ? '' : ` ${TYPES[activeTab].label.toLowerCase()}`;
       body.innerHTML = `<tr><td colspan="6" class="table-empty">${
         showClosed ? `No${scope} emergencies recorded.` : `No active${scope} emergencies. New alerts from the PeakPath app appear here as they come in.`
@@ -1710,13 +1751,17 @@
       return;
     }
 
-    const shown = showAllRows ? rows : rows.slice(0, TABLE_LIMIT);
+    const all = [...rows, ...strays.map((stray) => ({ stray }))];
+    const shown = showAllRows ? all : all.slice(0, TABLE_LIMIT);
     footer.hidden = false;
-    $('emergencyRange').textContent = `Showing 1 to ${shown.length} of ${plural(rows.length, 'emergency', 'emergencies')}`;
-    $('showAllRowsBtn').hidden = rows.length <= TABLE_LIMIT;
+    $('emergencyRange').textContent = `Showing 1 to ${shown.length} of ${activeTab === 'offtrail'
+      ? plural(all.length, 'hiker off trail', 'hikers off trail')
+      : plural(all.length, 'emergency', 'emergencies')}`;
+    $('showAllRowsBtn').hidden = all.length <= TABLE_LIMIT;
     $('showAllRowsBtn').textContent = showAllRows ? 'Show Fewer' : 'View All Emergencies';
 
     body.innerHTML = shown.map((r) => {
+      if (r.stray) return offTrailRowHtml(r.stray);
       const status = STATUSES[r.status];
       return `
         <tr data-id="${escapeHtml(r.id)}" class="${freshIds.has(r.id) ? 'is-new' : ''}" tabindex="0">
@@ -1733,12 +1778,39 @@
     }).join('');
   };
 
+  // One off-trail hiker: where they strayed from, since when, and Locate
+  // (shows them on the map).
+  const offTrailRowHtml = (row) => {
+    const metres = Math.round(row.nearest?.distance || 0);
+    return `
+      <tr data-offtrail="${escapeHtml(row.uid)}" tabindex="0" title="Show ${escapeHtml(row.name)} on the map">
+        <td><span class="hiker-pin off-trail table-pin" title="Off trail"><i class="fa-solid fa-person-walking-dashed-line-arrow-right" aria-hidden="true"></i></span></td>
+        <td><span class="cell-name">${escapeHtml(row.name)}</span>${row.trail ? `<span class="cell-sub">Hiking ${escapeHtml(row.trail)}</span>` : ''}</td>
+        <td>${metres} m from ${escapeHtml(row.nearest?.name || 'the trail')}<span class="cell-sub">${row.online ? 'Live location' : 'Last seen location'}</span></td>
+        <td>${timeCell(row.since)}</td>
+        <td><span class="status-badge offtrail">Off trail</span></td>
+        <td class="actions-cell">
+          <button class="action-btn" type="button" data-locate title="Show on the map" aria-label="Show ${escapeHtml(row.name)} on the map"><i class="fa-solid fa-location-crosshairs"></i></button>
+        </td>
+      </tr>`;
+  };
+  const locateStray = (uid) => {
+    const row = offTrailRows.find((item) => item.uid === uid);
+    if (!row) return;
+    row.focus();
+    document.getElementById('mapFrame')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
   $('emergencyTableBody').addEventListener('click', (event) => {
+    const stray = event.target.closest('tr[data-offtrail]');
+    if (stray) { locateStray(stray.dataset.offtrail); return; }
     const row = event.target.closest('tr[data-id]');
     if (row) openModal(row.dataset.id);
   });
   $('emergencyTableBody').addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
+    const stray = event.target.closest('tr[data-offtrail]');
+    if (stray && event.target === stray) { event.preventDefault(); locateStray(stray.dataset.offtrail); return; }
     const row = event.target.closest('tr[data-id]');
     if (!row || event.target !== row) return;
     event.preventDefault();

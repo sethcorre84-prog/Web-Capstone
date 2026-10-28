@@ -1249,7 +1249,7 @@
         			</div>
         			<div class="toolbar">
             			<div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#98a094" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Search advisories..."></div>
-            			<select id="typeFilter" class="filter"><option value="">All Types</option><option>Advisory</option><option>Weather</option><option>Update</option><option>Alert</option><option>Announcement</option></select>
+            			<select id="typeFilter" class="filter"><option value="">All Types</option><option>Advisory</option><option>Weather</option><option>Update</option><option>App Update</option><option>Alert</option><option>Announcement</option></select>
             			<select id="statusFilter" class="filter"><option value="">All Status</option><option>Active</option><option>Scheduled</option></select>
             			<select id="dateFilter" class="filter"><option value="">All Dates</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select>
         			<button class="clear-btn" id="clearFiltersBtn">
@@ -1307,6 +1307,11 @@
 								<div class="detail-media" id="dMedia"></div>
 							</div>
 
+							<div class="detail-section" id="dLinkSection" style="display:none">
+								<div class="label">Link</div>
+								<a id="dLink" target="_blank" rel="noopener noreferrer" style="color:var(--accent);font-weight:600;font-size:13px;overflow-wrap:anywhere"></a>
+							</div>
+
 							<div class="detail-section">
 								<div class="label">Recommended Actions</div>
 								<ul id="recommendations" style="color:var(--text-secondary);margin-left:18px;line-height:1.6;font-size:13px"></ul>
@@ -1342,7 +1347,7 @@
 			<div class="field"><label>Title</label><input id="mTitle" placeholder="e.g. Trail Closure: Sipit Trail"></div>
 			<div class="field-row">
 				<div class="field"><label>Type</label>
-					<select id="mType"><option>Advisory</option><option>Weather</option><option>Update</option><option>Alert</option><option>Announcement</option></select>
+					<select id="mType"><option>Advisory</option><option>Weather</option><option>Update</option><option>App Update</option><option>Alert</option><option>Announcement</option></select>
 				</div>
 				<div class="field"><label>Status</label>
 					<select id="mStatus"><option>Active</option><option>Scheduled</option></select>
@@ -1369,6 +1374,13 @@
 				</div>
 			</div>
 			<div class="field"><label>Description</label><textarea id="mDesc" placeholder="Full details shown to hikers"></textarea></div>
+			<!-- A link shown as a button in the app (App Update: the new app's
+			     download, which opens and installs it on Android). -->
+			<div class="field-row">
+				<div class="field" style="flex:2"><label for="mLink">Link (optional)</label><input id="mLink" type="url" maxlength="500" placeholder="https://..." autocomplete="off"></div>
+				<div class="field"><label for="mLinkLabel">Button text</label><input id="mLinkLabel" maxlength="40" placeholder="Open link" autocomplete="off"></div>
+			</div>
+			<p class="field-hint" id="mLinkHint" style="margin:-6px 0 12px;font-size:11.5px;color:var(--text-secondary)">Shown in the app as a button. For an App Update it is filled in with the PeakPath Android download: tapping it downloads the new app and Android offers to install it.</p>
 			<div class="field"><label for="mMediaInput">Photos &amp; Videos (optional)</label>
 				<div class="media-drop" id="mMediaDrop" tabindex="0" role="button" aria-describedby="mMediaHint">
 					<div class="media-drop-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg></div>
@@ -1504,7 +1516,9 @@
 			Weather:      { cls:'weather',      bg:'var(--blue-light)',    fg:'var(--blue)',   icon:'<path d="M17.5 19a4.5 4.5 0 000-9 6 6 0 00-11.4 2.2A4 4 0 007 19h10.5z"/>' },
 			Update:       { cls:'update',       bg:'var(--warning-light)', fg:'var(--warning)', icon:'<path d="M14.7 6.3a4 4 0 01-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 015.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/>' },
 			Alert:        { cls:'alert',        bg:'#fbeae7',              fg:'#a33',          icon:'<path d="M12 2c2 4-3 5-1 9 3-1 3-4 3-4 2 2 2 6-1 8-3 2-7 1-8-2-1-2 0-4 1-5-1 3 1 4 2 3-1-2 0-6 4-9z"/>' },
-			Announcement: { cls:'announcement', bg:'var(--accent-light)',  fg:'var(--accent)', icon:'<path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/>' }
+			Announcement: { cls:'announcement', bg:'var(--accent-light)',  fg:'var(--accent)', icon:'<path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/>' },
+			// A new version of the PeakPath app, with its download link.
+			'App Update': { cls:'announcement', bg:'var(--accent-light)', fg:'var(--accent)', icon:'<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/>' }
 		};
 		function typeMeta(t){ return TYPE_META[t] || TYPE_META.Announcement; }
 
@@ -2052,6 +2066,15 @@ async function syncExpiredAdvisories(){
 			// which records how it went on the advisory's `email` field.
 			if (channels.includes('Email')) addNote(describeEmailStatus(it));
 
+			// The link, with its button text.
+			const linkOk = /^https?:\/\//i.test(String(it.link || ''));
+			document.getElementById('dLinkSection').style.display = linkOk ? '' : 'none';
+			const dLink = document.getElementById('dLink');
+			if (linkOk) {
+				dLink.href = it.link;
+				dLink.textContent = `${it.linkLabel || 'Open link'} · ${it.link}`;
+			}
+
 			const recEl = document.getElementById('recommendations');
 			recEl.innerHTML = '';
 			(it.recommendedActions && it.recommendedActions.length ? it.recommendedActions : ['No recommended actions listed.'])
@@ -2509,6 +2532,8 @@ setInterval(refreshExpiry, 60000);
 			document.getElementById('mChanEmail').checked = channels.includes('Email');
 			document.getElementById('mDesc').value = it?.desc || '';
 			document.getElementById('mActions').value = (it?.recommendedActions || []).join('\n');
+			document.getElementById('mLink').value = it?.link || '';
+			document.getElementById('mLinkLabel').value = it?.linkLabel || '';
 			unsavedUploads = [];
 			resetMediaPicker(getMedia(it));
 			overlay.classList.add('open');
@@ -2524,6 +2549,18 @@ setInterval(refreshExpiry, 60000);
 			draftRef = null;
 		}
 		document.getElementById('createBtn').addEventListener('click', () => openModal(null));
+
+		/* App Update: the link is the PeakPath Android download on this site
+		   (landingPage.html's downloads/PeakPath.apk), and the button reads
+		   Install update, unless the admin typed their own. */
+		const APP_DOWNLOAD_URL = new URL('../downloads/PeakPath.apk', location.href).href;
+		document.getElementById('mType').addEventListener('change', (event) => {
+			if (event.target.value !== 'App Update') return;
+			const link = document.getElementById('mLink');
+			const label = document.getElementById('mLinkLabel');
+			if (!link.value.trim()) link.value = APP_DOWNLOAD_URL;
+			if (!label.value.trim()) label.value = 'Install update';
+		});
 		document.getElementById('modalCancel').addEventListener('click', closeModal);
 		overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
 
@@ -2552,6 +2589,9 @@ setInterval(refreshExpiry, 60000);
 			const expVal = document.getElementById('mExpires').value;
 			const actions = document.getElementById('mActions').value.split('\n').map(s => s.trim()).filter(Boolean);
 			const currentItem = editingId ? allItems.find(d => d.id === editingId) : null;
+			const link = document.getElementById('mLink').value.trim();
+			if (link && !/^https?:\/\/\S+$/i.test(link)) return showAlert('Enter the link as a full address, starting with https://.');
+			if (document.getElementById('mType').value === 'App Update' && !link) return showAlert('An App Update needs its download link.');
 
 			const payload = {
 				title,
@@ -2568,6 +2608,9 @@ setInterval(refreshExpiry, 60000);
 				channels,
 				desc: document.getElementById('mDesc').value.trim(),
 				recommendedActions: actions,
+				// Shown in the app as a button (App Update: the download).
+				link: link || null,
+				linkLabel: link ? (document.getElementById('mLinkLabel').value.trim() || 'Open link') : null,
 				// The Email channel is sent from (and replies go to) the admin
 				// who saved it; see advisoryMessage in functions/index.js.
 				sentByEmail: auth.currentUser?.email || null

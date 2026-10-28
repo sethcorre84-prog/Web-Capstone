@@ -1791,6 +1791,8 @@ exports.saveMapData = onCall({ region: FIRESTORE_REGION }, async (request) => {
     update[field] = JSON.stringify(value);
   }
   if (!Object.keys(update).length) throw new HttpsError("invalid-argument", "Nothing to save.");
+  // Which version of the portal's files this is (map-data.js).
+  if (Number.isInteger(input.version) && input.version > 0) update.version = input.version;
   await db.collection("settings").doc("map").set({
     ...update,
     updatedAt: FieldValue.serverTimestamp(),
@@ -1798,4 +1800,236 @@ exports.saveMapData = onCall({ region: FIRESTORE_REGION }, async (request) => {
   }, { merge: true });
   logger.info(`settings/map saved by ${uid}: ${Object.keys(update).join(", ")}`);
   return { saved: Object.keys(update) };
+});
+
+/* ---- User details on the user ----
+   Everything User Management shows about a hiker or guide is kept on their
+   own users/{uid} document, so it is all in Firestore and the app can read
+   it too:
+   - Every field a profile has, filled in when missing (role Hiker, status
+     Active, no hikes yet, Member Since from their account, and null for
+     what nobody has entered: gender, birthdate, address, nationality,
+     phone, a hiker's emergency contact, a guide's trail and evaluation).
+     Nothing already there is changed.
+   - users/{uid}.summary, what the portal otherwise works out from other
+     collections:
+       emergencyAlerts  their SOS / Lost alerts (emergency), as User Details
+       lastActive       the app's last check-in (checkIns/{uid}.lastSeenAt)
+       teams            the names of the teams they are in (teams)
+       assignedArea     those teams' trails, or the area on their profile
+       hikerType        "First-timer", "Repeat hiker" or "No hikes yet"
+       makilingHikes    Start Hikes in all (hikeStarts)
+       firstHikeMonth   "2026-10", their first Start Hike's month
+       age              today, from the birthdate
+       updatedAt
+   Kept up to date when the user, one of their alerts, one of their teams or
+   their check-in changes, and every day (age, and anything missed). */
+const USER_DEFAULTS = {
+  role: "Hiker",
+  status: "Active",
+  completedHikes: 0,
+  hikeTotalKm: 0,
+  gender: null,
+  birthdate: null,
+  address: null,
+  nationality: null,
+  phone: null
+};
+const HIKER_DEFAULTS = { emergencyContactName: null, emergencyContactPhone: null };
+const GUIDE_DEFAULTS = { guideTrailId: null, guideTrail: null, evaluationLink: null };
+const EMERGENCY_FIELDS = ["userId", "uid", "hikerId", "hikerName", "userName", "reportedBy", "name", "email"];
+
+const lower = (value) => String(value ?? "").trim().toLowerCase();
+const toDateValue = (value) => {
+  if (!value) return null;
+  if (typeof value.toDate === "function") return value.toDate();
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+// Whole years on today's date in the Philippines (birthdates are saved as
+// midnight UTC of the day).
+function ageToday(birthdate) {
+  const born = toDateValue(birthdate);
+  if (!born) return null;
+  const [y, m, d] = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" }).split("-").map(Number);
+  let age = y - born.getUTCFullYear();
+  if (m - 1 < born.getUTCMonth() || (m - 1 === born.getUTCMonth() && d < born.getUTCDate())) age -= 1;
+  return age >= 0 && age <= 120 ? age : null;
+}
+
+function hikeHistoryOf(data) {
+  const months = Object.entries(data.hikeStarts || {})
+    .filter(([key, value]) => /^m\d{4}_\d{2}$/.test(key) && Number(value?.count) > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+  const total = months.reduce((sum, [, value]) => sum + Number(value.count), 0);
+  const first = months[0]?.[0] || null;
+  return {
+    makilingHikes: total,
+    firstHikeMonth: first ? `${first.slice(1, 5)}-${first.slice(6, 8)}` : null,
+    hikerType: !total ? "No hikes yet" : (total > 1 ? "Repeat hiker" : "First-timer")
+  };
+}
+
+// What the summary is worked out from, read once for a batch of users.
+async function summaryContext() {
+  const [emergencies, teams, trails] = await Promise.all([
+    db.collection("emergency").get(),
+    db.collection("teams").get(),
+    db.collection("trails").get()
+  ]);
+  return {
+    emergencies: emergencies.docs.map((d) => d.data()),
+    teams: teams.docs.map((d) => d.data()),
+    trailNames: new Map(trails.docs.map((d) => [d.id, String(d.data().Trail || d.data().name || "").trim()]))
+  };
+}
+
+async function summaryFor(uid, data, ctx) {
+  const keys = new Set([uid, data.uid, data.email, data.fullName, data.username].map(lower).filter(Boolean));
+  const emergencyAlerts = ctx.emergencies.filter((record) => EMERGENCY_FIELDS.some((field) => keys.has(lower(record[field])))).length;
+  const ids = new Set([uid, data.uid].map(lower).filter(Boolean));
+  const teams = ctx.teams.filter((team) => (Array.isArray(team.members) ? team.members : []).some((m) => ids.has(lower(m)))
+    || ids.has(lower(team.leaderID || team.leaderId || team.leader)));
+  const areas = [...new Set(teams.map((team) => ctx.trailNames.get(String(team.trailID || team.trailId || ""))).filter(Boolean))];
+  const area = String(data.assignedArea || data.area || "").trim();
+  const checkIn = await db.collection("checkIns").doc(uid).get();
+  const lastActive = checkIn.exists ? (checkIn.data().lastSeenAt || null) : null;
+  return {
+    emergencyAlerts,
+    lastActive: lastActive || data.lastActive || data.lastSeen || null,
+    teams: teams.map((team) => String(team.teamName || team.name || team.title || "").trim() || "Unnamed team"),
+    assignedArea: areas.length ? areas : (area && area !== "—" ? [area] : []),
+    ...hikeHistoryOf(data),
+    age: ageToday(data.birthdate ?? data.birthDate ?? data.birthday)
+  };
+}
+
+// The missing fields of a profile, with their defaults (Member Since and
+// name / email from the sign-in account when the profile lacks them).
+async function missingProfileFields(uid, data) {
+  const role = lower(data.role || "hiker");
+  const wanted = { ...USER_DEFAULTS, ...(role === "guide" ? GUIDE_DEFAULTS : HIKER_DEFAULTS) };
+  const fill = {};
+  Object.entries(wanted).forEach(([key, value]) => { if (!(key in data)) fill[key] = value; });
+  if (!("uid" in data)) fill.uid = uid;
+  const needsAccount = !data.createdAt || !data.email || !(data.fullName || data.name);
+  if (needsAccount) {
+    try {
+      const account = await getAuth().getUser(uid);
+      if (!data.createdAt && account.metadata?.creationTime) fill.createdAt = Timestamp.fromDate(new Date(account.metadata.creationTime));
+      if (!data.email && account.email) fill.email = account.email;
+      if (!(data.fullName || data.name) && account.displayName) fill.fullName = account.displayName;
+    } catch {
+      // No sign-in account (an old or test profile): left as it is.
+    }
+  }
+  return fill;
+}
+
+// Same summary (ignoring when it was worked out)?
+const sameSummary = (a, b) => {
+  const plain = (value) => JSON.stringify(value, (key, v) => (key === "updatedAt" ? undefined
+    : (v && typeof v.toMillis === "function" ? v.toMillis() : v)));
+  return plain(a || {}) === plain(b || {});
+};
+
+async function syncUser(uid, ctx, data = null) {
+  const ref = db.collection("users").doc(uid);
+  if (!data) {
+    const snap = await ref.get();
+    if (!snap.exists) return false;
+    data = snap.data();
+  }
+  const fill = await missingProfileFields(uid, data);
+  const summary = await summaryFor(uid, { ...data, ...fill }, ctx);
+  const update = { ...fill };
+  if (!sameSummary(summary, data.summary)) update.summary = { ...summary, updatedAt: FieldValue.serverTimestamp() };
+  if (!Object.keys(update).length) return false;
+  await ref.set(update, { merge: true });
+  return true;
+}
+
+// A user's own change (not just their summary): their details again.
+exports.syncUserDetails = onDocumentWritten({ document: "users/{uid}", region: FIRESTORE_REGION }, async (event) => {
+  const after = event.data?.after;
+  if (!after?.exists) return;
+  const before = event.data.before?.exists ? event.data.before.data() : null;
+  const strip = (data) => {
+    const { summary, ...rest } = data;
+    return JSON.stringify(rest);
+  };
+  if (before && strip(before) === strip(after.data())) return;
+  await syncUser(event.params.uid, await summaryContext(), after.data());
+});
+
+// An alert raised or changed: the alert counts of whoever it names.
+exports.syncUserAlerts = onDocumentWritten({ document: "emergency/{id}", region: FIRESTORE_REGION }, async (event) => {
+  const records = [event.data?.before, event.data?.after].filter((s) => s?.exists).map((s) => s.data());
+  const uids = new Set();
+  for (const record of records) {
+    for (const field of ["userId", "uid", "hikerId"]) if (record[field]) uids.add(String(record[field]));
+    if (record.email) {
+      (await db.collection("users").where("email", "==", String(record.email).toLowerCase()).limit(5).get())
+        .docs.forEach((d) => uids.add(d.id));
+    }
+  }
+  if (!uids.size) return;
+  const ctx = await summaryContext();
+  for (const uid of uids) await syncUser(uid, ctx);
+});
+
+// A team changed: its members' (old and new) teams and areas.
+exports.syncUserTeams = onDocumentWritten({ document: "teams/{id}", region: FIRESTORE_REGION }, async (event) => {
+  const uids = new Set();
+  [event.data?.before, event.data?.after].filter((s) => s?.exists).forEach((s) => {
+    const team = s.data();
+    (Array.isArray(team.members) ? team.members : []).forEach((m) => m && uids.add(String(m)));
+    const leader = team.leaderID || team.leaderId;
+    if (leader) uids.add(String(leader));
+  });
+  if (!uids.size) return;
+  const ctx = await summaryContext();
+  for (const uid of uids) await syncUser(uid, ctx);
+});
+
+// The app checks in every two minutes: Last Active, saved when it moved by
+// ten minutes or more (not every check-in).
+exports.syncUserLastActive = onDocumentWritten({ document: "checkIns/{uid}", region: FIRESTORE_REGION }, async (event) => {
+  const seen = event.data?.after?.exists ? event.data.after.data().lastSeenAt : null;
+  if (!seen) return;
+  const ref = db.collection("users").doc(event.params.uid);
+  const user = await ref.get();
+  if (!user.exists) return;
+  const saved = toDateValue(user.data().summary?.lastActive);
+  const now = toDateValue(seen);
+  if (saved && now && Math.abs(now - saved) < 10 * 60 * 1000) return;
+  await ref.set({ summary: { lastActive: seen, updatedAt: FieldValue.serverTimestamp() } }, { merge: true });
+});
+
+async function syncAllUsers() {
+  const [users, ctx] = await Promise.all([db.collection("users").get(), summaryContext()]);
+  let changed = 0;
+  for (const user of users.docs) {
+    try {
+      if (await syncUser(user.id, ctx, user.data())) changed += 1;
+    } catch (error) {
+      logger.warn(`Could not sync user ${user.id}: ${error.message}`);
+    }
+  }
+  logger.info(`User details: ${changed} of ${users.size} users updated`);
+  return { users: users.size, changed };
+}
+
+// Every day (ages, and anything a trigger missed); and from the portal.
+exports.syncUsersDaily = onSchedule(
+  { schedule: "every day 02:30", timeZone: "Asia/Manila", region: FIRESTORE_REGION, timeoutSeconds: 540 },
+  async () => { await syncAllUsers(); }
+);
+exports.syncUsersNow = onCall({ region: FIRESTORE_REGION, timeoutSeconds: 540 }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid || !(await db.collection("admins").doc(uid).get()).exists) {
+    throw new HttpsError("permission-denied", "Only admins can update every user's details.");
+  }
+  return syncAllUsers();
 });

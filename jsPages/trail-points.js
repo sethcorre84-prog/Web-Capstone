@@ -40,7 +40,7 @@ export const SUGGESTED_CHECKPOINTS = {
     { name: 'Peak 2 Summit', note: 'Station 21. 1,090 MASL.', at: PEAK_2 }
   ],
   traverse: [
-    { name: 'Sto. Tomas Start', note: 'Start of the traverse, up the Sipit side. Register before the climb.', at: [14.1091, 121.1657] },
+    { name: 'MakTrav Jump-off (Sipit side)', note: 'Start of the traverse, up the Sipit Trail from Sto. Tomas. Register before the climb.', at: [14.099953324593944, 121.19592880324568] },
     { name: 'Peak 2 Summit', note: '1,090 MASL, halfway point of the traverse.', at: PEAK_2 },
     { name: 'Agila Base', note: 'Mariang Makiling Station 11. Log back in on the way down.', at: at('mariang', 11) },
     { name: 'MCME Exit', note: 'Mariang Makiling Station 1. Log out at the MCME office, Los Baños.', at: at('mariang', 1) }

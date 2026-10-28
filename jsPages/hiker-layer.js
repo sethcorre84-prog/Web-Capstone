@@ -413,7 +413,7 @@ const saveAnnounced = (keys) => {
   try { localStorage.setItem(OFF_TRAIL_ANNOUNCED_KEY, JSON.stringify([...keys])); } catch { /* may then repeat on the next page */ }
 };
 
-export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () => {}, showLostAlerts = true, trailLines = null, announceOffTrail = true, emergencyStatuses = true }) {
+export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () => {}, showLostAlerts = true, trailLines = null, announceOffTrail = true, emergencyStatuses = true, onOffTrail = () => {} }) {
   // Without the emergency statuses: no off-trail check (so no alarm), no
   // lost hikers, no on-hike colour.
   if (!emergencyStatuses) {
@@ -505,6 +505,7 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
   };
 
   const offTrailStreak = new Map(); // uid -> polls in a row off every trail
+  const offTrailSince = new Map();  // uid -> when first flagged off trail
   const offTrailByUid = new Map();  // uid -> { distance, point, name } once flagged
   const offTrailLines = new Map();  // uid -> dashed line back to the trail
   const announced = readAnnounced();
@@ -526,12 +527,16 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
       seen.add(data.id);
       const streak = (offTrailStreak.get(data.id) || 0) + 1;
       offTrailStreak.set(data.id, streak);
-      if (streak >= OFF_TRAIL_POLLS) offTrailByUid.set(data.id, nearest);
+      if (streak >= OFF_TRAIL_POLLS) {
+        if (!offTrailSince.has(data.id)) offTrailSince.set(data.id, new Date());
+        offTrailByUid.set(data.id, nearest);
+      }
     });
     [...offTrailStreak.keys()].forEach((uid) => {
       if (seen.has(uid)) return;
       offTrailStreak.delete(uid);
       offTrailByUid.delete(uid);
+      offTrailSince.delete(uid);
     });
 
     // One alarm per stray: a hiker back on the trail who strays again is
@@ -658,7 +663,17 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
       // The dashed line from an off-trail hiker back to the nearest trail.
       const backLine = offTrailLines.get(data.id);
       if (isOffTrail) {
-        offTrailRows.push({ uid: data.id, name: data.name || 'Hiker', nearest: offTrail, online: isOnline });
+        offTrailRows.push({
+          uid: data.id,
+          name: data.name || 'Hiker',
+          nearest: offTrail,
+          online: isOnline,
+          coordinates,
+          updatedAt,
+          since: offTrailSince.get(data.id) || updatedAt,
+          trail: data.hike?.trail || '',
+          lost: isLost
+        });
         if (backLine) backLine.setLatLngs([coordinates, offTrail.point]);
         else offTrailLines.set(data.id, L.polyline([coordinates, offTrail.point], {
           color: '#d64532', weight: 3, dashArray: '6 6', interactive: false
@@ -702,6 +717,15 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
       offTrailLines.delete(id);
     });
     renderAlertBox(offTrailRows);
+    /* For a page's own list (Emergency Monitoring's table): the hikers off
+       trail now, each with focus() to show them on the map. */
+    onOffTrail(offTrailRows.map((row) => ({
+      ...row,
+      focus: () => {
+        map.setView(row.coordinates, Math.max(map.getZoom(), 17));
+        hikerMarkers.get(row.uid)?.openPopup();
+      }
+    })));
 
     // Lost hikers with no live pin: at the alert's last known position.
     const drawnAlerts = new Set();

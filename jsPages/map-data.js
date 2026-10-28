@@ -35,6 +35,13 @@ const parse = (text) => {
   try { return JSON.parse(text); } catch { return null; }
 };
 
+/* The version of the files below. Raise it whenever a file (or the built-in
+   jump-offs) changes: an admin's next page then puts them into settings/map,
+   replacing what is stored there. 2: the Makiling Traverse rerouted up the
+   Sipit Trail, and its jump-off. 3: the Mariang Makiling Trail's
+   registration. */
+const MAP_DATA_VERSION = 3;
+
 let request = null;
 
 // Firestore only lets a signed-in user read settings/: wait for the session
@@ -67,8 +74,10 @@ export function loadMapData(fallbackJumpOffs = []) {
     } catch (error) {
       console.warn('Could not read the map data (settings/map); using the files.', error.message);
     }
+    // Stored from older files: every field from the files again.
+    const outdated = readOk && stored && Number(stored.version || 0) < MAP_DATA_VERSION;
     const fromStore = (field) => {
-      const value = stored ? parse(stored[field]) : null;
+      const value = stored && !outdated ? parse(stored[field]) : null;
       return value && (Array.isArray(value) || Array.isArray(value.features)) ? value : null;
     };
     const data = {
@@ -94,7 +103,9 @@ export function loadMapData(fallbackJumpOffs = []) {
     }
     // First time (or a field missing): an admin's page puts the files into
     // settings/map, so the app draws them from Firestore from now on.
-    if (readOk && missing.length && Object.keys(texts).length === missing.length) seedMapData(texts);
+    if (readOk && missing.length && Object.keys(texts).length === missing.length) {
+      seedMapData({ ...texts, version: MAP_DATA_VERSION });
+    }
     return data;
   })().catch((error) => {
     request = null;
@@ -108,7 +119,7 @@ function seedMapData(texts) {
   if (seeded) return;
   seeded = true;
   const run = () => httpsCallable(getFunctions(auth.app, 'asia-southeast1'), 'saveMapData')(texts)
-    .then(() => console.info('Map data saved to Firestore (settings/map):', Object.keys(texts).join(', ')))
+    .then(() => console.info('Map data saved to Firestore (settings/map):', Object.keys(texts).filter((k) => k !== 'version').join(', ')))
     // Not an admin, or the function isn't there yet: the files keep working.
     .catch((error) => console.info('Map data not saved to Firestore:', error?.message || error));
   if (auth.currentUser) run();
