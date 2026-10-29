@@ -119,7 +119,10 @@
         .hero { overflow: hidden; }
         @media (min-width: 901px) {
             .hero { min-height: calc(100vh - 60px); display: flex; align-items: center; }
-            .hero .wrap { width: min(1120px, 100%); }
+            /* Wider than the rest of the page, so the text sits nearer the
+               left edge and the phone nearer the right; the menu bar lines up. */
+            .hero .wrap,
+            .topbar .wrap { width: min(1440px, 100%); padding: 0 clamp(16px, 4vw, 64px); }
         }
         .eyebrow {
             display: inline-flex;
@@ -157,7 +160,8 @@
         .hero-phone {
             position: relative;
             display: grid;
-            place-items: center;
+            justify-items: center;
+            align-content: center;
             padding: 20px 0;
         }
         .hero-phone::before {
@@ -171,7 +175,7 @@
         .phone {
             position: relative;
             /* Never taller than the window allows (menu bar and margins). */
-            width: min(280px, 78vw, calc((100vh - 150px) * 432 / 928));
+            width: min(280px, 78vw, calc((100vh - 200px) * 432 / 928));
             aspect-ratio: 432 / 928;
             padding: 10px;
             border-radius: 44px;
@@ -200,8 +204,59 @@
             z-index: 1;
             background: linear-gradient(#0d1410, rgba(13, 20, 16, 0));
         }
+        /* The screens side by side; the track slides to the one shown. */
+        .phone-screen { touch-action: pan-y; cursor: grab; user-select: none; }
+        .phone-screen.is-dragging { cursor: grabbing; }
+        .phone-track {
+            display: flex;
+            height: 100%;
+            transition: transform .55s cubic-bezier(.22, .8, .25, 1);
+        }
+        .phone-screen.is-dragging .phone-track { transition: none; }
+        .phone-slide {
+            flex: 0 0 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .phone-dots {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 18px;
+        }
+        .phone-dots button {
+            width: 9px;
+            height: 9px;
+            padding: 0;
+            border: 0;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .4);
+            cursor: pointer;
+            transition: width .25s ease, background .25s ease;
+        }
+        .phone-dots button[aria-current="true"] {
+            width: 26px;
+            background: #9be3b0;
+        }
+        .phone-dots button:focus-visible {
+            outline: 2px solid #fff;
+            outline-offset: 3px;
+        }
+        .phone-caption {
+            position: relative;
+            margin-top: 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, .85);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .phone-track { transition: none; }
+        }
         .phone-screen img {
             display: block;
+            pointer-events: none;
             width: 109%;
             height: 100%;
             margin-left: -4.5%;
@@ -269,7 +324,8 @@
             padding: 16px 18px;
             text-align: left;
         }
-        .qr-card.is-inline .qr-holder { align-self: start; }
+        /* The QR code centred in its side of the card, top to bottom. */
+        .qr-card.is-inline .qr-holder { align-self: center; }
         .qr-card.is-inline .qr-side > p { margin: 0 0 4px; font-size: 13.5px; color: var(--text-2); }
         .qr-card.is-inline .apk-meta { margin: 6px 0 12px; }
         .qr-caption {
@@ -353,8 +409,45 @@
             color: var(--text-2);
         }
         .not-android i { margin-top: 3px; color: var(--accent); }
+        /* Under the card, on the green: the badge and How to install. */
+        .download-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 12px 22px;
+            margin-top: 16px;
+        }
+        .store-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 9px 20px 9px 16px;
+            border-radius: 12px;
+            background: #fff;
+            color: #123d22;
+            text-decoration: none;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .store-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 26px rgba(0, 0, 0, .3);
+        }
+        .store-badge:focus-visible { outline: 3px solid #9be3b0; outline-offset: 3px; }
+        .store-badge i { font-size: 28px; color: #2f8f4e; }
+        .store-badge span { display: flex; flex-direction: column; font: 800 17px/1.1 "Montserrat", sans-serif; }
+        .store-badge small { font: 600 11px/1.3 "Inter", sans-serif; color: #4c5e51; }
+        /* Not on an Android phone: it can't download here; the click shows why. */
+        .store-badge.is-elsewhere { opacity: .92; }
+        .not-android.is-flash { animation: noteFlash 1.2s ease; }
+        @keyframes noteFlash {
+            0%, 100% { box-shadow: none; }
+            30% { box-shadow: 0 0 0 3px rgba(155, 227, 176, .7); }
+        }
         .install-help { margin-top: 6px; text-align: left; font-size: 13px; color: var(--text-2); }
         .install-help summary { cursor: pointer; font-weight: 600; color: var(--accent-dark); }
+        .download-row .install-help { margin-top: 0; padding-top: 12px; color: rgba(255, 255, 255, .85); max-width: 420px; }
+        .download-row .install-help summary { color: #9be3b0; }
         .install-help ol { margin: 8px 0 0; padding-left: 20px; }
         .install-help li + li { margin-top: 4px; }
         .copy-note { min-height: 18px; margin: 8px 0 0; font-size: 12px; color: var(--accent); }
@@ -497,10 +590,7 @@
                     <p>Scan with your <strong>Android phone's</strong> camera to download the app.</p>
                     <div class="apk-meta" id="apkMeta">PeakPath for Android · version 1.0.1 · 68.34 MB · updated Oct 28, 2026</div>
 
-                    <!-- On an Android phone: the download. Anywhere else: why not. -->
-                    <div class="qr-actions" id="androidActions" hidden>
-                        <a class="btn btn-primary btn-wide" id="downloadApk" href="https://github.com/Arctzy/Peakpath-APK/releases/latest/download/app-release.apk"><i class="fa-solid fa-download" aria-hidden="true"></i>Download for Android</a>
-                    </div>
+                    <!-- Anywhere but an Android phone: why it can't be downloaded here. -->
                     <div class="not-android" id="notAndroid" hidden>
                         <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
                         <span>PeakPath can only be downloaded on an <strong>Android phone</strong>. Scan the code with one, or open this page on it.</span>
@@ -510,17 +600,25 @@
                         <button type="button" class="btn btn-outline" id="downloadQr"><i class="fa-solid fa-qrcode" aria-hidden="true"></i>Save QR</button>
                     </div>
                     <p class="copy-note" id="copyNote" role="status" aria-live="polite"></p>
+                    </div>
+                </aside>
 
+                <!-- Under the card: the download, as a store-style badge, and
+                     how to install it. -->
+                <div class="download-row">
+                    <a class="store-badge" id="downloadApk" href="https://github.com/Arctzy/Peakpath-APK/releases/latest/download/app-release.apk">
+                        <i class="fa-brands fa-android" aria-hidden="true"></i>
+                        <span><small>Download for</small>Android App</span>
+                    </a>
                     <details class="install-help">
                         <summary>How to install</summary>
                         <ol>
-                            <li>Tap <strong>Download for Android</strong> and open <em>app-release.apk</em> when it finishes.</li>
+                            <li>Tap <strong>Download for Android App</strong> and open <em>app-release.apk</em> when it finishes.</li>
                             <li>If asked, allow your browser to <strong>install unknown apps</strong> (Settings → Apps → your browser → Install unknown apps).</li>
                             <li>Tap <strong>Install</strong>. Already have PeakPath? This updates it and keeps your account.</li>
                         </ol>
                     </details>
-                    </div>
-                </aside>
+                </div>
                 <div class="hero-facts">
                     <span><i class="fa-solid fa-route" aria-hidden="true"></i>Mariang Makiling, Sipit &amp; the Traverse</span>
                     <span><i class="fa-solid fa-mountain" aria-hidden="true"></i>Peak 2 · 1,090 MASL</span>
@@ -528,15 +626,32 @@
                 </div>
             </div>
 
-            <!-- The app itself: its Home screen in a phone. -->
-            <div class="hero-phone" aria-hidden="true">
+            <!-- The app itself: its screens in a phone, sliding one to the next
+                 (swipe or drag, or the dots; they also move on by themselves). -->
+            <div class="hero-phone" role="region" aria-roledescription="carousel" aria-label="PeakPath app screens">
                 <div class="phone">
-                    <span class="phone-notch"></span>
-                    <div class="phone-screen"><img src="../assets/images/app-home.png" alt=""></div>
+                    <span class="phone-notch" aria-hidden="true"></span>
+                    <div class="phone-screen" id="phoneScreen">
+                        <div class="phone-track" id="phoneTrack">
+                            <div class="phone-slide" role="group" aria-roledescription="slide" aria-label="Home"><img src="../assets/images/app-home.png" alt="PeakPath app: Home screen" draggable="false"></div>
+                            <div class="phone-slide" role="group" aria-roledescription="slide" aria-label="All Trails"><img src="../assets/images/app-trails.png" alt="PeakPath app: All Trails screen" draggable="false" loading="lazy"></div>
+                            <div class="phone-slide" role="group" aria-roledescription="slide" aria-label="Trail Map"><img src="../assets/images/app-map.png" alt="PeakPath app: Trail Map screen" draggable="false" loading="lazy"></div>
+                            <div class="phone-slide" role="group" aria-roledescription="slide" aria-label="Reports"><img src="../assets/images/app-reports.png" alt="PeakPath app: Reports screen" draggable="false" loading="lazy"></div>
+                            <div class="phone-slide" role="group" aria-roledescription="slide" aria-label="Community"><img src="../assets/images/app-community.png" alt="PeakPath app: Community screen" draggable="false" loading="lazy"></div>
+                        </div>
+                    </div>
                 </div>
-                <span class="phone-chip chip-top"><i class="fa-solid fa-cloud-sun"></i>Live summit weather</span>
-                <span class="phone-chip chip-mid"><i class="fa-solid fa-location-crosshairs"></i>Share your location</span>
-                <span class="phone-chip chip-low"><i class="fa-solid fa-tower-broadcast"></i>One-tap SOS</span>
+                <div class="phone-dots" id="phoneDots">
+                    <button type="button" data-slide="0" aria-label="Show Home" aria-current="true"></button>
+                    <button type="button" data-slide="1" aria-label="Show All Trails"></button>
+                    <button type="button" data-slide="2" aria-label="Show Trail Map"></button>
+                    <button type="button" data-slide="3" aria-label="Show Reports"></button>
+                    <button type="button" data-slide="4" aria-label="Show Community"></button>
+                </div>
+                <div class="phone-caption" id="phoneCaption" aria-live="polite">Home</div>
+                <span class="phone-chip chip-top" aria-hidden="true"><i class="fa-solid fa-cloud-sun"></i>Live summit weather</span>
+                <span class="phone-chip chip-mid" aria-hidden="true"><i class="fa-solid fa-location-crosshairs"></i>Share your location</span>
+                <span class="phone-chip chip-low" aria-hidden="true"><i class="fa-solid fa-tower-broadcast"></i>One-tap SOS</span>
             </div>
         </div>
     </section>
@@ -650,11 +765,21 @@
         || /android/i.test(navigator.userAgentData?.platform || '');
 
     document.getElementById('year').textContent = new Date().getFullYear();
-    document.getElementById('androidActions').hidden = !isAndroid;
-    document.getElementById('notAndroid').hidden = isAndroid;
+    const notAndroid = document.getElementById('notAndroid');
+    notAndroid.hidden = isAndroid;
     const downloadBtn = document.getElementById('downloadApk');
-    // Belt and braces: only an Android phone may start the download.
-    downloadBtn.addEventListener('click', (event) => { if (!isAndroid) event.preventDefault(); });
+    downloadBtn.classList.toggle('is-elsewhere', !isAndroid);
+    if (!isAndroid) downloadBtn.title = 'Open this page on an Android phone to download';
+    // Only an Android phone may start the download: anywhere else the click
+    // points at why (the note in the card).
+    downloadBtn.addEventListener('click', (event) => {
+        if (isAndroid) return;
+        event.preventDefault();
+        notAndroid.classList.remove('is-flash');
+        void notAndroid.offsetWidth;
+        notAndroid.classList.add('is-flash');
+        notAndroid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
 
     // High error correction, so the logo in the middle doesn't stop it scanning.
     const qrEl = document.getElementById('qrCode');
@@ -727,6 +852,74 @@
         logo.onerror = finish;
         logo.src = '../assets/images/logo.png';
     });
+
+    /* The phone's screens: one at a time, moving on every 4 seconds (not
+       while the pointer is over it, or for anyone who prefers less motion);
+       swipe or drag to change, or pick a dot. */
+    (() => {
+        const screen = document.getElementById('phoneScreen');
+        const track = document.getElementById('phoneTrack');
+        const dots = [...document.querySelectorAll('#phoneDots button')];
+        const caption = document.getElementById('phoneCaption');
+        const slides = [...track.children];
+        if (!screen || slides.length < 2) return;
+        const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let index = 0;
+        let timer = null;
+        const show = (i) => {
+            index = (i + slides.length) % slides.length;
+            track.style.transform = `translateX(${-index * 100}%)`;
+            dots.forEach((dot, n) => dot.setAttribute('aria-current', String(n === index)));
+            caption.textContent = slides[index].getAttribute('aria-label');
+        };
+        const play = () => {
+            clearInterval(timer);
+            if (!still) timer = setInterval(() => show(index + 1), 4000);
+        };
+        const pause = () => clearInterval(timer);
+        dots.forEach((dot) => dot.addEventListener('click', () => { show(Number(dot.dataset.slide)); play(); }));
+        const phone = screen.closest('.hero-phone');
+        phone.addEventListener('mouseenter', pause);
+        phone.addEventListener('mouseleave', play);
+        document.addEventListener('visibilitychange', () => (document.hidden ? pause() : play()));
+
+        // Swipe / drag: the track follows the finger, then settles on the
+        // next or previous screen past a fifth of the width.
+        let startX = null;
+        let width = 1;
+        screen.addEventListener('pointerdown', (event) => {
+            startX = event.clientX;
+            width = screen.clientWidth || 1;
+            screen.classList.add('is-dragging');
+            screen.setPointerCapture(event.pointerId);
+            pause();
+        });
+        screen.addEventListener('pointermove', (event) => {
+            if (startX === null) return;
+            const dx = event.clientX - startX;
+            track.style.transform = `translateX(calc(${-index * 100}% + ${dx}px))`;
+        });
+        const end = (event) => {
+            if (startX === null) return;
+            const dx = event.clientX - startX;
+            startX = null;
+            screen.classList.remove('is-dragging');
+            if (Math.abs(dx) > width / 5) show(index + (dx < 0 ? 1 : -1));
+            else show(index);
+            play();
+        };
+        screen.addEventListener('pointerup', end);
+        screen.addEventListener('pointercancel', end);
+        // Arrow keys when a dot has focus.
+        document.getElementById('phoneDots').addEventListener('keydown', (event) => {
+            if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+            show(index + (event.key === 'ArrowRight' ? 1 : -1));
+            dots[index].focus();
+            play();
+        });
+        show(0);
+        play();
+    })();
 </script>
 </body>
 </html>
