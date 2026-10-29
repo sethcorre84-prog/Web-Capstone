@@ -2105,13 +2105,18 @@ function showSelectedTrailOnMap() {
   // The trail's starting point: the start of its route or line
   // (makiling-area.js trailStart), else the location saved for it.
   const line = lineForTrail(trail);
-  const start = trailStart(trail, line?.getLatLngs().flat());
+  // A side trail (Mud Spring, Flat Rocks) is reached along the Mariang
+  // Makiling Trail: it starts at that trail's jump-off, and the whole way
+  // there is shown.
+  const way = trailLines?.routeTo(lineKeyFor(trail));
+  const start = trailStart(trail, way || line?.getLatLngs().flat());
   const coordinates = start || getTrailCoordinates(trail);
   if (selectedTrailMarker) trailMap.removeLayer(selectedTrailMarker);
   selectedTrailMarker = L.marker(coordinates).addTo(trailMap);
   selectedTrailMarker.bindPopup(`<strong>${escapeHtml(trail.Trail || 'Selected trail')}</strong><br>${
     start ? 'Starting point' : 'Trail location'} · ${escapeHtml(trail.Status || 'Open')}`).openPopup();
-  trailMap.setView(coordinates, 16);
+  if (way) trailMap.fitBounds(L.latLngBounds(way), { padding: [30, 30] });
+  else trailMap.setView(coordinates, 16);
   document.getElementById('trailMap').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 

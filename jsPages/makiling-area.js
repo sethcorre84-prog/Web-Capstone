@@ -182,6 +182,11 @@ const CLOSED_COLOR = '#c8402f';
 // Side trails (Mud Spring, Flat Rocks): yellow, like the maps' legends.
 const SIDE_TRAIL_COLOR = '#ffb020';
 
+// The trail each side trail is reached along: hikers register at its
+// jump-off and walk it to where the side trail leaves it (Flat Rocks near
+// Station 1, Mud Spring at Station 8).
+const SIDE_TRAIL_VIA = { mudspring: 'mariang', flatrocks: 'mariang' };
+
 /* The summit badge: the same white disc, dark green ring and mountain icon
    as the GeoMap's Summit station marker (.mf-facility in map-features.js),
    styled inline so every map shows it without map-features.js loaded. */
@@ -427,15 +432,61 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
     setRoutes(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
   }, (error) => console.warn('Could not load the saved trail routes:', error.message));
 
+  /* The whole way to a side trail: its main trail (SIDE_TRAIL_VIA) from the
+     jump-off, the start of that line, to the point nearest the side trail,
+     then the side trail to its end, as L.LatLng points. Null for any other
+     line, or while either line is missing. */
+  function routeTo(key) {
+    const side = key && lines.get(key);
+    const viaKey = side && SIDE_TRAIL_VIA[key.startsWith('trail:') ? trailLineKey(side.trail?.Trail) : key];
+    // The main trail's saved route when it has one, else its file line.
+    const main = viaKey && (lines.get(viaKey)
+      || [...lines.values()].find((line) => line.trail && trailLineKey(line.trail.Trail) === viaKey));
+    if (!main) return null;
+    const path = main.stroke.getLatLngs().flat();
+    let sidePath = side.stroke.getLatLngs().flat();
+    if (path.length < 2 || sidePath.length < 2) return null;
+    let best = null;
+    path.forEach((point, i) => [0, sidePath.length - 1].forEach((end) => {
+      const distance = point.distanceTo(sidePath[end]);
+      if (!best || distance < best.distance) best = { distance, i, end };
+    }));
+    // The side trail from the end that meets the main trail.
+    if (best.end) sidePath = [...sidePath].reverse();
+    return [...path.slice(0, best.i + 1), ...sidePath];
+  }
+
+  // The main-trail part of a highlighted side trail's way, drawn in the
+  // side trail's style under it.
+  let leadIn = [];
+
   function highlight(key) {
     activeKey = key;
+    leadIn.forEach((layer) => group.removeLayer(layer));
+    leadIn = [];
     lines.forEach((line, lineKey) => {
       const active = lineKey === key;
       const dim = key && !active;
       line.casing.setStyle({ weight: active ? 10 : (line.side ? 5 : 7), opacity: dim ? 0.35 : 0.85 });
       line.stroke.setStyle({ weight: active ? 6 : (line.side ? 3 : 4), opacity: dim ? 0.45 : 1 });
-      if (active) { line.casing.bringToFront(); line.stroke.bringToFront(); }
     });
+    const active = key && lines.get(key);
+    if (!active) return;
+    const way = routeTo(key);
+    if (way) {
+      const sideLength = active.stroke.getLatLngs().flat().length;
+      const path = way.slice(0, way.length - sideLength + 1);
+      leadIn = [
+        L.polyline(path, { color: '#fff', weight: 10, opacity: 0.85, interactive: false }),
+        L.polyline(path, {
+          color: active.stroke.options.color, weight: 6, opacity: 1,
+          dashArray: active.stroke.options.dashArray, interactive: false
+        })
+      ];
+      leadIn.forEach((layer) => layer.addTo(group));
+    }
+    active.casing.bringToFront();
+    active.stroke.bringToFront();
   }
 
   function recolor() {
@@ -448,5 +499,5 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
   // onChange(listener): called after the saved routes are redrawn.
   const onChange = (listener) => { changeListeners.add(listener); return () => changeListeners.delete(listener); };
 
-  return { lines, highlight, recolor, group, onChange };
+  return { lines, highlight, routeTo, recolor, group, onChange };
 }
