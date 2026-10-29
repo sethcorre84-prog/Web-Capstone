@@ -1,15 +1,43 @@
+
 {
   "cleanUrls": true,
   "redirects": [
-    { "source": "/", "destination": "/htmlPages/landingPage", "permanent": false }
+    {
+      "source": "/",
+      "destination": "/htmlPages/landingPage",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/about",
+      "destination": "/htmlPages/about.html"
+    },
+    {
+      "source": "/contact",
+      "destination": "/htmlPages/contact.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/htmlPages/login.html"
+    }
   ],
   "headers": [
     {
       "source": "/downloads/(.*)\\.apk",
       "headers": [
-        { "key": "Content-Type", "value": "application/vnd.android.package-archive" },
-        { "key": "Content-Disposition", "value": "attachment; filename=\"PeakPath.apk\"" },
-        { "key": "Cache-Control", "value": "no-cache" }
+        {
+          "key": "Content-Type",
+          "value": "application/vnd.android.package-archive"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"PeakPath.apk\""
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
       ]
     }
   ]
