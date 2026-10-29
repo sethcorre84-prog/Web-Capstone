@@ -39,8 +39,9 @@ const parse = (text) => {
    jump-offs) changes: an admin's next page then puts them into settings/map,
    replacing what is stored there. 2: the Makiling Traverse rerouted up the
    Sipit Trail, and its jump-off. 3: the Mariang Makiling Trail's
-   registration. */
-const MAP_DATA_VERSION = 3;
+   registration. 4: Peak 3 moved to the highest point,
+   1,109 MASL (14.13465, 121.18828). */
+const MAP_DATA_VERSION = 4;
 
 let request = null;
 

@@ -414,9 +414,13 @@
             display: flex;
             flex-wrap: wrap;
             align-items: flex-start;
-            gap: 12px 22px;
+            gap: 12px;
             margin-top: 16px;
         }
+        .download-row .install-help { flex-basis: 100%; padding-top: 0; }
+        /* The two badges centred under the card (as wide as the card). */
+        .download-row { justify-content: center; max-width: 600px; }
+        .download-row .install-help { text-align: center; }
         .store-badge {
             display: inline-flex;
             align-items: center;
@@ -435,6 +439,15 @@
         }
         .store-badge:focus-visible { outline: 3px solid #9be3b0; outline-offset: 3px; }
         .store-badge i { font-size: 28px; color: #2f8f4e; }
+        /* The Web App badge: the same shape, outlined on the green. */
+        .store-badge.is-web {
+            background: rgba(255, 255, 255, .08);
+            color: #fff;
+            box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .55);
+        }
+        .store-badge.is-web:hover { background: rgba(255, 255, 255, .16); }
+        .store-badge.is-web i { color: #9be3b0; font-size: 25px; }
+        .store-badge.is-web small { color: rgba(255, 255, 255, .78); }
         .store-badge span { display: flex; flex-direction: column; font: 800 17px/1.1 "Montserrat", sans-serif; }
         .store-badge small { font: 600 11px/1.3 "Inter", sans-serif; color: #4c5e51; }
         /* Not on an Android phone: it can't download here; the click shows why. */
@@ -593,7 +606,7 @@
                     <!-- Anywhere but an Android phone: why it can't be downloaded here. -->
                     <div class="not-android" id="notAndroid" hidden>
                         <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
-                        <span>PeakPath can only be downloaded on an <strong>Android phone</strong>. Scan the code with one, or open this page on it.</span>
+                        <span>PeakPath can only be downloaded on an <strong>Android phone</strong>. Scan the code with one, or use the <strong>Web App</strong> in your browser.</span>
                     </div>
                     <div class="qr-actions">
                         <button type="button" class="btn btn-outline" id="copyLink"><i class="fa-regular fa-copy" aria-hidden="true"></i>Copy link</button>
@@ -609,6 +622,12 @@
                     <a class="store-badge" id="downloadApk" href="https://github.com/Arctzy/Peakpath-APK/releases/latest/download/app-release.apk">
                         <i class="fa-brands fa-android" aria-hidden="true"></i>
                         <span><small>Download for</small>Android App</span>
+                    </a>
+                    <!-- The same app in the browser (the Flutter web build on
+                         Firebase Hosting): any device, nothing to install. -->
+                    <a class="store-badge is-web" id="openWebApp" href="https://peakpath-ccd4a.web.app" target="_blank" rel="noopener">
+                        <i class="fa-solid fa-globe" aria-hidden="true"></i>
+                        <span><small>Use it in your browser</small>Web App</span>
                     </a>
                     <details class="install-help">
                         <summary>How to install</summary>

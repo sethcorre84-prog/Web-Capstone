@@ -4516,6 +4516,11 @@
     refreshAddUserButton();
   };
 
+  /* "auth/error-code:-39" (and other bare numeric codes): Firebase's SMS
+     service answered 503 and sent nothing, usually for a while (its abuse
+     limits or the SMS region policy). Worth one more try after a pause. */
+  const isSmsServiceError = (error) => /^auth\/error-code:-?\d+$/.test(String(error?.code || ''));
+
   // What a Firebase phone-verification error means, in words.
   const describePhoneError = (error) => ({
     'auth/invalid-verification-code': 'That code is not right. Check the SMS and try again.',
@@ -4528,7 +4533,11 @@
     'auth/captcha-check-failed': `The reCAPTCHA check for ${location.hostname} failed (auth/captcha-check-failed). Make sure "${location.hostname}" is in Authorized domains, then reload and try again.`,
     'auth/invalid-app-credential': 'Firebase rejected the reCAPTCHA check (auth/invalid-app-credential). Reload the page and try again.',
     'auth/network-request-failed': 'Network error. Check your connection and try again.'
-  }[error?.code] || `${error?.message || 'Something went wrong. Try again.'}${error?.code ? ` (${error.code})` : ''}`);
+  }[error?.code] || (isSmsServiceError(error)
+    // Firebase's SMS service refused to send (a 503 behind "auth/error-code:-39"):
+    // not this page's doing, so say what to check.
+    ? `Firebase could not send an SMS to this number right now (${error.code}). Wait a few minutes and try again. If it keeps happening: in Firebase Console > Authentication > Settings, make sure the SMS region policy allows the Philippines, and check that the project has not hit its SMS sending limit (Usage). For testing, a number can be added under Sign-in method > Phone > Phone numbers for testing.`
+    : `${error?.message || 'Something went wrong. Try again.'}${error?.code ? ` (${error.code})` : ''}`));
 
   // Changing the number undoes any verification of the old one.
   addUserPhoneInput.addEventListener('input', () => {
@@ -4563,7 +4572,8 @@
     sendPhoneCodeBtn.disabled = true;
     sendPhoneCodeBtn.textContent = 'Sending…';
     setPhoneStatus(`Sending a code to ${parsed.local}…`);
-    try {
+    // A fresh sign-up session and reCAPTCHA for each try.
+    const sendCode = async () => {
       await endSignupSession({ deleteAccount: false });
       const app = initializeApp(auth.app.options, 'add-user-' + crypto.randomUUID());
       const signupAuth = initializeAuth(app, { persistence: inMemoryPersistence });
@@ -4573,6 +4583,18 @@
       const verifier = new RecaptchaVerifier(signupAuth, holder.firstChild, { size: 'invisible' });
       signup = { app, auth: signupAuth, verifier, confirmation: null, user: null };
       signup.confirmation = await signInWithPhoneNumber(signupAuth, parsed.e164, verifier);
+    };
+    try {
+      try {
+        await sendCode();
+      } catch (error) {
+        // The SMS service was briefly unavailable (nothing was sent): once more.
+        if (!isSmsServiceError(error)) throw error;
+        console.warn('The SMS service refused the code; trying again in 3 seconds.', error);
+        setPhoneStatus(`Sending a code to ${parsed.local}… (trying again)`);
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        await sendCode();
+      }
       phoneCodeRow.hidden = false;
       phoneCodeInput.value = '';
       phoneCodeInput.focus();
