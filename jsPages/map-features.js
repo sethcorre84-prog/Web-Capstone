@@ -85,6 +85,28 @@ const CSS = `
 .mf-popup strong { display:block; font-size:13.5px; }
 .mf-popup .mf-sub { color:#5b6b60; font-size:11.5px; margin-bottom:4px; }
 .mf-popup .mf-coords { color:#93a199; font-size:11px; margin-top:4px; }
+/* The station's number on its pin, as Trail Station Management numbers them:
+   a plain station is a small numbered disc; a facility badge carries the
+   number in a corner bubble. Closed ones are faded with a red ring. */
+.mf-station { display:grid; place-items:center; width:20px; height:20px; border-radius:50%; box-sizing:border-box;
+  background:#fff; border:2px solid #1f3a28; box-shadow:0 1px 3px rgba(0,0,0,.4);
+  font:800 9.5px/1 system-ui, sans-serif; color:#1f3a28; }
+.mf-station.is-closed { border-color:#c8402f; color:#c8402f; opacity:.75; }
+.mf-num { position:absolute; top:-7px; right:-8px; min-width:15px; height:15px; padding:0 3px; box-sizing:border-box;
+  display:grid; place-items:center; border-radius:8px; background:#1f3a28; color:#fff;
+  font:800 9px/1 system-ui, sans-serif; border:1.5px solid #fff; }
+.mf-facility, .mf-facilities { position:relative; }
+.mf-facilities .mf-num { right:-9px; }
+.is-closed > .mf-num, .mf-facility.is-closed .mf-num { background:#c8402f; }
+.mf-popup .mf-head { display:flex; align-items:flex-start; gap:8px; }
+.mf-popup .mf-badge { flex-shrink:0; display:grid; place-items:center; min-width:26px; height:26px; padding:0 5px;
+  border-radius:13px; background:#1f3a28; color:#fff; font:800 12px/1 system-ui, sans-serif; box-sizing:border-box; }
+.mf-popup .mf-state { display:inline-block; margin:2px 0 4px; padding:1px 8px; border-radius:10px; font-size:11px; font-weight:700; }
+.mf-popup .mf-state.is-open { background:#e3f2e6; color:#1f6b39; }
+.mf-popup .mf-state.is-closed { background:#fbe9e6; color:#b8392a; }
+.mf-popup .mf-section { display:inline-block; margin:2px 0 4px 4px; padding:1px 8px; border-radius:10px;
+  background:#eef1f8; color:#3c4a66; font-size:11px; font-weight:600; }
+.mf-popup .mf-desc { margin-top:2px; }
 .mf-river { display:inline-flex; align-items:center; gap:5px; padding:3px 8px 3px 6px; border-radius:20px;
   background:#fff; border:2px solid #2a7fd0; box-shadow:0 1px 4px rgba(0,0,0,.35); white-space:nowrap;
   font:600 11px/1.2 system-ui, sans-serif; color:#1d4f86; transform:translate(-50%, -50%); }
@@ -109,7 +131,9 @@ const trailIdOf = (data) => data.trailID || data.TrailID || data.trailId;
 function stationPosition(data, trails) {
   const lat = Number(data.lat);
   const lng = Number(data.lng);
-  if (data.lat != null && data.lng != null && Number.isFinite(lat) && Number.isFinite(lng)) {
+  // (Empty text reads as 0 in Number(): not a position.)
+  if (data.lat != null && data.lng != null && data.lat !== '' && data.lng !== ''
+    && Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)) {
     return { lat, lng, estimated: data.coordsEstimated === true };
   }
   const key = referenceKeyFor(trails.find((t) => t.id === data.trailID));
@@ -123,13 +147,56 @@ function stationPosition(data, trails) {
    trails/{id} documents (with id). */
 export function mappedStations(stationDocs, trails) {
   const saved = stationDocs.map((data) => ({ ...data, trailID: trailIdOf(data) }));
+  /* Exactly what Trail Station Management shows for each trail: its saved
+     stations, or (a trail with none saved yet) its reference list. */
   const savedTrails = new Set(saved.map((data) => data.trailID));
   const unsaved = trails
     .filter((trail) => !savedTrails.has(trail.id) && referenceKeyFor(trail))
-    .flatMap((trail) => referenceDocs(referenceKeyFor(trail), trail.id));
-  return [...saved, ...unsaved]
-    .map((data) => ({ data, position: stationPosition(data, trails) }))
-    .filter((entry) => entry.position);
+    .flatMap((trail) => referenceDocs(referenceKeyFor(trail), trail.id)
+      .map((data) => ({ ...data, fromReference: true })));
+  const entries = [...saved, ...unsaved]
+    .map((data) => ({ data, position: stationPosition(data, trails) }));
+  /* A station with no coordinates (added in Trail Station Management
+     without a latitude and longitude) is still drawn: between the stations
+     before and after it on the same trail, in step with its number, and
+     marked estimated. One with no positioned station on either side has
+     nowhere to go and is left out. */
+  entries.filter((entry) => !entry.position).forEach((entry) => {
+    const number = Number(entry.data.stationNumber);
+    if (!Number.isFinite(number)) return;
+    const siblings = entries.filter((other) => other.position && other !== entry
+      && other.data.trailID === entry.data.trailID && Number.isFinite(Number(other.data.stationNumber)));
+    const before = siblings.filter((o) => Number(o.data.stationNumber) < number)
+      .sort((a, b) => Number(b.data.stationNumber) - Number(a.data.stationNumber))[0];
+    const after = siblings.filter((o) => Number(o.data.stationNumber) > number)
+      .sort((a, b) => Number(a.data.stationNumber) - Number(b.data.stationNumber))[0];
+    if (!before || !after) return;
+    const n0 = Number(before.data.stationNumber);
+    const n1 = Number(after.data.stationNumber);
+    const t = (number - n0) / (n1 - n0);
+    entry.position = {
+      lat: before.position.lat + (after.position.lat - before.position.lat) * t,
+      lng: before.position.lng + (after.position.lng - before.position.lng) * t,
+      estimated: true
+    };
+  });
+  /* Two stations on (nearly) the same spot would hide one under the other:
+     each later one is set a few metres off, round the first, so every
+     station can be seen and clicked. */
+  const placed = entries.filter((entry) => entry.position);
+  placed.forEach((entry, i) => {
+    const clash = placed.slice(0, i).filter((other) =>
+      Math.abs(other.position.lat - entry.position.lat) < 0.00005
+      && Math.abs(other.position.lng - entry.position.lng) < 0.00005).length;
+    if (!clash) return;
+    const angle = clash * 2.4;
+    entry.position = {
+      ...entry.position,
+      lat: entry.position.lat + Math.sin(angle) * 0.00012,
+      lng: entry.position.lng + Math.cos(angle) * 0.00012
+    };
+  });
+  return placed;
 }
 
 // A checkpoint or campsite pin is drawn only with a valid lat/lng
@@ -240,12 +307,13 @@ export function addMapFeatures({ map, db, trails = () => [], stationsOnly = fals
   // One facility: the round badge. Several (Agila Base is a monitoring,
   // first-aid and food stop): one pill with an icon for each, so none hides
   // another.
-  const facilityIcon = (facilities, open) => {
+  const numTag = (number) => (number ? `<span class="mf-num">${number}</span>` : '');
+  const facilityIcon = (facilities, open, number = '') => {
     const icons = facilities.map((f) => `<div class="mf-facility" title="${f.label}"><i class="fa-solid ${f.icon}" style="color:${f.color}" aria-hidden="true"></i></div>`).join('');
     if (facilities.length === 1) {
       return L.divIcon({
         className: '',
-        html: `<div class="mf-facility${open ? '' : ' is-closed'}" title="${facilities[0].label}"><i class="fa-solid ${facilities[0].icon}" style="color:${facilities[0].color}" aria-hidden="true"></i></div>`,
+        html: `<div class="mf-facility${open ? '' : ' is-closed'}" title="${facilities[0].label}"><i class="fa-solid ${facilities[0].icon}" style="color:${facilities[0].color}" aria-hidden="true"></i>${numTag(number)}</div>`,
         iconSize: [24, 24],
         iconAnchor: [12, 12],
         popupAnchor: [0, -12]
@@ -253,41 +321,74 @@ export function addMapFeatures({ map, db, trails = () => [], stationsOnly = fals
     }
     return L.divIcon({
       className: '',
-      html: `<div class="mf-facilities${open ? '' : ' is-closed'}">${icons}</div>`,
+      html: `<div class="mf-facilities${open ? '' : ' is-closed'}">${icons}${numTag(number)}</div>`,
       iconSize: [0, 0],
       popupAnchor: [0, -14]
     });
   };
 
-  function popupHtml(data, lat, lng, facilities) {
+  /* Everything Trail Station Management keeps on a station: its number (of
+     how many on the trail), landmark, trail, section, open or closed,
+     facilities, description and position (saved, or estimated). */
+  function popupHtml(data, lat, lng, facilities, total = 0) {
     const number = Number(data.stationNumber) || '';
-    const title = data.landmark || data.name || `Station ${number}`;
+    const landmark = String(data.landmark || '').trim()
+      || String(data.name || '').replace(/^station\s*\d+\s*[·:-]?\s*/i, '').trim();
     const open = !String(data.status ?? 'open').toLowerCase().startsWith('close');
     const firstAid = facilities.some((f) => f.tag === 'firstaid');
+    const trail = trailName(data.trailID);
     return `<div class="mf-popup">
-      <strong>${escapeHtml(title)}</strong>
-      <div class="mf-sub">Station ${number}${trailName(data.trailID) ? ` · ${escapeHtml(trailName(data.trailID))}` : ''}${open ? '' : ' · Closed'}</div>
+      <div class="mf-head">
+        ${number ? `<span class="mf-badge" aria-hidden="true">${number}</span>` : ''}
+        <div>
+          <strong>${escapeHtml(landmark || `Station ${number}`)}</strong>
+          <div class="mf-sub">Station ${number}${total ? ` of ${total}` : ''}${trail ? ` · ${escapeHtml(trail)}` : ''}</div>
+        </div>
+      </div>
+      <span class="mf-state ${open ? 'is-open' : 'is-closed'}">${open ? 'Open' : 'Closed'}</span>${data.section ? `<span class="mf-section">${escapeHtml(data.section)}</span>` : ''}
       ${facilities.length ? `<div class="mf-tags">${facilities.map((f) => `<span><i class="fa-solid ${f.icon}" style="color:${f.color}" aria-hidden="true"></i>${escapeHtml(f.label)}</span>`).join('')}</div>` : ''}
-      ${data.description ? `<div>${escapeHtml(data.description)}</div>` : ''}
+      ${data.description
+        ? `<div class="mf-desc">${escapeHtml(data.description)}</div>`
+        : '<div class="mf-desc" style="color:#93a199">A numbered trail marker. No landmark has been recorded for this station.</div>'}
       ${firstAid && data.coordsEstimated ? '<div class="mf-coords">First aid from the rangers posted here; confirm with MCME.</div>' : ''}
       <div class="mf-coords">${lat.toFixed(5)}, ${lng.toFixed(5)}${data.coordsEstimated ? ' · estimated' : ''}</div>
+      ${data.fromReference ? `<div class="mf-coords">From the trail's reference list (Trail Station Management shows it until the trail's stations are saved).</div>` : ''}
     </div>`;
   }
 
   function render() {
     stations.clearLayers();
-    mappedStations(stationDocs, trails()).forEach(({ data, position }) => {
+    const mapped = mappedStations(stationDocs, trails());
+    // How many stations each trail has, for "Station 11 of 30".
+    const totals = new Map();
+    mapped.forEach(({ data }) => totals.set(data.trailID, (totals.get(data.trailID) || 0) + 1));
+    mapped.forEach(({ data, position }) => {
       const { lat, lng } = position;
       data = { ...data, coordsEstimated: position.estimated };
       const open = !String(data.status ?? 'open').toLowerCase().startsWith('close');
       const tags = Array.isArray(data.tags) ? data.tags : [];
       const facilities = facilitiesOf(tags);
-      const marker = facilities.length && !stationsOnly
-        ? L.marker([lat, lng], { icon: facilityIcon(facilities, open), zIndexOffset: 200 })
-        : L.circleMarker([lat, lng], {
+      const number = Number(data.stationNumber) || '';
+      // The GeoMap: every pin numbered, as in Trail Station Management. The
+      // overview maps (stationsOnly) keep their plain dots.
+      const marker = stationsOnly
+        ? L.circleMarker([lat, lng], {
           radius: 5, color: '#1f3a28', weight: 2, fillColor: '#ffffff', fillOpacity: open ? 1 : 0.5
-        });
-      marker.bindPopup(popupHtml(data, lat, lng, facilities)).addTo(stations);
+        })
+        : facilities.length
+          ? L.marker([lat, lng], { icon: facilityIcon(facilities, open, number), zIndexOffset: 200 })
+          : L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: '',
+              html: `<div class="mf-station${open ? '' : ' is-closed'}">${number}</div>`,
+              iconSize: [20, 20],
+              iconAnchor: [10, 10],
+              popupAnchor: [0, -10]
+            }),
+            zIndexOffset: 150,
+            title: `Station ${number}${data.landmark ? ` · ${data.landmark}` : ''}`
+          });
+      marker.bindPopup(popupHtml(data, lat, lng, facilities, totals.get(data.trailID) || 0)).addTo(stations);
     });
   }
 

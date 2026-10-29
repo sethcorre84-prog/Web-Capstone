@@ -1256,6 +1256,13 @@
         color: #1f6b39;
     }
 
+    /* User Details: the status line under the buttons takes no room until it
+       has something to say, so the line below sits close to the buttons. */
+    #resetPasswordStatus:empty {
+        min-height: 0;
+        margin: 0;
+    }
+
     .action-status.error {
         color: #a5352a;
     }

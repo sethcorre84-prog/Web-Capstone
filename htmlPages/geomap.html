@@ -571,15 +571,19 @@
           height: 8px;
           color: #2a7fd0;
       }
-      /* Trail station: the white dot on the map. */
+      /* Trail station: the numbered white disc on the map. */
       .legend-station {
-          width: 12px;
-          height: 12px;
-          margin: 0 2px;
+          display: grid;
+          place-items: center;
+          width: 18px;
+          height: 18px;
           flex-shrink: 0;
+          box-sizing: border-box;
           border-radius: 50%;
           border: 2px solid #1f3a28;
           background: #fff;
+          font: 800 9px/1 system-ui, sans-serif;
+          color: #1f3a28;
       }
       /* Facility stations: the round white badges on the map. */
       .legend-facility {
@@ -708,7 +712,7 @@
       .legend-list .legend-pin i { font-size: 9px; }
       .legend-list .hiker-pin { width: 20px; height: 20px; }
       .legend-list .hiker-pin i { font-size: 10px; }
-      .legend-list .legend-station { width: 15px; height: 15px; }
+      .legend-list .legend-station { width: 19px; height: 19px; }
       .legend-list .legend-facility { width: 22px; height: 22px; }
       .legend-list .legend-facility i { font-size: 10.5px; }
       .legend-list .legend-river { width: 32px; height: 20px; }
@@ -1064,7 +1068,7 @@
               <section class="legend-group">
                 <h4 class="legend-group-title">Stations &amp; Facilities</h4>
                 <div class="legend-grid">
-                  <div class="legend-row"><span class="legend-station" aria-hidden="true"></span><span>Trail station</span></div>
+                  <div class="legend-row" title="Numbered as in Trail Station Management; click one for its section, open or closed, facilities and description"><span class="legend-station" aria-hidden="true">7</span><span>Trail station</span></div>
                   <!-- One row per station tag, from FACILITIES in map-features.js. -->
                   <div id="stationTagLegend" style="display:contents"></div>
                 </div>
