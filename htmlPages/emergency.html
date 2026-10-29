@@ -1171,7 +1171,7 @@
           <button class="tab active" type="button" role="tab" data-type="all" aria-selected="true">All (<span data-count="all">0</span>)</button>
           <button class="tab" type="button" role="tab" data-type="sos" aria-selected="false">SOS Alerts (<span data-count="sos">0</span>)</button>
           <button class="tab" type="button" role="tab" data-type="lost" aria-selected="false">Lost / Missing (<span data-count="lost">0</span>)</button>
-          <button class="tab" type="button" role="tab" data-type="offtrail" aria-selected="false" title="Hikers on a hike now more than 60 m from every trail, from their live location">Off Trail (<span data-count="offtrail">0</span>)</button>
+          <button class="tab" type="button" role="tab" data-type="offtrail" aria-selected="false" title="Hikers on a hike now more than 50 m from every trail, from their live location">Off Trail (<span data-count="offtrail">0</span>)</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -1200,8 +1200,8 @@
             <span class="legend-item" title="A guide on the Mariang Makiling Trail (UPLB MCME)"><span class="guide-pin sm" aria-hidden="true"><span class="guide-text">MCME</span><span class="hiker-crown"><i class="fa-solid fa-crown"></i></span></span>MCME guide</span>
             <span class="legend-item" title="A guide on the Sipit Trail (City ENRO)"><span class="guide-pin sm" aria-hidden="true"><span class="guide-text"><small>CITY</small>ENRO</span><span class="hiker-crown"><i class="fa-solid fa-crown"></i></span></span>City ENRO guide</span>
             <span class="legend-item" title="Started a hike in the PeakPath app"><span class="hiker-pin online on-hike" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span>On a hike</span>
-            <span class="legend-item" title="On a hike and more than 60 m from every trail: strayed from the trail"><span class="hiker-pin off-trail" aria-hidden="true"><i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i></span>Off trail</span>
-            <span class="legend-item" title="A hiker with an open Lost / Missing emergency"><span class="hiker-pin lost" aria-hidden="true"><i class="fa-solid fa-person-circle-question"></i></span>Lost / Missing hiker</span>
+            <span class="legend-item" title="On a hike and 30 to 50 m from every trail, as the app warns them (amber): with how far, e.g. ≈ 40 m"><span class="hiker-pin getting-far" aria-hidden="true"><i class="fa-solid fa-person-hiking"></i></span>Getting far</span>
+            <span class="legend-item" title="On a hike and more than 50 m from every trail: off the trail, with how far (≈ 70 m), the alarm and the alert box"><span class="hiker-pin off-trail" aria-hidden="true"><i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i></span>Off trail</span>
             <button class="map-fullscreen" id="mapFullscreenBtn" type="button" title="Full screen" aria-label="Show the map full screen"><i class="fa-solid fa-expand"></i></button>
           </div>
         </div>
@@ -1302,7 +1302,7 @@
   import { collection, doc, onSnapshot, serverTimestamp, updateDoc } from '../jsPages/firestore-tracked.js';
   import { formatPortalDate, formatPortalDateTime, formatPortalTime, portalTimeZone, toPortalDate } from '../jsPages/datetime-prefs.js';
   import { createMakilingMap } from '../jsPages/makiling-area.js';
-  import { addHikerLayer } from '../jsPages/hiker-layer.js';
+  import { addHikerLayer, offTrailLabel } from '../jsPages/hiker-layer.js';
   import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, watchWeatherLocation, weatherUrlFor } from '../jsPages/weather-locations.js';
 
   const $ = (id) => document.getElementById(id);
@@ -1547,8 +1547,6 @@
     map,
     db,
     bounds: makilingBounds,
-    // The Lost / Missing alerts are already this map's own markers.
-    showLostAlerts: false,
     // Hikers who stray from every trail are flagged off trail, and listed in
     // Active Emergencies (Off Trail).
     trailLines,
@@ -1741,7 +1739,7 @@
 
     if (!rows.length && !strays.length) {
       if (activeTab === 'offtrail') {
-        body.innerHTML = '<tr><td colspan="6" class="table-empty">No hikers off trail. A hiker on a hike more than 60 m from every trail shows here, from their live location.</td></tr>';
+        body.innerHTML = '<tr><td colspan="6" class="table-empty">No hikers off trail. A hiker on a hike more than 50 m from every trail shows here, from their live location.</td></tr>';
         return;
       }
       const scope = activeTab === 'all' ? '' : ` ${TYPES[activeTab].label.toLowerCase()}`;
@@ -1786,7 +1784,7 @@
       <tr data-offtrail="${escapeHtml(row.uid)}" tabindex="0" title="Show ${escapeHtml(row.name)} on the map">
         <td><span class="hiker-pin off-trail table-pin" title="Off trail"><i class="fa-solid fa-person-walking-dashed-line-arrow-right" aria-hidden="true"></i></span></td>
         <td><span class="cell-name">${escapeHtml(row.name)}</span>${row.trail ? `<span class="cell-sub">Hiking ${escapeHtml(row.trail)}</span>` : ''}</td>
-        <td>${metres} m from ${escapeHtml(row.nearest?.name || 'the trail')}<span class="cell-sub">${row.online ? 'Live location' : 'Last seen location'}</span></td>
+        <td>${escapeHtml(offTrailLabel(metres))}<span class="cell-sub">Nearest: ${escapeHtml(row.nearest?.name || 'the trail')} · ${row.online ? 'live location' : 'last seen location'}</span></td>
         <td>${timeCell(row.since)}</td>
         <td><span class="status-badge offtrail">Off trail</span></td>
         <td class="actions-cell">

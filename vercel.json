@@ -1,6 +1,7 @@
 {
+  "cleanUrls": true,
   "redirects": [
-    { "source": "/", "destination": "/htmlPages/landingPage.html", "permanent": false }
+    { "source": "/", "destination": "/htmlPages/landingPage", "permanent": false }
   ],
   "headers": [
     {

@@ -1206,6 +1206,11 @@
         margin-bottom: 10px;
     }
 
+    /* Edit Profile: a row of its own above the other actions. */
+    .detail-actions .action-wide {
+        grid-column: 1 / -1;
+    }
+
     .action-btn {
         display: flex;
         align-items: center;
@@ -1319,6 +1324,7 @@
         letter-spacing: normal;
         color: var(--text-muted);
     }
+    #editProfileModal .field[hidden],
     #addUserEmergencyField[hidden],
     .guide-eval[hidden],
     #addUserGuideTrailField[hidden] {
@@ -2183,77 +2189,214 @@
         align-items: center;
         gap: 8px;
     }
+    /* Headline tiles: an icon, the number, what it is, and how it moved. The
+       first (Total hikers) leads, with its six-month line. */
     .ha-stats {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: 1.35fr repeat(3, minmax(0, 1fr));
         gap: 12px;
-        margin-bottom: 16px;
+        margin-bottom: 14px;
     }
     .ha-stat {
-        padding: 12px 14px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+        padding: 14px 16px;
         border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--dm-surface, #fff);
+        overflow: hidden;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .ha-stat:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, .08);
+    }
+    .ha-stat-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+    }
+    .ha-stat-ico {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
         border-radius: 10px;
-        background: var(--dm-surface-2, #f7f9f6);
+        background: var(--accent-light, #e3f2e6);
+        color: var(--accent-dark, #1f6b39);
+        font-size: 15px;
+    }
+    .ha-stat span.ha-stat-label {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-secondary);
     }
     .ha-stat strong {
         display: block;
-        font-size: 26px;
-        line-height: 1.1;
+        font-size: 30px;
+        line-height: 1.05;
+        font-weight: 800;
         color: var(--text-primary);
         font-variant-numeric: tabular-nums;
     }
-    .ha-stat span {
-        display: block;
-        margin-top: 4px;
-        font-size: 12px;
-        color: var(--text-secondary);
-    }
     .ha-stat small {
         display: block;
-        margin-top: 2px;
+        margin-top: 4px;
         font-size: 11.5px;
         color: var(--text-muted);
     }
+    /* The lead tile: PeakPath green, white text. */
+    .ha-stat.is-lead {
+        border-color: transparent;
+        background: linear-gradient(135deg, #1f6b39, #2f8f4e 70%, #3fa860);
+        color: #fff;
+    }
+    .ha-stat.is-lead .ha-stat-ico {
+        background: rgba(255, 255, 255, .18);
+        color: #fff;
+    }
+    .ha-stat.is-lead span.ha-stat-label,
+    .ha-stat.is-lead small,
+    .ha-stat.is-lead strong {
+        color: #fff;
+    }
+    .ha-stat.is-lead small {
+        opacity: .85;
+    }
+    .ha-spark {
+        position: absolute;
+        right: 12px;
+        bottom: 10px;
+        width: 46%;
+        height: 44px;
+        opacity: .9;
+    }
+    /* Up / down badge (with the arrow, never colour alone). */
+    .ha-delta {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        width: fit-content;
+        margin-top: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        background: var(--dm-surface-2, #f1f4f0);
+        color: var(--text-secondary);
+    }
+    .ha-delta.up { background: rgba(47, 143, 78, .14); color: #1f6b39; }
+    .ha-delta.down { background: rgba(200, 64, 47, .12); color: #a8392b; }
+    .ha-stat.is-lead .ha-delta { background: rgba(255, 255, 255, .2); color: #fff; }
+
+    /* Highlights: one line each, an icon and a plain sentence. */
+    .ha-highlights {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .ha-highlights:empty {
+        display: none;
+    }
+    .ha-highlight {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px 7px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--dm-surface-2, #f7f9f6);
+        font-size: 12.5px;
+        color: var(--text-secondary);
+    }
+    .ha-highlight i {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--dm-surface, #fff);
+        color: var(--accent-dark, #1f6b39);
+        font-size: 11px;
+    }
+    .ha-highlight b {
+        color: var(--text-primary);
+    }
+
+    /* Category cards. */
     .ha-charts {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        overflow: hidden;
+        gap: 12px;
     }
     .ha-col {
         min-width: 0;
         padding: 16px 18px 18px;
-        box-shadow: -1px -1px 0 var(--border);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--dm-surface, #fff);
     }
     .ha-col-wide {
         grid-column: 1 / -1;
     }
     .ha-col h3 {
-        margin: 0 0 12px;
-        font-size: 13.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 14px;
+        font-size: 14px;
         font-weight: 700;
         color: var(--accent-dark, #1f6b39);
+    }
+    .ha-col h3 small {
+        margin-left: auto;
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--text-muted);
+    }
+    .ha-ico {
+        display: grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        background: var(--accent-light, #e3f2e6);
+        font-size: 12px;
     }
     .ha-donut-block {
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 20px;
         flex-wrap: wrap;
     }
     .ha-donut {
         position: relative;
-        width: 120px;
-        height: 120px;
+        width: 136px;
+        height: 136px;
         flex-shrink: 0;
     }
     .ha-donut svg {
         width: 100%;
         height: 100%;
         transform: rotate(-90deg);
+        overflow: visible;
     }
-    .ha-donut circle {
-        cursor: default;
+    .ha-donut circle[data-arc] {
+        cursor: pointer;
+        transition: stroke-width .15s ease, opacity .15s ease;
+    }
+    .ha-donut svg:hover circle[data-arc] {
+        opacity: .45;
+    }
+    .ha-donut svg circle[data-arc]:hover {
+        opacity: 1;
+        stroke-width: 24px;
     }
     .ha-donut-center {
         position: absolute;
@@ -2269,53 +2412,66 @@
         color: var(--text-secondary);
     }
     .ha-donut-center strong {
-        font-size: 20px;
+        font-size: 24px;
         line-height: 1.1;
+        font-weight: 800;
         color: var(--text-primary);
     }
     .ha-legend {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        flex: 1 1 150px;
+        gap: 10px;
+        flex: 1 1 170px;
         min-width: 0;
         font-size: 12px;
     }
     .ha-legend-item {
-        display: flex;
+        display: grid;
+        grid-template-columns: 10px minmax(0, 1fr) auto;
         align-items: center;
-        gap: 8px;
+        gap: 4px 8px;
         min-width: 0;
     }
     .ha-dot {
         width: 10px;
         height: 10px;
         border-radius: 3px;
-        flex-shrink: 0;
     }
     .ha-legend-item .name {
         min-width: 0;
         overflow-wrap: anywhere;
         color: var(--text-primary);
+        font-weight: 600;
     }
     .ha-legend-item .value {
-        margin-left: auto;
-        padding-left: 8px;
         white-space: nowrap;
         color: var(--text-secondary);
         font-variant-numeric: tabular-nums;
     }
     .ha-legend-item .value b {
         color: var(--text-primary);
-        font-weight: 600;
     }
-    /* Age: columns on a baseline, the count above each, the bracket under it. */
+    /* Each part's share as a thin bar under its name. */
+    .ha-share {
+        grid-column: 2 / -1;
+        height: 5px;
+        border-radius: 3px;
+        background: var(--dm-surface-2, #eef1ec);
+        overflow: hidden;
+    }
+    .ha-share i {
+        display: block;
+        height: 100%;
+        border-radius: 3px;
+    }
+    /* Columns (age, and the six months): on a baseline, the count above
+       each, the label under it. */
     .ha-columns {
         display: flex;
         align-items: stretch;
-        gap: 6px;
-        height: 170px;
-        padding-top: 18px;
+        gap: 8px;
+        height: 180px;
+        padding-top: 20px;
         border-bottom: 1px solid var(--border);
     }
     .ha-column {
@@ -2326,30 +2482,47 @@
         flex-direction: column;
         justify-content: flex-end;
         align-items: center;
-        border-radius: 6px 6px 0 0;
+        border-radius: 8px 8px 0 0;
+        transition: background .15s ease;
     }
     .ha-column:hover {
         background: var(--dm-surface-2, #f5f7f3);
     }
     .ha-column .bar {
-        width: 60%;
-        max-width: 30px;
-        border-radius: 4px 4px 0 0;
+        width: 62%;
+        max-width: 36px;
+        border-radius: 6px 6px 0 0;
         background: var(--ha-bar);
+        transform-origin: bottom;
+        animation: haGrow .5s ease-out both;
     }
     .ha-column .bar.is-unknown {
         background: var(--ha-other);
     }
+    .ha-column .bar.is-dim {
+        opacity: .38;
+    }
     .ha-column .count {
         margin-bottom: 4px;
-        font-size: 11px;
-        font-weight: 600;
+        font-size: 11.5px;
+        font-weight: 700;
         color: var(--text-secondary);
         font-variant-numeric: tabular-nums;
     }
+    .ha-column .count.is-top {
+        color: var(--accent-dark, #1f6b39);
+    }
+    @keyframes haGrow {
+        from { transform: scaleY(0); }
+        to { transform: scaleY(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .ha-column .bar { animation: none; }
+        .ha-stat, .ha-donut circle[data-arc] { transition: none; }
+    }
     .ha-column-labels {
         display: flex;
-        gap: 6px;
+        gap: 8px;
         padding-top: 6px;
     }
     .ha-column-labels span {
@@ -2360,11 +2533,20 @@
         text-align: center;
         color: var(--text-muted);
     }
+    .ha-column-labels span.is-current {
+        font-weight: 700;
+        color: var(--accent-dark, #1f6b39);
+    }
     .ha-empty {
         padding: 30px 6px;
         text-align: center;
         font-size: 12.5px;
         color: var(--text-muted);
+    }
+    @media (max-width: 980px) {
+        .ha-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
     }
     @media (max-width: 760px) {
         .ha-stats,
@@ -2588,6 +2770,7 @@
         </div>
 
         <div class="detail-actions">
+          <button id="editProfileBtn" class="action-btn action-wide" type="button" disabled><i class="fa-solid fa-user-pen"></i>Edit Profile</button>
           <button id="viewProfileBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-eye"></i>View Profile</button>
           <button id="resetPasswordBtn" class="action-btn" type="button" disabled><i class="fa-solid fa-rotate"></i>Reset Password</button>
           <button id="suspendUserBtn" class="action-btn danger" type="button" disabled><i class="fa-solid fa-ban"></i>Suspend User</button>
@@ -2620,28 +2803,34 @@
         </div>
       </div>
       <div class="ha-stats" id="hikerAnalyticsStats"></div>
-      <!-- One panel per category, as Reports About User Behavior's charts:
-           parts of the month's hikers as donuts with a legend; age, which has
-           an order, as columns. -->
+      <!-- Plain-language takeaways from the month's numbers. -->
+      <div class="ha-highlights" id="hikerAnalyticsHighlights"></div>
+      <!-- The last six months of hikers, then one card per category: parts of
+           the month's hikers as donuts with a legend; age, which has an
+           order, as columns. -->
       <div class="ha-charts">
+        <div class="ha-col ha-col-wide">
+          <h3><span class="ha-ico"><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span>Hikers, Last 6 Months<small id="hikerAnalyticsTrendSub"></small></h3>
+          <div id="hikerAnalyticsTrend"></div>
+        </div>
         <div class="ha-col">
-          <h3>Gender</h3>
+          <h3><span class="ha-ico"><i class="fa-solid fa-venus-mars" aria-hidden="true"></i></span>Gender</h3>
           <div id="hikerAnalyticsGender"></div>
         </div>
         <div class="ha-col">
-          <h3>Age Brackets</h3>
+          <h3><span class="ha-ico"><i class="fa-solid fa-cake-candles" aria-hidden="true"></i></span>Age Brackets</h3>
           <div id="hikerAnalyticsAge"></div>
         </div>
         <div class="ha-col">
-          <h3>Nationality</h3>
+          <h3><span class="ha-ico"><i class="fa-solid fa-flag" aria-hidden="true"></i></span>Nationality</h3>
           <div id="hikerAnalyticsNationality"></div>
         </div>
         <div class="ha-col">
-          <h3>Province (Address)</h3>
+          <h3><span class="ha-ico"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i></span>Province (Address)</h3>
           <div id="hikerAnalyticsProvince"></div>
         </div>
         <div class="ha-col ha-col-wide">
-          <h3>First-time vs Repeat Hikers</h3>
+          <h3><span class="ha-ico"><i class="fa-solid fa-person-hiking" aria-hidden="true"></i></span>First-time vs Repeat Hikers</h3>
           <div id="hikerAnalyticsVisits"></div>
         </div>
       </div>
@@ -2747,6 +2936,88 @@
       <button type="button" class="btn-ghost" id="closeResetPasswordBtn">Close</button>
     </div>
   </div>
+</div>
+
+<!-- Edit Profile (User Details): a hiker's or guide's details, saved on
+     their users/{uid} document. Email, phone and username stay as they are
+     (they are how the user signs in). -->
+<div id="editProfileModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="editProfileTitle">
+  <form id="editProfileForm" class="modal" novalidate>
+    <h2 id="editProfileTitle">Edit Profile</h2>
+    <p class="field-hint" id="editProfileWho" style="margin:-6px 0 14px"></p>
+    <div class="field-pair">
+      <div class="field">
+        <label for="epName">Full Name</label>
+        <input id="epName" type="text" maxlength="80" autocomplete="off" required>
+      </div>
+      <div class="field">
+        <label for="epRole">Role</label>
+        <select id="epRole">
+          <option>Hiker</option>
+          <option>Guide</option>
+        </select>
+      </div>
+    </div>
+    <p class="field-hint" id="epRoleHint" hidden style="margin:-6px 0 12px"></p>
+    <div class="field-pair">
+      <div class="field">
+        <label for="epGender">Gender</label>
+        <select id="epGender"></select>
+      </div>
+      <div class="field">
+        <label for="epBirthdate">Birthdate</label>
+        <input id="epBirthdate" type="date">
+      </div>
+    </div>
+    <div class="field">
+      <label for="epProvince">Address</label>
+      <div class="address-grid">
+        <select id="epProvince" aria-label="Province"><option value="">Province</option></select>
+        <select id="epCity" aria-label="City or municipality" disabled><option value="">City / Municipality</option></select>
+        <select id="epBarangay" aria-label="Barangay" disabled><option value="">Barangay</option></select>
+        <input id="epStreet" type="text" maxlength="120" autocomplete="off" placeholder="House no., street, subdivision" aria-label="Street">
+      </div>
+    </div>
+    <div class="field">
+      <label for="epNationality">Nationality</label>
+      <select id="epNationality"></select>
+    </div>
+    <!-- Hikers only. -->
+    <div class="field" id="epEmergencyField">
+      <label for="epEmergencyName">Emergency contact</label>
+      <div class="field-pair">
+        <input id="epEmergencyName" type="text" maxlength="80" autocomplete="off" placeholder="Full name" aria-label="Emergency contact name">
+        <input id="epEmergencyPhone" type="tel" inputmode="tel" maxlength="17" autocomplete="off" placeholder="09XX XXX XXXX" aria-label="Emergency contact number">
+      </div>
+    </div>
+    <!-- Guides only. -->
+    <div class="field" id="epGuideTrailField">
+      <label for="epGuideTrail">Guide from what trail?</label>
+      <select id="epGuideTrail"></select>
+    </div>
+    <div class="field guide-eval" id="epEvalField">
+      <label for="epEvalLink">Guide Evaluation</label>
+      <div class="guide-eval-grid">
+        <div class="guide-eval-qr">
+          <input id="epEvalQr" type="file" accept="image/*" hidden>
+          <button type="button" class="guide-eval-pick" id="epEvalQrBtn">
+            <img id="epEvalQrPreview" alt="" hidden>
+            <span id="epEvalQrText"><i class="fa-solid fa-qrcode" aria-hidden="true"></i>Upload QR code</span>
+          </button>
+          <button type="button" class="guide-eval-clear" id="epEvalQrClear" hidden>Remove QR code</button>
+        </div>
+        <div class="guide-eval-link">
+          <input id="epEvalLink" type="url" maxlength="500" placeholder="https://forms.gle/..." autocomplete="off" aria-label="Evaluation link">
+        </div>
+      </div>
+      <p class="field-hint">The QR code for the guide's evaluation, or its link (or both). Images up to 5 MB.</p>
+    </div>
+    <p id="editProfileStatus" class="action-status" role="status" aria-live="polite"></p>
+    <div class="modal-actions">
+      <button id="cancelEditProfileBtn" class="modal-cancel" type="button">Cancel</button>
+      <button id="saveEditProfileBtn" class="modal-save" type="submit">Save Changes</button>
+    </div>
+  </form>
 </div>
 
 <div id="addUserModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
@@ -3556,7 +3827,8 @@
   // ---------------------------------------------------------------------
   // Selected user panel
   // ---------------------------------------------------------------------
-  const detailActionButtons = [viewProfileBtn, resetPasswordBtn, suspendUserBtn, deactivateUserBtn, contactUserBtn];
+  const editProfileBtn = document.getElementById('editProfileBtn');
+  const detailActionButtons = [editProfileBtn, viewProfileBtn, resetPasswordBtn, suspendUserBtn, deactivateUserBtn, contactUserBtn];
 
   const getSelectedUser = () => state.users.find(user => user.id === state.selectedUserId) || null;
 
@@ -3900,6 +4172,7 @@
   // Esc closes whichever pop-up is open.
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
+    document.getElementById('editProfileModal')?.classList.remove('open');
     closeViewProfileModal();
     hideAddUserModal();
     if (resetPasswordModal.classList.contains('open')) closeResetPasswordModal();
@@ -4586,6 +4859,256 @@
       nationality
     };
   };
+
+  /* ---- Edit Profile ----
+     The selected user's details, as the app's sign-up and Add User save
+     them, changed in place on users/{uid}: name, gender, birthdate, address
+     (province -> city -> barangay, street), nationality; a hiker's emergency
+     contact; a guide's trail and evaluation link. */
+  const editProfileModal = document.getElementById('editProfileModal');
+  const editProfileForm = document.getElementById('editProfileForm');
+  const editProfileStatus = document.getElementById('editProfileStatus');
+  const ep = (id) => document.getElementById(id);
+  let editingProfile = null;
+  fillSelect(ep('epGender'), 'Select gender', GENDERS);
+  fillSelect(ep('epNationality'), 'Select nationality', NATIONALITIES);
+
+  // A select with `value` chosen, adding it when the list lacks it (an older
+  // or free-typed value is kept, not lost).
+  const chooseIn = (select, value) => {
+    const text = normalizeText(value);
+    if (text && ![...select.options].some((o) => o.value === text)) {
+      select.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(text)}">${escapeHtml(text)}</option>`);
+    }
+    select.value = text;
+  };
+  const fillEpCities = (province) => {
+    const cities = Object.keys(phAddresses?.[province] || {}).sort((a, b) => a.localeCompare(b));
+    fillSelect(ep('epCity'), 'City / Municipality', cities);
+    ep('epCity').disabled = !cities.length && !province;
+    fillSelect(ep('epBarangay'), 'Barangay', []);
+    ep('epBarangay').disabled = true;
+  };
+  const fillEpBarangays = (province, city) => {
+    const barangays = [...(phAddresses?.[province]?.[city] || [])].sort((a, b) => a.localeCompare(b));
+    fillSelect(ep('epBarangay'), 'Barangay', barangays);
+    ep('epBarangay').disabled = !barangays.length && !city;
+  };
+  ep('epProvince').addEventListener('change', () => fillEpCities(ep('epProvince').value));
+  ep('epCity').addEventListener('change', () => fillEpBarangays(ep('epProvince').value, ep('epCity').value));
+
+  const openEditProfile = async () => {
+    const user = getSelectedUser();
+    if (!user) return;
+    editingProfile = user;
+    const raw = user.raw || {};
+    const isGuide = user.role.toLowerCase() === 'guide';
+    ep('epRole').value = isGuide ? 'Guide' : 'Hiker';
+    epQr = { file: null, url: normalizeText(raw.evaluationQrUrl), removed: false };
+    showEpQr();
+    ep('editProfileWho').textContent = `${user.role} · ${user.email}${user.username ? ` · @${user.username}` : ''}. Email, phone and username are how they sign in, so they stay as they are.`;
+    ep('epName').value = user.name === 'Unnamed user' ? '' : user.name;
+    chooseIn(ep('epGender'), raw.gender);
+    const born = birthdateOf(raw);
+    ep('epBirthdate').value = born ? born.toISOString().slice(0, 10) : '';
+    ep('epBirthdate').max = new Date().toISOString().slice(0, 10);
+    chooseIn(ep('epNationality'), raw.nationality);
+    ep('epEmergencyName').value = normalizeText(raw.emergencyContactName);
+    ep('epEmergencyPhone').value = normalizeText(raw.emergencyContactPhone);
+    syncEpRole();
+    ep('epGuideTrail').innerHTML = guideTrailSelect.innerHTML;
+    ep('epGuideTrail').options[0].disabled = false;
+    ep('epGuideTrail').options[0].textContent = 'Not set';
+    ep('epGuideTrail').value = normalizeText(raw.guideTrailId);
+    ep('epEvalLink').value = normalizeText(raw.evaluationLink);
+    editProfileStatus.textContent = '';
+    editProfileStatus.className = 'action-status';
+    editProfileModal.classList.add('open');
+    ep('epName').focus();
+
+    // The address: the saved parts in the province -> city -> barangay lists.
+    const parts = raw.addressParts || {};
+    ep('epStreet').value = normalizeText(parts.street) || (parts.province ? '' : normalizeText(raw.address));
+    try {
+      if (!phAddresses) phAddresses = await loadPhAddresses();
+    } catch (error) {
+      console.error('Could not load the address list:', error);
+    }
+    fillSelect(ep('epProvince'), 'Province', Object.keys(phAddresses || {}).sort((a, b) => a.localeCompare(b)));
+    chooseIn(ep('epProvince'), parts.province);
+    fillEpCities(ep('epProvince').value);
+    chooseIn(ep('epCity'), parts.city);
+    if (parts.city) ep('epCity').disabled = false;
+    fillEpBarangays(ep('epProvince').value, ep('epCity').value);
+    chooseIn(ep('epBarangay'), parts.barangay);
+    if (parts.barangay) ep('epBarangay').disabled = false;
+  };
+  const closeEditProfile = () => {
+    editProfileModal.classList.remove('open');
+    if (epQr.file && ep('epEvalQrPreview').src.startsWith('blob:')) URL.revokeObjectURL(ep('epEvalQrPreview').src);
+    editingProfile = null;
+  };
+
+  /* Role: Hiker shows the emergency contact; Guide shows the trail and the
+     evaluation instead. Changing it says what the new role needs, as Add
+     User asks: a guide's trail and evaluation (QR code or link), a hiker's
+     emergency contact. */
+  const epIsGuide = () => ep('epRole').value === 'Guide';
+  function syncEpRole() {
+    const guide = epIsGuide();
+    ep('epEmergencyField').hidden = guide;
+    ep('epGuideTrailField').hidden = !guide;
+    ep('epEvalField').hidden = !guide;
+    const was = editingProfile?.role.toLowerCase() === 'guide' ? 'Guide' : 'Hiker';
+    const hint = ep('epRoleHint');
+    hint.hidden = ep('epRole').value === was;
+    hint.textContent = guide
+      ? 'Changing to Guide: choose the trail they guide on and add their evaluation (QR code or link). Their emergency contact is kept but no longer shown.'
+      : 'Changing to Hiker: add their emergency contact. Their trail, evaluation link and QR code are removed.';
+  }
+  ep('epRole').addEventListener('change', syncEpRole);
+
+  // The guide's evaluation QR code: the saved one, a new one picked, or removed.
+  let epQr = { file: null, url: '', removed: false };
+  function showEpQr() {
+    const preview = ep('epEvalQrPreview');
+    const src = epQr.file ? URL.createObjectURL(epQr.file) : (epQr.removed ? '' : epQr.url);
+    if (src) preview.src = src; else preview.removeAttribute('src');
+    preview.hidden = !src;
+    ep('epEvalQrText').hidden = Boolean(src);
+    ep('epEvalQrClear').hidden = !src;
+  }
+  ep('epEvalQrBtn').addEventListener('click', () => ep('epEvalQr').click());
+  ep('epEvalQr').addEventListener('change', () => {
+    const file = ep('epEvalQr').files[0];
+    ep('epEvalQr').value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/') || file.size > MAX_QR_BYTES) {
+      editProfileStatus.textContent = 'The QR code must be an image of 5 MB or less.';
+      editProfileStatus.className = 'action-status error';
+      return;
+    }
+    epQr = { ...epQr, file, removed: false };
+    editProfileStatus.textContent = '';
+    showEpQr();
+  });
+  ep('epEvalQrClear').addEventListener('click', () => {
+    epQr = { ...epQr, file: null, removed: true };
+    showEpQr();
+  });
+  editProfileBtn.addEventListener('click', () => openEditProfile());
+  ep('cancelEditProfileBtn').addEventListener('click', closeEditProfile);
+  editProfileModal.addEventListener('click', (event) => { if (event.target === editProfileModal) closeEditProfile(); });
+
+  editProfileForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const user = editingProfile;
+    if (!user) return;
+    const fail = (message, focusId) => {
+      editProfileStatus.textContent = message;
+      editProfileStatus.className = 'action-status error';
+      if (focusId) ep(focusId).focus();
+    };
+    const fullName = normalizeText(ep('epName').value).replace(/\s+/g, ' ');
+    if (!/^[\p{L}][\p{L} .'-]{1,79}$/u.test(fullName)) return fail('Enter the full name in letters, e.g. Juan Dela Cruz.', 'epName');
+    const update = { fullName, updatedAt: serverTimestamp() };
+
+    const gender = normalizeText(ep('epGender').value);
+    update.gender = gender || null;
+    const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ep('epBirthdate').value);
+    if (ep('epBirthdate').value && !day) return fail('Enter a valid birthdate.', 'epBirthdate');
+    if (day) {
+      const born = new Date(Date.UTC(Number(day[1]), Number(day[2]) - 1, Number(day[3])));
+      if (born.getTime() > Date.now()) return fail('The birthdate cannot be in the future.', 'epBirthdate');
+      update.birthdate = Timestamp.fromDate(born);
+    } else {
+      update.birthdate = null;
+    }
+    const province = normalizeText(ep('epProvince').value);
+    const city = normalizeText(ep('epCity').value);
+    const barangay = normalizeText(ep('epBarangay').value);
+    const street = normalizeText(ep('epStreet').value);
+    update.addressParts = { street, barangay, city, province };
+    update.address = [street, barangay, city, province].filter(Boolean).join(', ') || null;
+    update.nationality = normalizeText(ep('epNationality').value) || null;
+
+    const role = epIsGuide() ? 'Guide' : 'Hiker';
+    const wasGuide = user.role.toLowerCase() === 'guide';
+    update.role = role;
+    let qrFile = null;
+    if (role === 'Guide') {
+      // A guide needs their trail and their evaluation (QR code or link).
+      const trailId = normalizeText(ep('epGuideTrail').value);
+      if (!trailId) return fail('Choose the major trail this guide is from.', 'epGuideTrail');
+      update.guideTrailId = trailId;
+      update.guideTrail = state.trailNames.get(trailId) || '';
+      const link = normalizeText(ep('epEvalLink').value);
+      if (link && !/^https?:\/\/\S+$/i.test(link)) return fail('Enter the evaluation link as a full address, starting with https://.', 'epEvalLink');
+      const keepsQr = Boolean(epQr.url) && !epQr.removed;
+      if (!link && !epQr.file && !keepsQr) return fail('A guide needs their evaluation: upload the QR code or enter the link.', 'epEvalLink');
+      update.evaluationLink = link || null;
+      qrFile = epQr.file;
+      if (epQr.removed && !qrFile) {
+        update.evaluationQrUrl = null;
+        update.evaluationQrPath = null;
+      }
+      if (qrFile || epQr.removed || link !== normalizeText(user.raw?.evaluationLink) || !wasGuide) {
+        update.evaluationUpdatedAt = serverTimestamp();
+      }
+    } else {
+      // No longer a guide: their trail and evaluation go (the QR code is
+      // then deleted from Storage by the cleanup function).
+      if (wasGuide) {
+        Object.assign(update, {
+          guideTrailId: null, guideTrail: null, evaluationLink: null,
+          evaluationQrUrl: null, evaluationQrPath: null, evaluationUpdatedAt: null
+        });
+      }
+      const contactName = normalizeText(ep('epEmergencyName').value);
+      const contactRaw = normalizeText(ep('epEmergencyPhone').value);
+      const contactPhone = contactRaw ? parsePhilippinePhone(contactRaw) : null;
+      if (contactRaw && !contactPhone) return fail('Enter the emergency contact\u2019s Philippine mobile number (09XX XXX XXXX).', 'epEmergencyPhone');
+      const own = parsePhilippinePhone(user.raw?.phoneE164 || user.raw?.phone || user.phone);
+      if (contactPhone && own && contactPhone.e164 === own.e164) return fail('The emergency contact needs a different number from the hiker\u2019s own.', 'epEmergencyPhone');
+      if (contactPhone && !contactName) return fail('Enter the name of the emergency contact.', 'epEmergencyName');
+      // Made a hiker now: they need one, as Add User asks. (A hiker added
+      // before emergency contacts existed can still be edited without one.)
+      if (wasGuide && (!contactName || !contactPhone)) {
+        return fail('A hiker needs an emergency contact: their name and Philippine mobile number.', contactName ? 'epEmergencyPhone' : 'epEmergencyName');
+      }
+      update.emergencyContactName = contactName || null;
+      update.emergencyContactPhone = contactPhone ? contactPhone.local : null;
+      update.emergencyContact = contactName ? `${contactName}${contactPhone ? ` · ${contactPhone.local}` : ''}` : null;
+    }
+
+    const saveBtn = ep('saveEditProfileBtn');
+    saveBtn.disabled = true;
+    editProfileStatus.textContent = 'Saving…';
+    editProfileStatus.className = 'action-status';
+    try {
+      // A new QR code goes to Storage first (qrCode/{uid}/), as Add User.
+      if (qrFile) {
+        const safeName = qrFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const qrPath = `qrCode/${user.id}/${Date.now()}-${safeName}`;
+        const qrRef = ref(storage, qrPath);
+        await uploadBytes(qrRef, qrFile, { contentType: qrFile.type });
+        update.evaluationQrUrl = await getDownloadURL(qrRef);
+        update.evaluationQrPath = qrPath;
+      }
+      await updateDoc(doc(db, 'users', user.id), update);
+      closeEditProfile();
+      setResetPasswordStatus(role !== user.role
+        ? `${fullName} is now a ${role}. Their profile was saved.`
+        : `${fullName}'s profile was saved.`, 'success');
+    } catch (error) {
+      console.error('Could not save the profile:', error);
+      fail(error?.code === 'permission-denied'
+        ? 'Firebase refused the change: only admins who can edit may change a profile.'
+        : `The profile could not be saved: ${error.message}`);
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
 
   addUserForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -5308,7 +5831,7 @@
     let offset = 0;
     const arcs = shown.map((item) => {
       const length = (item.value / total) * circumference;
-      const arc = `<circle cx="60" cy="60" r="${radius}" fill="none" stroke="${item.color}" stroke-width="20"
+      const arc = `<circle data-arc cx="60" cy="60" r="${radius}" fill="none" stroke="${item.color}" stroke-width="20"
         stroke-dasharray="${Math.max(length - gap, 0.5)} ${circumference}" stroke-dashoffset="${-offset}">
         <title>${escapeHtml(item.label)}: ${item.value} hiker${item.value === 1 ? '' : 's'} (${pctOf(item.value, total)}%)</title></circle>`;
       offset += length;
@@ -5326,7 +5849,8 @@
         <div class="ha-legend-item">
           <span class="ha-dot" style="background:${item.color}"></span>
           <span class="name">${escapeHtml(item.label)}</span>
-          <span class="value"><b>${item.value}</b> (${pctOf(item.value, total)}%)</span>
+          <span class="value"><b>${item.value}</b> · ${pctOf(item.value, total)}%</span>
+          <span class="ha-share" aria-hidden="true"><i style="width:${pctOf(item.value, total)}%;background:${item.color}"></i></span>
         </div>`).join('')}
       </div>
     </div>`;
@@ -5338,11 +5862,43 @@
     const top = Math.max(...rows.map(([, n]) => n), 1);
     return `<div class="ha-columns" role="img" aria-label="${escapeHtml(rows.map(([label, n]) => `${label}: ${n}`).join(', '))}">${rows.map(([label, n]) => `
         <div class="ha-column" title="${escapeHtml(label)}: ${n} hiker${n === 1 ? '' : 's'} (${pctOf(n, total)}%)">
-          <span class="count">${n}</span>
+          <span class="count${n && n === top ? ' is-top' : ''}">${n}</span>
           <div class="bar${label === NOT_GIVEN ? ' is-unknown' : ''}" style="height:${n ? Math.max((n / top) * 100, 2) : 0}%"></div>
         </div>`).join('')}
       </div>
       <div class="ha-column-labels" aria-hidden="true">${rows.map(([label]) => `<span>${escapeHtml(label)}</span>`).join('')}</div>`;
+  };
+
+  /* The six months up to the chosen one, as columns: hikers each month, the
+     chosen month in full colour, the others lighter. */
+  const trendHtml = (months, currentKey) => {
+    const top = Math.max(...months.map((m) => m.count), 1);
+    if (!months.some((m) => m.count)) return '<p class="ha-empty">No hikers in the last six months.</p>';
+    return `<div class="ha-columns" role="img" aria-label="${escapeHtml(months.map((m) => `${m.label}: ${m.count}`).join(', '))}">${months.map((m) => `
+        <div class="ha-column" title="${escapeHtml(m.full)}: ${m.count} hiker${m.count === 1 ? '' : 's'}, ${m.firstTimers} first-time">
+          <span class="count${m.key === currentKey ? ' is-top' : ''}">${m.count}</span>
+          <div class="bar${m.key === currentKey ? '' : ' is-dim'}" style="height:${m.count ? Math.max((m.count / top) * 100, 2) : 0}%"></div>
+        </div>`).join('')}
+      </div>
+      <div class="ha-column-labels" aria-hidden="true">${months.map((m) => `<span class="${m.key === currentKey ? 'is-current' : ''}">${escapeHtml(m.label)}</span>`).join('')}</div>`;
+  };
+  // A small line of the six months (white, for the green lead tile).
+  const sparkHtml = (values) => {
+    if (values.length < 2 || !values.some(Boolean)) return '';
+    const top = Math.max(...values, 1);
+    const points = values.map((v, i) => `${(i / (values.length - 1)) * 100},${38 - (v / top) * 32}`).join(' ');
+    const last = points.split(' ').pop().split(',');
+    return `<svg class="ha-spark" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
+      <polyline points="${points}" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${last[0]}" cy="${last[1]}" r="3" fill="#fff" vector-effect="non-scaling-stroke"/>
+    </svg>`;
+  };
+  const deltaHtml = (now, before, unit = '') => {
+    if (!before && !now) return '<span class="ha-delta">No change</span>';
+    if (!before) return '<span class="ha-delta up"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i>New this month</span>';
+    if (now === before) return '<span class="ha-delta">Same as last month</span>';
+    const pct = Math.abs(Math.round(((now - before) / before) * 100));
+    return `<span class="ha-delta ${now > before ? 'up' : 'down'}"><i class="fa-solid fa-arrow-${now > before ? 'up' : 'down'}" aria-hidden="true"></i>${pct}% vs last month${unit}</span>`;
   };
 
   // What the panels show, kept for the PDF / Word download.
@@ -5368,11 +5924,38 @@
       : (total === lastMonth ? 'Same as the month before'
         : `${total > lastMonth ? '▲' : '▼'} ${Math.abs(Math.round(((total - lastMonth) / lastMonth) * 100))}% vs the month before (${lastMonth})`);
     const filipinos = hikers.filter((user) => isFilipino(user.raw?.nationality)).length;
-    document.getElementById('hikerAnalyticsStats').innerHTML = `
-      <div class="ha-stat"><strong>${total.toLocaleString()}</strong><span>Total hikers</span><small>${escapeHtml(change)}</small></div>
-      <div class="ha-stat"><strong>${hikers.filter((user) => hikeHistory(user.raw).first === key).length.toLocaleString()}</strong><span>First-time hikers</span><small>First hike on Mount Makiling this month</small></div>
-      <div class="ha-stat"><strong>${hikes.toLocaleString()}</strong><span>Hikes started</span><small>${total ? `${(hikes / total).toFixed(1)} per hiker` : '—'}</small></div>
-      <div class="ha-stat"><strong>${(total - filipinos).toLocaleString()}</strong><span>Foreign or unstated nationality</span><small>${filipinos} Filipino</small></div>`;
+    const firstTimersNow = hikers.filter((user) => hikeHistory(user.raw).first === key).length;
+    const firstTimersBefore = users.filter((user) => startsIn(user, previousKey) > 0 && hikeHistory(user.raw).first === previousKey).length;
+    const hikesBefore = users.reduce((sum, user) => sum + startsIn(user, previousKey), 0);
+
+    // The six months up to this one, for the trend and the sparkline.
+    const trend = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(Number(y), Number(m) - 1 - (5 - i), 1);
+      const monthKey = `m${d.getFullYear()}_${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthHikers = users.filter((user) => startsIn(user, monthKey) > 0);
+      return {
+        key: monthKey,
+        label: d.toLocaleDateString('en-US', { month: 'short' }),
+        full: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        count: monthHikers.length,
+        firstTimers: monthHikers.filter((user) => hikeHistory(user.raw).first === monthKey).length
+      };
+    });
+    const sixMonths = trend.reduce((sum, t) => sum + t.count, 0);
+    document.getElementById('hikerAnalyticsTrend').innerHTML = trendHtml(trend, key);
+    document.getElementById('hikerAnalyticsTrendSub').textContent = `${sixMonths.toLocaleString()} hiker-month${sixMonths === 1 ? '' : 's'} in all`;
+
+    const stat = (icon, label, value, extra, lead = false) => `
+      <div class="ha-stat${lead ? ' is-lead' : ''}">
+        <div class="ha-stat-top"><span class="ha-stat-ico"><i class="fa-solid ${icon}" aria-hidden="true"></i></span><span class="ha-stat-label">${label}</span></div>
+        <strong>${value.toLocaleString()}</strong>
+        ${extra}
+      </div>`;
+    document.getElementById('hikerAnalyticsStats').innerHTML =
+      stat('fa-users', 'Total hikers', total, `${deltaHtml(total, lastMonth)}${sparkHtml(trend.map((t) => t.count))}`, true)
+      + stat('fa-seedling', 'First-time hikers', firstTimersNow, `${deltaHtml(firstTimersNow, firstTimersBefore)}<small>First hike on Mount Makiling</small>`)
+      + stat('fa-person-hiking', 'Hikes started', hikes, `${deltaHtml(hikes, hikesBefore)}<small>${total ? `${(hikes / total).toFixed(1)} per hiker` : 'No hikes yet'}</small>`)
+      + stat('fa-earth-asia', 'Foreign or unstated', total - filipinos, `<small>${filipinos.toLocaleString()} Filipino${total ? ` · ${pctOf(filipinos, total)}%` : ''}</small>`);
 
     // Gender, in the gender chart's own colours.
     const genderCounts = new Map(HIKE_GENDERS.map((g) => [g.key, 0]));
@@ -5419,6 +6002,22 @@
     document.getElementById('hikerAnalyticsNationality').innerHTML = donutHtml(nationalityItems, total);
     document.getElementById('hikerAnalyticsProvince').innerHTML = donutHtml(provinceItems, total);
     document.getElementById('hikerAnalyticsVisits').innerHTML = donutHtml(visitItems, total);
+
+    // Highlights: the biggest group in each category, in words.
+    const biggest = (items) => [...items].filter((item) => item.value > 0 && !isRest(item.label))
+      .sort((a, b) => b.value - a.value)[0] || null;
+    const topAge = [...ageRows].filter(([label, n]) => n > 0 && label !== NOT_GIVEN).sort((a, b) => b[1] - a[1])[0];
+    const topProvince = biggest(provinceItems);
+    const topGender = biggest(genderItems);
+    const busiest = [...trend].sort((a, b) => b.count - a.count)[0];
+    const highlight = (icon, html) => `<span class="ha-highlight"><i class="fa-solid ${icon}" aria-hidden="true"></i><span>${html}</span></span>`;
+    document.getElementById('hikerAnalyticsHighlights').innerHTML = total ? [
+      topAge ? highlight('fa-cake-candles', `Most hikers are <b>${escapeHtml(topAge[0])}</b> (${pctOf(topAge[1], total)}%)`) : '',
+      topProvince ? highlight('fa-location-dot', `Top province: <b>${escapeHtml(topProvince.label)}</b> (${topProvince.value})`) : '',
+      topGender ? highlight('fa-venus-mars', `<b>${pctOf(topGender.value, total)}%</b> ${escapeHtml(topGender.label.toLowerCase())}`) : '',
+      highlight('fa-seedling', `<b>${pctOf(firstTimersNow, total)}%</b> first-timers`),
+      busiest?.count ? highlight('fa-fire', `Busiest of the 6 months: <b>${escapeHtml(busiest.full)}</b>`) : ''
+    ].join('') : '';
 
     hikerReport = {
       monthLabel, key, total, hikes, change, filipinos,
