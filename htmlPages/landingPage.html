@@ -105,13 +105,21 @@
         .hero {
             background: linear-gradient(135deg, var(--hero-from), var(--hero-to));
             color: #fff;
-            padding: 56px 0 64px;
+            padding: 36px 0 40px;
         }
         .hero .wrap {
             display: grid;
-            grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
-            gap: 40px;
+            grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr);
+            gap: 48px;
             align-items: center;
+        }
+        /* On a laptop or desktop the whole top section fits on one screen
+           (under the 60 px menu bar): the phone is sized to the window's
+           height, and the text and download card are kept compact. */
+        .hero { overflow: hidden; }
+        @media (min-width: 901px) {
+            .hero { min-height: calc(100vh - 60px); display: flex; align-items: center; }
+            .hero .wrap { width: min(1120px, 100%); }
         }
         .eyebrow {
             display: inline-flex;
@@ -123,9 +131,9 @@
             font-size: 13px;
             font-weight: 600;
         }
-        .hero h1 { margin: 16px 0 12px; font-size: clamp(32px, 5vw, 50px); font-weight: 800; }
+        .hero h1 { margin: 12px 0 10px; font-size: clamp(30px, 4.2vw, 46px); font-weight: 800; }
         .hero h1 span { color: #9be3b0; }
-        .hero p.lead { margin: 0 0 24px; font-size: 17px; color: rgba(255, 255, 255, .86); max-width: 560px; }
+        .hero p.lead { margin: 0 0 18px; font-size: 16px; color: rgba(255, 255, 255, .86); max-width: 560px; }
         .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
         .btn {
             display: inline-flex;
@@ -142,8 +150,103 @@
         .btn-light:hover { background: #eaf6ee; }
         .btn-ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .45); }
         .btn-ghost:hover { background: rgba(255, 255, 255, .1); }
-        .hero-facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 26px; font-size: 13.5px; color: rgba(255, 255, 255, .8); }
+        .hero-facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 16px; font-size: 13.5px; color: rgba(255, 255, 255, .8); }
         .hero-facts i { color: #9be3b0; margin-right: 6px; }
+
+        /* ---- The phone ---- */
+        .hero-phone {
+            position: relative;
+            display: grid;
+            place-items: center;
+            padding: 20px 0;
+        }
+        .hero-phone::before {
+            content: "";
+            position: absolute;
+            width: 360px;
+            height: 360px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(155, 227, 176, .35), transparent 68%);
+        }
+        .phone {
+            position: relative;
+            /* Never taller than the window allows (menu bar and margins). */
+            width: min(280px, 78vw, calc((100vh - 150px) * 432 / 928));
+            aspect-ratio: 432 / 928;
+            padding: 10px;
+            border-radius: 44px;
+            background: #0d1410;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, .12), 0 30px 60px rgba(0, 0, 0, .45);
+            transform: rotate(-3deg);
+        }
+        /* The screen: the screenshot (432 × 928) a little wider than it, so
+           its own side and bottom edges fall outside, and its top (the phone's
+           own status bar) is cut off: the app starts right under the notch. */
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            border-radius: 34px;
+            background: #dfe8df;
+        }
+        /* A soft band along the top, beside the notch, so nothing of the
+           old status bar shows there. */
+        .phone-screen { position: relative; }
+        .phone-screen::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 30px;
+            z-index: 1;
+            background: linear-gradient(#0d1410, rgba(13, 20, 16, 0));
+        }
+        .phone-screen img {
+            display: block;
+            width: 109%;
+            height: 100%;
+            margin-left: -4.5%;
+            object-fit: cover;
+            /* ~60 px off the top, ~18 px off the bottom (its own edge). */
+            object-position: center 77%;
+        }
+        .phone-notch {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            width: 74px;
+            height: 18px;
+            border-radius: 12px;
+            background: #0d1410;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+        .phone-chip {
+            position: absolute;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--text);
+            font-size: 12.5px;
+            font-weight: 600;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, .25);
+            white-space: nowrap;
+            animation: chipFloat 5s ease-in-out infinite;
+        }
+        .phone-chip i { color: var(--accent); }
+        .chip-top { top: 3%; left: -10%; }
+        .chip-mid { top: 48%; right: -8%; animation-delay: -1.6s; }
+        .chip-low { bottom: 12%; left: -2%; animation-delay: -3.2s; }
+        .chip-low i { color: #c8402f; }
+        @keyframes chipFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .phone-chip { animation: none; }
+        }
 
         /* ---- QR card ---- */
         .qr-card {
@@ -155,6 +258,30 @@
             box-shadow: 0 24px 50px rgba(0, 0, 0, .25);
         }
         .qr-card h2 { margin: 0 0 4px; font-size: 19px; color: var(--accent-dark); }
+        /* Under the hero text: the QR code beside the rest. */
+        .qr-card.is-inline {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 18px;
+            align-items: start;
+            max-width: 600px;
+            margin-top: 4px;
+            padding: 16px 18px;
+            text-align: left;
+        }
+        .qr-card.is-inline .qr-holder { align-self: start; }
+        .qr-card.is-inline .qr-side > p { margin: 0 0 4px; font-size: 13.5px; color: var(--text-2); }
+        .qr-card.is-inline .apk-meta { margin: 6px 0 12px; }
+        .qr-caption {
+            display: block;
+            margin-top: 8px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #1f6b39;
+        }
         .qr-card > p { margin: 0 0 16px; font-size: 13.5px; color: var(--text-2); }
         .qr-box {
             position: relative;
@@ -166,6 +293,13 @@
             background: #fff;
         }
         #qrCode { width: 210px; height: 210px; }
+        .is-inline #qrCode { width: 140px; height: 140px; }
+        .is-inline #qrCode canvas { width: 140px !important; height: 140px !important; }
+        .qr-card.is-inline .qr-box { padding: 10px; }
+        .qr-card.is-inline .qr-logo { width: 38px; height: 38px; padding: 3px; border-radius: 9px; }
+        .qr-card.is-inline h2 { font-size: 17px; }
+        .qr-card.is-inline .not-android { padding: 8px 10px; font-size: 12.5px; }
+        .qr-card.is-inline .qr-actions .btn { padding: 9px 14px; }
         /* qrcodejs draws a canvas and copies it to an img (late, or not at
            all on Android): show the canvas. */
         #qrCode img { display: none !important; }
@@ -310,12 +444,16 @@
 
         @media (max-width: 900px) {
             .hero .wrap { grid-template-columns: minmax(0, 1fr); }
-            .qr-card { max-width: 380px; margin: 0 auto; width: 100%; }
+            .phone { width: min(240px, 64vw); }
             .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 600px) {
             .topnav { display: none; }
+            .qr-card.is-inline { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
+            .chip-top { left: 0; }
+            .chip-mid { right: 0; }
+            .chip-low { left: 4%; }
             .hero { padding: 36px 0 44px; }
             .grid, .steps, .reminders { grid-template-columns: minmax(0, 1fr); }
             section.block { padding: 44px 0; }
@@ -337,17 +475,52 @@
 </header>
 
 <main id="top">
-    <!-- ===== Hero, with the QR code ===== -->
+    <!-- ===== Hero: the text and the Android download (with its QR code),
+         and the app's Home screen in a phone ===== -->
     <section class="hero">
         <div class="wrap">
             <div>
                 <span class="eyebrow"><i class="fa-solid fa-mountain-sun" aria-hidden="true"></i>Mount Makiling, Laguna &amp; Batangas</span>
                 <h1>Hike Makiling safer with <span>PeakPath</span></h1>
                 <p class="lead">PeakPath is the hiking companion for Mount Makiling. See the trails on a map, share your live location with your group, get weather and trail advisories, and send an SOS when you need help, while park rangers and guides watch over every hike.</p>
-                <div class="hero-actions">
-                    <a class="btn btn-light" href="https://github.com/Arctzy/Peakpath-APK/releases/latest/download/app-release.apk"><i class="fa-brands fa-android" aria-hidden="true"></i>Get the Android app</a>
-                    <a class="btn btn-ghost" href="#features"><i class="fa-solid fa-circle-info" aria-hidden="true"></i>Learn more</a>
-                </div>
+                <aside class="qr-card is-inline" id="get-app" aria-labelledby="qrTitle">
+                    <div class="qr-holder">
+                        <div class="qr-box">
+                            <div id="qrCode" role="img" aria-label="QR code that opens the PeakPath Android download"></div>
+                            <span class="qr-logo" aria-hidden="true"><img src="../assets/images/logo.png" alt=""></span>
+                        </div>
+                        <span class="qr-caption">Scan me</span>
+                    </div>
+                    <div class="qr-side">
+                    <span class="android-badge"><i class="fa-brands fa-android" aria-hidden="true"></i>Android app</span>
+                    <h2 id="qrTitle">Scan to download PeakPath</h2>
+                    <p>Scan with your <strong>Android phone's</strong> camera to download the app.</p>
+                    <div class="apk-meta" id="apkMeta">PeakPath for Android · version 1.0.1 · 68.34 MB · updated Oct 28, 2026</div>
+
+                    <!-- On an Android phone: the download. Anywhere else: why not. -->
+                    <div class="qr-actions" id="androidActions" hidden>
+                        <a class="btn btn-primary btn-wide" id="downloadApk" href="https://github.com/Arctzy/Peakpath-APK/releases/latest/download/app-release.apk"><i class="fa-solid fa-download" aria-hidden="true"></i>Download for Android</a>
+                    </div>
+                    <div class="not-android" id="notAndroid" hidden>
+                        <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
+                        <span>PeakPath can only be downloaded on an <strong>Android phone</strong>. Scan the code with one, or open this page on it.</span>
+                    </div>
+                    <div class="qr-actions">
+                        <button type="button" class="btn btn-outline" id="copyLink"><i class="fa-regular fa-copy" aria-hidden="true"></i>Copy link</button>
+                        <button type="button" class="btn btn-outline" id="downloadQr"><i class="fa-solid fa-qrcode" aria-hidden="true"></i>Save QR</button>
+                    </div>
+                    <p class="copy-note" id="copyNote" role="status" aria-live="polite"></p>
+
+                    <details class="install-help">
+                        <summary>How to install</summary>
+                        <ol>
+                            <li>Tap <strong>Download for Android</strong> and open <em>app-release.apk</em> when it finishes.</li>
+                            <li>If asked, allow your browser to <strong>install unknown apps</strong> (Settings → Apps → your browser → Install unknown apps).</li>
+                            <li>Tap <strong>Install</strong>. Already have PeakPath? This updates it and keeps your account.</li>
+                        </ol>
+                    </details>
+                    </div>
+                </aside>
                 <div class="hero-facts">
                     <span><i class="fa-solid fa-route" aria-hidden="true"></i>Mariang Makiling, Sipit &amp; the Traverse</span>
                     <span><i class="fa-solid fa-mountain" aria-hidden="true"></i>Peak 2 · 1,090 MASL</span>
@@ -355,39 +528,16 @@
                 </div>
             </div>
 
-            <aside class="qr-card" id="get-app" aria-labelledby="qrTitle">
-                <span class="android-badge"><i class="fa-brands fa-android" aria-hidden="true"></i>Android app</span>
-                <h2 id="qrTitle">Scan to download PeakPath</h2>
-                <p>Scan with your <strong>Android phone's</strong> camera to download the app.</p>
-                <div class="qr-box">
-                    <div id="qrCode" role="img" aria-label="QR code that opens the PeakPath Android download"></div>
-                    <span class="qr-logo" aria-hidden="true"><img src="../assets/images/logo.png" alt=""></span>
+            <!-- The app itself: its Home screen in a phone. -->
+            <div class="hero-phone" aria-hidden="true">
+                <div class="phone">
+                    <span class="phone-notch"></span>
+                    <div class="phone-screen"><img src="../assets/images/app-home.png" alt=""></div>
                 </div>
-                <div class="apk-meta" id="apkMeta">PeakPath for Android · version 1.0.1 · 68.34 MB · updated Oct 28, 2026</div>
-
-                <!-- On an Android phone: the download. Anywhere else: why not. -->
-                <div class="qr-actions" id="androidActions" hidden>
-                    <a class="btn btn-primary btn-wide" id="downloadApk" href="https://github.com/Arctzy/Peakpath-APK/releases/latest/download/app-release.apk"><i class="fa-solid fa-download" aria-hidden="true"></i>Download for Android</a>
-                </div>
-                <div class="not-android" id="notAndroid" hidden>
-                    <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
-                    <span>PeakPath can only be downloaded on an <strong>Android phone</strong>. Scan the code with one, or open this page on it.</span>
-                </div>
-                <div class="qr-actions">
-                    <button type="button" class="btn btn-outline" id="copyLink"><i class="fa-regular fa-copy" aria-hidden="true"></i>Copy link</button>
-                    <button type="button" class="btn btn-outline" id="downloadQr"><i class="fa-solid fa-qrcode" aria-hidden="true"></i>Save QR</button>
-                </div>
-                <p class="copy-note" id="copyNote" role="status" aria-live="polite"></p>
-
-                <details class="install-help">
-                    <summary>How to install</summary>
-                    <ol>
-                        <li>Tap <strong>Download for Android</strong> and open <em>app-release.apk</em> when it finishes.</li>
-                        <li>If asked, allow your browser to <strong>install unknown apps</strong> (Settings → Apps → your browser → Install unknown apps).</li>
-                        <li>Tap <strong>Install</strong>. Already have PeakPath? This updates it and keeps your account.</li>
-                    </ol>
-                </details>
-            </aside>
+                <span class="phone-chip chip-top"><i class="fa-solid fa-cloud-sun"></i>Live summit weather</span>
+                <span class="phone-chip chip-mid"><i class="fa-solid fa-location-crosshairs"></i>Share your location</span>
+                <span class="phone-chip chip-low"><i class="fa-solid fa-tower-broadcast"></i>One-tap SOS</span>
+            </div>
         </div>
     </section>
 
