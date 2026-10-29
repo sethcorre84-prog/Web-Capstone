@@ -137,7 +137,7 @@ function stationPosition(data, trails) {
     return { lat, lng, estimated: data.coordsEstimated === true };
   }
   const key = referenceKeyFor(trails.find((t) => t.id === data.trailID));
-  const spot = key && STATION_COORDS[key][Number(data.stationNumber)];
+  const spot = key && STATION_COORDS[key]?.[Number(data.stationNumber)];
   return spot ? { lat: spot[0], lng: spot[1], estimated: true } : null;
 }
 
@@ -170,16 +170,43 @@ export function mappedStations(stationDocs, trails) {
       .sort((a, b) => Number(b.data.stationNumber) - Number(a.data.stationNumber))[0];
     const after = siblings.filter((o) => Number(o.data.stationNumber) > number)
       .sort((a, b) => Number(a.data.stationNumber) - Number(b.data.stationNumber))[0];
-    if (!before || !after) return;
-    const n0 = Number(before.data.stationNumber);
-    const n1 = Number(after.data.stationNumber);
-    const t = (number - n0) / (n1 - n0);
+    if (before && after) {
+      const n0 = Number(before.data.stationNumber);
+      const n1 = Number(after.data.stationNumber);
+      const t = (number - n0) / (n1 - n0);
+      entry.position = {
+        lat: before.position.lat + (after.position.lat - before.position.lat) * t,
+        lng: before.position.lng + (after.position.lng - before.position.lng) * t,
+        estimated: true
+      };
+      entry.why = `no coordinates: placed between Station ${n0} and Station ${n1}`;
+      return;
+    }
+    // The first or last station (a neighbour on one side only): just beside
+    // that neighbour, about 40 m along, so it is still on the map.
+    const near = before || after;
+    if (!near) return;
     entry.position = {
-      lat: before.position.lat + (after.position.lat - before.position.lat) * t,
-      lng: before.position.lng + (after.position.lng - before.position.lng) * t,
+      lat: near.position.lat + (before ? 0.00035 : -0.00035),
+      lng: near.position.lng,
       estimated: true
     };
+    entry.why = `no coordinates: placed beside Station ${near.data.stationNumber}`;
   });
+  // Said in the console, so a station that can't be placed exactly can be
+  // found and given its coordinates in Trail Station Management.
+  const unplaced = entries.filter((entry) => !entry.position || entry.why);
+  if (unplaced.length) {
+    console.info('Trail stations without saved coordinates (Trail Station Management):',
+      unplaced.map((entry) => ({
+        trail: trails.find((t) => t.id === entry.data.trailID)?.Trail || entry.data.trailID,
+        station: entry.data.stationNumber,
+        name: entry.data.landmark || entry.data.name || '',
+        lat: entry.data.lat ?? null,
+        lng: entry.data.lng ?? null,
+        shown: entry.why || 'not shown: no other station on its trail has a position'
+      })));
+  }
   /* Two stations on (nearly) the same spot would hide one under the other:
      each later one is set a few metres off, round the first, so every
      station can be seen and clicked. */
