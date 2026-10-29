@@ -10,16 +10,52 @@
   ],
   "rewrites": [
     {
-      "source": "/about",
-      "destination": "/htmlPages/about.html"
+      "source": "/A&A",
+      "destination": "/htmlPages/A&A.html"
     },
     {
-      "source": "/contact",
-      "destination": "/htmlPages/contact.html"
+      "source": "/analytics",
+      "destination": "/htmlPages/analytics.html"
     },
     {
-      "source": "/login",
-      "destination": "/htmlPages/login.html"
+      "source": "/dashboard",
+      "destination": "/htmlPages/dashboard.html"
+    },
+    {
+      "source": "/emergency",
+      "destination": "/htmlPages/emergency.html"
+    },
+    {
+      "source": "/geomap",
+      "destination": "/htmlPages/geomap.html"
+    },
+    {
+      "source": "/hazardreport",
+      "destination": "/htmlPages/hazardreport.html"
+    },
+    {
+      "source": "/Home",
+      "destination": "/htmlPages/Home.html"
+    },
+    {
+      "source": "/landingPage",
+      "destination": "/htmlPages/landingPage.html"
+    },
+    {
+      "source": "/Setting",
+      "destination": "/htmlPages/Setting.html"
+    },
+    {
+      "source": "/trail",
+      "destination": "/htmlPages/trail.html"
+    },
+    {
+      "source": "/usermanagement",
+      "destination": "/htmlPages/usermanagement.html"
+    },
+    {
+      "source": "/userreports",
+      "destination": "/htmlPages/userreports.html"
     }
   ],
   "headers": [
