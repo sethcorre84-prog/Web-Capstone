@@ -451,7 +451,7 @@
         .store-badge span { display: flex; flex-direction: column; font: 800 17px/1.1 "Montserrat", sans-serif; }
         .store-badge small { font: 600 11px/1.3 "Inter", sans-serif; color: #4c5e51; }
         /* Not on an Android phone: it can't download here; the click shows why. */
-        .store-badge.is-elsewhere { opacity: .92; }
+        .store-badge.is-elsewhere { opacity: .92; cursor: pointer; }
         .not-android.is-flash { animation: noteFlash 1.2s ease; }
         @keyframes noteFlash {
             0%, 100% { box-shadow: none; }
@@ -606,7 +606,7 @@
                     <!-- Anywhere but an Android phone: why it can't be downloaded here. -->
                     <div class="not-android" id="notAndroid" hidden>
                         <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
-                        <span>PeakPath installs on <strong>Android phones</strong>. Scan the code with one, or download it here and copy the file to your phone, or use the <strong>Web App</strong> in your browser.</span>
+                        <span>PeakPath installs on <strong>Android phones</strong> only, so it can't be downloaded on this device. Scan the code with an Android phone, or use the <strong>Web App</strong> in your browser.</span>
                     </div>
                     <div class="qr-actions">
                         <button type="button" class="btn btn-outline" id="copyLink"><i class="fa-regular fa-copy" aria-hidden="true"></i>Copy link</button>
@@ -619,7 +619,8 @@
                 <!-- Under the card: the download, as a store-style badge, and
                      how to install it. -->
                 <div class="download-row">
-                    <a class="store-badge" id="downloadApk" href="https://github.com/Arctzy/Peakpath-APK/releases/latest/download/Peakpath.apk">
+                    <!-- The href is set by the script, on Android phones only. -->
+                    <a class="store-badge" id="downloadApk" href="#get-app">
                         <i class="fa-brands fa-android" aria-hidden="true"></i>
                         <span><small>Download for</small>Android App</span>
                     </a>
@@ -632,7 +633,7 @@
                     <details class="install-help">
                         <summary>How to install</summary>
                         <ol>
-                            <li>Tap <strong>Download for Android App</strong> and open <em>Peakpath.apk</em> when it finishes. (On a computer: copy the file to your Android phone and open it there.)</li>
+                            <li>Tap <strong>Download for Android App</strong> and open <em>Peakpath.apk</em> when it finishes. (This works on Android phones only; on a computer or iPhone, scan the QR code with an Android phone.)</li>
                             <li>If asked, allow your browser to <strong>install unknown apps</strong> (Settings → Apps → your browser → Install unknown apps).</li>
                             <li>Tap <strong>Install</strong>. Already have PeakPath? This updates it and keeps your account.</li>
                         </ol>
@@ -777,9 +778,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
     /* The PeakPath Android app (APK), from the latest GitHub release. The QR
-       code and the Download for Android App button both point straight at
-       it, so either downloads the newest build, on any device (it installs
-       on Android; elsewhere the note says how to get it onto a phone). */
+       code points straight at it. The Download for Android App button only
+       downloads on Android; on iPhone, iPad, Windows and Mac it can't be
+       installed, so a click shows the note saying so instead. */
     const APK_URL = 'https://github.com/Arctzy/Peakpath-APK/releases/latest/download/Peakpath.apk';
     const isAndroid = /android/i.test(navigator.userAgent)
         || /android/i.test(navigator.userAgentData?.platform || '');
@@ -788,9 +789,28 @@
     const notAndroid = document.getElementById('notAndroid');
     notAndroid.hidden = isAndroid;
     const downloadBtn = document.getElementById('downloadApk');
-    downloadBtn.href = APK_URL;
-    downloadBtn.setAttribute('download', 'Peakpath.apk');
-    if (!isAndroid) downloadBtn.title = 'Downloads Peakpath.apk: copy it to an Android phone to install';
+    if (isAndroid) {
+        downloadBtn.href = APK_URL;
+        downloadBtn.setAttribute('download', 'Peakpath.apk');
+    } else {
+        downloadBtn.removeAttribute('href');
+        downloadBtn.setAttribute('role', 'button');
+        downloadBtn.setAttribute('tabindex', '0');
+        downloadBtn.setAttribute('aria-disabled', 'true');
+        downloadBtn.classList.add('is-elsewhere');
+        downloadBtn.title = 'Android phones only';
+        const explain = (e) => {
+            e.preventDefault();
+            notAndroid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            notAndroid.classList.remove('is-flash');
+            void notAndroid.offsetWidth; // restart the flash on every click
+            notAndroid.classList.add('is-flash');
+        };
+        downloadBtn.addEventListener('click', explain);
+        downloadBtn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') explain(e);
+        });
+    }
 
     // High error correction, so the logo in the middle doesn't stop it scanning.
     const qrEl = document.getElementById('qrCode');
