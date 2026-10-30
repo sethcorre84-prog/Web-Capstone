@@ -1474,7 +1474,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--green-text)" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
             </div>
           </div>
-          <div class="stat-label">Verifying<div class="meta-line" id="verifiedMeta">0% of total</div></div>
+          <div class="stat-label">Verified<div class="meta-line" id="verifiedMeta">0% of total</div></div>
         </div>
 
         <div class="stat-card">
@@ -1529,7 +1529,7 @@
               <select class="filter-select" id="statusFilter">
                 <option value="">Status: All</option>
                 <option value="pending">Pending</option>
-                <option value="verified">Verifying</option>
+                <option value="verified">Verified</option>
               </select>
               <select class="filter-select" id="hazardFilter">
                 <option value="">Hazard Type: All</option>
@@ -1844,12 +1844,10 @@ function getStatusPillStyle(status) {
   return styles[statusLower] || styles['pending'];
 }
 
-// How a status reads on screen. The stored value stays 'verified' -- only the
-// label changes: a verified hazard is one being worked on until it is
-// resolved, so it reads "Verifying".
+// How a status reads on screen: the stored value, capitalised, so a
+// verified hazard reads "Verified" as it does in the reports collection.
 function getStatusLabel(status) {
   const statusLower = String(status || '').toLowerCase();
-  if (statusLower === 'verified') return 'Verifying';
   return statusLower.charAt(0).toUpperCase() + statusLower.slice(1);
 }
 
