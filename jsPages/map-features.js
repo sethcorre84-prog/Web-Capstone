@@ -263,6 +263,14 @@ export function addMapFeatures({ map, db, trails = () => [], stationsOnly = fals
     map.getPane('mfBackdrop').style.zIndex = 350;
   }
 
+  // The station dots (Trail Management, Dashboard) in their own layer
+  // above the trail lines (the overlay pane, 400), so a line drawn or
+  // redrawn later never covers them; the pins (markers, 600) stay on top.
+  if (!map.getPane('mfStations')) {
+    map.createPane('mfStations');
+    map.getPane('mfStations').style.zIndex = 450;
+  }
+
   const waterways = L.layerGroup().addTo(map);
   const stations = L.layerGroup().addTo(map);
 
@@ -400,6 +408,7 @@ export function addMapFeatures({ map, db, trails = () => [], stationsOnly = fals
       // overview maps (stationsOnly) keep their plain dots.
       const marker = stationsOnly
         ? L.circleMarker([lat, lng], {
+          pane: 'mfStations',
           radius: 5, color: '#1f3a28', weight: 2, fillColor: '#ffffff', fillOpacity: open ? 1 : 0.5
         })
         : facilities.length
