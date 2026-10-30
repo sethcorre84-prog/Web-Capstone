@@ -2305,7 +2305,7 @@
     const lower = text.toLowerCase();
     const known = lower && REPORT_TYPES.find((type) => type.pattern.test(lower));
     if (known) return known;
-    if (!lower || lower === 'other') return { ...OTHER_TYPE };
+    if (!lower || lower === 'other' || lower === 'others') return { ...OTHER_TYPE };
     // Keep unrecognised categories visible under their own label and colour.
     const key = `other:${lower}`;
     return { ...OTHER_TYPE, key, label: text, ...extraTone(key) };
@@ -2538,6 +2538,8 @@
     // The mobile app saves the chosen category as `reason`; the other names
     // only cover older documents.
     const type = resolveType(getFirstAvailable(data.reason, data.reportType, data.type, data.category, data.report_category));
+    // "Other": the reporter's own words (the app's otherReason field).
+    const otherReason = normalizeText(data.otherReason);
     const statusRaw = getFirstAvailable(data.status, data.reportStatus, 'Pending');
     const status = resolveStatus(statusRaw);
 
@@ -2549,6 +2551,7 @@
       storedId,
       dateHasTime,
       type,
+      otherReason,
       description: getFirstAvailable(data.description, data.details, data.message, data.comment) || 'No description provided',
       location: readLocation(data),
       // The trail is found at render time (trailOf): saved on the report,
@@ -3881,7 +3884,7 @@
     }
 
     $('detailReportId').textContent = report.reportId;
-    $('detailReportType').textContent = report.type.label;
+    $('detailReportType').textContent = reportTypeText(report);
     $('detailReportedUser').innerHTML = personCardHtml(report.reportedUser, { showReports: true });
     $('detailReportedBy').innerHTML = personCardHtml(report.reportedBy);
     $('detailLocation').innerHTML = locationHtml(report);
@@ -4108,13 +4111,20 @@
     renderFullDetails(getSelectedReport());
   });
 
+  /* The report type as the details say it: for "Other", the reporter's
+     own reason (otherReason) when they gave one. Lists and charts keep
+     grouping these under Other. */
+  function reportTypeText(report) {
+    return report.type.key === 'other' && report.otherReason ? report.otherReason : report.type.label;
+  }
+
   const renderFullDetails = (report) => {
     if (!report) return;
 
-    $('reportDetailsSub').textContent = `${report.type.label} report filed against ${report.reportedUser.name}.`;
+    $('reportDetailsSub').textContent = `${report.type.key === 'other' && report.otherReason ? `"${report.otherReason}"` : report.type.label} report filed against ${report.reportedUser.name}.`;
     setStatusPill($('fullStatusPill'), report);
     $('fullReportId').textContent = report.reportId;
-    $('fullReportType').textContent = report.type.label;
+    $('fullReportType').textContent = reportTypeText(report);
     $('fullDateReported').textContent = reportDateLabel(report);
     $('fullLocation').innerHTML = locationHtml(report);
     $('fullReportedUser').innerHTML = personCardHtml(report.reportedUser, { showReports: true });

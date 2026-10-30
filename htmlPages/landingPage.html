@@ -606,7 +606,7 @@
                     <!-- Anywhere but an Android phone: why it can't be downloaded here. -->
                     <div class="not-android" id="notAndroid" hidden>
                         <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
-                        <span>PeakPath can only be downloaded on an <strong>Android phone</strong>. Scan the code with one, or use the <strong>Web App</strong> in your browser.</span>
+                        <span>PeakPath installs on <strong>Android phones</strong>. Scan the code with one, or download it here and copy the file to your phone, or use the <strong>Web App</strong> in your browser.</span>
                     </div>
                     <div class="qr-actions">
                         <button type="button" class="btn btn-outline" id="copyLink"><i class="fa-regular fa-copy" aria-hidden="true"></i>Copy link</button>
@@ -632,7 +632,7 @@
                     <details class="install-help">
                         <summary>How to install</summary>
                         <ol>
-                            <li>Tap <strong>Download for Android App</strong> and open <em>app-release.apk</em> when it finishes.</li>
+                            <li>Tap <strong>Download for Android App</strong> and open <em>Peakpath.apk</em> when it finishes. (On a computer: copy the file to your Android phone and open it there.)</li>
                             <li>If asked, allow your browser to <strong>install unknown apps</strong> (Settings → Apps → your browser → Install unknown apps).</li>
                             <li>Tap <strong>Install</strong>. Already have PeakPath? This updates it and keeps your account.</li>
                         </ol>
@@ -777,8 +777,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
     /* The PeakPath Android app (APK), from the latest GitHub release. The QR
-       code points straight at it, so scanning downloads the newest build;
-       the download button is offered only on Android phones. */
+       code and the Download for Android App button both point straight at
+       it, so either downloads the newest build, on any device (it installs
+       on Android; elsewhere the note says how to get it onto a phone). */
     const APK_URL = 'https://github.com/Arctzy/Peakpath-APK/releases/latest/download/Peakpath.apk';
     const isAndroid = /android/i.test(navigator.userAgent)
         || /android/i.test(navigator.userAgentData?.platform || '');
@@ -787,18 +788,9 @@
     const notAndroid = document.getElementById('notAndroid');
     notAndroid.hidden = isAndroid;
     const downloadBtn = document.getElementById('downloadApk');
-    downloadBtn.classList.toggle('is-elsewhere', !isAndroid);
-    if (!isAndroid) downloadBtn.title = 'Open this page on an Android phone to download';
-    // Only an Android phone may start the download: anywhere else the click
-    // points at why (the note in the card).
-    downloadBtn.addEventListener('click', (event) => {
-        if (isAndroid) return;
-        event.preventDefault();
-        notAndroid.classList.remove('is-flash');
-        void notAndroid.offsetWidth;
-        notAndroid.classList.add('is-flash');
-        notAndroid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
+    downloadBtn.href = APK_URL;
+    downloadBtn.setAttribute('download', 'Peakpath.apk');
+    if (!isAndroid) downloadBtn.title = 'Downloads Peakpath.apk: copy it to an Android phone to install';
 
     // High error correction, so the logo in the middle doesn't stop it scanning.
     const qrEl = document.getElementById('qrCode');
