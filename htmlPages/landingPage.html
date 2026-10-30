@@ -157,7 +157,10 @@
         .btn-light:hover { background: #eaf6ee; }
         .btn-ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .45); }
         .btn-ghost:hover { background: rgba(255, 255, 255, .1); }
-        .hero-facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 16px; font-size: 13.5px; color: rgba(255, 255, 255, .8); }
+        /* Two centred rows under the badges (as wide as the card): the
+           trails and SOS, then the peaks. */
+        .hero-facts { display: grid; gap: 8px; max-width: 600px; margin-top: 16px; font-size: 13.5px; color: rgba(255, 255, 255, .8); }
+        .facts-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 22px; }
         .hero-facts i { color: #9be3b0; margin-right: 6px; }
 
         /* ---- The phone ---- */
@@ -584,7 +587,8 @@
             .download-row .store-badge { flex: 1 1 100%; justify-content: center; min-height: 56px; }
             .download-row .install-help { max-width: none; }
             .download-row .install-help ol { text-align: left; }
-            .hero-facts { justify-content: center; gap: 6px 16px; }
+            .hero-facts { gap: 6px; }
+            .facts-row { gap: 6px 16px; }
             .phone { width: min(230px, 62vw); }
             .hero-phone::before { width: 280px; height: 280px; }
             .phone-chip { padding: 6px 10px; font-size: 11.5px; }
@@ -678,9 +682,14 @@
                     </details>
                 </div>
                 <div class="hero-facts">
-                    <span><i class="fa-solid fa-route" aria-hidden="true"></i>Mariang Makiling, Sipit &amp; the Traverse</span>
-                    <span><i class="fa-solid fa-mountain" aria-hidden="true"></i>Peak 2 · 1,090 MASL</span>
-                    <span><i class="fa-solid fa-shield-heart" aria-hidden="true"></i>SOS &amp; live tracking</span>
+                    <div class="facts-row">
+                        <span><i class="fa-solid fa-route" aria-hidden="true"></i>Mariang Makiling, Sipit &amp; the Traverse</span>
+                        <span><i class="fa-solid fa-shield-heart" aria-hidden="true"></i>SOS &amp; live tracking</span>
+                    </div>
+                    <div class="facts-row">
+                        <span><i class="fa-solid fa-mountain" aria-hidden="true"></i>Peak 2 · 1,090 MASL</span>
+                        <span><i class="fa-solid fa-mountain" aria-hidden="true"></i>Peak 3 · 1,109 MASL</span>
+                    </div>
                 </div>
             </div>
 
