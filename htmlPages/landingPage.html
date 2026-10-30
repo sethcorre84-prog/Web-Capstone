@@ -558,11 +558,6 @@
             .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
-        /* On an Android phone there is nothing to scan: the card just
-           points at the Download button (the script sets its text). */
-        .is-android .qr-card.is-inline { grid-template-columns: minmax(0, 1fr); }
-        .is-android .qr-holder,
-        .is-android #downloadQr { display: none; }
         @media (max-width: 900px) {
             .hero .wrap { gap: 28px; }
         }
@@ -836,14 +831,10 @@
     const inAppBrowser = isAndroid && /FBAN|FBAV|FB_IAB|Instagram|Line\/|TikTok|musical_ly|; wv\)/i.test(ua);
 
     document.getElementById('year').textContent = new Date().getFullYear();
-    document.documentElement.classList.toggle('is-android', isAndroid);
     const notAndroid = document.getElementById('notAndroid');
     notAndroid.hidden = isAndroid && !inAppBrowser;
     const downloadBtn = document.getElementById('downloadApk');
     if (isAndroid) {
-        // On the phone itself there is nothing to scan: point at the button.
-        document.getElementById('qrTitle').textContent = 'Get PeakPath on this phone';
-        document.querySelector('.qr-side > p').innerHTML = 'Tap <strong>Download for Android App</strong> below, then open the file to install.';
         if (inAppBrowser) {
             const apkPath = APK_URL.replace(/^https:\/\//, '');
             downloadBtn.href = `intent://${apkPath}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(APK_URL)};end`;
