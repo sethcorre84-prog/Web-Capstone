@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Android Chrome tints its address bar to match the menu bar. -->
+    <meta name="theme-color" content="#123d22">
     <title>PeakPath Mobile App</title>
     <meta name="description" content="PeakPath: the hiking companion for Mount Makiling. Trail maps, live location sharing, SOS alerts, hazard reports and weather, in one app.">
     <link rel="icon" href="../assets/images/logo.png">
@@ -59,7 +61,9 @@
         }
 
         * { box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
+        /* No font boosting on Android; anchors land under the sticky bar. */
+        html { scroll-behavior: smooth; scroll-padding-top: 70px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
         body {
             margin: 0;
             background: var(--bg);
@@ -554,15 +558,54 @@
             .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
+        /* On an Android phone there is nothing to scan: the card just
+           points at the Download button (the script sets its text). */
+        .is-android .qr-card.is-inline { grid-template-columns: minmax(0, 1fr); }
+        .is-android .qr-holder,
+        .is-android #downloadQr { display: none; }
+        @media (max-width: 900px) {
+            .hero .wrap { gap: 28px; }
+        }
         @media (max-width: 600px) {
-            .topnav { display: none; }
-            .qr-card.is-inline { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
+            /* Only "Get the app" stays in the menu bar, as a pill. */
+            .topnav a:not([href="#get-app"]) { display: none; }
+            .topnav a[href="#get-app"] {
+                padding: 7px 14px;
+                border-radius: 999px;
+                background: #fff;
+                color: #123d22;
+                font-weight: 700;
+                opacity: 1;
+            }
+            .topbar .wrap { height: 56px; }
+            .hero { padding: 24px 0 36px; }
+            .hero h1 { font-size: clamp(26px, 8vw, 34px); }
+            .hero p.lead { font-size: 15px; }
+            .eyebrow { font-size: 12px; }
+            .qr-card.is-inline { grid-template-columns: minmax(0, 1fr); justify-items: center; padding: 16px; text-align: center; }
+            .qr-card.is-inline .not-android { text-align: left; }
+            .qr-actions { width: 100%; }
+            /* The two badges stacked, full width, easy to tap. */
+            .download-row .store-badge { flex: 1 1 100%; justify-content: center; min-height: 56px; }
+            .download-row .install-help { max-width: none; }
+            .download-row .install-help ol { text-align: left; }
+            .hero-facts { justify-content: center; gap: 6px 16px; }
+            .phone { width: min(230px, 62vw); }
+            .hero-phone::before { width: 280px; height: 280px; }
+            .phone-chip { padding: 6px 10px; font-size: 11.5px; }
             .chip-top { left: 0; }
             .chip-mid { right: 0; }
             .chip-low { left: 4%; }
-            .hero { padding: 36px 0 44px; }
             .grid, .steps, .reminders { grid-template-columns: minmax(0, 1fr); }
             section.block { padding: 44px 0; }
+            .section-head { margin-bottom: 24px; }
+            footer .wrap { flex-direction: column; text-align: center; }
+        }
+        @media (max-width: 360px) {
+            .brand { font-size: 16px; }
+            .brand img { width: 30px; height: 30px; }
+            .topnav a[href="#get-app"] { padding: 6px 11px; font-size: 13px; }
+            .phone-chip { display: none; }
         }
     </style>
 </head>
@@ -782,16 +825,32 @@
        downloads on Android; on iPhone, iPad, Windows and Mac it can't be
        installed, so a click shows the note saying so instead. */
     const APK_URL = 'https://github.com/Arctzy/Peakpath-APK/releases/latest/download/Peakpath.apk';
-    const isAndroid = /android/i.test(navigator.userAgent)
-        || /android/i.test(navigator.userAgentData?.platform || '');
+    const ua = navigator.userAgent;
+    // Android phones in "Desktop site" mode say Linux, not Android, but
+    // still have a touch screen (desktop Linux and Chromebooks rarely do).
+    const isAndroid = /android/i.test(ua)
+        || /android/i.test(navigator.userAgentData?.platform || '')
+        || (/Linux/.test(ua) && !/CrOS/.test(ua) && navigator.maxTouchPoints > 1);
+    // Facebook, Messenger, Instagram, TikTok and other apps open links in
+    // their own browser, which won't download files: hand it to Chrome.
+    const inAppBrowser = isAndroid && /FBAN|FBAV|FB_IAB|Instagram|Line\/|TikTok|musical_ly|; wv\)/i.test(ua);
 
     document.getElementById('year').textContent = new Date().getFullYear();
+    document.documentElement.classList.toggle('is-android', isAndroid);
     const notAndroid = document.getElementById('notAndroid');
-    notAndroid.hidden = isAndroid;
+    notAndroid.hidden = isAndroid && !inAppBrowser;
     const downloadBtn = document.getElementById('downloadApk');
     if (isAndroid) {
-        downloadBtn.href = APK_URL;
-        downloadBtn.setAttribute('download', 'Peakpath.apk');
+        // On the phone itself there is nothing to scan: point at the button.
+        document.getElementById('qrTitle').textContent = 'Get PeakPath on this phone';
+        document.querySelector('.qr-side > p').innerHTML = 'Tap <strong>Download for Android App</strong> below, then open the file to install.';
+        if (inAppBrowser) {
+            const apkPath = APK_URL.replace(/^https:\/\//, '');
+            downloadBtn.href = `intent://${apkPath}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(APK_URL)};end`;
+            notAndroid.querySelector('span').innerHTML = 'This app\'s built-in browser can\'t download files. Tap <strong>Download for Android App</strong> to open it in Chrome, or tap <strong>⋮</strong> and choose <strong>Open in browser</strong>.';
+        } else {
+            downloadBtn.href = APK_URL;
+        }
     } else {
         downloadBtn.removeAttribute('href');
         downloadBtn.setAttribute('role', 'button');
