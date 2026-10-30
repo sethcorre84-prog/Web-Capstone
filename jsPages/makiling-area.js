@@ -179,8 +179,9 @@ const routeLength = (latLngs) => latLngs.reduce((sum, point, i) => (i
 
 const TRAIL_COLOR = '#2f8f4e';
 const CLOSED_COLOR = '#c8402f';
-// Side trails (Mud Spring, Flat Rocks): yellow, like the maps' legends.
-const SIDE_TRAIL_COLOR = '#ffb020';
+// Side trails (Mud Spring, Flat Rocks): the same green, as a dashed line
+// (thinner and broken), like the maps' legends.
+const SIDE_TRAIL_COLOR = '#2f8f4e';
 
 // The trail each side trail is reached along: hikers register at its
 // jump-off and walk it to where the side trail leaves it (Flat Rocks near
@@ -300,6 +301,36 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
   const data = mapData.trails;
   // The jump-offs as stored (settings/map), or the built-in list.
   const jumpOffs = Array.isArray(mapData.jumpOffs) ? mapData.jumpOffs : JUMP_OFFS;
+  // A line with the jump-off roads that meet its ends joined on (below):
+  // the file's lines and the routes saved on trails alike.
+  const joinRoads = (key, points) => {
+    let latLngs = points;
+    /* A trail reached from a jump-off or registration (the Sipit Trail from
+       the Sto. Tomas City Eco Park): the road from it becomes part of the same
+       line, so spot, road and trail are one unbroken line with no join. Both
+       ends of a line are joined, to any jump-off whose road ends there (its
+       own first): the Makiling Traverse starts at the MakTrav jump-off and
+       ends along the UPLB road at the Mariang Makiling registration. */
+    const roadAt = (end) => jumpOffs
+      .filter((item) => item.approach?.length && L.latLng(item.approach[item.approach.length - 1]).distanceTo(end) < 15)
+      .sort((a, b) => (b.connectsTo === key) - (a.connectsTo === key))[0];
+    const startSpot = roadAt(latLngs[0]);
+    const endSpot = roadAt(latLngs[latLngs.length - 1]);
+    if (startSpot || endSpot) {
+      // The road's last point is the trail's end point: kept once.
+      if (startSpot) latLngs = [startSpot.latLng, ...startSpot.approach.slice(0, -1), ...latLngs];
+      if (endSpot && endSpot !== startSpot) latLngs = [...latLngs, ...endSpot.approach.slice(0, -1).reverse(), endSpot.latLng];
+    } else {
+      // A road that doesn't quite meet the line: from the nearer end, as before.
+      const spot = jumpOffs.find((item) => item.connectsTo === key && item.approach?.length);
+      if (spot) {
+        const here = L.latLng(spot.latLng);
+        if (here.distanceTo(latLngs[latLngs.length - 1]) < here.distanceTo(latLngs[0])) latLngs = latLngs.reverse();
+        latLngs = [spot.latLng, ...spot.approach.slice(0, -1), ...latLngs];
+      }
+    }
+    return latLngs;
+  };
   const lines = new Map();
   const peaks = [];
   const group = L.layerGroup().addTo(map);
@@ -320,16 +351,7 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
       continue;
     }
     let latLngs = feature.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-    // A trail reached from a jump-off (the Sipit Trail from the Sto. Tomas
-    // City Eco Park): the road from the park becomes the start of the same
-    // line, so park, road and trail are one unbroken line with no join.
-    const spot = jumpOffs.find((item) => item.connectsTo === key && item.approach?.length);
-    if (spot) {
-      const here = L.latLng(spot.latLng);
-      if (here.distanceTo(latLngs[latLngs.length - 1]) < here.distanceTo(latLngs[0])) latLngs = latLngs.reverse();
-      // The road's last point is the trail's first: kept once.
-      latLngs = [spot.latLng, ...spot.approach.slice(0, -1), ...latLngs];
-    }
+    latLngs = joinRoads(key, latLngs);
     const side = kind === 'side';
     const color = colorFor?.(key) || (side ? SIDE_TRAIL_COLOR : TRAIL_COLOR);
     const casing = L.polyline(latLngs, {
@@ -407,9 +429,12 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
         lines.delete(replaced);
       }
       const key = `trail:${trail.id}`;
-      const latLngs = trail.route
+      // A saved route (drawn, imported or traced) gets the jump-off roads
+      // that meet its ends too: Agila Base Trail starts at the Mariang
+      // Makiling registration like the trail it was traced from.
+      const latLngs = joinRoads(`trail:${trail.id}`, trail.route
         .map((p) => [Number(p.lat), Number(p.lng)])
-        .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+        .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng)));
       const name = trail.Trail || 'Trail';
       const km = (routeLength(latLngs) / 1000).toFixed(1);
       drawLine(key, latLngs, {

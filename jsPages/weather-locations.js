@@ -20,10 +20,12 @@ export const WEATHER_LOCATIONS = {
   summit: {
     name: 'Mt. Makiling Summit',
     short: 'Summit',
-    // Peak 2, the true summit -- the same centre makiling-area.js uses.
-    latitude: 14.1325,
-    longitude: 121.1936,
-    elevation: 1090
+    // Peak 3, the highest point (1,109 MASL), where the maps put it
+    // (assets/data/makiling-trails.geojson). The app's WeatherService uses
+    // the same point and height.
+    latitude: 14.13465,
+    longitude: 121.18828,
+    elevation: 1109
   },
   sipit: {
     name: 'Sipit Trail',

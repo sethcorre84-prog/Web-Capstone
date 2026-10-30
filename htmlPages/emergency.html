@@ -2031,7 +2031,8 @@
   };
 
   // ---------------------------------------------------------------------
-  // Banner: alerts nobody has picked up come first, then bad weather
+  // Banner: emergency alerts nobody has picked up yet (only those; the
+  // weather is on the map's own card)
   // ---------------------------------------------------------------------
   const renderBanner = () => {
     const banner = $('alertBanner');
@@ -2050,15 +2051,6 @@
         render();
         $('emergencyTablePanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
       };
-      return;
-    }
-    if (weather && weather.code >= 51) {
-      banner.hidden = false;
-      banner.classList.add('warning');
-      $('alertBannerTitle').textContent = `${weather.condition} at ${weather.place}`;
-      $('alertBannerText').textContent = 'Trails may be slippery. Keep advisories up to date for hikers on the mountain.';
-      button.textContent = 'View advisories';
-      button.onclick = () => { window.location.href = 'A&A.html'; };
       return;
     }
     banner.hidden = true;
