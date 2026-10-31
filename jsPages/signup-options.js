@@ -10,7 +10,14 @@
 //                  assets/data), from the PSA's Philippine Standard
 //                  Geographic Code; NCR's cities are under "Metro Manila".
 
-export const GENDERS = ['Male', 'Female', 'Prefer not to say'];
+export const GENDERS = [
+  'Male',
+  'Female',
+  'Transgender',
+  'Non-binary',
+  'Intersex',
+  'Prefer not to say'
+];
 
 export const NATIONALITIES = [
   'Filipino',
