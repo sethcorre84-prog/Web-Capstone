@@ -2133,25 +2133,36 @@
     }
     img[data-user-avatar][hidden] { display: none; }
 
-    /* Hiker Analytics' gender colours: Male, Female, Not specified (blue /
-       orange / violet, checked for colour blindness in both themes). */
+    /* Hiker Analytics' gender colours, one per sign-up choice: Male, Female,
+       Transgender, Non-binary, Intersex (blue / orange / aqua / yellow /
+       magenta, in that order so neighbouring slices stay apart for colour
+       blindness, checked in both themes), and Not specified in grey. */
     .hiker-analytics-card {
         --hg-male: #2a78d6;
         --hg-female: #eb6834;
-        --hg-other: #6250d6;
+        --hg-trans: #1baf7a;
+        --hg-nonbinary: #eda100;
+        --hg-intersex: #e87ba4;
+        --hg-other: #898781;
         margin-top: 20px;
     }
     @media (prefers-color-scheme: dark) {
         :root:not([data-theme="light"]) .hiker-analytics-card {
             --hg-male: #3987e5;
             --hg-female: #d95926;
-            --hg-other: #9085e9;
+            --hg-trans: #199e70;
+            --hg-nonbinary: #c98500;
+            --hg-intersex: #d55181;
+            --hg-other: #898781;
         }
     }
     :root[data-theme="dark"] .hiker-analytics-card {
         --hg-male: #3987e5;
         --hg-female: #d95926;
-        --hg-other: #9085e9;
+        --hg-trans: #199e70;
+        --hg-nonbinary: #c98500;
+        --hg-intersex: #d55181;
+        --hg-other: #898781;
     }
     .hiker-analytics-card .card-head select {
         padding: 7px 10px;
@@ -5744,16 +5755,23 @@
      From Start Hike in the PeakPath app: each start adds to the hiker's own
      users/{uid}.hikeStarts.{m2026_10}.count (HikeSessionService), the month
      in Philippine time, as the Dashboard's Visitors per Trail reads it.
-     "Prefer not to say" and a missing gender are Not specified. */
+     One slice per sign-up choice (GENDERS); "Prefer not to say" and a
+     missing gender are Not specified. */
   const HIKE_GENDERS = [
     { key: 'male', label: 'Male', color: 'var(--hg-male)' },
     { key: 'female', label: 'Female', color: 'var(--hg-female)' },
+    { key: 'trans', label: 'Transgender', color: 'var(--hg-trans)' },
+    { key: 'nonbinary', label: 'Non-binary', color: 'var(--hg-nonbinary)' },
+    { key: 'intersex', label: 'Intersex', color: 'var(--hg-intersex)' },
     { key: 'other', label: 'Not specified', color: 'var(--hg-other)' }
   ];
   const genderKey = (value) => {
-    const gender = normalizeText(value).toLowerCase();
+    const gender = normalizeText(value).toLowerCase().replace(/[\s_-]+/g, '');
     if (gender === 'male' || gender === 'm') return 'male';
     if (gender === 'female' || gender === 'f') return 'female';
+    if (gender === 'transgender' || gender === 'trans') return 'trans';
+    if (gender === 'nonbinary') return 'nonbinary';
+    if (gender === 'intersex') return 'intersex';
     return 'other';
   };
 
@@ -5836,7 +5854,9 @@
     ['var(--ha-1)', '#2a78d6'], ['var(--ha-2)', '#eb6834'], ['var(--ha-3)', '#1baf7a'], ['var(--ha-4)', '#eda100']
   ];
   const HA_OTHER = ['var(--ha-other)', '#a3aca5'];
-  const GENDER_EXPORT = { male: '#2a78d6', female: '#eb6834', other: '#6250d6' };
+  const GENDER_EXPORT = {
+    male: '#2a78d6', female: '#eb6834', trans: '#1baf7a', nonbinary: '#eda100', intersex: '#e87ba4', other: '#898781'
+  };
   const isRest = (label) => label === 'Other' || label === NOT_GIVEN;
   // Slots in order for the named rows; Other / Not given always grey.
   const withColours = (rows, fixed = {}) => {
