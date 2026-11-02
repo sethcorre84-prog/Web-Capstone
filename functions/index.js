@@ -672,11 +672,46 @@ exports.setAdminRole = onCall(async (request) => {
   return { role };
 });
 
+// Where the "choose your password" link opens: the portal's own page
+// (htmlPages/setPassword.html), not Firebase's default
+// peakpath-ccd4a.firebaseapp.com/__/auth/action screen.
+const PORTAL_URL = "https://peakpathmakiling.com";
+
+async function passwordSetupLink(email) {
+  const firebaseLink = new URL(await getAuth().generatePasswordResetLink(email));
+  const oobCode = firebaseLink.searchParams.get("oobCode");
+  return `${PORTAL_URL}/htmlPages/setPassword?oobCode=${encodeURIComponent(oobCode)}`;
+}
+
+/* Settings > Role Management > Add an admin. The new admin's mobile number
+   must have passed an SMS code first: the page sends and checks it with
+   Firebase phone verification in a separate Firebase app, and passes the ID
+   token of that phone sign-in here as `phoneToken`. The number is saved as
+   the admin's profile phone and counts as verified for two-factor sign-in. */
 exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (request) => {
   const caller = await requireSuperAdmin(request);
   const email = normalizeEmail(request.data?.email);
   const role = checkRole(request.data?.role);
   const name = String(request.data?.name || "").trim().slice(0, 80);
+
+  const phoneMatch = /^(?:\+?63|0)?(9\d{9})$/.exec(String(request.data?.phone || "").replace(/[\s\-().]/g, ""));
+  if (!phoneMatch) {
+    throw new HttpsError("invalid-argument", "Enter the new admin's Philippine mobile number (09XX XXX XXXX).");
+  }
+  const phoneLocal = `0${phoneMatch[1]}`;
+  const phoneE164 = `+63${phoneMatch[1]}`;
+  let phoneCheck;
+  try {
+    phoneCheck = await getAuth().verifyIdToken(String(request.data?.phoneToken || ""));
+  } catch (error) {
+    throw new HttpsError("failed-precondition", "Verify the mobile number with the SMS code first.");
+  }
+  if (phoneCheck.phone_number !== phoneE164) {
+    throw new HttpsError("permission-denied", "The SMS code was not sent to this mobile number. Verify it again.");
+  }
+  if (Date.now() / 1000 - Number(phoneCheck.auth_time || 0) > 10 * 60) {
+    throw new HttpsError("deadline-exceeded", "The mobile number check is too old. Send a new code and verify again.");
+  }
 
   // An existing sign-in account is promoted; otherwise one is created and
   // the new admin is emailed a link to choose their password.
@@ -697,15 +732,34 @@ exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (
     name: name || user.displayName || "",
     email,
     role,
+    phone: phoneLocal,
+    twoFactorPhone: phoneE164,
+    twoFactorPhoneVerifiedAt: FieldValue.serverTimestamp(),
     createdAt: FieldValue.serverTimestamp(),
     addedBy: caller.uid
   });
   await db.collection("adminEmails").doc(email).set({ uid: user.uid, email, updatedAt: FieldValue.serverTimestamp() });
 
+  // The SMS check signed in to a phone-only account. When that account was
+  // made just for this check (no email, no app profile, not an admin), it is
+  // deleted; an existing hiker's account with this number is left alone.
+  if (phoneCheck.uid !== user.uid) {
+    try {
+      const phoneUser = await getAuth().getUser(phoneCheck.uid);
+      const throwaway = !phoneUser.email &&
+        phoneUser.providerData.every((p) => p.providerId === "phone") &&
+        !(await db.collection("users").doc(phoneUser.uid).get()).exists &&
+        !(await db.collection("admins").doc(phoneUser.uid).get()).exists;
+      if (throwaway) await getAuth().deleteUser(phoneUser.uid);
+    } catch (error) {
+      logger.warn("Could not tidy up the phone check account", error);
+    }
+  }
+
   let emailed = false;
   if (created) {
     try {
-      const link = await getAuth().generatePasswordResetLink(email);
+      const link = await passwordSetupLink(email);
       const sender = GMAIL_USER.value();
       await mailTransport().sendMail({
         from: { name: "PeakPath", address: sender },
@@ -715,13 +769,13 @@ exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (
         text:
           `Hello${name ? ` ${name}` : ""},\n\n` +
           `${caller.name} added you to the PeakPath Admin Portal as ${role}.\n\n` +
-          `Choose your password here: ${link}\n\nThen sign in at the PeakPath Admin Portal with this email.\n\nPeakPath Admin Portal`,
+          `Choose your password here (the link works for 1 hour): ${link}\n\nThen sign in at the PeakPath Admin Portal with this email.\n\nPeakPath Admin Portal`,
         html: `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>PeakPath admin access</title></head>
 <body style="margin:0;padding:0;background:#ffffff"><div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:460px;margin:0 auto;padding:28px 24px;color:#1c231c">
 <h2 style="margin:0 0 16px;font-size:20px;color:#1f6b39">PeakPath</h2>
 <p style="margin:0 0 12px;font-size:14px">Hello${name ? ` ${escapeHtml(name)}` : ""},</p>
 <p style="margin:0 0 12px;font-size:14px">${escapeHtml(caller.name)} added you to the PeakPath Admin Portal as <strong>${escapeHtml(role)}</strong>.</p>
-<p style="margin:0 0 20px;font-size:14px"><a href="${link}" style="color:#1f6b39;font-weight:700">Choose your password</a>, then sign in with this email.</p>
+<p style="margin:0 0 20px;font-size:14px"><a href="${link}" style="color:#1f6b39;font-weight:700">Choose your password</a>, then sign in with this email. The link works for 1 hour.</p>
 <p style="margin:0;font-size:12px;color:#93a199">PeakPath Admin Portal</p></div></body></html>`
       });
       emailed = true;

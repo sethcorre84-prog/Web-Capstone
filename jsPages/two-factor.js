@@ -138,8 +138,9 @@ function buildOverlay() {
   document.body.appendChild(overlay);
 }
 
-// What a Firebase phone-verification error means, in words.
-function explain(error) {
+// What a Firebase phone-verification error means, in words. Also used by
+// Settings > Role Management for the new admin's number.
+export function explain(error) {
   switch (error?.code) {
     case 'auth/invalid-verification-code': return 'That code is not right. Check the SMS and try again.';
     case 'auth/code-expired': return 'That code has expired. Send a new one.';
