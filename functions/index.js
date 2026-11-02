@@ -2017,6 +2017,21 @@ exports.syncUserDetails = onDocumentWritten({ document: "users/{uid}", region: F
   await syncUser(event.params.uid, await summaryContext(), after.data());
 });
 
+// A role changed (User Management): the user's teams list them as a guide,
+// or stop listing them, to match. The app counts guide places and shows the
+// Guide tag from each team's `guides`, so it follows at once.
+exports.syncTeamGuides = onDocumentWritten({ document: "users/{uid}", region: FIRESTORE_REGION }, async (event) => {
+  const isGuide = (snap) => snap?.exists && String(snap.data().role || "").trim().toLowerCase() === "guide";
+  const before = isGuide(event.data?.before);
+  const after = isGuide(event.data?.after);
+  if (before === after) return;
+  const uid = event.params.uid;
+  const teams = await db.collection("teams").where("members", "array-contains", uid).get();
+  await Promise.all(teams.docs.map((team) => team.ref.update({
+    guides: after ? FieldValue.arrayUnion(uid) : FieldValue.arrayRemove(uid),
+  })));
+});
+
 // An alert raised or changed: the alert counts of whoever it names.
 exports.syncUserAlerts = onDocumentWritten({ document: "emergency/{id}", region: FIRESTORE_REGION }, async (event) => {
   const records = [event.data?.before, event.data?.after].filter((s) => s?.exists).map((s) => s.data());
