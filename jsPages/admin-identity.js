@@ -8,9 +8,9 @@
 // blank so no placeholder flashes between pages; if no name is saved at all,
 // "Admin User" is filled in once the admin doc has loaded.
 //
-// It also makes the PeakPath logo beside the notification bell open a small
-// profile card for the signed-in admin (name, role, username, email, phone,
-// gender), with a link to Settings > Profile Information to edit it.
+// It also makes the PeakPath logo beside the notification bell open the
+// signed-in admin's Profile page (profile.html: name, role, username,
+// email, phone, gender, and their Community posts).
 
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
@@ -70,99 +70,43 @@ function applyIdentity(cleanName, cleanRole) {
   }
 }
 
-/* ---------- Profile card ---------- */
+/* ---------- Profile ---------- */
 
-// What the card shows. Filled on sign-in; Settings updates it after a save.
-const profile = { name: '', role: '', username: '', email: '', phone: '', gender: '' };
+// The signed-in admin as the Profile page shows them. Filled on sign-in;
+// Settings updates it after a save.
+const profile = { uid: '', name: '', role: '', username: '', email: '', phone: '', gender: '' };
+const profileListeners = new Set();
 
 export function updateAdminProfile(changes = {}) {
   Object.assign(profile, changes);
-  if (document.getElementById('adminProfileOverlay')?.classList.contains('open')) fillProfileCard();
+  profileListeners.forEach((listener) => listener({ ...profile }));
 }
 
-const escapeText = (value) => String(value ?? '')
-  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
-const PROFILE_ROWS = [
-  ['username', 'Username', 'fa-at'],
-  ['email', 'Email', 'fa-envelope'],
-  ['phone', 'Phone Number', 'fa-phone'],
-  ['gender', 'Gender', 'fa-venus-mars']
-];
-
-function fillProfileCard() {
-  document.getElementById('adminProfileName').textContent = profile.name || 'Admin';
-  document.getElementById('adminProfileRole').textContent = profile.role || NO_ROLE_LABEL;
-  document.getElementById('adminProfileRows').innerHTML = PROFILE_ROWS.map(([key, label, icon]) => `
-    <div class="admin-profile-row">
-      <span class="admin-profile-row-icon"><i class="fa-solid ${icon}" aria-hidden="true"></i></span>
-      <span class="admin-profile-row-label">${label}</span>
-      <span class="admin-profile-row-value${profile[key] ? '' : ' empty'}">${escapeText(profile[key] || 'Not set')}</span>
-    </div>`).join('');
+// Calls `listener` with the profile now and on every change; returns a
+// function that stops it.
+export function watchAdminProfile(listener) {
+  profileListeners.add(listener);
+  listener({ ...profile });
+  return () => profileListeners.delete(listener);
 }
 
-function buildProfileCard() {
-  const overlay = document.createElement('div');
-  overlay.id = 'adminProfileOverlay';
-  overlay.className = 'admin-profile-overlay';
-  overlay.innerHTML = `
-    <div class="admin-profile-card" role="dialog" aria-modal="true" aria-labelledby="adminProfileName">
-      <button type="button" class="admin-profile-close" aria-label="Close profile"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-      <div class="admin-profile-banner"></div>
-      <div class="admin-profile-avatar"><img src="../assets/images/logo.png" alt="PeakPath logo"></div>
-      <h3 class="admin-profile-name" id="adminProfileName">Admin</h3>
-      <span class="admin-profile-role" id="adminProfileRole"></span>
-      <div class="admin-profile-rows" id="adminProfileRows"></div>
-      <div class="admin-profile-actions">
-        <a class="admin-profile-edit" href="Setting.html?open=profile"><i class="fa-solid fa-pen" aria-hidden="true"></i>Edit Profile</a>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-
-  overlay.addEventListener('click', (event) => {
-    if (event.target === overlay || event.target.closest('.admin-profile-close')) closeProfileCard();
-  });
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && overlay.classList.contains('open')) closeProfileCard();
-  });
-  return overlay;
-}
-
-let lastTrigger = null;
-
-function openProfileCard(trigger) {
-  const overlay = document.getElementById('adminProfileOverlay') || buildProfileCard();
-  fillProfileCard();
-  lastTrigger = trigger;
-  overlay.classList.add('open');
-  overlay.querySelector('.admin-profile-close').focus();
-}
-
-function closeProfileCard() {
-  document.getElementById('adminProfileOverlay')?.classList.remove('open');
-  lastTrigger?.focus();
-}
-
-// The logo beside the bell (in .topbar-right, or loose with .topbar-logo).
+// The logo beside the bell (in .topbar-right, or loose with .topbar-logo)
+// opens the Profile page.
 document.querySelectorAll('.topbar-right .avatar-logo, .avatar-logo.topbar-logo').forEach((logo) => {
   logo.classList.add('profile-trigger');
-  // A small dropdown arrow on the logo, so it reads as something to click.
-  if (!logo.querySelector('.profile-caret')) {
-    logo.insertAdjacentHTML('beforeend', '<span class="profile-caret" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>');
-  }
-  logo.setAttribute('aria-haspopup', 'dialog');
-  logo.setAttribute('role', 'button');
+  const open = () => { window.location.href = 'profile.html'; };
+  logo.setAttribute('role', 'link');
   logo.setAttribute('tabindex', '0');
-  logo.setAttribute('aria-label', 'View admin profile');
-  logo.title = 'View admin profile';
+  logo.setAttribute('aria-label', 'View your profile');
+  logo.title = 'View your profile';
   logo.addEventListener('click', (event) => {
     event.stopPropagation();
-    openProfileCard(logo);
+    open();
   });
   logo.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
-    openProfileCard(logo);
+    open();
   });
 });
 
@@ -273,7 +217,7 @@ onAuthStateChanged(auth, async (user) => {
   // Auth's displayName is already in hand, so show it right away; the admin
   // doc (which also carries the role) follows once it has loaded.
   renderAdminIdentity({ name: user.displayName });
-  updateAdminProfile({ name: user.displayName || '', email: user.email || '' });
+  updateAdminProfile({ uid: user.uid, name: user.displayName || '', email: user.email || '' });
 
   try {
     const snap = await getDoc(doc(db, 'admins', user.uid));

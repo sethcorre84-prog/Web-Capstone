@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+	<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+	<link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
+	<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+	<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<script src="../jsPages/sidebar.js"></script>
+	<script defer src="../jsPages/image-viewer.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+	<link rel="stylesheet" href="../cssPages/pages.css">
+	<script type="module" src="../jsPages/dashboard-guard.js"></script>
+	<script type="module" src="../jsPages/notification.js"></script>
+	<script type="module" src="../jsPages/admin-identity.js"></script>
+	<title>PeakPath — Profile</title>
+<style>
+	/* Palette, radii and typography come from pages.css (:root). */
+	* { box-sizing: border-box; margin: 0; padding: 0; }
+	body { background: var(--page-bg); color: var(--text-primary); font-size: 14px; }
+	a { text-decoration: none; color: inherit; }
+	button { font-family: inherit; cursor: pointer; }
+	.main { flex: 1; padding: 26px 32px; min-width: 0; }
+	.topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+	.topbar h1 { font-size: 22px; font-weight: 700; }
+	.topbar p { color: var(--text-secondary); margin-top: 4px; }
+	.topbar-right { display: flex; align-items: center; gap: 14px; }
+
+	/* ---- The profile header: cover, picture, name, Edit ---- */
+	.pf-hero {
+		background: var(--card-bg);
+		border: 1px solid var(--border);
+		border-radius: 16px;
+		overflow: hidden;
+	}
+	.pf-cover {
+		position: relative;
+		height: 220px;
+		background:
+			radial-gradient(120% 140% at 85% 0%, rgba(255, 255, 255, .14) 0%, transparent 55%),
+			linear-gradient(135deg, var(--sidebar-bg-light, #1d3324) 0%, var(--accent-dark) 55%, var(--accent) 100%);
+	}
+	/* Mountain ridges along the bottom of the cover. */
+	.pf-cover svg { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 90px; }
+	.pf-head {
+		display: flex;
+		align-items: flex-end;
+		gap: 22px;
+		padding: 0 32px 20px;
+	}
+	.pf-avatar {
+		flex-shrink: 0;
+		width: 168px;
+		height: 168px;
+		margin-top: -64px;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		background: #fff;
+		border: 5px solid var(--card-bg);
+		box-shadow: 0 0 0 3px var(--accent), 0 10px 26px rgba(12, 24, 18, .2);
+		position: relative;
+	}
+	.pf-avatar img { width: 76%; height: 76%; object-fit: contain; }
+	.pf-id { flex: 1; min-width: 0; padding-bottom: 6px; }
+	.pf-name { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
+	.pf-name h2 { font-size: 30px; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+	.pf-role {
+		display: inline-block;
+		padding: 3px 12px;
+		border-radius: 999px;
+		background: var(--accent-light);
+		color: var(--accent-dark);
+		font-size: 12.5px;
+		font-weight: 700;
+	}
+	.pf-sub { margin-top: 6px; color: var(--text-secondary); font-size: 14.5px; font-weight: 600; }
+	.pf-sub span + span::before { content: "·"; margin: 0 8px; color: var(--text-muted); }
+	.pf-edit {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 8px;
+		padding: 10px 18px;
+		border-radius: 10px;
+		border: 1px solid var(--border);
+		background: var(--page-bg);
+		color: var(--text-primary);
+		font-weight: 700;
+		font-size: 14px;
+		white-space: nowrap;
+	}
+	.pf-edit:hover { background: var(--accent-light); color: var(--accent-dark); }
+	.pf-edit:focus-visible, .pf-icon-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+	/* ---- Below: personal details | composer and posts ---- */
+	.pf-body {
+		display: grid;
+		grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+		gap: 18px;
+		margin-top: 18px;
+		align-items: start;
+	}
+	.pf-card {
+		background: var(--card-bg);
+		border: 1px solid var(--border);
+		border-radius: 16px;
+		padding: 18px 20px;
+	}
+	.pf-card + .pf-card { margin-top: 16px; }
+	.pf-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+	.pf-card-head h3 { font-size: 19px; font-weight: 800; }
+	.pf-icon-link {
+		width: 34px; height: 34px;
+		display: grid; place-items: center;
+		border-radius: 50%;
+		color: var(--text-secondary);
+	}
+	.pf-icon-link:hover { background: var(--accent-light); color: var(--accent-dark); }
+	.pf-details { list-style: none; display: grid; gap: 4px; }
+	.pf-details li { display: flex; align-items: center; gap: 14px; padding: 9px 0; }
+	.pf-details i { width: 22px; text-align: center; font-size: 17px; color: var(--accent); }
+	.pf-details .label { display: block; font-size: 12px; color: var(--text-muted); font-weight: 600; }
+	.pf-details .value { display: block; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+	.pf-details .value.empty { color: var(--text-muted); font-weight: 500; font-style: italic; }
+
+	/* Composer: the app's "What's on your mind?" pill, and Photo below. */
+	.pf-compose-row { display: flex; align-items: center; gap: 12px; }
+	.pf-mini-avatar {
+		flex-shrink: 0;
+		width: 44px; height: 44px;
+		display: grid; place-items: center;
+		border-radius: 50%;
+		overflow: hidden;
+		background: #fff;
+		border: 2px solid var(--accent);
+	}
+	.pf-mini-avatar img { width: 78%; height: 78%; object-fit: contain; }
+	.pf-mind {
+		flex: 1;
+		min-width: 0;
+		padding: 13px 18px;
+		border: 0;
+		border-radius: 999px;
+		background: var(--page-bg);
+		color: var(--text-muted);
+		font-size: 15.5px;
+		text-align: left;
+	}
+	.pf-mind:hover { background: var(--accent-light); }
+	.pf-compose-actions { display: flex; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+	.pf-photo-btn {
+		flex: 1;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 9px;
+		padding: 10px;
+		border: 0;
+		border-radius: 10px;
+		background: none;
+		color: var(--text-secondary);
+		font-size: 15px;
+		font-weight: 700;
+	}
+	.pf-photo-btn i { font-size: 20px; color: #2f9e55; }
+	.pf-photo-btn:hover { background: var(--page-bg); }
+
+	/* Posts: For you / Your posts, as the app's Community toggle. */
+	.pf-posts-head { flex-wrap: wrap; }
+	.pf-toggle {
+		display: flex;
+		gap: 2px;
+		padding: 4px;
+		border-radius: 24px;
+		background: var(--accent-light);
+		border: 1px solid var(--border);
+	}
+	.pf-toggle button {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		padding: 8px 18px;
+		border: 0;
+		border-radius: 20px;
+		background: none;
+		color: var(--accent-dark);
+		font-size: 14px;
+		font-weight: 700;
+		transition: background .22s ease, box-shadow .22s ease, color .22s ease;
+	}
+	.pf-toggle button[aria-pressed="true"] {
+		background: var(--accent);
+		color: #fff;
+		box-shadow: 0 4px 10px rgba(31, 107, 57, .35);
+	}
+	.pf-toggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+	/* The button's own colour, not the portal's green icon colour (which
+	   vanished on the selected, green button). */
+	.pf-toggle button i { color: inherit; }
+	.pf-section-label { display: flex; align-items: center; gap: 8px; margin: 2px 0 12px; }
+	.pf-section-label::before { content: ""; width: 4px; height: 18px; border-radius: 2px; background: #95d5b2; }
+	.pf-section-label strong { font-size: 15.5px; font-weight: 800; }
+	.pf-count {
+		margin-left: auto;
+		padding: 3px 10px;
+		border-radius: 12px;
+		background: var(--accent-light);
+		color: var(--accent-dark);
+		font-size: 12px;
+		font-weight: 700;
+	}
+
+	/* One post, as the app's post card. */
+	.pf-post {
+		background: var(--card-bg);
+		border: 1px solid var(--border);
+		border-radius: 16px;
+		padding: 14px 16px 6px;
+		margin-bottom: 14px;
+	}
+	.pf-post-head { display: flex; align-items: center; gap: 10px; }
+	.pf-post-avatar {
+		flex-shrink: 0;
+		width: 40px; height: 40px;
+		display: grid; place-items: center;
+		border-radius: 50%;
+		overflow: hidden;
+		background: var(--accent);
+		color: #fff;
+		font-weight: 800;
+		font-size: 16px;
+	}
+	.pf-post-avatar img { width: 100%; height: 100%; object-fit: cover; }
+	.pf-post-who { flex: 1; min-width: 0; }
+	.pf-post-who strong { display: block; font-size: 14.5px; overflow-wrap: anywhere; }
+	.pf-post-who span { font-size: 12px; color: var(--text-muted); }
+	/* The ⋯ menu on each post: Delete post. */
+	.pf-post-menu-wrap { position: relative; }
+	.pf-post-menu {
+		width: 34px; height: 34px;
+		border: 0; border-radius: 50%;
+		background: none;
+		color: var(--text-secondary);
+		font-size: 17px;
+	}
+	.pf-post-menu i { color: inherit; }
+	.pf-post-menu:hover, .pf-post-menu[aria-expanded="true"] { background: var(--page-bg); }
+	.pf-post-menu:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+	.pf-menu {
+		position: absolute;
+		top: 38px;
+		right: 0;
+		z-index: 20;
+		min-width: 190px;
+		padding: 6px;
+		border: 1px solid var(--border);
+		border-radius: 12px;
+		background: var(--card-bg);
+		box-shadow: 0 12px 30px rgba(12, 24, 18, .18);
+	}
+	.pf-menu button {
+		width: 100%;
+		display: flex; align-items: center; gap: 10px;
+		padding: 10px 12px;
+		border: 0; border-radius: 8px;
+		background: none;
+		color: #b8392a;
+		font-size: 14px;
+		font-weight: 700;
+		text-align: left;
+	}
+	.pf-menu button i { color: inherit; width: 18px; }
+	.pf-menu button:hover, .pf-menu button:focus-visible { background: #fbe9e6; outline: none; }
+	.pf-post-text { margin-top: 10px; font-size: 14.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+	/* A post an admin removed: still there for its author, as unavailable. */
+	.pf-post.is-removed { border-style: dashed; }
+	.pf-post.is-removed .pf-post-text, .pf-post.is-removed .pf-photos { opacity: .5; }
+	.pf-removed-note { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: #fbe9e6; color: #9b2f22; font-size: 13px; font-weight: 600; }
+	.pf-removed-note i { color: inherit; }
+	.pf-team { margin-top: 10px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 10px; background: var(--accent-light); color: var(--accent-dark); font-weight: 700; font-size: 13px; }
+	.pf-photos { display: grid; gap: 4px; margin-top: 10px; border-radius: 12px; overflow: hidden; }
+	.pf-photos.n1 { grid-template-columns: minmax(0, 1fr); }
+	.pf-photos.n2, .pf-photos.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.pf-photos.n3 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); grid-template-rows: 1fr 1fr; }
+	.pf-photos.n3 button:first-child { grid-row: span 2; }
+	.pf-photos.nmany { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.pf-photos button { position: relative; border: 0; padding: 0; background: var(--page-bg); aspect-ratio: 4 / 3; overflow: hidden; }
+	.pf-photos.n1 button { aspect-ratio: 16 / 10; }
+	.pf-photos.n3 button:first-child { aspect-ratio: auto; }
+	.pf-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
+	.pf-photos .more { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, .5); color: #fff; font-size: 24px; font-weight: 800; }
+	.pf-post-actions { display: flex; gap: 4px; margin-top: 8px; padding-top: 4px; border-top: 1px solid var(--border); }
+	.pf-post-actions button {
+		flex: 1;
+		display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+		padding: 9px;
+		border: 0; border-radius: 10px;
+		background: none;
+		color: var(--text-secondary);
+		font-weight: 700;
+		font-size: 13.5px;
+	}
+	.pf-post-actions button:hover { background: var(--page-bg); }
+	.pf-post-actions .liked { color: #d94b5c; }
+	.pf-comments { padding: 4px 0 10px; display: grid; gap: 8px; }
+	.pf-comment { display: flex; gap: 8px; }
+	.pf-comment .pf-post-avatar { width: 30px; height: 30px; font-size: 12px; }
+	.pf-comment-bubble { padding: 7px 12px; border-radius: 14px; background: var(--page-bg); min-width: 0; }
+	.pf-comment-bubble strong { display: block; font-size: 12.5px; }
+	.pf-comment-bubble p { font-size: 13.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+	.pf-comment-body { min-width: 0; }
+	.pf-comment-time { margin: 2px 0 0 12px; font-size: 11.5px; color: var(--text-muted); }
+	/* Under a comment: its time, then Reply and Delete. */
+	.pf-comment-time { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; }
+	.pf-comment-time button {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--text-secondary);
+		font-size: 12px;
+		font-weight: 800;
+	}
+	.pf-comment-time button:hover { text-decoration: underline; }
+	.pf-comment-time button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+	.pf-comment-time [data-delete-comment] { color: #b8392a; }
+	/* A comment an admin removed: still there for its author, as unavailable. */
+	.pf-comment.is-removed .pf-comment-bubble { border: 1px dashed #e4b4ab; }
+	.pf-comment.is-removed .pf-comment-bubble p { opacity: .5; }
+	.pf-comment-removed { display: block; margin-top: 4px; color: #9b2f22; font-size: 12px; font-weight: 600; }
+	/* Write a comment: as the app's comment bar. */
+	.pf-comment-form { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+	.pf-comment-form .pf-mini-avatar { width: 32px; height: 32px; }
+	.pf-comment-form input {
+		flex: 1;
+		min-width: 0;
+		padding: 10px 14px;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: var(--page-bg);
+		color: var(--text-primary);
+		font: inherit;
+		font-size: 14px;
+	}
+	.pf-comment-form input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+	.pf-comment-form button {
+		flex-shrink: 0;
+		width: 38px; height: 38px;
+		border: 0; border-radius: 50%;
+		background: var(--accent);
+		color: #fff;
+	}
+	.pf-comment-form button i { color: inherit; }
+	.pf-comment-form button:disabled { opacity: .45; cursor: not-allowed; }
+	.pf-comment-error { color: #b8392a; font-size: 12.5px; }
+	.pf-muted { color: var(--text-muted); font-size: 13px; }
+	.pf-empty { text-align: center; padding: 30px 16px; }
+	.pf-empty .icon { width: 60px; height: 60px; margin: 0 auto 12px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: #fff; font-size: 26px; }
+	.pf-empty strong { display: block; font-size: 17px; }
+	.pf-empty p { margin: 4px 0 14px; color: var(--text-muted); }
+	.pf-primary {
+		display: inline-flex; align-items: center; gap: 8px;
+		padding: 10px 20px;
+		border: 0; border-radius: 999px;
+		background: var(--accent);
+		color: #fff;
+		font-weight: 700;
+		font-size: 14px;
+	}
+	.pf-primary:hover:not(:disabled) { background: var(--accent-dark); }
+	.pf-primary:disabled { opacity: .55; cursor: not-allowed; }
+	.pf-more { display: block; margin: 0 auto 6px; }
+
+	/* ---- In-page modals: Create post, Delete post ---- */
+	.pf-modal { position: fixed; inset: 0; z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12, 24, 18, .45); }
+	.pf-modal.open { display: flex; }
+	.pf-dialog {
+		width: min(520px, 100%);
+		max-height: calc(100vh - 40px);
+		overflow-y: auto;
+		background: var(--card-bg);
+		border: 1px solid var(--border);
+		border-radius: 16px;
+		box-shadow: 0 24px 60px rgba(12, 24, 18, .28);
+	}
+	.pf-dialog-head { position: relative; padding: 16px 52px; text-align: center; border-bottom: 1px solid var(--border); }
+	.pf-dialog-head h3 { font-size: 18px; font-weight: 800; }
+	.pf-dialog-close { position: absolute; top: 10px; right: 12px; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--page-bg); color: var(--text-secondary); font-size: 17px; }
+	.pf-dialog-body { padding: 16px 18px; }
+	.pf-dialog-body textarea {
+		width: 100%;
+		min-height: 120px;
+		margin-top: 12px;
+		padding: 4px 2px;
+		border: 0;
+		background: none;
+		color: var(--text-primary);
+		font: inherit;
+		font-size: 17px;
+		resize: vertical;
+	}
+	.pf-dialog-body textarea:focus { outline: none; }
+	.pf-who { display: flex; align-items: center; gap: 10px; }
+	.pf-who strong { font-size: 15px; }
+	.pf-who span { display: block; font-size: 12px; color: var(--text-muted); }
+	.pf-previews { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 10px; }
+	.pf-preview { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--page-bg); }
+	.pf-preview img { width: 100%; height: 100%; object-fit: cover; }
+	.pf-preview button { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .6); color: #fff; font-size: 12px; }
+	.pf-add-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; }
+	.pf-add-bar span { font-weight: 700; font-size: 14px; }
+	.pf-add-bar button { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border: 0; border-radius: 10px; background: var(--page-bg); color: var(--text-secondary); font-weight: 700; }
+	.pf-add-bar button i { color: #2f9e55; font-size: 17px; }
+	.pf-dialog-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 18px 16px; }
+	.pf-dialog-foot .pf-primary { flex: 1; justify-content: center; border-radius: 10px; }
+	.pf-error { min-height: 18px; margin-top: 8px; color: #b8392a; font-size: 13px; }
+	.pf-secondary { padding: 10px 18px; border: 1px solid var(--border); border-radius: 10px; background: var(--page-bg); color: var(--text-primary); font-weight: 700; }
+	.pf-danger { background: #c8402f; }
+	.pf-danger:hover:not(:disabled) { background: #a93424; }
+
+	/* Edit profile */
+	.pf-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+	.pf-field { display: grid; gap: 6px; min-width: 0; }
+	.pf-field.wide { grid-column: 1 / -1; }
+	.pf-field label { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+	.pf-field input, .pf-field select {
+		width: 100%;
+		padding: 10px 12px;
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		background: var(--card-bg);
+		color: var(--text-primary);
+		font: inherit;
+		font-size: 14px;
+	}
+	.pf-field input:focus, .pf-field select:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+	.pf-field input[readonly] { background: var(--page-bg); color: var(--text-secondary); }
+	.pf-field .hint { font-size: 12px; color: var(--text-muted); }
+	.pf-password { position: relative; }
+	.pf-password input { padding-right: 44px; }
+	.pf-password button { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); width: 32px; height: 32px; border: 0; border-radius: 8px; background: none; color: var(--text-secondary); }
+	.pf-password button i { color: inherit; }
+	.pf-toast {
+		position: fixed; left: 50%; bottom: 26px; z-index: 2100;
+		transform: translateX(-50%);
+		padding: 11px 18px;
+		border-radius: 10px;
+		background: #1f3a28;
+		color: #fff;
+		font-weight: 600;
+		box-shadow: 0 10px 26px rgba(0, 0, 0, .25);
+	}
+	@media (max-width: 560px) { .pf-form-grid { grid-template-columns: 1fr; } }
+
+	@media (max-width: 1000px) {
+		.pf-body { grid-template-columns: minmax(0, 1fr); }
+	}
+	@media (max-width: 700px) {
+		.main { padding: 18px 16px; }
+		.pf-cover { height: 150px; }
+		.pf-head { flex-direction: column; align-items: center; text-align: center; padding: 0 16px 18px; gap: 10px; }
+		.pf-avatar { width: 128px; height: 128px; margin-top: -64px; }
+		.pf-name { justify-content: center; }
+		.pf-name h2 { font-size: 24px; }
+		.pf-edit { margin-bottom: 0; }
+		.pf-posts-head .pf-toggle { width: 100%; }
+		.pf-toggle button { flex: 1; justify-content: center; padding: 8px 10px; }
+	}
+</style>
+</head>
+<body>
+	<div class="app">
+		<aside class="sidebar">
+			<div class="brand">
+				<div class="brand-icon"><img src="../assets/images/logo.png" alt="PeakPath logo"></div>
+				<div><div class="brand-name">PeakPath</div><div class="brand-sub">Admin Portal</div></div>
+			</div>
+			<ul class="nav">
+				<li><a href="dashboard.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</a></li>
+				<li><a href="trail.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h5a4 4 0 014 4v2"/></svg>Trail Management</a></li>
+				<li><a href="hazardreport.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>Hazard Reports</a></li>
+				<li><a href="A&A.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 10v4h4l6 5V5l-6 5H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Advisories &amp; Announcements</a></li>
+				<li><a href="geomap.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>Geomap Monitoring</a></li>
+				<li><a href="usermanagement.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 20a5 5 0 018 0"/></svg>User Management</a></li>
+				<li><a href="analytics.html"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>Analytics &amp; Reports</a></li>
+				<li><a href="emergency.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Emergency Monitoring</a></li>
+				<li><a href="Setting.html"><svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a></li>
+			</ul>
+			<div class="sidebar-footer">
+				<div class="user-chip"><div class="avatar avatar-logo"><img src="../assets/images/logo.png" alt="PeakPath logo"></div>
+					<div class="user-info">
+						<div class="name" id="userName"></div>
+						<div class="role" id="userRole"></div>
+					</div>
+				</div>
+				<a class="logout-btn" href="Home.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</a>
+			</div>
+		</aside>
+
+		<div class="main">
+			<div class="topbar">
+				<div>
+					<h1>Profile</h1>
+					<p>Your admin profile and your posts in the PeakPath Community.</p>
+				</div>
+				<div class="topbar-right">
+					<div class="bell-wrap">
+						<button class="bell-btn" type="button" aria-label="Open notifications"></button>
+						<span class="bell-badge" hidden>0</span>
+					</div>
+					<div class="profile-chip" id="profileChip">
+						<div class="avatar avatar-logo"><img src="../assets/images/logo.png" alt="PeakPath logo"></div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Cover, picture, name and role, Edit -->
+			<section class="pf-hero" aria-labelledby="pfName">
+				<div class="pf-cover" aria-hidden="true">
+					<svg viewBox="0 0 1200 90" preserveAspectRatio="none">
+						<path d="M0 90V58l120-30 110 26 150-44 140 40 120-22 160 34 150-46 130 30 120-12v56z" fill="rgba(255,255,255,.10)"/>
+						<path d="M0 90V70l160-24 130 22 170-30 150 30 140-18 170 26 140-22 140 16v20z" fill="rgba(255,255,255,.14)"/>
+					</svg>
+				</div>
+				<div class="pf-head">
+					<div class="pf-avatar"><img src="../assets/images/logo.png" alt="PeakPath logo"></div>
+					<div class="pf-id">
+						<div class="pf-name">
+							<h2 id="pfName">&nbsp;</h2>
+							<span class="pf-role" id="pfRole"></span>
+						</div>
+						<div class="pf-sub" id="pfSub"></div>
+					</div>
+					<button type="button" class="pf-edit" data-edit-profile><i class="fa-solid fa-pen" aria-hidden="true"></i>Edit</button>
+				</div>
+			</section>
+
+			<div class="pf-body">
+				<!-- Personal details -->
+				<aside>
+					<section class="pf-card" aria-labelledby="pfDetailsTitle">
+						<div class="pf-card-head">
+							<h3 id="pfDetailsTitle">Personal details</h3>
+							<button type="button" class="pf-icon-link" data-edit-profile aria-label="Edit personal details" title="Edit personal details" style="border:0;background:none"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>
+						</div>
+						<ul class="pf-details" id="pfDetails"></ul>
+					</section>
+				</aside>
+
+				<!-- Composer and posts -->
+				<div>
+					<section class="pf-card" aria-label="Create a post">
+						<div class="pf-compose-row">
+							<div class="pf-mini-avatar"><img src="../assets/images/logo.png" alt=""></div>
+							<button type="button" class="pf-mind" id="pfMind">What's on your mind?</button>
+						</div>
+						<div class="pf-compose-actions">
+							<button type="button" class="pf-photo-btn" id="pfPhotoBtn"><i class="fa-solid fa-images" aria-hidden="true"></i>Photo</button>
+						</div>
+						<input type="file" id="pfPhotoInput" accept="image/*" multiple hidden>
+					</section>
+
+					<section class="pf-card" aria-labelledby="pfPostsTitle">
+						<div class="pf-card-head pf-posts-head">
+							<h3 id="pfPostsTitle">Posts</h3>
+							<div class="pf-toggle" role="group" aria-label="Which posts">
+								<button type="button" data-feed="all" aria-pressed="true"><i class="fa-solid fa-globe" aria-hidden="true"></i>For you</button>
+								<button type="button" data-feed="mine" aria-pressed="false"><i class="fa-solid fa-user" aria-hidden="true"></i>Your posts</button>
+							</div>
+						</div>
+						<div class="pf-section-label"><strong id="pfFeedLabel">Latest from the trail</strong><span class="pf-count" id="pfFeedCount" hidden></span></div>
+						<div id="pfFeed" aria-live="polite"><p class="pf-muted">Loading posts…</p></div>
+						<button type="button" class="pf-secondary pf-more" id="pfMore" hidden>Show more posts</button>
+					</section>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Create post -->
+	<div class="pf-modal" id="pfComposeModal">
+		<div class="pf-dialog" role="dialog" aria-modal="true" aria-labelledby="pfComposeTitle">
+			<div class="pf-dialog-head">
+				<h3 id="pfComposeTitle">Create post</h3>
+				<button type="button" class="pf-dialog-close" data-close aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+			</div>
+			<div class="pf-dialog-body">
+				<div class="pf-who">
+					<div class="pf-mini-avatar"><img src="../assets/images/logo.png" alt=""></div>
+					<div><strong id="pfComposeName">Admin</strong><span>Posting to the PeakPath Community</span></div>
+				</div>
+				<textarea id="pfComposeText" maxlength="500" placeholder="What's on your mind?" aria-label="Post text"></textarea>
+				<div class="pf-previews" id="pfPreviews"></div>
+				<div class="pf-add-bar">
+					<span>Add to your post</span>
+					<button type="button" id="pfAddPhotos"><i class="fa-solid fa-images" aria-hidden="true"></i>Photo</button>
+				</div>
+				<p class="pf-error" id="pfComposeError" role="alert"></p>
+			</div>
+			<div class="pf-dialog-foot">
+				<span class="pf-muted" id="pfComposeCount">0 / 500</span>
+				<button type="button" class="pf-primary" id="pfPostBtn" disabled>Post</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Edit profile: the same details and checks as Settings > Profile Information -->
+	<div class="pf-modal" id="pfEditModal">
+		<div class="pf-dialog" role="dialog" aria-modal="true" aria-labelledby="pfEditTitle" style="width:min(600px,100%)">
+			<div class="pf-dialog-head">
+				<h3 id="pfEditTitle">Edit profile</h3>
+				<button type="button" class="pf-dialog-close" data-close aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+			</div>
+			<form id="pfEditForm" novalidate>
+				<div class="pf-dialog-body">
+					<div class="pf-form-grid">
+						<div class="pf-field">
+							<label for="pfEditName">Full name</label>
+							<input id="pfEditName" type="text" autocomplete="name" maxlength="80" required>
+						</div>
+						<div class="pf-field">
+							<label for="pfEditUsername">Username</label>
+							<input id="pfEditUsername" type="text" autocomplete="username" maxlength="30" placeholder="e.g. peakpath_admin" spellcheck="false">
+						</div>
+						<div class="pf-field">
+							<label for="pfEditEmail">Email address</label>
+							<input id="pfEditEmail" type="email" autocomplete="email" required>
+						</div>
+						<div class="pf-field">
+							<label for="pfEditPhone">Phone number</label>
+							<input id="pfEditPhone" type="tel" autocomplete="tel" maxlength="20" placeholder="e.g. 0917 123 4567">
+						</div>
+						<div class="pf-field">
+							<label for="pfEditGender">Gender</label>
+							<select id="pfEditGender">
+								<option value="">Select gender</option>
+								<option>Male</option>
+								<option>Female</option>
+								<option>Prefer not to say</option>
+							</select>
+						</div>
+						<div class="pf-field">
+							<label for="pfEditRole">Role</label>
+							<input id="pfEditRole" type="text" readonly>
+							<span class="hint">Assigned by a system administrator.</span>
+						</div>
+						<div class="pf-field wide" id="pfEditPasswordField" hidden>
+							<label for="pfEditPassword">Current password</label>
+							<div class="pf-password">
+								<input id="pfEditPassword" type="password" autocomplete="current-password" placeholder="Required to change your email">
+								<button type="button" id="pfEditPasswordToggle" aria-label="Show password" aria-pressed="false" title="Show password"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+							</div>
+						</div>
+					</div>
+					<p class="pf-error" id="pfEditError" role="alert"></p>
+				</div>
+				<div class="pf-dialog-foot" style="justify-content:flex-end">
+					<button type="button" class="pf-secondary" data-close>Cancel</button>
+					<button type="submit" class="pf-primary" id="pfEditSave" style="flex:0;border-radius:10px">Save</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<!-- Delete post -->
+	<div class="pf-modal" id="pfDeleteModal">
+		<div class="pf-dialog" role="dialog" aria-modal="true" aria-labelledby="pfDeleteTitle" style="width:min(420px,100%)">
+			<div class="pf-dialog-head">
+				<h3 id="pfDeleteTitle">Delete post?</h3>
+				<button type="button" class="pf-dialog-close" data-close aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+			</div>
+			<div class="pf-dialog-body">
+				<p id="pfDeleteText">This removes the post, its photos and its comments from the Community for everyone. It can't be undone.</p>
+				<p class="pf-error" id="pfDeleteError" role="alert"></p>
+			</div>
+			<div class="pf-dialog-foot" style="justify-content:flex-end">
+				<button type="button" class="pf-secondary" data-close>Cancel</button>
+				<button type="button" class="pf-primary pf-danger" id="pfDeleteBtn" style="flex:0">Delete</button>
+			</div>
+		</div>
+	</div>
+
+	<script type="module">
+	import { auth, db, storage } from '../jsPages/firebase-config.js';
+	import { watchAdminProfile, NO_ROLE_LABEL, renderAdminIdentity, updateAdminProfile } from '../jsPages/admin-identity.js';
+	import { checkTwoFactor, confirmNewPhone, toE164 } from '../jsPages/two-factor.js';
+	import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+	import { escapeHtml } from '../jsPages/utils.js';
+	import { formatPortalDateTime } from '../jsPages/datetime-prefs.js';
+	import {
+		addDoc, arrayRemove, arrayUnion, collection, deleteDoc, doc, limit, onSnapshot,
+		increment, orderBy, query, serverTimestamp, setDoc, updateDoc, where, writeBatch
+	} from '../jsPages/firestore-tracked.js';
+	import { ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
+
+	const $ = (id) => document.getElementById(id);
+	let me = { uid: '', name: '' };
+	let currentProfile = {};
+
+	// Feed state: For you ('all') or Your posts ('mine').
+	const PAGE = 20;
+	let feed = 'all';
+	let shown = PAGE;
+	let posts = [];
+	let stopFeed = null;
+	let feedStarted = false;
+	// Posts with their comments open: postId -> { status, items, error, stop }.
+	const openComments = new Map();
+	const commentDrafts = new Map(); // postId -> text being written
+	const replyMentions = new Map(); // postId -> the "@Name " Reply put in its box
+	const sendingComment = new Set(); // postIds whose comment is being saved
+	let posting = false;
+	// The post whose ⋯ menu is open.
+	let menuFor = null;
+
+	/* ---- Header and Personal details, from admins/{uid} (admin-identity.js) ---- */
+	const DETAILS = [
+		['username', 'Username', 'fa-at'],
+		['email', 'Email', 'fa-envelope'],
+		['phone', 'Phone number', 'fa-phone'],
+		['gender', 'Gender', 'fa-venus-mars']
+	];
+	watchAdminProfile((profile) => {
+		me = { uid: profile.uid || auth.currentUser?.uid || '', name: profile.name || 'Admin' };
+		currentProfile = profile;
+		$('pfName').textContent = profile.name || 'Admin';
+		$('pfRole').textContent = profile.role || NO_ROLE_LABEL;
+		$('pfSub').innerHTML = [profile.username && `@${profile.username}`, 'PeakPath Admin Portal']
+			.filter(Boolean).map((part) => `<span>${escapeHtml(part)}</span>`).join('');
+		$('pfComposeName').textContent = profile.name || 'Admin';
+		$('pfDetails').innerHTML = DETAILS.map(([key, label, icon]) => `
+			<li>
+				<i class="fa-solid ${icon}" aria-hidden="true"></i>
+				<span><span class="label">${label}</span>
+				<span class="value${profile[key] ? '' : ' empty'}">${escapeHtml(profile[key] || 'Not set')}</span></span>
+			</li>`).join('');
+		if (me.uid && !feedStarted) startFeed();
+	});
+
+	/* ---- Posts: the app's Community feed (communityPosts) ----
+	   For you: everyone's newest posts. Your posts: this admin's own. */
+	function startFeed() {
+		feedStarted = true;
+		stopFeed?.();
+		$('pfFeed').innerHTML = '<p class="pf-muted">Loading posts…</p>';
+		// Your posts: by author only, sorted here, so no composite index is needed.
+		const q = feed === 'mine'
+			? query(collection(db, 'communityPosts'), where('authorId', '==', me.uid), limit(200))
+			: query(collection(db, 'communityPosts'), orderBy('createdAt', 'desc'), limit(shown + 1));
+		stopFeed = onSnapshot(q, (snapshot) => {
+			posts = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+			if (feed === 'mine') posts.sort((a, b) => millis(b.createdAt) - millis(a.createdAt));
+			drawFeed();
+		}, (error) => {
+			console.warn('Could not load the Community posts:', error.message);
+			$('pfFeed').innerHTML = '<p class="pf-muted">Couldn\'t load the Community posts. Check your connection.</p>';
+		});
+	}
+
+	const millis = (value) => value?.toMillis?.() ?? (value ? new Date(value).getTime() : Date.now());
+	const initial = (name) => (String(name || '').trim()[0] || '?').toUpperCase();
+	const avatarHtml = (name, url) => url
+		? `<span class="pf-post-avatar"><img src="${escapeHtml(url)}" alt="" loading="lazy"></span>`
+		: `<span class="pf-post-avatar" aria-hidden="true">${escapeHtml(initial(name))}</span>`;
+	const imagesOf = (post) => (Array.isArray(post.imageUrls) && post.imageUrls.length
+		? post.imageUrls : post.imageUrl ? [post.imageUrl] : []).filter(Boolean);
+
+	function photosHtml(post) {
+		const urls = imagesOf(post);
+		if (!urls.length) return '';
+		const visible = urls.slice(0, 4);
+		const cls = urls.length > 4 ? 'nmany' : `n${urls.length}`;
+		return `<div class="pf-photos ${cls}">${visible.map((url, i) => `
+			<button type="button" data-lightbox="${escapeHtml(url)}" data-lightbox-group="post-${escapeHtml(post.id)}" aria-label="Open photo ${i + 1} of ${urls.length}">
+				<img src="${escapeHtml(url)}" alt="" loading="lazy">
+				${i === 3 && urls.length > 4 ? `<span class="more">+${urls.length - 4}</span>` : ''}
+			</button>`).join('')}</div>`;
+	}
+
+	function postHtml(post) {
+		const mine = post.authorId === me.uid;
+		const likes = Array.isArray(post.likedBy) ? post.likedBy : [];
+		const liked = likes.includes(me.uid);
+		const comments = Number(post.commentCount) || 0;
+		const when = post.createdAt ? formatPortalDateTime(post.createdAt.toDate?.() || post.createdAt) : 'Just now';
+		const open = openComments.get(post.id);
+		return `<article class="pf-post${post.removedByAdmin ? ' is-removed' : ''}" data-post="${escapeHtml(post.id)}">
+			<div class="pf-post-head">
+				${avatarHtml(post.authorName, post.authorAvatar)}
+				<div class="pf-post-who"><strong>${escapeHtml(post.authorName || 'Hiker')}</strong><span>${escapeHtml(when)}${post.editedAt ? ' · Edited' : ''}</span></div>
+				<div class="pf-post-menu-wrap">
+					<button type="button" class="pf-post-menu" data-menu aria-haspopup="menu" aria-expanded="${menuFor === post.id}" aria-label="Post options" title="Post options"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>
+					${menuFor === post.id ? `<div class="pf-menu" role="menu"><button type="button" role="menuitem" data-delete><i class="fa-solid fa-trash-can" aria-hidden="true"></i>${post.removedByAdmin ? 'Delete permanently' : 'Delete post'}</button></div>` : ''}
+				</div>
+			</div>
+			${post.text ? `<p class="pf-post-text">${escapeHtml(post.text)}</p>` : ''}
+			${post.removedByAdmin ? `<div class="pf-removed-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>Removed by an admin. Hidden from the Community; ${escapeHtml(post.authorName || 'its author')} sees it as unavailable.</div>` : ''}
+			${post.type === 'team' ? '<div class="pf-team"><i class="fa-solid fa-people-group" aria-hidden="true"></i>Team post · open the app to see the team</div>' : ''}
+			${photosHtml(post)}
+			<div class="pf-post-actions">
+				<button type="button" data-like class="${liked ? 'liked' : ''}" aria-pressed="${liked}"><i class="fa-${liked ? 'solid' : 'regular'} fa-heart" aria-hidden="true"></i>${likes.length ? likes.length : ''} Like${likes.length === 1 ? '' : 's'}</button>
+				<button type="button" data-comments aria-expanded="${Boolean(open)}"><i class="fa-regular fa-comment" aria-hidden="true"></i>${comments ? comments : ''} Comment${comments === 1 ? '' : 's'}</button>
+			</div>
+			${open ? commentsHtml(post, open) : ''}
+		</article>`;
+	}
+
+	/* The comments under a post, newest last, each with a ⋯ menu (Delete
+	   comment), and a box to write one, as in the app's post page. */
+	function commentsHtml(post, open) {
+		const list = open.status === 'loading'
+			? '<p class="pf-muted">Loading comments…</p>'
+			: open.status === 'error'
+				? '<p class="pf-muted">Couldn\'t load the comments.</p>'
+				: open.items.length
+					? open.items.map((c) => {
+						const when = c.createdAt ? formatPortalDateTime(c.createdAt.toDate?.() || c.createdAt) : 'Just now';
+						return `<div class="pf-comment${c.removedByAdmin ? ' is-removed' : ''}" data-comment="${escapeHtml(c.id)}">
+							${avatarHtml(c.authorName, c.authorAvatar)}
+							<div class="pf-comment-body">
+								<div class="pf-comment-bubble"><strong>${escapeHtml(c.authorName || 'Hiker')}</strong><p>${escapeHtml(c.text || '')}</p>${c.removedByAdmin ? `<span class="pf-comment-removed"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Removed by an admin. Hidden from others; ${escapeHtml(c.authorName || 'its author')} sees it as unavailable.</span>` : ''}</div>
+								<div class="pf-comment-time">
+									<span>${escapeHtml(when)}</span>
+									${c.removedByAdmin ? '' : `<button type="button" data-reply aria-label="Reply to ${escapeHtml(c.authorName || 'this comment')}">Reply</button>`}
+									<button type="button" data-delete-comment aria-label="Delete ${escapeHtml(c.authorName || 'this')}'s comment">${c.removedByAdmin ? 'Delete permanently' : 'Delete'}</button>
+								</div>
+							</div>
+						</div>`;
+					}).join('')
+					: '<p class="pf-muted">No comments yet. Start the conversation.</p>';
+		const draft = commentDrafts.get(post.id) || '';
+		const sending = sendingComment.has(post.id);
+		return `<div class="pf-comments">
+			${list}
+			<form class="pf-comment-form" data-comment-form>
+				<div class="pf-mini-avatar"><img src="../assets/images/logo.png" alt=""></div>
+				<input type="text" maxlength="500" data-comment-input placeholder="Write a comment..." aria-label="Write a comment" value="${escapeHtml(draft)}"${sending ? ' disabled' : ''}>
+				<button type="submit" aria-label="Send comment" title="Send comment"${sending || !draft.trim() ? ' disabled' : ''}><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
+			</form>
+			${open.error ? `<p class="pf-comment-error" role="alert">${escapeHtml(open.error)}</p>` : ''}
+		</div>`;
+	}
+
+	// Comments are live while open, so a new or deleted one shows at once.
+	function openCommentsFor(postId) {
+		const state = { status: 'loading', items: [], error: '', stop: null };
+		openComments.set(postId, state);
+		state.stop = onSnapshot(query(collection(db, 'communityPosts', postId, 'comments'), orderBy('createdAt')), (snap) => {
+			state.status = 'ready';
+			state.items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+			drawFeed();
+		}, () => {
+			state.status = 'error';
+			drawFeed();
+		});
+	}
+	function closeCommentsFor(postId) {
+		openComments.get(postId)?.stop?.();
+		openComments.delete(postId);
+	}
+
+	function drawFeed() {
+		const mine = feed === 'mine';
+		const list = posts.slice(0, shown);
+		$('pfFeedLabel').textContent = mine ? 'Your posts' : 'Latest from the trail';
+		const count = mine ? posts.length : list.length;
+		$('pfFeedCount').hidden = !count;
+		$('pfFeedCount').textContent = `${count} ${count === 1 ? 'post' : 'posts'}`;
+		$('pfMore').hidden = posts.length <= shown;
+		if (!list.length) {
+			$('pfFeed').innerHTML = `<div class="pf-empty">
+				<div class="icon"><i class="fa-solid fa-mountain-sun" aria-hidden="true"></i></div>
+				<strong>${mine ? 'You haven\'t posted yet' : 'No posts yet'}</strong>
+				<p>Share a trail update, a reminder, or a view from the top.</p>
+				<button type="button" class="pf-primary" data-compose><i class="fa-solid fa-plus" aria-hidden="true"></i>Create a post</button>
+			</div>`;
+			return;
+		}
+		const active = document.activeElement;
+		const typing = active?.matches?.('[data-comment-input]')
+			? { post: active.closest('[data-post]')?.dataset.post, at: active.selectionStart }
+			: null;
+		$('pfFeed').innerHTML = list.map(postHtml).join('');
+		if (typing?.post) {
+			const input = $('pfFeed').querySelector(`[data-post="${CSS.escape(typing.post)}"] [data-comment-input]`);
+			if (input && !input.disabled) {
+				input.focus();
+				input.setSelectionRange(typing.at, typing.at);
+			}
+		}
+	}
+
+	document.querySelectorAll('.pf-toggle button').forEach((button) => {
+		button.addEventListener('click', () => {
+			if (feed === button.dataset.feed) return;
+			feed = button.dataset.feed;
+			shown = PAGE;
+			document.querySelectorAll('.pf-toggle button').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+			if (me.uid) startFeed();
+		});
+	});
+	$('pfMore').addEventListener('click', () => {
+		shown += PAGE;
+		if (feed === 'all') startFeed();
+		else drawFeed();
+	});
+
+	/* Like, comments, delete, on any post in the feed. */
+	// What the Delete box is for: { kind: 'post', post } or { kind: 'comment', post, comment }.
+	let deleting = null;
+	$('pfFeed').addEventListener('click', async (event) => {
+		if (event.target.closest('[data-compose]')) { openCompose(); return; }
+		const card = event.target.closest('[data-post]');
+		if (!card) return;
+		const post = posts.find((p) => p.id === card.dataset.post);
+		if (!post) return;
+		if (event.target.closest('[data-menu]')) {
+			menuFor = menuFor === post.id ? null : post.id;
+			drawFeed();
+			if (menuFor) $('pfFeed').querySelector('.pf-menu [data-delete]')?.focus();
+			return;
+		}
+		const commentEl = event.target.closest('[data-comment]');
+		// Reply: comments are one list (no threads), so a reply is a comment
+		// that starts with "@Name", in the box below.
+		if (commentEl && event.target.closest('[data-reply]')) {
+			const comment = openComments.get(post.id)?.items.find((c) => c.id === commentEl.dataset.comment);
+			if (!comment) return;
+			const mention = `@${comment.authorName || 'Hiker'} `;
+			// Replying to someone else swaps the "@Name" this put there before.
+			let draft = commentDrafts.get(post.id) || '';
+			const previous = replyMentions.get(post.id);
+			if (previous && draft.startsWith(previous)) draft = draft.slice(previous.length);
+			replyMentions.set(post.id, mention);
+			commentDrafts.set(post.id, mention + draft);
+			drawFeed();
+			const input = $('pfFeed').querySelector(`[data-post="${CSS.escape(post.id)}"] [data-comment-input]`);
+			if (input) {
+				input.focus();
+				input.setSelectionRange(input.value.length, input.value.length);
+				input.closest('form').querySelector('button[type="submit"]').disabled = false;
+			}
+			return;
+		}
+		if (commentEl && event.target.closest('[data-delete-comment]')) {
+			const comment = openComments.get(post.id)?.items.find((c) => c.id === commentEl.dataset.comment);
+			if (!comment) return;
+			deleting = { kind: 'comment', post, comment };
+			const mine = comment.authorId === me.uid;
+			const who = comment.authorName || 'this hiker';
+			$('pfDeleteTitle').textContent = comment.removedByAdmin ? 'Delete permanently?' : 'Delete comment?';
+			$('pfDeleteText').textContent = mine
+				? "This removes your comment for everyone. It can't be undone."
+				: comment.removedByAdmin
+					? `This deletes ${who}'s removed comment for good. They will no longer see it as unavailable. It can't be undone.`
+					: `This hides ${who}'s comment from everyone else. In the app, ${who} will see it replaced by "This comment is unavailable" because it goes against the community guidelines, and can delete it. They will also be notified.`;
+			$('pfDeleteError').textContent = '';
+			openModal('pfDeleteModal');
+			return;
+		}
+		if (event.target.closest('[data-like]')) {
+			const liked = (post.likedBy || []).includes(me.uid);
+			try {
+				await updateDoc(doc(db, 'communityPosts', post.id), { likedBy: liked ? arrayRemove(me.uid) : arrayUnion(me.uid) });
+			} catch (error) {
+				console.warn('Could not change the like:', error.message);
+			}
+		} else if (event.target.closest('[data-comments]')) {
+			if (openComments.has(post.id)) closeCommentsFor(post.id);
+			else openCommentsFor(post.id);
+			drawFeed();
+			if (openComments.has(post.id)) $('pfFeed').querySelector(`[data-post="${CSS.escape(post.id)}"] [data-comment-input]`)?.focus();
+		} else if (event.target.closest('[data-delete]')) {
+			menuFor = null;
+			drawFeed();
+			deleting = { kind: 'post', post };
+			const mine = post.authorId === me.uid;
+			const who = post.authorName || 'this hiker';
+			$('pfDeleteTitle').textContent = post.removedByAdmin ? 'Delete permanently?' : 'Delete post?';
+			$('pfDeleteText').textContent = mine
+				? "This removes your post, its photos and its comments from the Community for everyone. It can't be undone."
+				: post.removedByAdmin
+					? `This deletes ${who}'s removed post for good, with its photos and comments. They will no longer see it as unavailable. It can't be undone.`
+					: `This hides ${who}'s post from the Community. In the app, ${who} will see it replaced by "This post is unavailable" because it goes against the community guidelines, and can delete it. They will also be notified.`;
+			$('pfDeleteError').textContent = '';
+			openModal('pfDeleteModal');
+		}
+	});
+	$('pfFeed').addEventListener('input', (event) => {
+		const input = event.target.closest('[data-comment-input]');
+		if (!input) return;
+		const postId = input.closest('[data-post]').dataset.post;
+		commentDrafts.set(postId, input.value);
+		input.closest('form').querySelector('button[type="submit"]').disabled = !input.value.trim();
+	});
+	$('pfFeed').addEventListener('submit', async (event) => {
+		const form = event.target.closest('[data-comment-form]');
+		if (!form) return;
+		event.preventDefault();
+		const postId = form.closest('[data-post]').dataset.post;
+		const post = posts.find((p) => p.id === postId);
+		const text = (commentDrafts.get(postId) || '').trim();
+		const open = openComments.get(postId);
+		if (!post || !text || sendingComment.has(postId) || !me.uid) return;
+		sendingComment.add(postId);
+		if (open) open.error = '';
+		drawFeed();
+		try {
+			// As the app adds one (CommunityService.addComment): the comment
+			// and the post's commentCount + 1 together, which the rules check.
+			const batch = writeBatch(db);
+			batch.set(doc(collection(db, 'communityPosts', postId, 'comments')), {
+				authorId: me.uid,
+				authorName: me.name || 'Admin',
+				authorAvatar: null,
+				text,
+				createdAt: serverTimestamp()
+			});
+			batch.update(doc(db, 'communityPosts', postId), { commentCount: increment(1) });
+			await batch.commit();
+			commentDrafts.delete(postId);
+			replyMentions.delete(postId);
+			// The post's author hears about it, as from any hiker.
+			if (post.authorId && post.authorId !== me.uid) {
+				addDoc(collection(db, 'communityNotifications'), {
+					recipientId: post.authorId,
+					actorId: me.uid,
+					actorName: me.name || 'Admin',
+					actorAvatar: null,
+					type: 'comment',
+					postId,
+					preview: text.length > 120 ? `${text.slice(0, 120)}…` : text,
+					createdAt: serverTimestamp()
+				}).catch((error) => console.info('Comment notification not sent:', error.message));
+			}
+		} catch (error) {
+			if (open) {
+				open.error = error?.code === 'permission-denied'
+					? 'Firebase refused the comment.'
+					: `Could not comment: ${error.message || 'Unknown error'}`;
+			}
+		} finally {
+			sendingComment.delete(postId);
+			drawFeed();
+		}
+	});
+
+	// A click anywhere else, or Escape, closes the ⋯ menu.
+	document.addEventListener('click', (event) => {
+		if (menuFor && !event.target.closest('.pf-post-menu-wrap')) {
+			menuFor = null;
+			drawFeed();
+		}
+	});
+	document.addEventListener('keydown', (event) => {
+		if (event.key === 'Escape' && menuFor) {
+			menuFor = null;
+			drawFeed();
+		}
+	});
+
+	$('pfDeleteBtn').addEventListener('click', async () => {
+		if (!deleting) return;
+		if (deleting.kind === 'comment') {
+			await deleteComment(deleting.post, deleting.comment);
+			return;
+		}
+		const { post } = deleting;
+		$('pfDeleteBtn').disabled = true;
+		try {
+			// A hiker's post is not deleted but removed: marked, so the app
+			// hides it from everyone but its author, who sees it as
+			// "unavailable" and can delete it (firestore.rules adminRemoval).
+			// Admin's own posts, and posts already removed, are deleted.
+			const removing = post.authorId && post.authorId !== me.uid && !post.removedByAdmin;
+			if (removing) {
+				await updateDoc(doc(db, 'communityPosts', post.id), {
+					removedByAdmin: true,
+					removedAt: serverTimestamp(),
+					removedBy: me.uid
+				});
+			} else {
+				await deleteDoc(doc(db, 'communityPosts', post.id));
+				closeCommentsFor(post.id);
+				// Its photos go with it.
+				const paths = Array.isArray(post.imagePaths) ? post.imagePaths : post.imagePath ? [post.imagePath] : [];
+				await Promise.allSettled(paths.map((path) => deleteObject(ref(storage, path))));
+			}
+			// Removed: its author is told why, on the app's Notifications >
+			// Community tab (CommunityNotificationService reads notifications
+			// of type post_removed sent to them).
+			if (removing) {
+				const excerpt = String(post.text || '').trim();
+				await addDoc(collection(db, 'notifications'), {
+					type: 'post_removed',
+					title: 'Your post was removed',
+					message: 'An admin removed your post because it goes against the PeakPath community guidelines.',
+					reason: 'Community guidelines',
+					recipientId: post.authorId,
+					postId: post.id,
+					postPreview: excerpt.length > 120 ? `${excerpt.slice(0, 120)}…` : excerpt,
+					read: false,
+					createdBy: me.uid,
+					createdAt: serverTimestamp()
+				}).catch((error) => console.warn('The post was removed, but its author could not be notified:', error.message));
+			}
+			closeModal('pfDeleteModal');
+			deleting = null;
+		} catch (error) {
+			$('pfDeleteError').textContent = error?.code === 'permission-denied'
+				? 'Firebase refused to delete this post.'
+				: `Could not delete the post: ${error.message || 'Unknown error'}`;
+		} finally {
+			$('pfDeleteBtn').disabled = false;
+		}
+	});
+
+	/* A hiker's comment is not deleted but removed: marked (firestore.rules,
+	   comments update), so the app hides it from everyone but its author,
+	   who sees it as "unavailable" and can delete it; it comes off the
+	   post's commentCount now. The admin's own comment is deleted with
+	   commentCount - 1 (one batch, as the rules want); a comment already
+	   removed is just deleted, its count already taken off. A removed
+	   hiker is told why, on the app's Notifications > Community tab
+	   (type comment_removed). */
+	async function deleteComment(post, comment) {
+		$('pfDeleteBtn').disabled = true;
+		try {
+			const commentRef = doc(db, 'communityPosts', post.id, 'comments', comment.id);
+			const removing = comment.authorId && comment.authorId !== me.uid && !comment.removedByAdmin;
+			if (comment.removedByAdmin) {
+				await deleteDoc(commentRef);
+			} else {
+				const batch = writeBatch(db);
+				if (removing) {
+					batch.update(commentRef, { removedByAdmin: true, removedAt: serverTimestamp(), removedBy: me.uid });
+				} else {
+					batch.delete(commentRef);
+				}
+				batch.update(doc(db, 'communityPosts', post.id), { commentCount: increment(-1) });
+				await batch.commit();
+			}
+			if (removing) {
+				const excerpt = String(comment.text || '').trim();
+				await addDoc(collection(db, 'notifications'), {
+					type: 'comment_removed',
+					title: 'Your comment was removed',
+					message: 'An admin removed your comment because it goes against the PeakPath community guidelines.',
+					reason: 'Community guidelines',
+					recipientId: comment.authorId,
+					postId: post.id,
+					commentId: comment.id,
+					commentPreview: excerpt.length > 120 ? `${excerpt.slice(0, 120)}…` : excerpt,
+					read: false,
+					createdBy: me.uid,
+					createdAt: serverTimestamp()
+				}).catch((error) => console.warn('The comment was removed, but its author could not be notified:', error.message));
+			}
+			closeModal('pfDeleteModal');
+			deleting = null;
+		} catch (error) {
+			$('pfDeleteError').textContent = error?.code === 'permission-denied'
+				? 'Firebase refused to delete this comment.'
+				: `Could not delete the comment: ${error.message || 'Unknown error'}`;
+		} finally {
+			$('pfDeleteBtn').disabled = false;
+		}
+	}
+
+	/* ---- Edit profile, here in a pop-up: the same fields, checks and save as
+	   Settings > Profile Information. The name, username, phone and gender go
+	   to admins/{uid} (the name also to the sign-in's display name); a new
+	   email re-authenticates with the current password and becomes the
+	   sign-in address; a new number while two-factor is on is confirmed by
+	   a code first (two-factor.js). ---- */
+	const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	const WRONG_PASSWORD_CODES = ['auth/wrong-password', 'auth/invalid-credential', 'auth/invalid-login-credentials'];
+	const editSaved = { name: '', username: '', email: '', phone: '', gender: '' };
+
+	function accountErrorMessage(error, fallback) {
+		if (WRONG_PASSWORD_CODES.includes(error?.code)) return 'Current password is incorrect.';
+		switch (error?.code) {
+			case 'auth/email-already-in-use': return 'Another account already uses that email address.';
+			case 'auth/invalid-email':
+			case 'auth/invalid-new-email': return 'That email address is not valid.';
+			case 'auth/too-many-requests': return 'Too many attempts. Wait a few minutes, then try again.';
+			case 'auth/network-request-failed':
+			case 'unavailable': return 'Network error. Check your connection and try again.';
+			case 'auth/requires-recent-login':
+			case 'auth/user-token-expired': return 'Your session has expired. Sign out, sign back in, then try again.';
+			case 'auth/operation-not-allowed': return 'Your email cannot be changed. Your profile was not saved.';
+			case 'permission-denied': return 'Your account is not allowed to save this. Check that it is listed as an admin.';
+			default: return fallback;
+		}
+	}
+
+	const editEmailChanged = () => $('pfEditEmail').value.trim().toLowerCase() !== editSaved.email.toLowerCase();
+
+	function openEditProfile() {
+		const user = auth.currentUser;
+		Object.assign(editSaved, {
+			name: currentProfile.name || user?.displayName || '',
+			username: currentProfile.username || '',
+			email: user?.email || currentProfile.email || '',
+			phone: currentProfile.phone || '',
+			gender: currentProfile.gender || ''
+		});
+		$('pfEditName').value = editSaved.name;
+		$('pfEditUsername').value = editSaved.username;
+		$('pfEditEmail').value = editSaved.email;
+		$('pfEditPhone').value = editSaved.phone;
+		$('pfEditGender').value = editSaved.gender;
+		$('pfEditRole').value = currentProfile.role || NO_ROLE_LABEL;
+		$('pfEditPassword').value = '';
+		$('pfEditPasswordField').hidden = true;
+		$('pfEditError').textContent = user ? '' : 'Your session has expired. Sign in again to edit your profile.';
+		$('pfEditSave').disabled = !user;
+		openModal('pfEditModal');
+		$('pfEditName').focus();
+	}
+	document.querySelectorAll('[data-edit-profile]').forEach((button) => button.addEventListener('click', openEditProfile));
+	$('pfEditEmail').addEventListener('input', () => { $('pfEditPasswordField').hidden = !editEmailChanged(); });
+	$('pfEditPasswordToggle').addEventListener('click', () => {
+		const input = $('pfEditPassword');
+		const show = input.type === 'password';
+		input.type = show ? 'text' : 'password';
+		const toggle = $('pfEditPasswordToggle');
+		toggle.setAttribute('aria-pressed', String(show));
+		toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+		toggle.title = show ? 'Hide password' : 'Show password';
+		toggle.querySelector('i').className = `fa-regular ${show ? 'fa-eye-slash' : 'fa-eye'}`;
+	});
+
+	function showToast(message, ms = 3500) {
+		const toast = Object.assign(document.createElement('div'), { className: 'pf-toast', textContent: message });
+		toast.setAttribute('role', 'status');
+		document.body.appendChild(toast);
+		setTimeout(() => toast.remove(), ms);
+	}
+
+	$('pfEditForm').addEventListener('submit', async (event) => {
+		event.preventDefault();
+		const fail = (message, input) => {
+			$('pfEditError').textContent = message;
+			if (input) { input.focus(); input.select?.(); }
+		};
+		$('pfEditError').textContent = '';
+		const user = auth.currentUser;
+		const name = $('pfEditName').value.trim().replace(/\s+/g, ' ');
+		const username = $('pfEditUsername').value.trim();
+		const phone = $('pfEditPhone').value.trim().replace(/\s+/g, ' ');
+		const gender = $('pfEditGender').value;
+		const email = $('pfEditEmail').value.trim();
+		const password = $('pfEditPassword').value;
+		const nameChanged = name !== editSaved.name;
+		const detailsChanged = nameChanged || username !== editSaved.username || phone !== editSaved.phone || gender !== editSaved.gender;
+		const changingEmail = editEmailChanged();
+
+		if (!user) return fail('Your session has expired. Sign in again to edit your profile.');
+		if (!name) return fail('Enter your full name.', $('pfEditName'));
+		if (username && !/^[A-Za-z0-9._]{3,30}$/.test(username)) {
+			return fail('Usernames use 3–30 letters, numbers, dots or underscores.', $('pfEditUsername'));
+		}
+		if (!EMAIL_PATTERN.test(email)) return fail('Enter a valid email address.', $('pfEditEmail'));
+		if (phone && (!/^\+?[\d\s()-]+$/.test(phone) || !/^\d{7,15}$/.test(phone.replace(/\D/g, '')))) {
+			return fail('Enter a valid phone number, e.g. 0917 123 4567.', $('pfEditPhone'));
+		}
+		if (!detailsChanged && !changingEmail) { closeModal('pfEditModal'); return; }
+		if (changingEmail && !password) return fail('Enter your current password to change your email.', $('pfEditPassword'));
+
+		const saveBtn = $('pfEditSave');
+		// Two-factor on and a different number: the new number is confirmed
+		// by a code first, and the server saves it.
+		if (toE164(phone) !== toE164(editSaved.phone)) {
+			let twoFactorOn = false;
+			try {
+				twoFactorOn = Boolean((await checkTwoFactor())?.enabled);
+			} catch {
+				return fail('Could not check two-factor sign-in, so your number was not changed. Try again.', $('pfEditPhone'));
+			}
+			if (twoFactorOn) {
+				if (!phone) return fail('Two-factor sign-in is on, so your phone number can\'t be removed. Turn two-factor off in Settings first.', $('pfEditPhone'));
+				saveBtn.disabled = true;
+				let confirmed = false;
+				try { confirmed = await confirmNewPhone(phone); } finally { saveBtn.disabled = false; }
+				if (!confirmed) return fail('Your phone number was not changed: the code to the new number was not confirmed.', $('pfEditPhone'));
+				editSaved.phone = phone;
+			}
+		}
+
+		saveBtn.disabled = true;
+		saveBtn.textContent = 'Saving…';
+		try {
+			// The sign-in email first, so a wrong password can't leave the
+			// profile half saved.
+			if (changingEmail) {
+				await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+				await updateEmail(user, email);
+				editSaved.email = email;
+				updateAdminProfile({ email });
+			}
+			if (detailsChanged) {
+				await setDoc(doc(db, 'admins', user.uid), { name, username, phone, gender, updatedAt: serverTimestamp() }, { merge: true });
+				if (nameChanged) await updateProfile(user, { displayName: name });
+				Object.assign(editSaved, { name, username, phone, gender });
+				renderAdminIdentity({ name });
+				updateAdminProfile({ name, username, phone, gender });
+			}
+			closeModal('pfEditModal');
+			showToast(changingEmail ? `Sign-in email changed to ${email}. Use it the next time you sign in.` : 'Profile updated', changingEmail ? 6000 : 3500);
+		} catch (error) {
+			console.error('Failed to save profile:', error);
+			fail(accountErrorMessage(error, 'Unable to save your profile right now. Please try again.'),
+				WRONG_PASSWORD_CODES.includes(error?.code) ? $('pfEditPassword') : null);
+		} finally {
+			saveBtn.disabled = false;
+			saveBtn.textContent = 'Save';
+		}
+	});
+
+	/* ---- Create post: text and up to 10 photos, as the app posts them ---- */
+	const MAX_PHOTOS = 10;
+	const MAX_BYTES = 8 * 1024 * 1024;
+	let photos = [];
+
+	function openModal(id) {
+		$(id).classList.add('open');
+		$(id).querySelector('[data-close]')?.focus();
+	}
+	function closeModal(id) {
+		$(id).classList.remove('open');
+	}
+	document.querySelectorAll('.pf-modal').forEach((modal) => {
+		modal.addEventListener('click', (event) => {
+			if (event.target === modal || event.target.closest('[data-close]')) closeModal(modal.id);
+		});
+	});
+	document.addEventListener('keydown', (event) => {
+		if (event.key !== 'Escape') return;
+		document.querySelectorAll('.pf-modal.open').forEach((modal) => closeModal(modal.id));
+	});
+
+	function openCompose() {
+		$('pfComposeError').textContent = '';
+		openModal('pfComposeModal');
+		$('pfComposeText').focus();
+		refreshCompose();
+	}
+
+	function addPhotos(files) {
+		const error = [];
+		for (const file of files) {
+			if (!file.type.startsWith('image/')) { error.push(`${file.name} is not a picture.`); continue; }
+			if (file.size >= MAX_BYTES) { error.push(`${file.name} is over 8 MB.`); continue; }
+			if (photos.length >= MAX_PHOTOS) { error.push(`A post can have up to ${MAX_PHOTOS} photos.`); break; }
+			photos.push({ file, url: URL.createObjectURL(file) });
+		}
+		$('pfComposeError').textContent = error.join(' ');
+		refreshCompose();
+	}
+
+	function refreshCompose() {
+		$('pfPreviews').innerHTML = photos.map((photo, i) => `
+			<div class="pf-preview"><img src="${photo.url}" alt="Photo ${i + 1}">
+				<button type="button" data-remove="${i}" aria-label="Remove photo ${i + 1}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>`).join('');
+		const text = $('pfComposeText').value;
+		$('pfComposeCount').textContent = `${text.length} / 500`;
+		$('pfPostBtn').disabled = posting || (!text.trim() && !photos.length);
+	}
+
+	function resetCompose() {
+		photos.forEach((photo) => URL.revokeObjectURL(photo.url));
+		photos = [];
+		$('pfComposeText').value = '';
+		refreshCompose();
+	}
+
+	$('pfMind').addEventListener('click', openCompose);
+	$('pfPhotoBtn').addEventListener('click', () => $('pfPhotoInput').click());
+	$('pfAddPhotos').addEventListener('click', () => $('pfPhotoInput').click());
+	$('pfPhotoInput').addEventListener('change', (event) => {
+		const files = [...event.target.files];
+		event.target.value = '';
+		if (!files.length) return;
+		if (!$('pfComposeModal').classList.contains('open')) openCompose();
+		addPhotos(files);
+	});
+	$('pfPreviews').addEventListener('click', (event) => {
+		const button = event.target.closest('[data-remove]');
+		if (!button) return;
+		const [removed] = photos.splice(Number(button.dataset.remove), 1);
+		if (removed) URL.revokeObjectURL(removed.url);
+		refreshCompose();
+	});
+	$('pfComposeText').addEventListener('input', refreshCompose);
+
+	$('pfPostBtn').addEventListener('click', async () => {
+		const text = $('pfComposeText').value.trim();
+		if (posting || (!text && !photos.length) || !me.uid) return;
+		posting = true;
+		$('pfPostBtn').textContent = photos.length ? 'Uploading photos…' : 'Posting…';
+		refreshCompose();
+		$('pfComposeError').textContent = '';
+		const uploaded = [];
+		try {
+			// Same folder and naming as the app: communityPosts/{uid}/{time}_{index}.jpg|png
+			const stamp = Date.now();
+			for (let i = 0; i < photos.length; i += 1) {
+				const { file } = photos[i];
+				const png = file.type === 'image/png';
+				const path = `communityPosts/${me.uid}/${stamp}_${i}.${png ? 'png' : 'jpg'}`;
+				const fileRef = ref(storage, path);
+				await uploadBytes(fileRef, file, { contentType: png ? 'image/png' : (file.type || 'image/jpeg') });
+				uploaded.push({ path, url: await getDownloadURL(fileRef) });
+			}
+			await addDoc(collection(db, 'communityPosts'), {
+				authorId: me.uid,
+				authorName: me.name || 'Admin',
+				authorAvatar: null,
+				text,
+				imageUrls: uploaded.map((p) => p.url),
+				imagePaths: uploaded.map((p) => p.path),
+				likedBy: [],
+				commentCount: 0,
+				createdAt: serverTimestamp()
+			});
+			resetCompose();
+			closeModal('pfComposeModal');
+		} catch (error) {
+			// A post that never got saved leaves no photos behind.
+			await Promise.allSettled(uploaded.map((p) => deleteObject(ref(storage, p.path))));
+			$('pfComposeError').textContent = error?.code === 'permission-denied' || error?.code === 'storage/unauthorized'
+				? 'Firebase refused the post. Check that your admin account is allowed to post to the Community.'
+				: `Could not post: ${error.message || 'Unknown error'}`;
+		} finally {
+			posting = false;
+			$('pfPostBtn').textContent = 'Post';
+			refreshCompose();
+		}
+	});
+	</script>
+</body>
+</html>
