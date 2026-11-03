@@ -30,8 +30,9 @@ const PEAK_2 = [14.13574, 121.19387];
 const at = (key, n) => STATION_COORDS[key][n];
 export const SUGGESTED_CHECKPOINTS = {
   mariang: [
-    { name: 'MCME Registration', note: 'Station 1. Log in at the Makiling Center for Mountain Ecosystems office.', at: at('mariang', 1) },
-    { name: 'Agila Base', note: 'Station 11. Second log-in before the forest; rangers enforce the morning cut-off here.', at: at('mariang', 11) },
+    { name: 'MCME Registration', note: 'Station 1. Monitoring station: briefing, registration and inspection at the Makiling Center for Mountain Ecosystems office.', at: at('mariang', 1) },
+    { name: 'Tayabak Campsite', note: 'Station 8. Monitoring and first aid station, by the Central Nursery.', at: at('mariang', 8) },
+    { name: 'Malaboo Campsite', note: 'Station 14. Monitoring, first aid and food station; last campsite before the Wilderness Zone.', at: at('mariang', 14) },
     { name: 'Peak 2 Summit', note: 'Station 30. 1,090 MASL, end of the trail.', at: PEAK_2 }
   ],
   sipit: [
@@ -42,7 +43,7 @@ export const SUGGESTED_CHECKPOINTS = {
   traverse: [
     { name: 'MakTrav Jump-off (Sipit side)', note: 'Start of the traverse, up the Sipit Trail from Sto. Tomas. Register before the climb.', at: [14.099953324593944, 121.19592880324568] },
     { name: 'Peak 2 Summit', note: '1,090 MASL, halfway point of the traverse.', at: PEAK_2 },
-    { name: 'Agila Base', note: 'Mariang Makiling Station 11. Log back in on the way down.', at: at('mariang', 11) },
+    { name: 'Malaboo Campsite', note: 'Mariang Makiling Station 14. Monitoring station; log back in on the way down.', at: at('mariang', 14) },
     { name: 'MCME Exit', note: 'Mariang Makiling Station 1. Log out at the MCME office, Los Baños.', at: at('mariang', 1) }
   ],
   botanic: [

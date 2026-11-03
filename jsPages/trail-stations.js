@@ -5,13 +5,20 @@
 // (lib/features/trails/station_service.dart in the app repo).
 //
 // Until a trail's stations are saved there, the panel shows the reference
-// list below and offers to save it. The reference was put together from
-// hiker reports and the Makiling Center for Mountain Ecosystems (MCME) in
-// October 2026. Only stations those sources name are described; the rest are
-// plain numbered markers. Check it against MCME's own trail map before
-// relying on it for safety.
+// list below and offers to save it.
+//
+// The Mariang Makiling Trail follows MCME's own trail map (the "Make It
+// Makiling!" 2026 visitors' guide: its 30 stations, the measured distance
+// between each, and its monitoring, first-aid and food stations), with each
+// station placed at its marker as surveyed on OpenStreetMap. The Sipit Trail
+// was put together from hiker reports in October 2026; only stations those
+// sources name are described, the rest are plain numbered markers.
 //
 // Sources:
+//   MCME, Make It Makiling! 2026 Visitors' Guide: Mariang Makiling Trail
+//     location map (https://mim.makiling.center)
+//   OpenStreetMap, the "Maria Makiling Trail Station" markers
+//   https://makiling.center/mariang-makiling-trail/
 //   https://makiling.center/places-in-mount-makiling/
 //   https://www.pinoymountaineer.com/2009/12/maktrav-mt-makilingsto-tomas-los-banos.html
 //   https://www.pinoymountaineer.com/2013/05/hiking-matters-342-mt-makiling-via.html
@@ -48,28 +55,34 @@ export const REFERENCE_STATIONS = {
   mariang: {
     title: 'Mariang Makiling Trail',
     count: 30,
-    summary: 'About 8 km from the MCME office in Los Baños (Station 1) to Peak 2 (Station 30, 1,090 MASL).',
+    summary: 'MCME\'s official trail: about 9.4 km by its measured station distances, from the MCME office in Los Baños (Station 1) to Peak 2 (Station 30, 1,090 MASL). Monitoring stations at Stations 1, 8 and 14.',
     sections: [
-      { from: 1, to: 11, label: 'Concrete road', note: 'About 5.4 km of steep paved road' },
-      { from: 12, to: 30, label: 'Forest trail', note: 'Muddy, root-covered trail to Peak 2' }
+      { from: 1, to: 11, label: 'Concrete road', note: 'About 5.5 km of steep paved road to Agila Base' },
+      { from: 12, to: 15, label: 'Forest trail', note: 'Forest trail to Malaboo Campsite and the Jump Off Point' },
+      { from: 16, to: 30, label: 'Wilderness Zone', note: 'Mossy forest to Peak 2: no water supply, slippery when wet, leeches in the wet season; no entry from 3:00 PM to 6:00 AM' }
     ],
+    // Monitoring, first-aid and food stations as MCME's map marks them.
     stations: {
-      // Stations 1 and 11 are the ranger posts where hikers log in; they are
-      // marked first aid because the rangers there are the trail's first
-      // responders. No source lists official first-aid stations, so confirm
-      // with MCME.
-      1: { landmark: 'Trailhead', tags: ['registration', 'firstaid', 'sidetrip'],
-        description: 'Official start of the trail, near the Makiling Center for Mountain Ecosystems (MCME) office. Flat Rocks, natural pools on Molawin Creek, is a few hundred meters away.' },
-      7: { landmark: 'Rest stop', tags: ['store'],
-        description: 'Stores and buko stalls along the road; a common rest stop.' },
-      8: { landmark: 'Mud Spring jump-off', tags: ['sidetrip'],
-        description: 'Jump-off to the Mud Spring, volcanic mud pots about 690 m off the trail. Tayabak Campsite is around here.' },
-      11: { landmark: 'Agila Base', tags: ['registration', 'firstaid', 'water', 'store'],
-        description: 'End of the concrete road. Hikers log in again before entering the forest; natural water refill and occasional vendors. Rangers enforce the morning cut-off for continuing to the peak here.' },
+      1: { landmark: 'MCME Office', tags: ['registration', 'firstaid', 'store'],
+        description: 'Official start of the trail, at the Makiling Center for Mountain Ecosystems office: monitoring station, first aid and food. All visitors go through group briefing, registration and inspection here; prohibited items are held until exit. Trash is disposed of here on the way out.' },
+      2: { landmark: 'Flat Rocks', tags: ['sidetrip'],
+        description: 'Side trip to Flat Rocks, natural pools on Molawin Creek. No entry to Flat Rocks after 3:00 PM.' },
+      7: { landmark: 'Makiling Rainforest Park', tags: ['store'],
+        description: 'Food station by the Makiling Rainforest Park.' },
+      8: { landmark: 'Tayabak Campsite', tags: ['registration', 'firstaid'],
+        description: 'Tayabak Campsite and the Central Nursery: monitoring station and first aid station, with a designated campsite.' },
+      9: { landmark: 'Mud Spring junction', tags: ['sidetrip', 'store'],
+        description: 'Food station and the turn-off to the Mud Spring, volcanic mud pots off the trail. No entry to the Mud Spring after 2:00 PM.' },
+      10: { landmark: 'Food station', tags: ['store'],
+        description: 'Food station on the road to Agila Base.' },
+      11: { landmark: 'Agila Base', tags: ['water'],
+        description: 'End of the concrete road, about 5.5 km from Station 1. Hikers report a natural water refill here; the forest trail starts after it.' },
       12: { landmark: 'Forest entry', tags: [],
         description: 'Start of the forest trail toward Malaboo.' },
-      14: { landmark: 'Malaboo Campsite', tags: [],
-        description: 'Malaboo Campsite (Stations 13 to 14). Rafflesia buds have been seen around here.' },
+      14: { landmark: 'Malaboo Campsite', tags: ['registration', 'firstaid', 'store'],
+        description: 'Malaboo Campsite: monitoring station, first aid and food station, and the last designated campsite (camping is not allowed at Peaks 1, 2 and 3). Rafflesia buds have been seen around here.' },
+      15: { landmark: 'Jump Off Point', tags: [],
+        description: 'Start of the Wilderness Zone toward the summit: mid-mountain and mossy forest, no water supply, slippery when wet, leeches in the wet season. No entry from 3:00 PM to 6:00 AM.' },
       20: { landmark: 'Steeper section', tags: ['steep'],
         description: 'The trail becomes noticeably steeper from here on.' },
       26: { landmark: 'Landslide area', tags: [],
@@ -77,7 +90,7 @@ export const REFERENCE_STATIONS = {
       28: { landmark: 'Roped segments', tags: ['steep'],
         description: 'Roped sections on the final climb.' },
       30: { landmark: 'Peak 2', tags: ['peak'],
-        description: 'Summit, 1,090 MASL, with a small metal viewing deck. End of the trail.' }
+        description: 'Summit, 1,090 MASL, with a small metal viewing deck. End of the trail. Camping is not allowed at the peaks.' }
     }
   },
   sipit: {
@@ -109,33 +122,34 @@ export const REFERENCE_STATIONS = {
 };
 
 
-/* Estimated [latitude, longitude] of every reference station. No official
-   list of station coordinates exists, so each station is placed along its
-   trail's OpenStreetMap line (assets/data/makiling-trails.geojson), with the
-   landmarks the sources pin down used as anchors and the stations between
-   two anchors spaced evenly along the line:
-     Mariang Makiling  1  where the Flat Rocks side trail meets the road,
-                          by the MCME office (the trailhead)
-                       8  where the Mud Spring side trail leaves the road
-                      11  Agila Base, 5.4 km of road after Station 1 (the
-                          concrete-road length the sources give)
-                      30  Peak 2, the end of the line
-     Sipit             1  150 m past the Sto. Tomas jump-off (the start of
-                          the line); 21 at Peak 2, the end of the line
-   Expect them to be off by up to a few hundred metres; replace any with a
-   GPS reading taken at the marker (Trail Station Management). */
+/* [latitude, longitude] of every reference station.
+     Mariang Makiling  the station markers surveyed on OpenStreetMap
+                       ("Maria Makiling Trail Station 1" to 11, Malaboo for
+                       14, and Stations 16-19, 21, 22, 25, 27 and 29), all
+                       within 8 m of the trail line; Peak 2 (30) is the end
+                       of the line. The rest (12, 13, 15, 20, 23, 24, 26,
+                       28) are placed along the line between the surveyed
+                       ones in proportion to MCME's measured distances.
+                       OpenStreetMap's "Station 13" is not used: it sits
+                       beside Malaboo, against MCME's 312 m between them.
+     Sipit             estimates, spaced evenly along the trail's line
+                       (assets/data/makiling-trails.geojson) from 150 m past
+                       the Sto. Tomas jump-off (1) to Peak 2 (21); expect
+                       them to be off by up to a few hundred metres.
+   Replace any with a GPS reading taken at the marker (Trail Station
+   Management). */
 export const STATION_COORDS = {
   mariang: {
-    1: [14.14814, 121.23185], 2: [14.145695, 121.23042], 3: [14.143921, 121.232058],
-    4: [14.141533, 121.229972], 5: [14.139733, 121.230711], 6: [14.137916, 121.23034],
-    7: [14.135944, 121.229063], 8: [14.1358, 121.22573], 9: [14.131933, 121.219781],
-    10: [14.129922, 121.212583], 11: [14.132792, 121.208493], 12: [14.133768, 121.20792],
-    13: [14.134999, 121.207767], 14: [14.1356, 121.206861], 15: [14.136559, 121.205869],
-    16: [14.137726, 121.205396], 17: [14.138667, 121.204845], 18: [14.138445, 121.203696],
-    19: [14.137375, 121.202754], 20: [14.136851, 121.201577], 21: [14.13737, 121.201344],
-    22: [14.1382, 121.201418], 23: [14.138841, 121.200423], 24: [14.138608, 121.199237],
-    25: [14.138996, 121.198965], 26: [14.138217, 121.197868], 27: [14.137965, 121.196808],
-    28: [14.136691, 121.196247], 29: [14.135815, 121.195149], 30: [14.13574, 121.19387]
+    1: [14.15132, 121.233701], 2: [14.148059, 121.231827], 3: [14.146432, 121.22992],
+    4: [14.143742, 121.232181], 5: [14.138655, 121.231741], 6: [14.137094, 121.230475],
+    7: [14.135367, 121.228222], 8: [14.135783, 121.225539], 9: [14.133784, 121.224038],
+    10: [14.130845, 121.215983], 11: [14.12905, 121.209997], 12: [14.132072, 121.208913],
+    13: [14.135098, 121.207666], 14: [14.136745, 121.205803], 15: [14.137812, 121.20545],
+    16: [14.138795, 121.204538], 17: [14.136915, 121.201792], 18: [14.136904, 121.201024],
+    19: [14.138914, 121.200175], 20: [14.139339, 121.199036], 21: [14.138878, 121.198873],
+    22: [14.138213, 121.197861], 23: [14.137792, 121.197381], 24: [14.137905, 121.196771],
+    25: [14.136949, 121.196414], 26: [14.136417, 121.196077], 27: [14.135923, 121.195339],
+    28: [14.135808, 121.194442], 29: [14.13585, 121.194054], 30: [14.13574, 121.19387]
   },
   sipit: {
     1: [14.107584, 121.187988], 2: [14.109588, 121.187099], 3: [14.111757, 121.186862],
@@ -147,6 +161,69 @@ export const STATION_COORDS = {
     19: [14.1349, 121.189578], 20: [14.1353, 121.191634], 21: [14.13574, 121.19387]
   }
 };
+
+/* The Mariang Makiling reference stations saved before it followed MCME's
+   map (version 1): what each landmark station said, so a saved station
+   still exactly as saved can be told from one an admin has edited. */
+const MARIANG_V1 = {
+  1: { landmark: 'Trailhead', tags: ['registration', 'firstaid', 'sidetrip'],
+    description: 'Official start of the trail, near the Makiling Center for Mountain Ecosystems (MCME) office. Flat Rocks, natural pools on Molawin Creek, is a few hundred meters away.' },
+  7: { landmark: 'Rest stop', tags: ['store'],
+    description: 'Stores and buko stalls along the road; a common rest stop.' },
+  8: { landmark: 'Mud Spring jump-off', tags: ['sidetrip'],
+    description: 'Jump-off to the Mud Spring, volcanic mud pots about 690 m off the trail. Tayabak Campsite is around here.' },
+  11: { landmark: 'Agila Base', tags: ['registration', 'firstaid', 'water', 'store'],
+    description: 'End of the concrete road. Hikers log in again before entering the forest; natural water refill and occasional vendors. Rangers enforce the morning cut-off for continuing to the peak here.' },
+  12: { landmark: 'Forest entry', tags: [],
+    description: 'Start of the forest trail toward Malaboo.' },
+  14: { landmark: 'Malaboo Campsite', tags: [],
+    description: 'Malaboo Campsite (Stations 13 to 14). Rafflesia buds have been seen around here.' },
+  20: { landmark: 'Steeper section', tags: ['steep'],
+    description: 'The trail becomes noticeably steeper from here on.' },
+  26: { landmark: 'Landslide area', tags: [],
+    description: 'Start of a major landslide section; watch the footing.' },
+  28: { landmark: 'Roped segments', tags: ['steep'],
+    description: 'Roped sections on the final climb.' },
+  30: { landmark: 'Peak 2', tags: ['peak'],
+    description: 'Summit, 1,090 MASL, with a small metal viewing deck. End of the trail.' }
+};
+/* The reference a saved station was last brought up to (referenceVersion
+   on the station). 2: the Mariang Makiling Trail from MCME's map. */
+const REFERENCE_VERSION = { mariang: 2 };
+
+/* The changes that bring a saved station up to its reference, or null.
+   Its position moves while it is still an estimate (coordsEstimated, or
+   none at all); its landmark, description, tags, name and section only
+   while they are still the old reference's, so nothing an admin typed or
+   ticked is overwritten. Station numbers never change. */
+function referenceUpgrade(key, data) {
+  const version = REFERENCE_VERSION[key];
+  if (!version || Number(data.referenceVersion || 1) >= version) return null;
+  const n = Number(data.stationNumber);
+  const next = referenceDocs(key, data.trailID).find((d) => d.stationNumber === n);
+  const update = { referenceVersion: version };
+  if (!next) return update;
+  const hasCoords = Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng))
+    && data.lat !== null && data.lng !== null && data.lat !== '' && data.lng !== '';
+  if (next.lat !== null && (data.coordsEstimated === true || !hasCoords)) {
+    Object.assign(update, { lat: next.lat, lng: next.lng, coordsEstimated: true });
+  }
+  const old = MARIANG_V1[n] || { landmark: '', tags: [], description: '' };
+  const sameTags = (a, b) => [...(a || [])].sort().join() === [...b].sort().join();
+  const untouched = String(data.landmark || '') === old.landmark
+    && String(data.description || '') === old.description
+    && sameTags(data.tags, old.tags);
+  if (key === 'mariang' && untouched) {
+    Object.assign(update, {
+      landmark: next.landmark,
+      name: next.name,
+      description: next.description,
+      tags: next.tags,
+      section: next.section
+    });
+  }
+  return update;
+}
 
 const normalize = (value) => String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
 
@@ -218,8 +295,39 @@ export function initStationsPanel({ db, root, onSelectTrail, onSelectStation }) 
   let allTrails = [];
   let activeNumber = null;
   let saving = false;
+  let upgrading = false;
+
+  /* Saved stations from an older reference list are brought up to the
+     current one once, by an admin's page (see referenceUpgrade). Anyone
+     else's write is refused by the rules, and nothing changes. */
+  async function upgradeSaved(snapshot) {
+    if (upgrading || !allTrails.length) return;
+    const pending = snapshot.docs
+      .map((d) => {
+        const data = d.data();
+        const trailID = data.trailID || data.TrailID || data.trailId;
+        const key = referenceKeyFor(allTrails.find((t) => t.id === trailID));
+        const update = key ? referenceUpgrade(key, { ...data, trailID }) : null;
+        return update ? { id: d.id, update } : null;
+      })
+      .filter(Boolean);
+    if (!pending.length) return;
+    upgrading = true;
+    try {
+      const batch = writeBatch(db);
+      pending.forEach(({ id, update }) => batch.update(doc(db, 'stations', id), { ...update, updatedAt: serverTimestamp() }));
+      await batch.commit();
+      console.info(`Updated ${pending.length} saved station(s) to the current reference.`);
+    } catch (error) {
+      console.info('Saved stations not updated to the current reference:', error?.message || error);
+    }
+    // Stays set: one try per page.
+  }
+  let lastSnapshot = null;
 
   onSnapshot(collection(db, 'stations'), (snapshot) => {
+    lastSnapshot = snapshot;
+    upgradeSaved(snapshot);
     stationsByTrail.clear();
     snapshot.docs.forEach((d) => {
       const data = d.data();
@@ -365,7 +473,7 @@ export function initStationsPanel({ db, root, onSelectTrail, onSelectStation }) 
       <div class="st-summary">
         <span class="st-chip"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>${set.stations.length} stations</span>
         ${first && last ? `<span class="st-chip"><i class="fa-solid fa-flag" aria-hidden="true"></i>${escapeHtml(first.landmark || 'Station 1')} → ${escapeHtml(last.landmark || `Station ${last.number}`)}</span>` : ''}
-        <span class="st-chip ${isReference ? 'is-ref' : 'is-saved'}" title="${isReference ? 'Compiled from hiker reports and MCME. Not saved to the app yet.' : 'Saved in Firestore; this is what the mobile app shows.'}">
+        <span class="st-chip ${isReference ? 'is-ref' : 'is-saved'}" title="${isReference ? 'Reference list, not saved to the app yet.' : 'Saved in Firestore; this is what the mobile app shows.'}">
           <i class="fa-solid ${isReference ? 'fa-book-open' : 'fa-mobile-screen'}" aria-hidden="true"></i>${isReference ? 'Reference data · not in the app yet' : 'Saved · shown in the app'}
         </span>
       </div>
@@ -381,7 +489,7 @@ export function initStationsPanel({ db, root, onSelectTrail, onSelectStation }) 
       </div>
       ${isReference ? `
         <div class="st-footer">
-          <span class="st-muted">Compiled from hiker reports and MCME. Check it against MCME's trail map before relying on it.</span>
+          <span class="st-muted">${set.key === 'mariang' ? 'From MCME\'s official trail map, with the stations\' surveyed positions.' : 'Compiled from hiker reports and MCME. Check it against MCME\'s trail map before relying on it.'}</span>
           <button type="button" class="st-save-btn" data-save-stations="${escapeHtml(set.key)}"${saving ? ' disabled' : ''}>
             <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>${saving ? 'Saving…' : `Save ${set.stations.length} stations to the app`}
           </button>
@@ -400,6 +508,7 @@ export function initStationsPanel({ db, root, onSelectTrail, onSelectStation }) 
         // Fixed ids, so saving twice overwrites instead of duplicating.
         batch.set(doc(db, 'stations', `${trailID}_station_${String(data.stationNumber).padStart(2, '0')}`), {
           ...data,
+          referenceVersion: REFERENCE_VERSION[key] || 1,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
@@ -448,6 +557,7 @@ export function initStationsPanel({ db, root, onSelectTrail, onSelectStation }) 
   return {
     update(selectedTrail, trailsList) {
       allTrails = trailsList || [];
+      if (lastSnapshot) upgradeSaved(lastSnapshot);
       if (selectedTrail?.id !== currentTrail?.id) activeNumber = null;
       currentTrail = selectedTrail || null;
       draw();

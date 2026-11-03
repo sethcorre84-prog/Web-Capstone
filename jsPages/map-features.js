@@ -339,8 +339,8 @@ export function addMapFeatures({ map, db, trails = () => [], stationsOnly = fals
   }).catch((error) => console.warn('Could not draw the rivers and creeks:', error.message));
 
   let stationDocs = [];
-  // One facility: the round badge. Several (Agila Base is a monitoring,
-  // first-aid and food stop): one pill with an icon for each, so none hides
+  // One facility: the round badge. Several (Malaboo Campsite is a
+  // monitoring, first-aid and food stop): one pill with an icon for each, so none hides
   // another.
   const numTag = (number) => (number ? `<span class="mf-num">${number}</span>` : '');
   const facilityIcon = (facilities, open, number = '') => {
