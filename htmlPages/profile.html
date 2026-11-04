@@ -590,7 +590,7 @@
 					<div class="pf-mini-avatar"><img src="../assets/images/logo.png" alt=""></div>
 					<div><strong id="pfComposeName">Admin</strong><span>Posting to the PeakPath Community</span></div>
 				</div>
-				<textarea id="pfComposeText" maxlength="500" placeholder="What's on your mind?" aria-label="Post text"></textarea>
+				<textarea id="pfComposeText" maxlength="2000" placeholder="What's on your mind?" aria-label="Post text"></textarea>
 				<div class="pf-previews" id="pfPreviews"></div>
 				<div class="pf-add-bar">
 					<span>Add to your post</span>
@@ -599,7 +599,7 @@
 				<p class="pf-error" id="pfComposeError" role="alert"></p>
 			</div>
 			<div class="pf-dialog-foot">
-				<span class="pf-muted" id="pfComposeCount">0 / 500</span>
+				<span class="pf-muted" id="pfComposeCount">0 / 2000</span>
 				<button type="button" class="pf-primary" id="pfPostBtn" disabled>Post</button>
 			</div>
 		</div>
@@ -1365,7 +1365,7 @@
 			<div class="pf-preview"><img src="${photo.url}" alt="Photo ${i + 1}">
 				<button type="button" data-remove="${i}" aria-label="Remove photo ${i + 1}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>`).join('');
 		const text = $('pfComposeText').value;
-		$('pfComposeCount').textContent = `${text.length} / 500`;
+		$('pfComposeCount').textContent = `${text.length} / 2000`;
 		$('pfPostBtn').disabled = posting || (!text.trim() && !photos.length);
 	}
 
