@@ -423,6 +423,8 @@
 	.pf-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
 	.pf-field { display: grid; gap: 6px; min-width: 0; }
 	.pf-field.wide { grid-column: 1 / -1; }
+	/* Current password only shows once the email is changed. */
+	.pf-field[hidden] { display: none; }
 	.pf-field label { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
 	.pf-field input, .pf-field select {
 		width: 100%;
@@ -610,7 +612,6 @@
 		<div class="pf-dialog" role="dialog" aria-modal="true" aria-labelledby="pfEditTitle" style="width:min(600px,100%)">
 			<div class="pf-dialog-head">
 				<h3 id="pfEditTitle">Edit profile</h3>
-				<button type="button" class="pf-dialog-close" data-close aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
 			</div>
 			<form id="pfEditForm" novalidate>
 				<div class="pf-dialog-body">

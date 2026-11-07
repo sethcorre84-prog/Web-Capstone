@@ -532,6 +532,45 @@
     .verify-status.is-error {
         color: var(--danger, #c8402f);
     }
+    /* "Verify with email instead": when the SMS can't reach the number. */
+    .verify-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 8px;
+        padding: 8px 12px;
+        border: 1px solid var(--accent, #2f8f4e);
+        border-radius: 10px;
+        background: none;
+        color: var(--accent-dark, #1f6b39);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .verify-switch:hover:not(:disabled) { background: var(--accent-light, #e3f2e6); }
+    .verify-switch:disabled { opacity: .6; cursor: not-allowed; }
+    .verify-switch[hidden], .email-verify-box[hidden] { display: none; }
+    .email-verify-box {
+        margin-top: 10px;
+        padding: 12px;
+        border: 1px solid var(--border, #e4e7e1);
+        border-radius: 12px;
+        background: var(--accent-light, #e7f5eb);
+    }
+    .email-verify-box .verify-row + .field-hint { margin-top: 6px; }
+    .email-verify-box .link-switch {
+        margin-top: 6px;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--accent-dark, #1f6b39);
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 700;
+        text-decoration: underline;
+        cursor: pointer;
+    }
     /* Reads as an end date, not a passing hint, once a length is typed. */
     .field-hint.is-set {
         color: var(--dm-text, #1c231c);
@@ -3044,7 +3083,7 @@
     <div class="field">
       <label for="addUserName">Full Name</label>
       <input id="addUserName" name="fullName" type="text" maxlength="80" autocomplete="off" aria-describedby="addUserNameHint" required>
-      <p id="addUserNameHint" class="field-hint verify-status">Letters and spaces only, e.g. Juan Dela Cruz.</p>
+      <p id="addUserNameHint" class="field-hint verify-status">Letters, spaces and dots only, e.g. Ma. Clara Dela Cruz Jr.</p>
     </div>
     <div class="field">
       <label for="addUserUsername">Username</label>
@@ -3054,7 +3093,7 @@
     <div class="field">
       <label for="addUserEmail">Email</label>
       <input id="addUserEmail" name="email" type="email" autocomplete="off" aria-describedby="addUserEmailHint" required>
-      <p id="addUserEmailHint" class="field-hint">Saved with the account. The phone number below is what gets verified.</p>
+      <p id="addUserEmailHint" class="field-hint">Saved with the account. The phone number below is verified by SMS; if the SMS can't reach it, a code can be sent to this email instead.</p>
     </div>
     <!-- The phone is verified by SMS: the code goes to the user's phone and
          they read it to the admin, proving it is a working SIM, before the
@@ -3071,6 +3110,18 @@
       </div>
       <p id="addUserPhoneHint" class="field-hint verify-status">Philippine mobile number only (+63). Send a code to it, then enter the code the user receives by SMS.</p>
       <div id="addUserRecaptcha"></div>
+      <!-- When the SMS can't reach the number (some networks, e.g. DITO, are
+           refused by the SMS service), the sign-up is verified by a code
+           emailed to the address instead, as the app's sign-up does. -->
+      <button type="button" class="verify-switch" id="useEmailInsteadBtn" hidden><i class="fa-regular fa-envelope" aria-hidden="true"></i>Verify with email instead</button>
+      <div class="email-verify-box" id="emailVerifyBox" hidden>
+        <div class="verify-row">
+          <input id="addUserEmailCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code from the email" aria-label="Email code">
+          <button type="button" class="verify-btn" id="resendEmailCodeBtn">Resend</button>
+        </div>
+        <p id="addUserEmailVerifyHint" class="field-hint verify-status"></p>
+        <button type="button" class="link-switch" id="backToSmsBtn">Use SMS instead</button>
+      </div>
     </div>
     <!-- Hikers only (hidden for a Guide): who to call if something happens
          on the trail. Saved on the profile as emergencyContactName /
@@ -4495,9 +4546,15 @@
      box is still the verified one. */
   const refreshAddUserButton = () => {
     const parsed = parsePhilippinePhone(addUserPhoneInput.value);
+    if (emailMode) {
+      const ready = Boolean(parsed) && emailCodeReady();
+      saveAddUserBtn.disabled = !ready;
+      saveAddUserBtn.title = ready ? '' : 'Enter the 6-digit code from the email first';
+      return;
+    }
     const phoneOk = Boolean(verifiedPhone && parsed && parsed.e164 === verifiedPhone);
     saveAddUserBtn.disabled = !phoneOk;
-    saveAddUserBtn.title = phoneOk ? '' : 'Verify the phone number by SMS first';
+    saveAddUserBtn.title = phoneOk ? '' : 'Verify the phone number by SMS (or with email instead) first';
   };
 
   const startResendCountdown = (seconds) => {
@@ -4517,8 +4574,146 @@
     }, 1000);
   };
 
+  /* ---- Verify with email instead ----
+     The SMS can't always reach the number (some networks, e.g. DITO, are
+     refused by the SMS service), so, as in the app's sign-up
+     (VerifyPhoneScreen > Verify with email instead), the sign-up can be
+     verified by a 6-digit code emailed to the address. requestSignupOtp
+     sends it; on Add User, verifySignupOtp checks it and creates the
+     account, already verified, with the whole profile (both in the app's
+     functions). Nothing is made until the code is right. */
+  const useEmailInsteadBtn = document.getElementById('useEmailInsteadBtn');
+  const emailVerifyBox = document.getElementById('emailVerifyBox');
+  const emailCodeInput = document.getElementById('addUserEmailCode');
+  const emailVerifyHint = document.getElementById('addUserEmailVerifyHint');
+  const resendEmailCodeBtn = document.getElementById('resendEmailCodeBtn');
+  const addUserEmailInput = document.getElementById('addUserEmail');
+  const signupFunctions = getFunctions(auth.app);
+  const requestSignupOtp = httpsCallable(signupFunctions, 'requestSignupOtp');
+  const verifySignupOtp = httpsCallable(signupFunctions, 'verifySignupOtp');
+  let emailMode = false;     // verifying by email instead of SMS
+  let emailCodeFor = null;   // the address the code was sent to
+  let emailResendTimer = null;
+
+  const setEmailVerifyStatus = (text, tone = '') => {
+    emailVerifyHint.textContent = text;
+    emailVerifyHint.className = `field-hint verify-status${tone ? ` is-${tone}` : ''}`;
+  };
+  const emailCodeReady = () => emailMode
+    && emailCodeFor === normalizeText(addUserEmailInput.value).toLowerCase()
+    && /^\d{6}$/.test(emailCodeInput.value.trim());
+
+  const resetEmailVerification = () => {
+    emailMode = false;
+    emailCodeFor = null;
+    clearInterval(emailResendTimer);
+    emailVerifyBox.hidden = true;
+    emailCodeInput.value = '';
+    addUserEmailInput.readOnly = false;
+    useEmailInsteadBtn.hidden = true;
+    useEmailInsteadBtn.disabled = false;
+  };
+
+  const startEmailResendCountdown = (seconds) => {
+    clearInterval(emailResendTimer);
+    let left = seconds;
+    resendEmailCodeBtn.disabled = true;
+    resendEmailCodeBtn.textContent = `Resend (${left}s)`;
+    emailResendTimer = setInterval(() => {
+      left -= 1;
+      if (left <= 0) {
+        clearInterval(emailResendTimer);
+        resendEmailCodeBtn.disabled = false;
+        resendEmailCodeBtn.textContent = 'Resend';
+      } else {
+        resendEmailCodeBtn.textContent = `Resend (${left}s)`;
+      }
+    }, 1000);
+  };
+
+  // Sends (or sends again) the code to the email in the form.
+  const sendEmailCode = async () => {
+    const email = normalizeText(addUserEmailInput.value).toLowerCase();
+    const username = String(document.getElementById('addUserUsername').value || '').trim();
+    const parsed = parsePhilippinePhone(addUserPhoneInput.value);
+    const say = (text) => (emailMode ? setEmailVerifyStatus(text, 'error') : setPhoneStatus(text, 'error'));
+    if (!hasValidEmail(email)) {
+      say('Enter the user\'s email address first: the code is sent there.');
+      addUserEmailInput.focus();
+      return;
+    }
+    if (!parsed) {
+      say(PHONE_ERROR);
+      addUserPhoneInput.focus();
+      return;
+    }
+    const owner = userWithPhone(parsed.e164);
+    if (owner) {
+      say(phoneTakenMessage(owner));
+      addUserPhoneInput.focus();
+      return;
+    }
+    useEmailInsteadBtn.disabled = true;
+    resendEmailCodeBtn.disabled = true;
+    if (emailMode) setEmailVerifyStatus(`Sending a code to ${email}…`);
+    else setPhoneStatus(`Sending a code to ${email}…`);
+    try {
+      await requestSignupOtp({ email, newAccount: true, username });
+      // The SMS attempt is dropped: nothing was made by it.
+      await endSignupSession({ deleteAccount: false });
+      verifiedPhone = null;
+      clearInterval(resendTimer);
+      phoneCodeRow.hidden = true;
+      phoneCodeInput.value = '';
+      sendPhoneCodeBtn.disabled = false;
+      sendPhoneCodeBtn.textContent = 'Send code';
+      emailMode = true;
+      emailCodeFor = email;
+      addUserEmailInput.readOnly = true; // edit it and the email check starts over
+      useEmailInsteadBtn.hidden = true;
+      emailVerifyBox.hidden = false;
+      emailCodeInput.value = '';
+      emailCodeInput.focus();
+      setPhoneStatus('Verifying by email instead of SMS. The phone number is saved with the account, unverified.');
+      setEmailVerifyStatus(`Code sent to ${email}. Ask the user for the 6-digit code from the email, enter it, then press Add User.`);
+      startEmailResendCountdown(60);
+    } catch (error) {
+      console.error('Sending the email code failed:', error);
+      say(error?.message || 'Could not send the code to that email. Check the address and try again.');
+      resendEmailCodeBtn.disabled = false;
+      resendEmailCodeBtn.textContent = 'Resend';
+    } finally {
+      useEmailInsteadBtn.disabled = false;
+      refreshAddUserButton();
+    }
+  };
+  useEmailInsteadBtn.addEventListener('click', sendEmailCode);
+  resendEmailCodeBtn.addEventListener('click', sendEmailCode);
+  document.getElementById('backToSmsBtn').addEventListener('click', () => {
+    resetEmailVerification();
+    setPhoneStatus(PHONE_HINT);
+    checkAddUserPhone();
+    useEmailInsteadBtn.hidden = false;
+    refreshAddUserButton();
+    addUserPhoneInput.focus();
+  });
+  emailCodeInput.addEventListener('input', () => {
+    emailCodeInput.value = emailCodeInput.value.replace(/\D/g, '').slice(0, 6);
+    refreshAddUserButton();
+  });
+  // Clicking the locked email to change it starts the email check over.
+  addUserEmailInput.addEventListener('click', () => {
+    if (!emailMode || !addUserEmailInput.readOnly) return;
+    resetEmailVerification();
+    setPhoneStatus('The email changed: send a new code to it, or verify by SMS.', 'error');
+    useEmailInsteadBtn.hidden = false;
+    refreshAddUserButton();
+    addUserEmailInput.focus();
+  });
+
   // Back to the start: also removes an account that was verified but never added.
   const resetPhoneVerification = () => {
+    resetEmailVerification();
     endSignupSession({ deleteAccount: Boolean(verifiedPhone) });
     verifiedPhone = null;
     clearInterval(resendTimer);
@@ -4616,14 +4811,16 @@
       phoneCodeRow.hidden = false;
       phoneCodeInput.value = '';
       phoneCodeInput.focus();
-      setPhoneStatus(`Code sent by SMS to ${parsed.local}. Ask the user for the 6-digit code.`);
+      setPhoneStatus(`Code sent by SMS to ${parsed.local}. Ask the user for the 6-digit code. Not arriving? Verify with email instead.`);
       startResendCountdown(60);
+      useEmailInsteadBtn.hidden = false;
     } catch (error) {
       console.error('Sending the SMS code failed:', error);
       await endSignupSession({ deleteAccount: false });
       sendPhoneCodeBtn.disabled = false;
       sendPhoneCodeBtn.textContent = 'Send code';
-      setPhoneStatus(describePhoneError(error), 'error');
+      setPhoneStatus(`${describePhoneError(error)} You can verify with email instead.`, 'error');
+      useEmailInsteadBtn.hidden = false;
     }
   });
 
@@ -4656,6 +4853,7 @@
       sendPhoneCodeBtn.disabled = true;
       sendPhoneCodeBtn.textContent = 'Verified ✓';
       setPhoneStatus('The phone number is verified. You can add the user now.', 'ok');
+      useEmailInsteadBtn.hidden = true;
     } catch (error) {
       console.error('Verifying the SMS code failed:', error);
       setPhoneStatus(describePhoneError(error), 'error');
@@ -4673,14 +4871,16 @@
     }
   });
 
-  /* Full Name: letters (any alphabet, so ñ and accented names work) and
-     single spaces between words. No numbers or symbols; those belong in the
-     username, which keeps its own rules. */
+  /* Full Name: letters (any alphabet, so ñ and accented names work), dots
+     for initials and abbreviations ("Ma.", "J.R.", "Jr."), and single
+     spaces between words. Each word starts with a letter. No numbers or
+     other symbols; those belong in the username, which keeps its own
+     rules. */
   const addUserNameInput = document.getElementById('addUserName');
   const addUserNameHint = document.getElementById('addUserNameHint');
-  const NAME_HINT = 'Letters and spaces only, e.g. Juan Dela Cruz.';
-  const NAME_ERROR = 'Use letters and spaces only. Numbers and symbols are not allowed in the full name.';
-  const fullNameOk = (value) => /^\p{L}+(?: \p{L}+)*$/u.test(String(value || '').trim().replace(/\s+/g, ' '));
+  const NAME_HINT = 'Letters, spaces and dots only, e.g. Ma. Clara Dela Cruz Jr.';
+  const NAME_ERROR = 'Use letters, spaces and dots only. Numbers and other symbols are not allowed in the full name.';
+  const fullNameOk = (value) => /^\p{L}[\p{L}.]*(?: \p{L}[\p{L}.]*)*$/u.test(String(value || '').trim().replace(/\s+/g, ' '));
   const checkAddUserName = () => {
     const typed = addUserNameInput.value.trim();
     const bad = typed !== '' && !fullNameOk(typed);
@@ -5166,12 +5366,18 @@
       return;
     }
     if (saveAddUserBtn.disabled || !addUserForm.reportValidity()) return;
-    if (!verifiedPhone || !signup?.user) {
-      setPhoneStatus('Verify the phone number by SMS before adding the user.', 'error');
+    if (emailMode) {
+      if (!emailCodeReady()) {
+        setEmailVerifyStatus('Enter the 6-digit code from the email (sent to the address above).', 'error');
+        emailCodeInput.focus();
+        return;
+      }
+    } else if (!verifiedPhone || !signup?.user) {
+      setPhoneStatus('Verify the phone number by SMS (or with email instead) before adding the user.', 'error');
       return;
     }
     // Someone else may have been given this number since it was verified.
-    const phoneOwner = userWithPhone(verifiedPhone);
+    const phoneOwner = userWithPhone(verifiedPhone || parsePhilippinePhone(addUserPhoneInput.value)?.e164);
     if (phoneOwner) {
       addUserStatusMessage.textContent = phoneTakenMessage(phoneOwner);
       addUserStatusMessage.className = 'action-status error';
@@ -5256,12 +5462,43 @@
       .filter(team => wantedTeamIds.includes(team.id))
       .map(team => team.name)
       .join(', ');
-    // The account made by the SMS check, signed in its own Firebase app.
-    const createdUser = signup.user;
+    // The account made by the SMS check, signed in its own Firebase app
+    // (none when verifying by email: it is made by verifySignupOtp).
+    const createdUser = signup?.user || null;
+    const viaEmail = emailMode;
+    let newUid = createdUser?.uid || '';
     const role = normalizeText(formData.get('role')) || 'Hiker';
     let profileSaved = false;
     let qrUploadFailed = false;
     try {
+      if (viaEmail) {
+        // The email code is checked and the account made, verified, with
+        // the whole profile, by the app's own sign-up function.
+        const parsedPhone = parsePhilippinePhone(formData.get('phone'));
+        const result = await verifySignupOtp({
+          email,
+          code: emailCodeInput.value.trim(),
+          profile: {
+            fullName: normalizeText(formData.get('fullName')),
+            username,
+            phone: parsedPhone.local,
+            password,
+            gender: normalizeText(formData.get('gender')),
+            birthdate: String(formData.get('birthdate') || ''),
+            street: normalizeText(formData.get('street')),
+            barangay: normalizeText(formData.get('barangay')),
+            city: normalizeText(formData.get('city')),
+            province: normalizeText(formData.get('province')),
+            nationality: normalizeText(formData.get('nationality')),
+            emergencyContactName: emergencyContact?.emergencyContactName || '',
+            emergencyContactPhone: emergencyContact?.emergencyContactPhone || ''
+          }
+        });
+        newUid = result?.data?.uid || '';
+        if (!newUid) throw Object.assign(new Error('No account was returned.'), { code: 'functions/internal' });
+        profileSaved = true;
+        if (teamMirror) await updateDoc(doc(db, 'users', newUid), { team: teamMirror }).catch(() => {});
+      } else {
       // Email and password, so username sign-in works (as the app's sign-up).
       await linkWithCredential(createdUser, EmailAuthProvider.credential(email, password));
       await updateProfile(createdUser, { displayName: normalizeText(formData.get('fullName')) }).catch(() => {});
@@ -5309,6 +5546,7 @@
       });
       profileSaved = true;
       verifiedPhone = null; // added: nothing to clean up any more
+      }
       if (role.toLowerCase() !== 'hiker') {
         // A Guide: the evaluation QR code goes to Storage (qrCode/{uid}/...)
         // and its link, with the link typed, onto the profile with the role.
@@ -5319,7 +5557,7 @@
           if (guideLink) roleUpdate.evaluationLink = guideLink;
           if (evalQrFile) {
             const safeName = evalQrFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-            const qrPath = `qrCode/${createdUser.uid}/${Date.now()}-${safeName}`;
+            const qrPath = `qrCode/${newUid}/${Date.now()}-${safeName}`;
             try {
               const qrRef = ref(storage, qrPath);
               await uploadBytes(qrRef, evalQrFile, { contentType: evalQrFile.type });
@@ -5333,12 +5571,12 @@
           }
           roleUpdate.evaluationUpdatedAt = serverTimestamp();
         }
-        await updateDoc(doc(db, 'users', createdUser.uid), roleUpdate);
+        await updateDoc(doc(db, 'users', newUid), roleUpdate);
       }
-      await applyTeamMembership(createdUser.uid, wantedTeamIds);
+      await applyTeamMembership(newUid, wantedTeamIds);
       setResetPasswordStatus(qrUploadFailed
         ? `New ${role} added, but the evaluation QR code could not be uploaded (check the Storage rules are deployed). Mobile username: ${username}.`
-        : `New ${role} added with a verified phone number. Mobile username: ${username}. Sign in with the password entered here.`, qrUploadFailed ? 'error' : 'success');
+        : `New ${role} added with a verified ${viaEmail ? 'email' : 'phone number'}. Mobile username: ${username}. Sign in with the password entered here.`, qrUploadFailed ? 'error' : 'success');
     } catch (error) {
       console.error('Add user failed:', error.code || '', error);
       if (profileSaved) {
@@ -5361,9 +5599,14 @@
           'auth/too-many-requests': 'Too many attempts. Please try again later.',
           'permission-denied': 'Firestore refused to save the profile. Check that the latest firestore.rules are deployed.'
         };
+        // The sign-up functions explain themselves (wrong or expired code,
+        // email or username taken, ...).
+        const functionMessage = String(error?.code || '').startsWith('functions/') && error.code !== 'functions/internal'
+          ? error.message : '';
         addUserStatusMessage.textContent = rollbackFailed
           ? 'The sign-in account was created, but its profile could not be saved or the account removed. Resolve this account in Firebase before trying again.'
-          : messages[error.code] || 'Unable to add this user right now. Please try again.';
+          : messages[error.code] || functionMessage || 'Unable to add this user right now. Please try again.';
+        if (viaEmail && functionMessage) setEmailVerifyStatus(functionMessage, 'error');
         addUserStatusMessage.className = 'action-status error';
       }
     } finally {

@@ -26,6 +26,18 @@
 //                and Off trail, with the off-trail alert box and alarm. false
 //                (GeoMap): only Online now and Last seen, and no alarms --
 //                watching for those is Emergency Monitoring's job.
+//
+// A hiker on a hike whose signal is lost (silent for 2 minutes) keeps their
+// last pin, and the map also draws, on both maps:
+//   - the path they walked (the app's breadcrumb, locations/{uid}.track),
+//     grey and dashed. The app keeps adding to it with no signal, so once
+//     signal returns, the whole stretch they walked offline appears;
+//   - where they have probably got to since: an amber stretch of their
+//     trail, from their last position onwards at their recent pace
+//     (trackTimes), from half to 1.3 times that pace, with an "≈" ring at
+//     the likeliest spot. It is an estimate, labelled as one, for where to
+//     look first, never a live position. Not drawn when the hiker was
+//     already off the trail (there is nothing to follow).
 
 import { escapeHtml } from './utils.js';
 import { announceAlert } from './sos-alarm.js';
@@ -91,6 +103,14 @@ const CSS = `
     border-radius: 50%;
     border: 2px solid #e0962a;
     animation: hikerPulse 2s ease-out infinite;
+}
+/* Signal lost: where they have probably got to (an estimate). */
+.hiker-estimate-line {
+    display: inline-block;
+    margin: 2px 0;
+    color: #8a5a10;
+    font-size: 12px;
+    line-height: 1.4;
 }
 /* How far off the trail, under the pin. */
 .hiker-dist {
@@ -394,6 +414,126 @@ const nearestOnLine = ([lat, lng], latLngs) => {
   return best;
 };
 
+/* Along a line: how far along it (metres from its first point) the nearest
+   spot to a position is, and how far off the line the position is. */
+const alongLine = ([lat, lng], latLngs) => {
+  const ky = 111320;
+  const kx = ky * Math.cos(lat * Math.PI / 180);
+  let best = { along: 0, offset: Infinity };
+  let walked = 0;
+  for (let i = 1; i < latLngs.length; i += 1) {
+    const ax = (latLngs[i - 1].lng - lng) * kx;
+    const ay = (latLngs[i - 1].lat - lat) * ky;
+    const dx = (latLngs[i].lng - lng) * kx - ax;
+    const dy = (latLngs[i].lat - lat) * ky - ay;
+    const lengthSq = dx * dx + dy * dy;
+    const t = lengthSq ? Math.min(1, Math.max(0, -(ax * dx + ay * dy) / lengthSq)) : 0;
+    const offset = Math.hypot(ax + t * dx, ay + t * dy);
+    const length = Math.sqrt(lengthSq);
+    if (offset < best.offset) best = { along: walked + t * length, offset };
+    walked += length;
+  }
+  return { ...best, total: walked };
+};
+
+// The point `metres` along a line, and the stretch of it between two distances.
+const segmentLengths = (latLngs) => {
+  const out = [0];
+  for (let i = 1; i < latLngs.length; i += 1) {
+    const a = latLngs[i - 1];
+    const b = latLngs[i];
+    const ky = 111320;
+    const kx = ky * Math.cos(a.lat * Math.PI / 180);
+    out.push(out[i - 1] + Math.hypot((b.lng - a.lng) * kx, (b.lat - a.lat) * ky));
+  }
+  return out;
+};
+const pointAlong = (latLngs, cum, metres) => {
+  if (metres <= 0) return [latLngs[0].lat, latLngs[0].lng];
+  for (let i = 1; i < latLngs.length; i += 1) {
+    if (cum[i] >= metres) {
+      const t = (metres - cum[i - 1]) / ((cum[i] - cum[i - 1]) || 1);
+      return [latLngs[i - 1].lat + t * (latLngs[i].lat - latLngs[i - 1].lat),
+        latLngs[i - 1].lng + t * (latLngs[i].lng - latLngs[i - 1].lng)];
+    }
+  }
+  const last = latLngs[latLngs.length - 1];
+  return [last.lat, last.lng];
+};
+const stretchAlong = (latLngs, cum, from, to) => {
+  const [a, b] = from <= to ? [from, to] : [to, from];
+  const points = [pointAlong(latLngs, cum, a)];
+  for (let i = 0; i < latLngs.length; i += 1) {
+    if (cum[i] > a && cum[i] < b) points.push([latLngs[i].lat, latLngs[i].lng]);
+  }
+  points.push(pointAlong(latLngs, cum, b));
+  return points;
+};
+
+/* Where a hiker whose signal is lost has probably got to, along their
+   trail. From the last fix, the direction they were walking (the start of
+   their breadcrumb to its end) and their pace over the last half hour
+   before the signal went (or an ordinary pace up a forest trail, 1.6 km/h,
+   when the breadcrumb has no times), for the time since: from half to 1.3
+   times that far, likeliest at that pace. Capped at 4 hours, and at the
+   trail's ends. Null when there is nothing to follow: no trail line, or
+   the hiker more than 150 m from it. */
+const ESTIMATE_DEFAULT_MPS = 1.6 / 3.6;
+const ESTIMATE_MAX_MS = 4 * 60 * 60 * 1000;
+const ESTIMATE_OFF_LINE_M = 150;
+const estimateAlongTrail = ({ coordinates, lastFix, track, trackTimes, latLngs }) => {
+  if (!latLngs || latLngs.length < 2) return null;
+  const here = alongLine(coordinates, latLngs);
+  if (here.offset > ESTIMATE_OFF_LINE_M) return null;
+  const points = (track || []).map((p) => [Number(p.latitude ?? p._lat), Number(p.longitude ?? p._long)])
+    .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+  const times = Array.isArray(trackTimes) && trackTimes.length === points.length ? trackTimes.map(Number) : null;
+
+  // Which way: from where the breadcrumb starts to the last fix; with too
+  // short a breadcrumb, away from the nearer end of the trail.
+  let direction = here.along < here.total / 2 ? 1 : -1;
+  if (points.length >= 2) {
+    const first = alongLine(points[0], latLngs).along;
+    if (Math.abs(here.along - first) >= 30) direction = here.along > first ? 1 : -1;
+  }
+
+  // Pace: progress along the trail over the last half hour with a fix.
+  let pace = ESTIMATE_DEFAULT_MPS;
+  let measured = false;
+  if (times && points.length >= 2 && times[times.length - 1] > 0) {
+    const end = times[times.length - 1];
+    let i = points.length - 1;
+    while (i > 0 && times[i - 1] > 0 && end - times[i - 1] <= 30 * 60 * 1000) i -= 1;
+    const seconds = (end - times[i]) / 1000;
+    if (seconds >= 5 * 60) {
+      const progress = Math.abs(here.along - alongLine(points[i], latLngs).along);
+      if (progress >= 50) {
+        pace = Math.min(1.2, Math.max(0.15, progress / seconds));
+        measured = true;
+      }
+    }
+  }
+
+  const elapsedMs = Math.min(ESTIMATE_MAX_MS, Math.max(0, Date.now() - lastFix.getTime()));
+  const clamp = (m) => Math.min(here.total, Math.max(0, m));
+  const step = (factor) => clamp(here.along + direction * pace * factor * elapsedMs / 1000);
+  const cum = segmentLengths(latLngs);
+  const near = step(0.5);
+  const likely = step(1);
+  const far = step(1.3);
+  return {
+    stretch: stretchAlong(latLngs, cum, near, far),
+    likely: pointAlong(latLngs, cum, likely),
+    nearM: Math.abs(near - here.along),
+    farM: Math.abs(far - here.along),
+    paceKmh: pace * 3.6,
+    measured,
+    atEnd: likely === 0 || likely === here.total
+  };
+};
+
+const formatKm = (metres) => (metres >= 1000 ? `${(metres / 1000).toFixed(1)} km` : `${Math.round(metres / 10) * 10} m`);
+
 // The office a guide works for, from their trail (User Management's
 // "Guide from what trail?"): City ENRO for Sipit, MCME for Mariang Makiling.
 export const guideAgencyOf = (trailName) => {
@@ -433,12 +573,17 @@ const saveAnnounced = (keys) => {
 };
 
 export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () => {}, trailLines = null, announceOffTrail = true, emergencyStatuses = true, onOffTrail = () => {} }) {
+  // The trail lines also place a silent hiker's estimate, on both maps.
+  const estimateTrailLines = trailLines;
   // Without the emergency statuses: no off-trail check (so no alarm), no
   // on-hike colour.
   if (!emergencyStatuses) {
     trailLines = null;
     announceOffTrail = false;
   }
+  // This page's map announces strays itself: the portal-wide off-trail
+  // alarm (off-trail-watch.js) stands down here, so nothing rings twice.
+  if (announceOffTrail && trailLines) window.peakpathOffTrailOnPage = true;
   if (!document.getElementById('hiker-layer-css')) {
     const style = document.createElement('style');
     style.id = 'hiker-layer-css';
@@ -517,6 +662,38 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
      trails; read afresh on every check, so a newly drawn route counts. */
   let trails = null;
   Promise.resolve(trailLines).then((loaded) => { trails = loaded; }).catch(() => {});
+  let estimateTrails = null;
+  Promise.resolve(estimateTrailLines).then((loaded) => { estimateTrails = loaded; }).catch(() => {});
+
+  /* The trail a hiker is on: the line named like their hike's trail, else
+     the one nearest them. */
+  const normalizeName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const lineForHike = (trailName, coordinates) => {
+    const lines = [...(estimateTrails?.lines?.values?.() || [])];
+    if (!lines.length) return null;
+    const wanted = normalizeName(trailName);
+    const named = wanted && lines.find((line) => {
+      const name = normalizeName(line.name);
+      return name && (name.includes(wanted) || wanted.includes(name));
+    });
+    if (named) return named.stroke.getLatLngs().flat(Infinity);
+    let best = null;
+    lines.forEach((line) => {
+      const latLngs = line.stroke.getLatLngs().flat(Infinity);
+      const found = nearestOnLine(coordinates, latLngs);
+      if (!best || found.distance < best.distance) best = { distance: found.distance, latLngs };
+    });
+    return best?.latLngs || null;
+  };
+
+  // The breadcrumb as [lat, lng] pairs.
+  const trackPoints = (data) => (Array.isArray(data.track) ? data.track : [])
+    .map((p) => [Number(p?.latitude ?? p?._lat), Number(p?.longitude ?? p?._long)])
+    .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+
+  const pathLines = new Map();      // uid -> the walked path (signal lost, or popup open)
+  const estimateLayers = new Map(); // uid -> { stretch, ring } while signal is lost
+  const openPopups = new Set();     // uids whose popup is open: their path is shown
   const nearestTrail = (coordinates) => {
     let best = null;
     trails?.lines.forEach((line) => {
@@ -616,7 +793,7 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
   const offTrailLine = (nearest) => `<span class="hiker-off-tag">OFF TRAIL</span><br><small>${escapeHtml(offTrailLabel(nearest.distance))} · nearest: ${escapeHtml(nearest.name)}</small><br>`;
   const farLine = (nearest) => `<span class="hiker-far-tag">GETTING FAR</span><br><small>${escapeHtml(offTrailLabel(nearest.distance))} · nearest: ${escapeHtml(nearest.name)}</small><br>`;
 
-  const hikerPopup = (data, coordinates, updatedAt, online, far = null, offTrail = null) => {
+  const hikerPopup = (data, coordinates, updatedAt, online, far = null, offTrail = null, estimate = null) => {
     const details = [];
     const speed = Number(data.speed);
     if (Number.isFinite(speed) && speed >= 0) details.push(`${(speed * 3.6).toFixed(1)} km/h`);
@@ -634,7 +811,8 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
       ${guide ? `<span class="hiker-guide-line"><i class="fa-solid fa-crown" aria-hidden="true"></i>Guide${guide.agency ? ` · ${escapeHtml(guide.agency)}` : ''}${guide.trail ? ` (${escapeHtml(guide.trail)})` : ''}</span><br>` : ''}
       ${offTrail ? offTrailLine(offTrail) : (far ? farLine(far) : '')}
       ${hike ? `<span style="display:inline-flex;align-items:center;gap:5px;color:#1a73e8;font-weight:600"><i class="fa-solid fa-route" aria-hidden="true"></i>Hiking ${escapeHtml(hike.trail)}${hikeSince ? ` · since ${escapeHtml(hikeSince.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}` : ''}</span><br>` : ''}
-      <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${online ? '#2f8f4e' : '#8a948c'}"></span>${online ? 'Online' : 'Offline · last seen'} ${escapeHtml(formatAgo(updatedAt))}</span><br>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${online ? '#2f8f4e' : '#8a948c'}"></span>${online ? 'Online' : 'Signal lost · last seen'} ${escapeHtml(formatAgo(updatedAt))}</span><br>
+      ${estimate ? `<span class="hiker-estimate-line"><i class="fa-solid fa-route" aria-hidden="true"></i> <strong>Estimated now:</strong> ${estimate.atEnd ? 'at or near the end of the trail' : `${escapeHtml(formatKm(estimate.nearM))}–${escapeHtml(formatKm(estimate.farM))} further along`} (amber on the map), at ${estimate.measured ? 'their recent pace of' : 'a usual pace of'} about ${estimate.paceKmh.toFixed(1)} km/h. An estimate, not a live position.</span><br>` : ''}
       ${teammates ? `Sharing with ${teammates} teammate${teammates === 1 ? '' : 's'}` : 'Solo hiker'}<br>
       <small>${details.length ? `${escapeHtml(details.join(' · '))} · ` : ''}${coordinates.map((value) => value.toFixed(5)).join(', ')}</small>
     `;
@@ -650,15 +828,54 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
     let farShown = 0;
     const offTrailRows = [];
 
+    const pathShown = new Set();
+    const estimateShown = new Set();
     hikerDocs.forEach((data) => {
-      const updatedAt = toDate(data.updatedAt);
+      const receivedAt = toDate(data.updatedAt);
       const coordinates = data.position ? getCoordinates(data.position) : null;
-      if (!updatedAt || !coordinates || now - updatedAt.getTime() > HIKER_EXPIRY_MS) return;
+      if (!receivedAt || !coordinates || now - receivedAt.getTime() > HIKER_EXPIRY_MS) return;
       if (!bounds.contains(coordinates)) {
         offMountain += 1;
         return;
       }
-      const isOnline = now - updatedAt.getTime() <= HIKER_ONLINE_MS;
+      const isOnline = now - receivedAt.getTime() <= HIKER_ONLINE_MS;
+      // When the phone took this fix: after a stretch with no signal the
+      // server gets it later, so "last seen" goes by the fix itself.
+      const fixAt = toDate(data.fixAt);
+      const updatedAt = fixAt && fixAt.getTime() <= receivedAt.getTime() + 60000 ? fixAt : receivedAt;
+
+      // Signal lost on a hike: the walked path and an estimate of where
+      // they have got to since. The path also shows while the popup is open.
+      const onAHike = Boolean(data.hike?.trail);
+      const signalLost = onAHike && !isOnline;
+      const estimate = signalLost && !offTrailByUid.get(data.id)
+        ? estimateAlongTrail({ coordinates, lastFix: updatedAt, track: data.track, trackTimes: data.trackTimes, latLngs: lineForHike(data.hike.trail, coordinates) })
+        : null;
+      if (signalLost || openPopups.has(data.id)) {
+        const path = trackPoints(data);
+        if (path.length >= 2) {
+          pathShown.add(data.id);
+          const existing = pathLines.get(data.id);
+          if (existing) existing.setLatLngs(path);
+          else pathLines.set(data.id, L.polyline(path, { color: '#5f6b63', weight: 3, opacity: 0.85, dashArray: '2 7', lineCap: 'round', interactive: false }).addTo(layer));
+        }
+      }
+      if (estimate) {
+        estimateShown.add(data.id);
+        const label = `Estimated position of ${data.name || 'Hiker'} (signal lost ${formatAgo(updatedAt)})`;
+        const existing = estimateLayers.get(data.id);
+        if (existing) {
+          existing.stretch.setLatLngs(estimate.stretch);
+          existing.ring.setLatLng(estimate.likely).setTooltipContent(label);
+        } else {
+          estimateLayers.set(data.id, {
+            stretch: L.polyline(estimate.stretch, { color: '#e0962a', weight: 12, opacity: 0.35, lineCap: 'round', interactive: false }).addTo(layer),
+            ring: L.circleMarker(estimate.likely, { radius: 9, color: '#b9791b', weight: 2, dashArray: '3 3', fillColor: '#e0962a', fillOpacity: 0.25 })
+              .bindTooltip(label)
+              .addTo(layer)
+          });
+        }
+      }
       const isHiking = emergencyStatuses && Boolean(data.hike?.trail);
       const offTrail = offTrailByUid.get(data.id) || null;
       const isOffTrail = Boolean(offTrail);
@@ -692,7 +909,7 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
         offTrailLines.delete(data.id);
       }
 
-      const popup = hikerPopup(data, coordinates, updatedAt, isOnline, far, offTrail);
+      const popup = hikerPopup(data, coordinates, updatedAt, isOnline, far, offTrail, estimate);
       const zIndex = isOffTrail ? 1400 : (far ? 1300 : (isHiking ? 1100 : 1000));
       // The pin is redrawn when its distance tag changes (by 10 m steps).
       const distKey = offTrail ? `off:${Math.round(offTrail.distance / 10)}` : (far ? `far:${Math.round(far.distance / 10)}` : '');
@@ -701,6 +918,10 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
         const created = L.marker(coordinates, { icon: hikerIcon(isOnline, isHiking, far, offTrail, guide), zIndexOffset: zIndex })
           .bindPopup(popup)
           .addTo(layer);
+        // Opening a hiker shows the path they walked, signal or not.
+        const uid = data.id;
+        created.on('popupopen', () => { openPopups.add(uid); renderHikers(); });
+        created.on('popupclose', () => { openPopups.delete(uid); renderHikers(); });
         created.isOnline = isOnline;
         created.isHiking = isHiking;
         created.distKey = distKey;
@@ -724,6 +945,17 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
       if (shown.has(id)) return;
       layer.removeLayer(line);
       offTrailLines.delete(id);
+    });
+    pathLines.forEach((line, id) => {
+      if (pathShown.has(id)) return;
+      layer.removeLayer(line);
+      pathLines.delete(id);
+    });
+    estimateLayers.forEach(({ stretch, ring }, id) => {
+      if (estimateShown.has(id)) return;
+      layer.removeLayer(stretch);
+      layer.removeLayer(ring);
+      estimateLayers.delete(id);
     });
     renderAlertBox(offTrailRows);
     /* For a page's own list (Emergency Monitoring's table): the hikers off
