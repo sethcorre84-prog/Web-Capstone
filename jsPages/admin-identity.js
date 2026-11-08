@@ -129,6 +129,7 @@ const EDIT_CONTROLS = [
   // Trail Management
   '#addTrailBtn', '#editTrailBtn', '#deleteTrailBtn', '#addCheckpointBtn', '#addCampsiteBtn',
   '#addSuggestedCheckpointsBtn', '.visibility-btn', '.more-btn', '.st-save-btn', '[data-se]', '.tp-popup button',
+  '#addFeaturedBtn', '.featured-remove',
   // Hazard Reports
   '.btn-verify', '.btn-resolve', '.btn-reject', '#archiveSelectedBtn', '#archiveResolvedBtn',
   // Advisories & Announcements

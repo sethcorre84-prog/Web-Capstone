@@ -59,6 +59,17 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // A trail's featured photos (Trail Management > Trail Details > Featured
+    // Photos), kept apart from trailPicture/: featuredPhotos/{trailId}/{file},
+    // listed on the trail as featuredPhotos. Admins add and delete them.
+    match /featuredPhotos/{trailId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create, update: if isAdmin() &&
+        request.resource.contentType.matches('image/.*') &&
+        request.resource.size <= 5 * 1024 * 1024;
+      allow delete: if isAdmin();
+    }
+
     // Hiker badge pictures (01-trail-rookie.png ... 06-mountain-legend.png),
     // shown on the app's Home badge card and Profile. Uploaded by hand.
     match /badge/{fileName} {

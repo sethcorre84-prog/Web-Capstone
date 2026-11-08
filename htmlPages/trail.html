@@ -32,6 +32,26 @@
         opacity: 1;
         background: var(--dm-page, #eef1ec);
     }
+    /* Featured Photos (Trail Details) */
+    .featured-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; }
+    .featured-head .detail-section-label { margin-bottom: 8px; }
+    .featured-count { font-weight: 500; color: var(--text-muted, #93a199); }
+    .featured-add { width: auto !important; padding: 5px 10px !important; font-size: 12px !important; margin-bottom: 8px; }
+    .featured-add[hidden] { display: none !important; }
+    .featured-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; }
+    .featured-grid:empty { display: none; }
+    .featured-item { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--dm-surface-2, #f1f3ef); }
+    .featured-item > button.featured-open { display: block; width: 100%; height: 100%; padding: 0; border: 0; cursor: zoom-in; background: none; }
+    .featured-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .featured-remove { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; display: grid; place-items: center;
+      border: 0; border-radius: 50%; background: rgba(0, 0, 0, .6); color: #fff; font-size: 11px; cursor: pointer; }
+    .featured-remove i { color: inherit; }
+    .featured-remove:hover { background: #c8402f; }
+    .featured-item.is-uploading { display: grid; place-items: center; font-size: 11px; color: var(--text-secondary); }
+    .featured-note { margin: 6px 0 0; font-size: 11.5px; color: var(--text-secondary); min-height: 0; }
+    .featured-note:empty { display: none; }
+    .featured-note.is-error { color: var(--danger, #c8402f); }
+
 </style>
 <script type="module" src="../jsPages/dashboard-guard.js"></script>
 <script type="module" src="../jsPages/notification.js"></script>
@@ -1581,6 +1601,17 @@
             <button class="btn-secondary" id="editFeesBtn" type="button" style="width:auto;padding:5px 10px;font-size:12px;margin-bottom:8px">✎ Edit Fees</button>
           </div>
           <div id="trailFees"></div>
+          <!-- Featured photos of the trail: more pictures of it besides the
+               main one above, uploaded to their own Storage folder
+               (featuredPhotos/{id}/...), apart from trailPicture/, and saved
+               on the trail as featuredPhotos. Click one to see it full size. -->
+          <div class="featured-head">
+            <span class="detail-section-label">Featured Photos <span class="featured-count" id="featuredCount"></span></span>
+            <button class="btn-secondary featured-add" id="addFeaturedBtn" type="button" hidden><i class="fa-solid fa-images" aria-hidden="true"></i> Add Photos</button>
+          </div>
+          <input type="file" id="featuredInput" accept="image/*" multiple hidden>
+          <div class="featured-grid" id="featuredPhotos"></div>
+          <p class="featured-note" id="featuredNote" role="status"></p>
           <span class="detail-section-label">Trail Status</span>
           <div class="status-mgmt-row">
             <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Current Status</span>
@@ -1793,7 +1824,8 @@ import {
   setDoc,
   deleteDoc,
   deleteField,
-  serverTimestamp
+  serverTimestamp,
+  arrayUnion
 } from "../jsPages/firestore-tracked.js";
 import { deleteObject, getDownloadURL, listAll, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { createMakilingMap, trailLineKey, lineKeyFor, trailForLineKey, trailStart, validRoute } from "../jsPages/makiling-area.js";
@@ -2454,6 +2486,7 @@ function renderDetail() {
   document.getElementById('detailEntryType').textContent = entryTypeLabel(t.EntryType) || "Undefined";
   document.getElementById('detailStatus').textContent = status;
   document.getElementById('detailStatus').className = 'badge ' + status.toLowerCase();
+  renderFeaturedPhotos(t);
 
   // The same pill, mirrored onto the hero photo.
   const photoStatus = document.getElementById('detailPhotoStatus');
@@ -2584,6 +2617,152 @@ const trailPhotoPath = (trailId, file) =>
 // pictures in trailPicture/.
 const isUploadedTrailPhoto = (path) => path.startsWith('trails/') || /^trailPicture\/[A-Za-z0-9]{20}-\d{13}-/.test(path);
 
+/* ---- Featured photos ----
+   trails/{id}.featuredPhotos: [{ url, path, addedAt }], newest last. Added
+   here (uploaded to their own folder, featuredPhotos/{id}/{time}-{file},
+   not trailPicture/; images up to 5 MB, at most FEATURED_MAX), removed with
+   the x; a removed photo's file is deleted (and the cleanupTrailFiles
+   function deletes any the trail no longer lists). */
+const FEATURED_MAX = 12;
+const featuredPhotoPath = (trailId, file) =>
+  `featuredPhotos/${trailId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+const FEATURED_MAX_BYTES = 5 * 1024 * 1024;
+const featuredOf = (trail) => (Array.isArray(trail?.featuredPhotos) ? trail.featuredPhotos : [])
+  .filter((photo) => photo && typeof photo.url === 'string' && photo.url);
+let featuredUploading = 0;
+
+function featuredNote(text, error = false) {
+  const note = document.getElementById('featuredNote');
+  note.textContent = text;
+  note.className = `featured-note${error ? ' is-error' : ''}`;
+}
+
+function renderFeaturedPhotos(trail) {
+  const photos = featuredOf(trail);
+  const grid = document.getElementById('featuredPhotos');
+  const name = trail?.Trail || 'Trail';
+  grid.innerHTML = photos.map((photo, index) => `
+    <div class="featured-item">
+      <button type="button" class="featured-open" data-lightbox="${escapeAttr(photo.url)}" data-lightbox-group="featured-${escapeAttr(trail.id)}" data-lightbox-caption="${escapeAttr(`${name} · photo ${index + 1} of ${photos.length}`)}" aria-label="View photo ${index + 1}">
+        <img src="${escapeAttr(photo.url)}" alt="" loading="lazy">
+      </button>
+      ${editing ? `<button type="button" class="featured-remove" data-remove-featured="${index}" aria-label="Remove photo ${index + 1}" title="Remove photo"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>` : ''}
+    </div>`).join('') + Array.from({ length: featuredUploading }, () => '<div class="featured-item is-uploading">Uploading…</div>').join('');
+  document.getElementById('featuredCount').textContent = photos.length ? `(${photos.length})` : '';
+  // Adding and removing only in edit mode (Edit Trail Information).
+  const addBtn = document.getElementById('addFeaturedBtn');
+  addBtn.hidden = !editing;
+  addBtn.disabled = photos.length >= FEATURED_MAX || featuredUploading > 0;
+  addBtn.title = photos.length >= FEATURED_MAX ? `A trail can have up to ${FEATURED_MAX} featured photos` : 'Add featured photos of this trail';
+  if (!photos.length && !featuredUploading && !document.getElementById('featuredNote').classList.contains('is-error')) {
+    featuredNote(editing
+      ? 'No featured photos yet. Add pictures of the trail: views, landmarks, the summit. They are saved as soon as they upload.'
+      : 'No featured photos yet. Click Edit Trail Information to add some.');
+  } else if (photos.length && !document.getElementById('featuredNote').classList.contains('is-error')) {
+    featuredNote('');
+  }
+}
+
+const escapeAttr = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}[c]));
+
+document.getElementById('addFeaturedBtn').addEventListener('click', () => {
+  if (!getSelected()) return;
+  document.getElementById('featuredInput').click();
+});
+
+document.getElementById('featuredInput').addEventListener('change', async (event) => {
+  const trail = getSelected();
+  const files = [...event.target.files];
+  event.target.value = '';
+  if (!trail || !files.length) return;
+  const room = FEATURED_MAX - featuredOf(trail).length;
+  const problems = [];
+  const chosen = [];
+  files.forEach((file) => {
+    if (!file.type.startsWith('image/')) problems.push(`${file.name} is not a picture`);
+    else if (file.size > FEATURED_MAX_BYTES) problems.push(`${file.name} is over 5 MB`);
+    else if (chosen.length >= room) problems.push(`${file.name} left out (up to ${FEATURED_MAX} photos)`);
+    else chosen.push(file);
+  });
+  if (!chosen.length) {
+    featuredNote(problems.join('. ') || 'Nothing to add.', true);
+    return;
+  }
+  featuredUploading = chosen.length;
+  featuredNote('');
+  renderFeaturedPhotos(trail);
+  const added = [];
+  try {
+    for (const file of chosen) {
+      const path = featuredPhotoPath(trail.id, file);
+      const fileRef = ref(storage, path);
+      await uploadBytes(fileRef, file, { contentType: file.type });
+      added.push({ url: await getDownloadURL(fileRef), path, addedAt: Date.now() });
+      featuredUploading -= 1;
+    }
+    await updateDoc(doc(db, 'trails', trail.id), { featuredPhotos: arrayUnion(...added), UpdatedAt: serverTimestamp() });
+    trail.featuredPhotos = [...featuredOf(trail), ...added];
+    featuredNote(problems.length ? `Added ${added.length}. ${problems.join('. ')}.` : `Added ${added.length} photo${added.length === 1 ? '' : 's'}.`, problems.length > 0);
+  } catch (error) {
+    console.error('Could not add featured photos:', error);
+    // Uploaded but not saved on the trail: removed again.
+    await Promise.allSettled(added.map((photo) => deleteObject(ref(storage, photo.path))));
+    featuredNote(error?.code === 'storage/unauthorized' || error?.code === 'permission-denied'
+      ? 'Firebase refused the upload. Only admins (not Viewers) can add photos.'
+      : `Could not add the photos: ${error?.message || error}`, true);
+  } finally {
+    featuredUploading = 0;
+    const fresh = getSelected();
+    if (fresh) renderFeaturedPhotos(fresh);
+  }
+});
+
+document.getElementById('featuredPhotos').addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-remove-featured]');
+  if (!button) return;
+  event.stopPropagation();
+  const trail = getSelected();
+  if (!trail) return;
+  const photos = featuredOf(trail);
+  const photo = photos[Number(button.dataset.removeFeatured)];
+  if (!photo) return;
+  button.disabled = true;
+  // Off the trail in Firestore first, then its file out of Storage. Only
+  // this trail's own upload (trailPicture/{id}-...) is ever deleted; if
+  // that delete fails, the cleanupTrailFiles function deletes it anyway,
+  // since the trail no longer lists it.
+  try {
+    const remaining = photos.filter((item) => item !== photo);
+    await updateDoc(doc(db, 'trails', trail.id), {
+      featuredPhotos: remaining,
+      UpdatedAt: serverTimestamp()
+    });
+    trail.featuredPhotos = remaining;
+    renderFeaturedPhotos(trail);
+  } catch (error) {
+    button.disabled = false;
+    featuredNote(`Could not remove the photo: ${error?.message || error}`, true);
+    return;
+  }
+  try {
+    const fileRef = ref(storage, photo.path || photo.url);
+    // Its own folder; or trailPicture/{id}-... for one added before that.
+    const own = fileRef.fullPath.startsWith(`featuredPhotos/${trail.id}/`)
+      || fileRef.fullPath.startsWith(`trailPicture/${trail.id}-`);
+    if (own) await deleteObject(fileRef);
+    featuredNote('Photo removed from the trail and deleted from Firebase Storage.');
+  } catch (error) {
+    if (error?.code === 'storage/object-not-found') {
+      featuredNote('Photo removed. (Its file was already gone from Firebase Storage.)');
+    } else {
+      console.warn('Could not delete the featured photo file:', error);
+      featuredNote('Photo removed from the trail. Its file will be deleted from Firebase Storage shortly by the cleanup.');
+    }
+  }
+});
+
 /* Deletes a photo file from Storage: by its saved path, or by its download
    URL (photos saved before imagePath existed). Only a trail's own upload;
    a missing file is fine. */
@@ -2597,15 +2776,16 @@ async function deleteStoredPhoto(path, url) {
   }
 }
 
-// Everything uploaded for a trail: trailPicture/{id}-..., and the older
-// trails/{id}/ folder.
+// Everything uploaded for a trail: trailPicture/{id}-..., its featured
+// photos (featuredPhotos/{id}/), and the older trails/{id}/ folder.
 async function deleteTrailPhotos(trailId) {
   try {
-    const [pictures, older] = await Promise.all([
+    const [pictures, featured, older] = await Promise.all([
       listAll(ref(storage, 'trailPicture')),
+      listAll(ref(storage, `featuredPhotos/${trailId}`)).catch(() => ({ items: [] })),
       listAll(ref(storage, `trails/${trailId}`)).catch(() => ({ items: [] }))
     ]);
-    const items = [...pictures.items.filter((item) => item.name.startsWith(`${trailId}-`)), ...older.items];
+    const items = [...pictures.items.filter((item) => item.name.startsWith(`${trailId}-`)), ...featured.items, ...older.items];
     await Promise.all(items.map((item) => deleteObject(item).catch((error) => {
       console.warn(`Could not delete ${item.fullPath}:`, error?.code || error);
     })));
@@ -2622,6 +2802,8 @@ function openEditMode() {
   editing = true;
   // Edit Fees becomes clickable now.
   trailFees?.render(t);
+  // So do Add Photos and the x on each featured photo.
+  renderFeaturedPhotos(t);
 
   document.getElementById('detailName').innerHTML =
     `<input type="text" id="editName" value="${(t.Trail || '').replace(/"/g, '&quot;')}" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:15px;font-weight:700;">`;

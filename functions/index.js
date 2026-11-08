@@ -1668,8 +1668,10 @@ function storageCleanup(document, folders, own = () => []) {
 
 exports.cleanupAdvisoryFiles = storageCleanup("Advisory/{id}",
   (id) => [`advisories/${id}/`], (id) => [`advisories/${id}/`]);
+// featuredPhotos/{id}/: the trail's featured photos, in their own folder.
 exports.cleanupTrailFiles = storageCleanup("trails/{id}",
-  (id) => [`trails/${id}/`, `trailPicture/${id}-`], (id) => [`trails/${id}/`, `trailPicture/${id}-`]);
+  (id) => [`trails/${id}/`, `trailPicture/${id}-`, `featuredPhotos/${id}/`],
+  (id) => [`trails/${id}/`, `trailPicture/${id}-`, `featuredPhotos/${id}/`]);
 
 /* Moves trail photos uploaded before trailPicture/ was used (trails/{id}/)
    into trailPicture/{id}-{file}: copies the file, points the trail at its
@@ -1790,7 +1792,7 @@ exports.cleanupCommunityPostFiles = storageCleanup("communityPosts/{id}", () => 
    file uploaded in the last day is kept (its document may not be saved
    yet). Runs every day, and from Settings > Data & Backup (a dry run first
    shows what would go). */
-const SWEPT_FOLDERS = ["advisories/", "trails/", "trailPicture/", "qrCode/", "userAvatars/", "reports/", "userReport/", "communityPosts/"];
+const SWEPT_FOLDERS = ["advisories/", "trails/", "trailPicture/", "featuredPhotos/", "qrCode/", "userAvatars/", "reports/", "userReport/", "communityPosts/"];
 const sweepable = (path) => SWEPT_FOLDERS.some((prefix) => path.startsWith(prefix))
   && (!path.startsWith("trailPicture/") || /^trailPicture\/[A-Za-z0-9]{20}-\d{13}-/.test(path));
 const SWEEP_GRACE_MS = 24 * 60 * 60 * 1000;
