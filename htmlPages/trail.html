@@ -50,6 +50,9 @@
     .featured-item.is-uploading { display: grid; place-items: center; font-size: 11px; color: var(--text-secondary); }
     .featured-note { margin: 6px 0 0; font-size: 11.5px; color: var(--text-secondary); min-height: 0; }
     .featured-note:empty { display: none; }
+    .featured-item.is-broken .featured-open { display: grid; place-items: center; padding: 6px; cursor: default;
+      font-size: 10.5px; line-height: 1.3; text-align: center; color: #9b2f22; background: #fdf2f0; }
+    .featured-item.is-broken img { display: none; }
     .featured-note.is-error { color: var(--danger, #c8402f); }
 
 </style>
@@ -1827,7 +1830,7 @@ import {
   serverTimestamp,
   arrayUnion
 } from "../jsPages/firestore-tracked.js";
-import { deleteObject, getDownloadURL, listAll, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { deleteObject, getDownloadURL, getMetadata, listAll, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { createMakilingMap, trailLineKey, lineKeyFor, trailForLineKey, trailStart, validRoute } from "../jsPages/makiling-area.js";
 import { addMapFeatures } from "../jsPages/map-features.js";
 import { pageList, pageGap, PAGE_GAP } from "../jsPages/pagination.js";
@@ -2644,7 +2647,7 @@ function renderFeaturedPhotos(trail) {
   grid.innerHTML = photos.map((photo, index) => `
     <div class="featured-item">
       <button type="button" class="featured-open" data-lightbox="${escapeAttr(photo.url)}" data-lightbox-group="featured-${escapeAttr(trail.id)}" data-lightbox-caption="${escapeAttr(`${name} · photo ${index + 1} of ${photos.length}`)}" aria-label="View photo ${index + 1}">
-        <img src="${escapeAttr(photo.url)}" alt="" loading="lazy">
+        <img src="${escapeAttr(photo.url)}" alt="" loading="lazy" data-featured-path="${escapeAttr(photo.path || '')}">
       </button>
       ${editing ? `<button type="button" class="featured-remove" data-remove-featured="${index}" aria-label="Remove photo ${index + 1}" title="Remove photo"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>` : ''}
     </div>`).join('') + Array.from({ length: featuredUploading }, () => '<div class="featured-item is-uploading">Uploading…</div>').join('');
@@ -2660,6 +2663,53 @@ function renderFeaturedPhotos(trail) {
       : 'No featured photos yet. Click Edit Trail Information to add some.');
   } else if (photos.length && !document.getElementById('featuredNote').classList.contains('is-error')) {
     featuredNote('');
+  }
+}
+
+/* A featured photo that won't load: says why on its tile (and keeps its x,
+   in edit mode, to remove it): its file is gone from Storage, or it is in
+   a format browsers can't show (HEIC/HEIF from an iPhone). */
+document.getElementById('featuredPhotos').addEventListener('error', async (event) => {
+  const img = event.target;
+  if (!(img instanceof HTMLImageElement)) return;
+  const tile = img.closest('.featured-item');
+  const open = img.closest('.featured-open');
+  if (!tile || tile.classList.contains('is-broken')) return;
+  tile.classList.add('is-broken');
+  open.removeAttribute('data-lightbox');
+  let why = "Can't be shown";
+  try {
+    const meta = await getMetadata(ref(storage, img.dataset.featuredPath || img.src));
+    why = /hei[cf]/i.test(meta.contentType || '') || /\.hei[cf]$/i.test(meta.name || '')
+      ? "HEIC photo: browsers can't show it. Remove it and upload a JPG."
+      : `Can't be shown (${meta.contentType || 'unknown type'}). Remove it and upload it again.`;
+  } catch (error) {
+    why = error?.code === 'storage/object-not-found'
+      ? 'File missing from Storage. Remove it and upload it again.'
+      : "Can't be loaded. Remove it and upload it again.";
+  }
+  open.textContent = why;
+  open.title = why;
+}, true);
+
+/* Whether the browser can show a picture: it decodes it. HEIC/HEIF (iPhone
+   photos) and other formats it can't decode are refused before upload,
+   instead of being saved as a photo nobody can see. */
+async function browserCanShow(file) {
+  if (/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name)) return false;
+  const url = URL.createObjectURL(file);
+  try {
+    await new Promise((resolve, reject) => {
+      const probe = new Image();
+      probe.onload = resolve;
+      probe.onerror = reject;
+      probe.src = url;
+    });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    URL.revokeObjectURL(url);
   }
 }
 
@@ -2680,12 +2730,13 @@ document.getElementById('featuredInput').addEventListener('change', async (event
   const room = FEATURED_MAX - featuredOf(trail).length;
   const problems = [];
   const chosen = [];
-  files.forEach((file) => {
-    if (!file.type.startsWith('image/')) problems.push(`${file.name} is not a picture`);
+  for (const file of files) {
+    if (!file.type.startsWith('image/') && !/\.hei[cf]$/i.test(file.name)) problems.push(`${file.name} is not a picture`);
     else if (file.size > FEATURED_MAX_BYTES) problems.push(`${file.name} is over 5 MB`);
+    else if (!(await browserCanShow(file))) problems.push(`${file.name} is in a format browsers can't show (HEIC from an iPhone?): save it as JPG or PNG first`);
     else if (chosen.length >= room) problems.push(`${file.name} left out (up to ${FEATURED_MAX} photos)`);
     else chosen.push(file);
-  });
+  }
   if (!chosen.length) {
     featuredNote(problems.join('. ') || 'Nothing to add.', true);
     return;
