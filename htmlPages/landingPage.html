@@ -471,6 +471,57 @@
         .install-help ol { margin: 8px 0 0; padding-left: 20px; }
         .install-help li + li { margin-top: 4px; }
         .copy-note { min-height: 18px; margin: 8px 0 0; font-size: 12px; color: var(--accent); }
+        /* ---- Discovery: cover-flow carousel of Mount Makiling views ---- */
+        .disc { position: relative; }
+        .disc-stage {
+            position: relative;
+            height: clamp(300px, 46vw, 470px);
+            perspective: 1400px;
+            touch-action: pan-y;
+            user-select: none;
+            overflow: hidden;
+            margin: 0 -16px;
+        }
+        .disc-card {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin: 0;
+            width: clamp(200px, 28vw, 300px);
+            aspect-ratio: 4 / 5;
+            border-radius: 18px;
+            overflow: hidden;
+            background: var(--surface-2);
+            box-shadow: 0 22px 44px rgba(10, 30, 16, .28);
+            transform: translate(-50%, -50%);
+            transition: transform .55s cubic-bezier(.22, .8, .25, 1), opacity .45s ease, filter .45s ease;
+            cursor: pointer;
+            will-change: transform;
+        }
+        .disc-card img { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        .disc-card.is-center { cursor: default; box-shadow: 0 28px 60px rgba(10, 30, 16, .38); }
+        .disc-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+        .disc-caption { display: grid; justify-items: center; gap: 2px; min-height: 64px; margin-top: 18px; text-align: center; }
+        .disc-caption strong { font-family: "Montserrat", sans-serif; font-size: 18px; color: var(--accent-dark); }
+        .disc-caption span { font-size: 14px; color: var(--text-2); }
+        .disc-controls { display: flex; justify-content: center; gap: 12px; margin-top: 14px; }
+        .disc-btn {
+            display: grid;
+            place-items: center;
+            width: 44px;
+            height: 44px;
+            border: 1.5px solid var(--border);
+            border-radius: 50%;
+            background: var(--surface);
+            color: var(--text);
+            font-size: 15px;
+            cursor: pointer;
+            transition: border-color .15s ease, color .15s ease, transform .15s ease;
+        }
+        .disc-btn:hover { border-color: var(--accent); color: var(--accent-dark); transform: translateY(-1px); }
+        .disc-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+        @media (prefers-reduced-motion: reduce) { .disc-card { transition: none; } }
+
 
         /* ---- Sections ---- */
         section.block { padding: 64px 0; }
@@ -546,11 +597,6 @@
         .step h3 { margin: 0 0 4px; font-size: 15px; }
         .step p { margin: 0; font-size: 13.5px; color: var(--text-2); }
 
-        /* Reminders */
-        .reminders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 24px; max-width: 860px; margin: 0 auto; padding: 0; list-style: none; }
-        .reminders li { display: flex; gap: 10px; font-size: 14.5px; color: var(--text-2); }
-        .reminders i { margin-top: 4px; color: var(--accent); }
-
         footer { padding: 28px 0; background: var(--hero-from); color: rgba(255, 255, 255, .78); font-size: 13px; }
         footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
         footer a { color: #9be3b0; }
@@ -595,7 +641,7 @@
             .chip-top { left: 0; }
             .chip-mid { right: 0; }
             .chip-low { left: 4%; }
-            .grid, .steps, .reminders { grid-template-columns: minmax(0, 1fr); }
+            .grid, .steps { grid-template-columns: minmax(0, 1fr); }
             section.block { padding: 44px 0; }
             .section-head { margin-bottom: 24px; }
             footer .wrap { flex-direction: column; text-align: center; }
@@ -606,17 +652,452 @@
             .topnav a[href="#get-app"] { padding: 6px 11px; font-size: 13px; }
             .phone-chip { display: none; }
         }
+
+        /* =====================================================
+           Polish: motion, depth and the Guidelines section
+           ===================================================== */
+        :root { --ease: cubic-bezier(.22, .8, .25, 1); }
+
+        /* Scroll progress, along the very top. */
+        .scroll-progress {
+            position: fixed;
+            inset: 0 0 auto;
+            height: 3px;
+            z-index: 20;
+            background: linear-gradient(90deg, #9be3b0, var(--gold));
+            transform: scaleX(0);
+            transform-origin: 0 50%;
+            pointer-events: none;
+        }
+
+        /* The menu bar firms up once the page scrolls. */
+        .topbar { transition: background .35s ease, box-shadow .35s ease; }
+        .topbar.is-scrolled {
+            background: color-mix(in srgb, var(--hero-from) 97%, transparent);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, .22);
+        }
+        .topnav a { position: relative; transition: opacity .2s ease; }
+        .topnav a::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -6px;
+            height: 2px;
+            border-radius: 2px;
+            background: #9be3b0;
+            transform: scaleX(0);
+            transition: transform .35s var(--ease);
+        }
+        .topnav a:hover::after, .topnav a.is-active::after { transform: scaleX(1); }
+        .topnav a.is-active { opacity: 1; }
+        .brand img { transition: transform .4s var(--ease); }
+        .brand:hover img { transform: rotate(-8deg) scale(1.06); }
+
+        /* Hero: soft light, an entrance, and the ridge line at its foot. */
+        .hero {
+            position: relative;
+            padding-bottom: clamp(72px, 9vw, 112px);
+            background:
+                radial-gradient(900px 520px at 82% 18%, rgba(155, 227, 176, .2), transparent 62%),
+                radial-gradient(700px 420px at 6% 96%, rgba(242, 183, 5, .09), transparent 60%),
+                linear-gradient(135deg, var(--hero-from), var(--hero-to));
+        }
+        .hero .wrap { position: relative; z-index: 1; }
+        .hero-ridge {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -1px;
+            width: 100%;
+            height: clamp(46px, 7vw, 96px);
+            pointer-events: none;
+        }
+        .hero-ridge .far { fill: rgba(255, 255, 255, .07); }
+        .hero-ridge .near { fill: var(--surface); }
+        .hero + .block.alt { border-top: 0; }
+        .hero-copy > * { animation: riseIn .9s var(--ease) both; }
+        .hero-copy > :nth-child(1) { animation-delay: .05s; }
+        .hero-copy > :nth-child(2) { animation-delay: .15s; }
+        .hero-copy > :nth-child(3) { animation-delay: .25s; }
+        .hero-copy > :nth-child(4) { animation-delay: .35s; }
+        .hero-copy > :nth-child(5) { animation-delay: .45s; }
+        .hero-copy > :nth-child(6) { animation-delay: .55s; }
+        .hero-phone { animation: phoneIn 1.1s .25s var(--ease) both; }
+        .hero h1 span {
+            background: linear-gradient(90deg, #9be3b0, #d9f5c4, #9be3b0);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: shimmer 6s ease-in-out infinite;
+        }
+        @keyframes riseIn { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+        @keyframes phoneIn { from { opacity: 0; transform: translateY(40px) scale(.96); } to { opacity: 1; transform: none; } }
+        @keyframes shimmer { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .btn, .qr-card { transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease, box-shadow .25s ease; }
+        .btn:hover { transform: translateY(-1px); }
+
+        /* Section headings: a small kicker above, a short rule below. */
+        .kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font: 700 12px/1 "Inter", sans-serif;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+        .kicker::before, .kicker::after {
+            content: "";
+            width: 22px;
+            height: 1.5px;
+            background: currentColor;
+            opacity: .5;
+        }
+        .section-head h2::after {
+            content: "";
+            display: block;
+            width: 48px;
+            height: 3px;
+            margin: 14px auto 0;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--gold));
+        }
+
+        /* Reveal on scroll (only when the script runs). */
+        .js [data-reveal] {
+            opacity: 0;
+            transform: translateY(26px);
+            transition:
+                opacity .8s ease,
+                transform .8s var(--ease),
+                translate .3s var(--ease),
+                box-shadow .3s ease,
+                border-color .3s ease,
+                background-color .3s ease;
+            transition-delay: calc(var(--d, 0) * 90ms), calc(var(--d, 0) * 90ms), 0s, 0s, 0s, 0s;
+        }
+        .js [data-reveal].is-in { opacity: 1; transform: none; }
+
+        /* Cards lift a little under the pointer. */
+        .feature, .trail, .step { transition: translate .3s var(--ease), box-shadow .3s ease, border-color .3s ease; }
+        .feature:hover, .trail:hover, .step:hover {
+            translate: 0 -4px;
+            border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+            box-shadow: 0 18px 36px rgba(18, 61, 34, .12);
+        }
+        .feature .ico { transition: transform .4s var(--ease), background .3s ease, color .3s ease; }
+        .feature:hover .ico { transform: scale(1.08) rotate(-6deg); background: var(--accent); color: #fff; }
+        .feature:hover .ico.red { background: #c8402f; color: #fff; }
+        .trail { position: relative; overflow: hidden; }
+        .trail::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--gold));
+            transform: scaleX(.18);
+            transform-origin: 0 50%;
+            transition: transform .5s var(--ease);
+        }
+        .trail:hover::before { transform: scaleX(1); }
+        .steps { position: relative; }
+        .steps::before {
+            content: "";
+            position: absolute;
+            top: 36px;
+            left: 8%;
+            right: 8%;
+            border-top: 2px dashed color-mix(in srgb, var(--accent) 40%, var(--border));
+        }
+        .step { z-index: 1; }
+
+        /* ---- Guidelines & tips ---- */
+        .glance { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 34px; }
+        .glance-item {
+            position: relative;
+            padding: 18px 18px 16px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--bg);
+            overflow: hidden;
+        }
+        .glance-item i {
+            position: absolute;
+            right: 14px;
+            top: 14px;
+            font-size: 22px;
+            color: var(--accent);
+            opacity: .22;
+        }
+        .glance-item b { display: block; font: 800 26px/1.1 "Montserrat", sans-serif; color: var(--accent-dark); }
+        .glance-item span { display: block; margin-top: 4px; font-size: 13px; color: var(--text-2); }
+
+        .gl-tabs-wrap { display: flex; justify-content: center; margin-bottom: 26px; }
+        .gl-tabs {
+            position: relative;
+            display: flex;
+            gap: 4px;
+            max-width: 100%;
+            padding: 5px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface-2);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .gl-tabs::-webkit-scrollbar { display: none; }
+        .gl-tab {
+            position: relative;
+            z-index: 1;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
+            border: 0;
+            border-radius: 999px;
+            background: transparent;
+            color: var(--text-2);
+            font: 600 14px "Inter", sans-serif;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: color .3s ease;
+        }
+        .gl-tab:hover { color: var(--accent-dark); }
+        .gl-tab[aria-selected="true"] { color: #fff; }
+        .gl-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .gl-indicator {
+            position: absolute;
+            top: 5px;
+            bottom: 5px;
+            left: 0;
+            width: 0;
+            border-radius: 999px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            box-shadow: 0 6px 16px rgba(31, 107, 57, .3);
+            transition: transform .45s var(--ease), width .45s var(--ease);
+        }
+        :root[data-theme="dark"] .gl-indicator { background: var(--accent); }
+        @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gl-indicator { background: var(--accent); } }
+
+        .gl-panel {
+            display: grid;
+            grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
+            animation: panelIn .55s var(--ease) both;
+        }
+        .gl-panel[hidden] { display: none; }
+        @keyframes panelIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        .gl-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+        .gl-list li {
+            display: flex;
+            gap: 13px;
+            padding: 15px 16px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--bg);
+            animation: riseIn .55s var(--ease) both;
+            animation-delay: calc(var(--i, 0) * 60ms);
+            transition: border-color .25s ease, translate .3s var(--ease);
+        }
+        .gl-list li:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); translate: 0 -2px; }
+        .gl-list .t-ico {
+            flex: 0 0 36px;
+            display: grid;
+            place-items: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--accent-light);
+            color: var(--accent-dark);
+            font-size: 15px;
+        }
+        .gl-list .t-ico.red { background: rgba(200, 64, 47, .12); color: #c8402f; }
+        .gl-list strong { display: block; margin-bottom: 2px; font-size: 14.5px; color: var(--text); }
+        .gl-list p { margin: 0; font-size: 13.5px; color: var(--text-2); }
+
+        .gl-note {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            min-height: 320px;
+            padding: 24px;
+            border-radius: 18px;
+            overflow: hidden;
+            color: #fff;
+            background: var(--hero-from) center / cover no-repeat;
+            box-shadow: 0 20px 44px rgba(10, 30, 16, .25);
+            isolation: isolate;
+        }
+        .gl-note::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+            background: linear-gradient(180deg, rgba(11, 36, 20, .15) 0%, rgba(11, 36, 20, .88) 70%);
+        }
+        .gl-note.is-alert::before { background: linear-gradient(180deg, rgba(60, 14, 8, .2) 0%, rgba(48, 12, 8, .9) 70%); }
+        .gl-note .kicker { color: #9be3b0; }
+        .gl-note.is-alert .kicker { color: #ffb4a6; }
+        .gl-note h3 { margin: 0 0 8px; font-size: 20px; }
+        .gl-note p { margin: 0; font-size: 14px; color: rgba(255, 255, 255, .88); }
+        .gl-note .btn { align-self: flex-start; margin-top: 16px; }
+
+        /* Pack list */
+        .pack { padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--bg); }
+        .pack-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+        .pack-top strong { font: 700 15px "Montserrat", sans-serif; }
+        .pack-count { font-size: 13px; color: var(--text-2); }
+        .pack-reset {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--text-2);
+            font: 600 12.5px "Inter", sans-serif;
+            cursor: pointer;
+            transition: border-color .2s ease, color .2s ease;
+        }
+        .pack-reset:hover { border-color: var(--accent); color: var(--accent-dark); }
+        .pack-bar { height: 8px; margin-bottom: 18px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+        .pack-bar span {
+            display: block;
+            height: 100%;
+            width: 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--accent), var(--gold));
+            transition: width .5s var(--ease);
+        }
+        .pack-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 22px; }
+        .pack-groups h4 { margin: 0 0 6px; font: 700 12px "Inter", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+        .pack-item {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 8px 6px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text);
+            cursor: pointer;
+            transition: background .2s ease, color .2s ease;
+        }
+        .pack-item:hover { background: var(--surface-2); }
+        .pack-item input {
+            appearance: none;
+            -webkit-appearance: none;
+            position: relative;
+            flex: 0 0 20px;
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+            cursor: pointer;
+            transition: background .2s ease, border-color .2s ease;
+        }
+        .pack-item input::after {
+            content: "";
+            position: absolute;
+            left: 5px;
+            top: 1px;
+            width: 5px;
+            height: 10px;
+            border: solid #fff;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg) scale(0);
+            transition: transform .25s var(--ease);
+        }
+        .pack-item input:checked { background: var(--accent); border-color: var(--accent); }
+        .pack-item input:checked::after { transform: rotate(45deg) scale(1); }
+        .pack-item input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .pack-item input:checked + span { color: var(--muted); text-decoration: line-through; }
+        .pack-done { min-height: 20px; margin: 12px 0 0; font-size: 13px; font-weight: 600; color: var(--accent); }
+
+        /* Back to top */
+        .to-top {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 15;
+            display: grid;
+            place-items: center;
+            width: 46px;
+            height: 46px;
+            border: 0;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            font-size: 16px;
+            box-shadow: 0 10px 26px rgba(18, 61, 34, .35);
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(16px) scale(.9);
+            pointer-events: none;
+            transition: opacity .3s ease, transform .35s var(--ease), background .2s ease;
+        }
+        .to-top.is-shown { opacity: 1; transform: none; pointer-events: auto; }
+        .to-top:hover { background: var(--accent-dark); }
+        .to-top:focus-visible { outline: 3px solid #9be3b0; outline-offset: 3px; }
+
+        /* Footer */
+        footer { padding: 40px 0 28px; }
+        .foot-grid { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
+        .foot-brand p { max-width: 340px; margin: 10px 0 0; }
+        .foot-links { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+        .foot-links a { color: rgba(255, 255, 255, .85); text-decoration: none; transition: color .2s ease; }
+        .foot-links a:hover { color: #9be3b0; }
+        .foot-base { padding-top: 18px; border-top: 1px solid rgba(255, 255, 255, .12); }
+        footer .wrap.foot { display: block; }
+
+        @media (max-width: 900px) {
+            .glance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .gl-panel { grid-template-columns: minmax(0, 1fr); }
+            .gl-note { min-height: 220px; }
+            .steps::before { display: none; }
+        }
+        @media (max-width: 780px) {
+            .topnav a[href="#how"] { display: none; }
+        }
+        @media (max-width: 600px) {
+            .hero { padding-bottom: 64px; }
+            .topnav a[href="#get-app"]::after { display: none; }
+            .gl-tabs-wrap { justify-content: flex-start; }
+            .gl-list, .pack-groups { grid-template-columns: minmax(0, 1fr); }
+            .glance-item b { font-size: 22px; }
+            .foot-grid { flex-direction: column; align-items: center; text-align: center; }
+            .foot-links { justify-content: center; }
+            .foot-base { text-align: center; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important;
+                animation-delay: 0s !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important;
+                transition-delay: 0s !important;
+            }
+            html { scroll-behavior: auto; }
+            .js [data-reveal] { opacity: 1; transform: none; }
+        }
     </style>
+    <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+<div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
 
-<header class="topbar">
+<header class="topbar" id="topbar">
     <div class="wrap">
         <a class="brand" href="#top"><img src="../assets/images/logo.png" alt=""><b>Peak<span>Path</span></b></a>
         <nav class="topnav" aria-label="Sections">
             <a href="#features">Features</a>
             <a href="#trails">Trails</a>
             <a href="#how">How it works</a>
+            <a href="#guidelines">Guidelines</a>
             <a href="#get-app">Get the app</a>
         </nav>
     </div>
@@ -627,7 +1108,7 @@
          and the app's Home screen in a phone ===== -->
     <section class="hero">
         <div class="wrap">
-            <div>
+            <div class="hero-copy">
                 <span class="eyebrow"><i class="fa-solid fa-mountain-sun" aria-hidden="true"></i>Mount Makiling, Laguna &amp; Batangas</span>
                 <h1>Hike Makiling safer with <span>PeakPath</span></h1>
                 <p class="lead">PeakPath is the hiking companion for Mount Makiling. See the trails on a map, share your live location with your group, get weather and trail advisories, and send an SOS when you need help, while park rangers and guides watch over every hike.</p>
@@ -721,12 +1202,72 @@
                 <span class="phone-chip chip-low" aria-hidden="true"><i class="fa-solid fa-tower-broadcast"></i>One-tap SOS</span>
             </div>
         </div>
+        <!-- The ridge line, melting into the next section. -->
+        <svg class="hero-ridge" viewBox="0 0 1440 96" preserveAspectRatio="none" aria-hidden="true">
+            <path class="far" d="M0 96V62L110 40 210 56 330 18 450 50 560 30 690 60 820 22 960 54 1080 34 1200 58 1320 26 1440 46V96Z"/>
+            <path class="near" d="M0 96V74L160 56 300 76 470 48 630 74 780 58 930 80 1100 54 1260 74 1440 60V96Z"/>
+        </svg>
     </section>
 
     <!-- ===== What PeakPath does ===== -->
+    <!-- Discovery: views of Mount Makiling in a cover-flow carousel (the
+         centre card large, the ones beside it smaller and further back).
+         Real photos from Wikimedia Commons, each credited under the card
+         with its licence (assets/images/discovery/). -->
+    <section class="block alt" id="discovery" aria-labelledby="discoveryTitle">
+        <div class="wrap">
+            <div class="section-head">
+                <span class="kicker">Discover</span>
+                <h2 id="discoveryTitle">Discover Mount Makiling</h2>
+                <p>Peaks, mossy forest, mud springs and giant ferns: a few of the views waiting on the trail.</p>
+            </div>
+            <div class="disc" role="region" aria-roledescription="carousel" aria-label="Views of Mount Makiling">
+                <div class="disc-stage" id="discStage">
+                    <figure class="disc-card" data-index="0" data-title="Mount Makiling" data-place="Prominent dormant volcano in Laguna and Batangas, known for its rich biodiversity, lush forests, scenic hiking trails, and natural attractions."
+                        data-artist="JHSolis" data-source="https://commons.wikimedia.org/wiki/File:Mount_Makiling.jpg" data-license="CC BY-SA 4.0" data-license-url="https://creativecommons.org/licenses/by-sa/4.0/">
+                        <img src="../assets/images/discovery/makiling-peaks.jpg" alt="Mount Makiling: Its peaks above the forest reserve, Laguna" width="720" height="900" loading="eager" draggable="false">
+                    </figure>
+                    <figure class="disc-card" data-index="1" data-title="Misty forest trail" data-place="Old trees and fog on the way up"
+                        data-artist="Twentyone-ways-to" data-source="https://commons.wikimedia.org/wiki/File:Mt._Makiling_Hiking_Trail.jpg" data-license="CC BY-SA 4.0" data-license-url="https://creativecommons.org/licenses/by-sa/4.0/">
+                        <img src="../assets/images/discovery/misty-forest-trail.jpg" alt="Misty forest trail: Old trees and fog on the way up" width="720" height="900" loading="eager" draggable="false">
+                    </figure>
+                    <figure class="disc-card" data-index="2" data-title="Mud Spring" data-place="Steaming volcanic mud pots, a side trip off the trail"
+                        data-artist="Andrew Martin" data-source="https://commons.wikimedia.org/wiki/File:Mud_Spring,_Mount_Makiling_-_panoramio.jpg" data-license="CC BY 3.0" data-license-url="https://creativecommons.org/licenses/by/3.0/">
+                        <img src="../assets/images/discovery/mud-spring.jpg" alt="Mud Spring: Steaming volcanic mud pots, a side trip off the trail" width="720" height="900" loading="eager" draggable="false">
+                    </figure>
+                    <figure class="disc-card" data-index="3" data-title="Tree fern (natong)" data-place="Giant ferns of the Makiling rainforest"
+                        data-artist="Andrew Martin" data-source="https://commons.wikimedia.org/wiki/File:Tree_Fern,_Natong,_Mount_Makiling_-_panoramio.jpg" data-license="CC BY 3.0" data-license-url="https://creativecommons.org/licenses/by/3.0/">
+                        <img src="../assets/images/discovery/tree-fern.jpg" alt="Tree fern (natong): Giant ferns of the Makiling rainforest" width="720" height="900" loading="lazy" draggable="false">
+                    </figure>
+                    <figure class="disc-card" data-index="4" data-title="From Los Baños" data-place="The mountain's eastern face above UPLB"
+                        data-artist="Florante A. Cruz" data-source="https://commons.wikimedia.org/wiki/File:Mount_Makiling_in_Los_Banos.jpg" data-license="CC BY-SA 4.0" data-license-url="https://creativecommons.org/licenses/by-sa/4.0/">
+                        <img src="../assets/images/discovery/makiling-from-los-banos.jpg" alt="From Los Baños: The mountain's eastern face above UPLB" width="720" height="900" loading="lazy" draggable="false">
+                    </figure>
+                    <figure class="disc-card" data-index="5" data-title="Fern clearing" data-place="A forest opening full of ferns"
+                        data-artist="Andrew Martin" data-source="https://commons.wikimedia.org/wiki/File:Forest_Opening_Filled_By_Ferns,_Mount_Makiling_-_panoramio.jpg" data-license="CC BY 3.0" data-license-url="https://creativecommons.org/licenses/by/3.0/">
+                        <img src="../assets/images/discovery/fern-opening.jpg" alt="Fern clearing: A forest opening full of ferns" width="720" height="900" loading="lazy" draggable="false">
+                    </figure>
+                    <figure class="disc-card" data-index="6" data-title="Seen from Tagaytay" data-place="Makiling over the hills of Cavite"
+                        data-artist="Patrick Roque" data-source="https://commons.wikimedia.org/wiki/File:Mount_Makiling_view_(Tagaytay,_Cavite)(2018-02-01).jpg" data-license="CC BY-SA 4.0" data-license-url="https://creativecommons.org/licenses/by-sa/4.0/">
+                        <img src="../assets/images/discovery/makiling-from-tagaytay.jpg" alt="Seen from Tagaytay: Makiling over the hills of Cavite" width="720" height="900" loading="lazy" draggable="false">
+                    </figure>
+                </div>
+                <div class="disc-caption" id="discCaption" aria-live="polite">
+                    <strong id="discTitle"></strong>
+                    <span id="discPlace"></span>
+                </div>
+                <div class="disc-controls">
+                    <button type="button" class="disc-btn" id="discPrev" aria-label="Previous view"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>
+                    <button type="button" class="disc-btn" id="discNext" aria-label="Next view"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="block" id="features">
         <div class="wrap">
             <div class="section-head">
+                <span class="kicker">Features</span>
                 <h2>Everything you need on the trail</h2>
                 <p>Made for hikers of Mount Makiling and the rangers, guides and admins who keep them safe.</p>
             </div>
@@ -757,6 +1298,7 @@
     <section class="block alt" id="trails">
         <div class="wrap">
             <div class="section-head">
+                <span class="kicker">The routes</span>
                 <h2>Trails on Mount Makiling</h2>
                 <p>The main routes up the mountain, mapped in PeakPath. Always check the trail's status in the app before you go.</p>
             </div>
@@ -784,6 +1326,7 @@
     <section class="block" id="how">
         <div class="wrap">
             <div class="section-head">
+                <span class="kicker">Getting started</span>
                 <h2>How it works</h2>
                 <p>From your phone to the summit in four steps.</p>
             </div>
@@ -796,31 +1339,188 @@
         </div>
     </section>
 
-    <!-- ===== Reminders ===== -->
-    <section class="block alt">
+    <!-- ===== Hiking guidelines & tips: a few numbers at a glance, then
+         tabs (plan, pack, trail, leave no trace, emergencies, park rules).
+         The pack list remembers its ticks in this browser. ===== -->
+    <section class="block alt" id="guidelines" aria-labelledby="guidelinesTitle">
         <div class="wrap">
             <div class="section-head">
-                <h2>Before you climb</h2>
-                <p>A few reminders from the park rangers.</p>
+                <span class="kicker">Hike smart</span>
+                <h2 id="guidelinesTitle">Hiking guidelines &amp; tips</h2>
+                <p>Makiling is a humid, muddy rainforest mountain. Here is how to prepare, what to pack and how to stay safe from the jump-off to the peak and back.</p>
             </div>
-            <ul class="reminders">
-                <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>A guide is required for the summit. Guide and entrance fees depend on the trail and your group's size: check Fees &amp; Payments in the app for your total.</li>
-                <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Register at the jump-off station and log out when you come down.</li>
-                <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Start early: rangers enforce a morning cut-off for going to the peak.</li>
-                <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Bring water, rain gear and a charged phone; keep location sharing on.</li>
-                <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Stay on the marked trail and follow your guide.</li>
-                <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Leave no trace: bring your trash back down.</li>
-            </ul>
+
+            <div class="glance">
+                <div class="glance-item"><i class="fa-solid fa-bottle-water" aria-hidden="true"></i><b>2–3 L</b><span>of water per hiker</span></div>
+                <div class="glance-item"><i class="fa-solid fa-sun" aria-hidden="true"></i><b>By 7 AM</b><span>at the jump-off, ahead of the peak cut-off</span></div>
+                <div class="glance-item"><i class="fa-solid fa-user-shield" aria-hidden="true"></i><b>1 guide</b><span>accredited, required for the summit</span></div>
+                <div class="glance-item"><i class="fa-solid fa-leaf" aria-hidden="true"></i><b>0 trash</b><span>left behind on the mountain</span></div>
+            </div>
+
+            <div class="gl-tabs-wrap">
+                <div class="gl-tabs" role="tablist" aria-label="Hiking guidelines" id="glTabs">
+                    <span class="gl-indicator" id="glIndicator" aria-hidden="true"></span>
+                    <button class="gl-tab" role="tab" id="tab-plan" aria-controls="panel-plan" aria-selected="true"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i>Plan ahead</button>
+                    <button class="gl-tab" role="tab" id="tab-pack" aria-controls="panel-pack" aria-selected="false" tabindex="-1"><i class="fa-solid fa-suitcase-rolling" aria-hidden="true"></i>Pack list</button>
+                    <button class="gl-tab" role="tab" id="tab-trail" aria-controls="panel-trail" aria-selected="false" tabindex="-1"><i class="fa-solid fa-person-hiking" aria-hidden="true"></i>On the trail</button>
+                    <button class="gl-tab" role="tab" id="tab-lnt" aria-controls="panel-lnt" aria-selected="false" tabindex="-1"><i class="fa-solid fa-leaf" aria-hidden="true"></i>Leave no trace</button>
+                    <button class="gl-tab" role="tab" id="tab-sos" aria-controls="panel-sos" aria-selected="false" tabindex="-1"><i class="fa-solid fa-kit-medical" aria-hidden="true"></i>Emergencies</button>
+                    <button class="gl-tab" role="tab" id="tab-rules" aria-controls="panel-rules" aria-selected="false" tabindex="-1"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>Park rules</button>
+                </div>
+            </div>
+
+            <div class="gl-panels" id="glPanels">
+                <!-- Plan ahead -->
+                <div class="gl-panel" role="tabpanel" id="panel-plan" aria-labelledby="tab-plan" tabindex="0">
+                    <ul class="gl-list">
+                        <li><span class="t-ico"><i class="fa-solid fa-signs-post" aria-hidden="true"></i></span><div><strong>Check the trail status</strong><p>Open PeakPath the night before and again in the morning. Trails close after heavy rain or when a storm signal is up.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-cloud-showers-heavy" aria-hidden="true"></i></span><div><strong>Read the weather</strong><p>Expect rain even in the dry season. Don't go up during a rainfall warning or a tropical cyclone signal.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></span><div><strong>Book your guide early</strong><p>Arrange an accredited guide and check the entrance and guide fees for your group in the app.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i></span><div><strong>Pick a trail that fits</strong><p>Choose for your group's slowest hiker. Mariang Makiling is long; Sipit is steep with roped parts.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-bed" aria-hidden="true"></i></span><div><strong>Sleep and eat well</strong><p>Get a full night's rest and have a proper breakfast. Hiking hungry or tired leads to slips.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-address-book" aria-hidden="true"></i></span><div><strong>Tell someone your plan</strong><p>Share your trail, group and expected return time, and add an emergency contact in PeakPath.</p></div></li>
+                    </ul>
+                    <aside class="gl-note" style="background-image: url('../assets/images/discovery/misty-forest-trail.jpg')">
+                        <span class="kicker">Ranger tip</span>
+                        <h3>Never hike alone</h3>
+                        <p>Go with at least one companion and join them as a team in the app, so you can see each other on the map the whole way.</p>
+                    </aside>
+                </div>
+
+                <!-- Pack list (an interactive checklist) -->
+                <div class="gl-panel" role="tabpanel" id="panel-pack" aria-labelledby="tab-pack" tabindex="0" hidden>
+                    <div class="pack" id="packList">
+                        <div class="pack-top">
+                            <div><strong>Your pack checklist</strong> <span class="pack-count" id="packCount"></span></div>
+                            <button type="button" class="pack-reset" id="packReset"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset</button>
+                        </div>
+                        <div class="pack-bar" aria-hidden="true"><span id="packBar"></span></div>
+                        <div class="pack-groups">
+                            <div>
+                                <h4>Essentials</h4>
+                                <label class="pack-item"><input type="checkbox" value="water"><span>Water, 2–3 litres</span></label>
+                                <label class="pack-item"><input type="checkbox" value="food"><span>Trail food and energy snacks</span></label>
+                                <label class="pack-item"><input type="checkbox" value="rain"><span>Rain jacket or poncho</span></label>
+                                <label class="pack-item"><input type="checkbox" value="light"><span>Headlamp or flashlight</span></label>
+                                <label class="pack-item"><input type="checkbox" value="aid"><span>First-aid kit and personal meds</span></label>
+                                <label class="pack-item"><input type="checkbox" value="phone"><span>Charged phone and power bank</span></label>
+                                <label class="pack-item"><input type="checkbox" value="id"><span>Valid ID and cash for fees</span></label>
+                                <label class="pack-item"><input type="checkbox" value="whistle"><span>Whistle</span></label>
+                            </div>
+                            <div>
+                                <h4>Comfort &amp; the forest</h4>
+                                <label class="pack-item"><input type="checkbox" value="shoes"><span>Shoes with a good grip</span></label>
+                                <label class="pack-item"><input type="checkbox" value="socks"><span>Long or leech socks</span></label>
+                                <label class="pack-item"><input type="checkbox" value="repellent"><span>Insect repellent, salt or alcohol for leeches</span></label>
+                                <label class="pack-item"><input type="checkbox" value="shirt"><span>Spare shirt in a dry bag</span></label>
+                                <label class="pack-item"><input type="checkbox" value="towel"><span>Small towel</span></label>
+                                <label class="pack-item"><input type="checkbox" value="trash"><span>Trash bag to pack out</span></label>
+                            </div>
+                        </div>
+                        <p class="pack-done" id="packDone" role="status" aria-live="polite"></p>
+                    </div>
+                    <aside class="gl-note" style="background-image: url('../assets/images/discovery/tree-fern.jpg')">
+                        <span class="kicker">Pack light</span>
+                        <h3>Every gram goes uphill</h3>
+                        <p>Pack the heavy things close to your back, keep rain gear on top, and seal your phone and spare clothes in plastic. Makiling's forest is wet all year.</p>
+                    </aside>
+                </div>
+
+                <!-- On the trail -->
+                <div class="gl-panel" role="tabpanel" id="panel-trail" aria-labelledby="tab-trail" tabindex="0" hidden>
+                    <ul class="gl-list">
+                        <li><span class="t-ico"><i class="fa-solid fa-route" aria-hidden="true"></i></span><div><strong>Stay on the marked trail</strong><p>Keep your guide in sight. Shortcuts erode the slope and are how hikers get lost.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-person-walking" aria-hidden="true"></i></span><div><strong>Walk at a talking pace</strong><p>If you can't hold a conversation, slow down. Take short, frequent rests instead of long stops.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-droplet" aria-hidden="true"></i></span><div><strong>Drink before you're thirsty</strong><p>Sip every 15–20 minutes. The humid forest makes you sweat more than you notice.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-shoe-prints" aria-hidden="true"></i></span><div><strong>Mind your footing</strong><p>Roots, mud and wet rocks are slippery. On Sipit's roped sections, go one at a time.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-bug" aria-hidden="true"></i></span><div><strong>Check for limatik</strong><p>Look for forest leeches at each station. Use salt or alcohol so they drop off; don't pull them.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-people-arrows" aria-hidden="true"></i></span><div><strong>Give way uphill</strong><p>Let hikers going up pass first, and step to the safe side on narrow parts of the trail.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-battery-three-quarters" aria-hidden="true"></i></span><div><strong>Guard your battery</strong><p>Keep location sharing on, dim your screen and top up from your power bank before 20%.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i></span><div><strong>Respect the cut-off</strong><p>Agree on a turnaround time. Not at the peak by then? Head down; it will still be there.</p></div></li>
+                    </ul>
+                    <aside class="gl-note" style="background-image: url('../assets/images/discovery/makiling-peaks.jpg')">
+                        <span class="kicker">Ranger tip</span>
+                        <h3>Going down is harder</h3>
+                        <p>Most slips happen on the descent, when legs are tired. Shorten your steps, bend your knees and use trees and ropes for support.</p>
+                    </aside>
+                </div>
+
+                <!-- Leave no trace -->
+                <div class="gl-panel" role="tabpanel" id="panel-lnt" aria-labelledby="tab-lnt" tabindex="0" hidden>
+                    <ul class="gl-list">
+                        <li><span class="t-ico"><i class="fa-solid fa-trash-arrow-up" aria-hidden="true"></i></span><div><strong>Pack it in, pack it out</strong><p>Every wrapper, bottle and fruit peel goes back down with you.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-seedling" aria-hidden="true"></i></span><div><strong>Take only photos</strong><p>Don't pick plants, carve trees or take rocks. Makiling is a protected forest reserve.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-paw" aria-hidden="true"></i></span><div><strong>Leave wildlife wild</strong><p>Don't feed, chase or touch animals. Watch them from a distance.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-fire-flame-curved" aria-hidden="true"></i></span><div><strong>No fires, no smoking</strong><p>One spark can start a forest fire. Leave cigarettes and lighters at home.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-volume-xmark" aria-hidden="true"></i></span><div><strong>Keep it quiet</strong><p>Skip the speakers. Let everyone hear the birds, the wind and the forest.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-ban" aria-hidden="true"></i></span><div><strong>Respect closed areas</strong><p>Stay out of fenced or closed zones, including around the mud spring.</p></div></li>
+                    </ul>
+                    <aside class="gl-note" style="background-image: url('../assets/images/discovery/fern-opening.jpg')">
+                        <span class="kicker">Our forest</span>
+                        <h3>Leave it better</h3>
+                        <p>Pick up one piece of litter you didn't drop. If every hiker did, the trail would stay clean for good.</p>
+                    </aside>
+                </div>
+
+                <!-- Emergencies -->
+                <div class="gl-panel" role="tabpanel" id="panel-sos" aria-labelledby="tab-sos" tabindex="0" hidden>
+                    <ul class="gl-list">
+                        <li><span class="t-ico red"><i class="fa-solid fa-hand" aria-hidden="true"></i></span><div><strong>Lost? STOP</strong><p><b>S</b>top, <b>T</b>hink, <b>O</b>bserve, <b>P</b>lan. Stay where you are; a hiker who isn't moving is easier to find.</p></div></li>
+                        <li><span class="t-ico red"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span><div><strong>Send an SOS</strong><p>One tap in PeakPath sends your location to the monitoring team and rangers.</p></div></li>
+                        <li><span class="t-ico red"><i class="fa-solid fa-user-xmark" aria-hidden="true"></i></span><div><strong>Report a missing companion</strong><p>Use the Lost / Missing alert right away, so every hiker on the mountain can help look.</p></div></li>
+                        <li><span class="t-ico red"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i></span><div><strong>Three whistle blasts</strong><p>Three short blasts, repeated, is the universal call for help. It carries further than shouting.</p></div></li>
+                        <li><span class="t-ico red"><i class="fa-solid fa-bolt" aria-hidden="true"></i></span><div><strong>Lightning or heavy rain</strong><p>Get off exposed ridges and peaks, stay away from lone tall trees and never cross a rising stream.</p></div></li>
+                        <li><span class="t-ico red"><i class="fa-solid fa-user-injured" aria-hidden="true"></i></span><div><strong>If someone is hurt</strong><p>Stop, keep them warm and dry, don't move them if it's serious, and alert your guide and the rangers.</p></div></li>
+                    </ul>
+                    <aside class="gl-note is-alert" style="background-image: url('../assets/images/discovery/mud-spring.jpg')">
+                        <span class="kicker">In an emergency</span>
+                        <h3>Stay calm, stay put</h3>
+                        <p>Save battery for the call that matters: turn on battery saver, close other apps and keep your phone dry and warm.</p>
+                        <a class="btn btn-light" href="#get-app"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>Get PeakPath for SOS</a>
+                    </aside>
+                </div>
+
+                <!-- Park rules (the rangers' reminders) -->
+                <div class="gl-panel" role="tabpanel" id="panel-rules" aria-labelledby="tab-rules" tabindex="0" hidden>
+                    <ul class="gl-list">
+                        <li><span class="t-ico"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></span><div><strong>A guide is required</strong><p>Guide and entrance fees depend on the trail and your group's size: check Fees &amp; Payments in the app for your total.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-id-card" aria-hidden="true"></i></span><div><strong>Register and log out</strong><p>Sign in at the jump-off station before you start and log out when you come down.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-clock" aria-hidden="true"></i></span><div><strong>Morning cut-off</strong><p>Rangers enforce a morning cut-off for going to the peak, so start early.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i></span><div><strong>Keep location on</strong><p>Bring water, rain gear and a charged phone, and keep location sharing on the whole hike.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-route" aria-hidden="true"></i></span><div><strong>Follow your guide</strong><p>Stay on the marked trail and follow your guide's instructions at all times.</p></div></li>
+                        <li><span class="t-ico"><i class="fa-solid fa-leaf" aria-hidden="true"></i></span><div><strong>Leave no trace</strong><p>Bring all your trash back down with you.</p></div></li>
+                    </ul>
+                    <aside class="gl-note" style="background-image: url('../assets/images/discovery/makiling-from-los-banos.jpg')">
+                        <span class="kicker">From the rangers</span>
+                        <h3>Rules keep you found</h3>
+                        <p>Registering, staying on the trail and keeping location on are how rangers know where you are if something goes wrong.</p>
+                    </aside>
+                </div>
+            </div>
         </div>
     </section>
 </main>
 
 <footer>
-    <div class="wrap">
-        <span>© <span id="year"></span> PeakPath · A capstone project for safer hiking on Mount Makiling</span>
-        <span><a href="Home.html">Admin portal</a></span>
+    <div class="wrap foot">
+        <div class="foot-grid">
+            <div class="foot-brand">
+                <a class="brand" href="#top"><img src="../assets/images/logo.png" alt=""><b style="color:#fff">Peak<span>Path</span></b></a>
+                <p>The hiking companion for Mount Makiling: trail maps, live tracking and SOS, so every hike ends back home.</p>
+            </div>
+            <nav class="foot-links" aria-label="Footer">
+                <a href="#features">Features</a>
+                <a href="#trails">Trails</a>
+                <a href="#guidelines">Guidelines</a>
+                <a href="https://peakpath-ccd4a.web.app" target="_blank" rel="noopener">Web App</a>
+                <a href="Home.html">Admin portal</a>
+            </nav>
+        </div>
+        <div class="foot-base">© <span id="year"></span> PeakPath · A capstone project for safer hiking on Mount Makiling</div>
     </div>
 </footer>
+
+<button type="button" class="to-top" id="toTop" aria-label="Back to top"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
@@ -1009,6 +1709,201 @@
         });
         show(0);
         play();
+    })();
+
+    /* Discovery: the centre card large, up to three on each side smaller,
+       further back and darker. Arrows, a click on a side card, the arrow
+       keys or a swipe move it; it wraps around. */
+    (() => {
+        const stage = document.getElementById('discStage');
+        if (!stage) return;
+        const cards = [...stage.querySelectorAll('.disc-card')];
+        const title = document.getElementById('discTitle');
+        const place = document.getElementById('discPlace');
+        let index = 0;
+        const narrow = () => window.matchMedia('(max-width: 700px)').matches;
+
+        const draw = () => {
+            const n = cards.length;
+            const step = stage.clientWidth * (narrow() ? 0.26 : 0.17);
+            const reach = narrow() ? 1 : 3;
+            cards.forEach((card, i) => {
+                // The shortest way round to this card: -3 .. +3.
+                let offset = ((i - index) % n + n) % n;
+                if (offset > n / 2) offset -= n;
+                const away = Math.abs(offset);
+                const shown = away <= reach;
+                const scale = 1 - Math.min(away, 3) * 0.14;
+                const shift = Math.sign(offset) * (away === 0 ? 0 : step * (1.1 + (away - 1) * 0.72));
+                card.style.transform = `translate(-50%, -50%) translateX(${shift}px) scale(${scale}) rotateY(${-Math.sign(offset) * Math.min(away, 1) * 8}deg)`;
+                card.style.zIndex = String(10 - away);
+                card.style.opacity = shown ? String(1 - away * 0.12) : '0';
+                card.style.filter = away ? `brightness(${1 - away * 0.14})` : 'none';
+                card.style.pointerEvents = shown ? 'auto' : 'none';
+                card.classList.toggle('is-center', away === 0);
+                card.tabIndex = shown && away ? 0 : -1;
+                card.setAttribute('aria-hidden', String(!shown));
+            });
+            const c = cards[index].dataset;
+            title.textContent = c.title;
+            place.textContent = c.place;
+        };
+        const go = (to) => { index = (to + cards.length) % cards.length; draw(); };
+
+        document.getElementById('discPrev').addEventListener('click', () => go(index - 1));
+        document.getElementById('discNext').addEventListener('click', () => go(index + 1));
+        cards.forEach((card, i) => {
+            card.addEventListener('click', () => { if (i !== index) go(i); });
+            card.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); go(i); }
+            });
+        });
+        stage.closest('.disc').addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowLeft') go(index - 1);
+            if (event.key === 'ArrowRight') go(index + 1);
+        });
+        // Swipe or drag.
+        let startX = null;
+        stage.addEventListener('pointerdown', (event) => { startX = event.clientX; });
+        stage.addEventListener('pointerup', (event) => {
+            if (startX === null) return;
+            const dx = event.clientX - startX;
+            startX = null;
+            if (Math.abs(dx) > 40) go(index + (dx < 0 ? 1 : -1));
+        });
+        stage.addEventListener('pointercancel', () => { startX = null; });
+        window.addEventListener('resize', draw);
+        draw();
+    })();
+
+    /* Reveal on scroll: section headings, the carousel, and cards one after
+       another (each grid's items get a small stagger). */
+    (() => {
+        const groups = ['.grid', '.steps', '.glance'];
+        groups.forEach((sel) => document.querySelectorAll(sel).forEach((grid) => {
+            [...grid.children].forEach((el, i) => { el.dataset.reveal = ''; el.style.setProperty('--d', String(i % 6)); });
+        }));
+        document.querySelectorAll('.section-head, .disc, .gl-tabs-wrap, .gl-panels')
+            .forEach((el) => { el.dataset.reveal = ''; });
+        const items = document.querySelectorAll('[data-reveal]');
+        if (!('IntersectionObserver' in window)) { items.forEach((el) => el.classList.add('is-in')); return; }
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add('is-in');
+                io.unobserve(entry.target);
+            });
+        }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+        items.forEach((el) => io.observe(el));
+    })();
+
+    /* Scrolling: the progress bar, the menu bar's shadow, the back-to-top
+       button and the menu link for the section on screen. */
+    (() => {
+        const bar = document.getElementById('scrollProgress');
+        const topbar = document.getElementById('topbar');
+        const toTop = document.getElementById('toTop');
+        let ticking = false;
+        const update = () => {
+            ticking = false;
+            const y = window.scrollY;
+            const max = document.documentElement.scrollHeight - window.innerHeight;
+            bar.style.transform = `scaleX(${max > 0 ? Math.min(y / max, 1) : 0})`;
+            topbar.classList.toggle('is-scrolled', y > 10);
+            toTop.classList.toggle('is-shown', y > 700);
+        };
+        window.addEventListener('scroll', () => {
+            if (!ticking) { ticking = true; requestAnimationFrame(update); }
+        }, { passive: true });
+        update();
+        toTop.addEventListener('click', () => {
+            const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
+        });
+
+        const links = [...document.querySelectorAll('.topnav a[href^="#"]')].filter((a) => a.getAttribute('href') !== '#get-app');
+        const sections = links.map((a) => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+        if (!('IntersectionObserver' in window)) return;
+        const spy = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                links.forEach((a) => a.classList.toggle('is-active', a.getAttribute('href') === `#${entry.target.id}`));
+            });
+        }, { rootMargin: '-45% 0px -50% 0px' });
+        sections.forEach((s) => spy.observe(s));
+    })();
+
+    /* Guidelines tabs: a sliding pill behind the chosen tab; arrow keys,
+       Home and End move between tabs. */
+    (() => {
+        const list = document.getElementById('glTabs');
+        if (!list) return;
+        const tabs = [...list.querySelectorAll('[role="tab"]')];
+        const indicator = document.getElementById('glIndicator');
+        let current = 0;
+        const place = () => {
+            const tab = tabs[current];
+            indicator.style.width = `${tab.offsetWidth}px`;
+            indicator.style.transform = `translateX(${tab.offsetLeft}px)`;
+        };
+        const select = (i, focus) => {
+            current = (i + tabs.length) % tabs.length;
+            tabs.forEach((tab, n) => {
+                const on = n === current;
+                tab.setAttribute('aria-selected', String(on));
+                tab.tabIndex = on ? 0 : -1;
+                document.getElementById(tab.getAttribute('aria-controls')).hidden = !on;
+            });
+            if (focus) tabs[current].focus({ preventScroll: true });
+            // Keep the chosen tab in view when the row scrolls (phones).
+            const tab = tabs[current];
+            const left = tab.offsetLeft - (list.clientWidth - tab.offsetWidth) / 2;
+            list.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+            place();
+        };
+        tabs.forEach((tab, i) => tab.addEventListener('click', () => select(i, false)));
+        list.addEventListener('keydown', (e) => {
+            const keys = { ArrowRight: current + 1, ArrowLeft: current - 1, Home: 0, End: tabs.length - 1 };
+            if (!(e.key in keys)) return;
+            e.preventDefault();
+            select(keys[e.key], true);
+        });
+        // Stagger the tips inside each panel.
+        document.querySelectorAll('.gl-list').forEach((ul) => {
+            [...ul.children].forEach((li, i) => li.style.setProperty('--i', String(i)));
+        });
+        window.addEventListener('resize', place);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(place);
+        place();
+    })();
+
+    /* Pack checklist: progress as you tick, remembered in this browser. */
+    (() => {
+        const box = document.getElementById('packList');
+        if (!box) return;
+        const KEY = 'peakpath-pack-list';
+        const inputs = [...box.querySelectorAll('input[type="checkbox"]')];
+        const count = document.getElementById('packCount');
+        const fill = document.getElementById('packBar');
+        const done = document.getElementById('packDone');
+        let saved = [];
+        try { saved = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { saved = []; }
+        inputs.forEach((input) => { input.checked = saved.includes(input.value); });
+        const refresh = (save) => {
+            const ticked = inputs.filter((i) => i.checked);
+            count.textContent = `· ${ticked.length} of ${inputs.length} packed`;
+            fill.style.width = `${(ticked.length / inputs.length) * 100}%`;
+            done.textContent = ticked.length === inputs.length ? 'All packed. Have a safe hike!' : '';
+            if (save) {
+                try { localStorage.setItem(KEY, JSON.stringify(ticked.map((i) => i.value))); } catch { /* storage off */ }
+            }
+        };
+        inputs.forEach((input) => input.addEventListener('change', () => refresh(true)));
+        document.getElementById('packReset').addEventListener('click', () => {
+            inputs.forEach((input) => { input.checked = false; });
+            refresh(true);
+        });
+        refresh(false);
     })();
 </script>
 </body>
