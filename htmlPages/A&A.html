@@ -214,8 +214,17 @@
 		padding-right: 8px;
 	}
 	.detail.is-empty .detail-top,
-	.detail.is-empty #detailBody {
+	.detail.is-empty #detailBody,
+	.detail.is-empty .actions-row {
 		display: none !important;
+	}
+	/* Edit / End stay at the bottom of the card, however short or long the
+	   advisory: the details above scroll, the buttons don't. */
+	.detail > .actions-row {
+		flex-shrink: 0;
+		margin-top: 12px;
+		padding-top: 14px;
+		border-top: 1px solid var(--border);
 	}
 	.detail.is-empty .detail-empty {
 		display: block;
@@ -1293,7 +1302,7 @@
 							<div class="detail-row" style="border-bottom:none"><div class="k">Visibility</div><div class="v" id="dVisibility">—</div></div>
 
 							<div class="detail-section">
-								<div class="label">Delivery</div>
+								<div class="label">Channels</div>
 								<div class="chan-row" id="dChannels"></div>
 							</div>
 
@@ -1317,10 +1326,11 @@
 								<ul id="recommendations" style="color:var(--text-secondary);margin-left:18px;line-height:1.6;font-size:13px"></ul>
 							</div>
 
-							<div class="actions-row">
-								<button class="btn-edit" id="editBtn" type="button"><i class="fa-solid fa-pen" aria-hidden="true"></i>Edit Advisory</button>
-								<button class="btn-end" id="endBtn" type="button"><i class="fa-solid fa-xmark" aria-hidden="true"></i>End Advisory</button>
-							</div>
+						</div>
+						<!-- Outside the scrolling details: always at the card's bottom. -->
+						<div class="actions-row">
+							<button class="btn-edit" id="editBtn" type="button"><i class="fa-solid fa-pen" aria-hidden="true"></i>Edit Advisory</button>
+							<button class="btn-end" id="endBtn" type="button"><i class="fa-solid fa-xmark" aria-hidden="true"></i>End Advisory</button>
 						</div>
 					</div>		
 					<div class="panel" id="expiredPanel">
@@ -1365,6 +1375,13 @@
 				<div class="field"><label>Published By</label><input id="mPublishedBy" value="Admin User" readonly aria-readonly="true" tabindex="-1" title="Set automatically to the signed-in admin"></div>
 				<div class="field"><label>Visibility</label>
 					<select id="mVisibility"><option>All Users</option><option>Guide</option></select>
+				</div>
+			</div>
+			<!-- Where it goes: the app, Gmail (to every user's email), or both. -->
+			<div class="field"><label>Channels</label>
+				<div class="checks">
+					<label><input type="checkbox" id="mChanInApp" checked> In-App</label>
+					<label><input type="checkbox" id="mChanEmail" checked> Email</label>
 				</div>
 			</div>
 			<div class="field"><label>Description</label><textarea id="mDesc" placeholder="Full details shown to hikers"></textarea></div>
@@ -1494,7 +1511,7 @@
 		let currentListItems = [];
 		let editingId = null;
 		let currentPage = 1;
-		const PAGE_SIZE = 12;
+		const PAGE_SIZE = 10;
 		let expiredPage = 1;
 		const expiredPageSize = 5;
 
@@ -2035,10 +2052,18 @@ async function syncExpiredAdvisories(){
 			document.getElementById('dDesc').textContent = it.desc || 'No description provided.';
 			renderDetailMedia(it);
 
-			// How it reached hikers: the app, and by email.
 			const chanEl = document.getElementById('dChannels');
 			chanEl.innerHTML = '';
 			const channels = (it.channels && it.channels.length) ? it.channels : [];
+			if (!channels.length) {
+				chanEl.innerHTML = '<span style="color:var(--text-muted);font-size:12.5px">No channels selected.</span>';
+			} else {
+				channels.forEach(c => {
+					const item = el('div','chan-item');
+					item.innerHTML = `<span class="chan-dot"></span>${escapeHtml(c)}`;
+					chanEl.appendChild(item);
+				});
+			}
 			const addNote = (status) => {
 				const note = el('div', `chan-email-status is-${status.tone}`);
 				note.innerHTML = `<i class="fa-solid ${status.icon}" aria-hidden="true"></i>${escapeHtml(status.text)}`;
@@ -2513,6 +2538,9 @@ setInterval(refreshExpiry, 60000);
 			// Advisories saved with a retired option (Registered/Premium Users)
 			// open as All Users, since the select no longer offers those.
 			document.getElementById('mVisibility').value = it?.visibility === 'Guide' ? 'Guide' : 'All Users';
+			const channels = it?.channels || ['In-App', 'Email'];
+			document.getElementById('mChanInApp').checked = channels.includes('In-App');
+			document.getElementById('mChanEmail').checked = channels.includes('Email');
 			document.getElementById('mDesc').value = it?.desc || '';
 			document.getElementById('mActions').value = (it?.recommendedActions || []).join('\n');
 			document.getElementById('mLink').value = it?.link || '';
@@ -2564,9 +2592,11 @@ setInterval(refreshExpiry, 60000);
 			const title = document.getElementById('mTitle').value.trim();
 			if (!title) return showAlert('Title is required.');
 
-			// Every advisory goes to the app and by email (there is no choice of
-			// channels any more); an edit of one not yet emailed sends it.
-			const channels = ['In-App', 'Email'];
+			// The app, Gmail, or both: at least one.
+			const channels = [];
+			if (document.getElementById('mChanInApp').checked) channels.push('In-App');
+			if (document.getElementById('mChanEmail').checked) channels.push('Email');
+			if (!channels.length) return showAlert('Choose at least one channel: In-App, Email, or both.');
 
 			const effVal = document.getElementById('mEffective').value;
 			const expVal = document.getElementById('mExpires').value;
@@ -2604,9 +2634,9 @@ setInterval(refreshExpiry, 60000);
 			   the app's Notifications, where it shows as NEW again (the app
 			   sorts and marks new by createdAt). editedAt tells the app it was
 			   an edit, so it pops an "Advisory updated" notification. The
-			   first publish time is kept in firstCreatedAt. An advisory already
-			   emailed is emailed again, marked as updated (functions/index.js:
-			   editedAt after the last send). */
+			   first publish time is kept in firstCreatedAt. With Email ticked, an
+			   advisory already emailed is emailed again, marked as updated
+			   (functions/index.js: editedAt after the last send). */
 			if (currentItem) {
 				payload.createdAt = serverTimestamp();
 				payload.editedAt = serverTimestamp();
