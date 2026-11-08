@@ -986,6 +986,15 @@
     .session-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
     .session-text strong { font-size: 13.5px; }
     .session-text small { font-size: 12px; color: var(--text-secondary, #5b6b60); }
+    /* Login Sessions: past sign-ins and refused attempts. */
+    .session-heading { margin: 14px 0 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary, #5b6b60); }
+    .session-heading span { font-weight: 500; color: var(--text-muted, #93a199); }
+    .session-item.is-ended { background: transparent; }
+    .session-item.is-ended .session-icon { opacity: .7; }
+    .session-item.is-blocked { border-color: #e8b4ab; background: #fdf2f0; }
+    .session-item.is-blocked .session-icon i { color: #c8402f; }
+    .session-badge.is-ended { background: var(--page-bg, #eef1ec); color: var(--text-secondary, #5b6b60); }
+    .session-badge.is-blocked { background: #fbe9e6; color: #b8392a; }
     .session-badge { flex-shrink: 0; padding: 3px 9px; border-radius: 999px; background: var(--accent, #2f8f4e); color: #fff; font-size: 11.5px; font-weight: 600; }
     @media (max-width: 480px) {
         .session-item { flex-wrap: wrap; }
@@ -3334,6 +3343,19 @@
      per sign-in). Signing a session out marks it ended; that browser leaves
      at once if a page is open, or the next time one loads. */
   const ACTIVE_NOW_MS = 10 * 60 * 1000;
+  // How a past session ended, or why an attempt was refused.
+  function sessionEndText(session) {
+    const at = session.ended ? formatPortalDateTime(new Date(session.ended)) : '';
+    if (session.blocked) {
+      return `Sign-in refused: the account was open${session.blockedBy ? ` on ${session.blockedBy}` : ' elsewhere'}`;
+    }
+    const how = {
+      'logged-out': 'Logged out',
+      'signed-out': 'Signed out from another device',
+      closed: 'Browser closed or left idle'
+    }[session.endReason] || 'Ended';
+    return at ? `${how} · ${at}` : how;
+  }
   function sessionActivity(session) {
     if (session.current) return 'Active now · this device';
     const at = session.lastActiveAt?.toDate?.();
@@ -3911,8 +3933,9 @@
     const endAllBtn = document.getElementById('endOtherSessionsBtn');
     if (!box) return;
     let sessions;
+    let history;
     try {
-      sessions = await listSessions();
+      ({ active: sessions, history } = await listSessions());
     } catch (error) {
       const why = error.code === 'permission-denied'
         ? 'access is not set up yet (the Firestore rules for sessions still need to be deployed).'
@@ -3925,8 +3948,9 @@
     const others = sessions.filter((s) => !s.current);
     endAllBtn.disabled = !others.length;
     box.innerHTML = `
-      <p class="rm-muted" style="margin:0 0 12px">Signed in on ${sessions.length || 1} ${sessions.length > 1 ? 'devices' : 'device'}. If you don't recognize one, sign it out and change your password.</p>
+      <p class="rm-muted" style="margin:0 0 12px">Signed in on ${sessions.length || 1} ${sessions.length > 1 ? 'devices' : 'device'} now. If you don't recognize a device below, sign it out and change your password.</p>
       ${sessions.length ? '' : '<p class="rm-muted">This device has not been recorded yet. Reload the page and open this again.</p>'}
+      <h4 class="session-heading">Active now</h4>
       <ul class="session-list">
         ${sessions.map((s) => `
           <li class="session-item${s.current ? ' is-current' : ''}" data-session-id="${escapeHTML(s.id)}">
@@ -3939,6 +3963,19 @@
             ${s.current ? '<span class="session-badge">This device</span>' : '<button type="button" class="rm-remove" data-end-session>Sign out</button>'}
           </li>`).join('')}
       </ul>
+      <h4 class="session-heading">Recent sign-ins &amp; attempts <span>(last 30 days)</span></h4>
+      ${history.length ? `<ul class="session-list">
+        ${history.map((s) => `
+          <li class="session-item is-ended${s.blocked ? ' is-blocked' : ''}">
+            <span class="session-icon" aria-hidden="true"><i class="fa-solid ${s.blocked ? 'fa-ban' : (s.deviceType === 'Mobile' ? 'fa-mobile-screen' : 'fa-laptop')}"></i></span>
+            <span class="session-text">
+              <strong>${escapeHTML(`${s.browser || 'Browser'} on ${s.os || 'unknown system'}`)}</strong>
+              <small>${escapeHTML(sessionEndText(s))}</small>
+              <small>${s.blocked ? 'Tried' : 'Signed in'} ${escapeHTML(s.signedInAt?.toDate ? formatPortalDateTime(s.signedInAt.toDate()) : '—')}${s.timeZone ? ` · ${escapeHTML(s.timeZone)} time zone` : ''}</small>
+            </span>
+            ${s.blocked ? '<span class="session-badge is-blocked">Blocked</span>' : '<span class="session-badge is-ended">Ended</span>'}
+          </li>`).join('')}
+      </ul>` : '<p class="rm-muted" style="margin:0 0 6px">No other sign-ins in the last 30 days.</p>'}
       <p class="rm-status" id="sessionsStatus" role="status"></p>`;
 
     const status = document.getElementById('sessionsStatus');

@@ -383,12 +383,6 @@ function createAdvisoryModal() {
           <div class="qa-field"><label for="qaAdvPublishedBy">Published By</label><input id="qaAdvPublishedBy" value="Admin User"></div>
           <div class="qa-field"><label for="qaAdvVisibility">Visibility</label><select id="qaAdvVisibility"><option>All Users</option><option>Guide</option></select></div>
         </div>
-        <div class="qa-field"><label>Channels</label>
-          <div class="qa-checks">
-            <label><input type="checkbox" id="qaAdvChanInApp" checked> In-App</label>
-            <label><input type="checkbox" id="qaAdvChanEmail"> Email</label>
-          </div>
-        </div>
         <div class="qa-field"><label for="qaAdvDesc">Description</label><textarea id="qaAdvDesc" placeholder="Full details shown to hikers"></textarea></div>
         <div class="qa-field"><label for="qaAdvMediaInput">Photos &amp; Videos (optional)</label>
           <div class="qa-drop" id="qaAdvMediaDrop" tabindex="0" role="button" aria-describedby="qaAdvMediaHint">
@@ -525,8 +519,6 @@ function createAdvisoryModal() {
     $('qaAdvRisk').value = 'Moderate';
     $('qaAdvPublishedBy').value = authorName;
     $('qaAdvVisibility').value = 'All Users';
-    $('qaAdvChanInApp').checked = true;
-    $('qaAdvChanEmail').checked = false;
     mediaItems.forEach((item) => { if (item.previewUrl) URL.revokeObjectURL(item.previewUrl); });
     mediaItems = [];
     errorEl.textContent = '';
@@ -599,9 +591,8 @@ function createAdvisoryModal() {
       return;
     }
 
-    const channels = [];
-    if ($('qaAdvChanInApp').checked) channels.push('In-App');
-    if ($('qaAdvChanEmail').checked) channels.push('Email');
+    // Every advisory goes to the app and by email, as on the A&A page.
+    const channels = ['In-App', 'Email'];
     const effective = $('qaAdvEffective').value;
     const expires = $('qaAdvExpires').value;
 

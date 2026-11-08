@@ -869,9 +869,15 @@ function advisoryEmailAction(advisory, now = Date.now()) {
   const email = advisory.email || {};
   const sentAt = toMillis(email.sentAt);
   const restoredAt = toMillis(advisory.restoredAt);
-  if (sentAt && !(restoredAt && restoredAt > sentAt)) return null;
+  // An email already sent can't be changed in anyone's inbox, so an
+  // advisory edited after it went out is sent again, marked as updated
+  // (advisoryMessage). Its own writes to `email` never move editedAt.
+  const editedAt = toMillis(advisory.editedAt);
+  const editedSince = (ms) => Boolean(editedAt && (!ms || editedAt > ms));
+  if (sentAt && !(restoredAt && restoredAt > sentAt) && !editedSince(sentAt)) return null;
   if (email.status === "sending" && now - (toMillis(email.claimedAt) || 0) < EMAIL_STALE_MS) return null;
-  if (email.status === "failed") {
+  // A failed send is retried a few times; an edit since then starts afresh.
+  if (email.status === "failed" && !editedSince(toMillis(email.failedAt))) {
     if ((email.attempts || 0) >= EMAIL_MAX_ATTEMPTS) return null;
     if (now - (toMillis(email.failedAt) || 0) < EMAIL_RETRY_MS) return null;
   }
@@ -958,6 +964,10 @@ const RISK_COLORS = {
 };
 
 // `images` are the photos already downloaded by loadAdvisoryImages.
+/* Everything the advisory says, as the app shows it: type, title, risk,
+   trail, who it is for, when it starts and ends, the description, its link
+   (as a button), photos, videos and recommended actions, and whether it was
+   updated. (Not its channels: every advisory goes to the app and by email.) */
 function advisoryMessage(advisory, images = []) {
   const videos = advisoryMedia(advisory, "video");
   const type = advisory.type || "Advisory";
@@ -967,23 +977,37 @@ function advisoryMessage(advisory, images = []) {
   const trail = advisory.target || "All Trails";
   const effective = formatManila(advisory.effectiveDate || advisory.publishedAt);
   const expires = formatManila(advisory.expiresAt);
+  const edited = advisory.editedAt ? formatManila(advisory.editedAt) : null;
+  const audience = advisory.visibility === "Guide" ? "Guides only" : "All PeakPath users";
   const desc = advisory.desc || "";
   const actions = Array.isArray(advisory.recommendedActions) ? advisory.recommendedActions : [];
   const publishedBy = advisory.publishedBy || "PeakPath Admin";
+  // Its link, shown in the app as a button (an App Update's download).
+  const link = /^https?:\/\/\S+$/i.test(String(advisory.link || "")) ? String(advisory.link) : "";
+  const linkLabel = String(advisory.linkLabel || "").trim() || "Open link";
 
   const details = [
+    ["Type", type],
     ["Trail", trail],
+    ["For", audience],
     risk && ["Risk level", risk],
     effective && ["Effective", effective],
-    expires && ["Until", expires]
+    ["Until", expires || "Until further notice"],
+    edited && ["Updated", edited]
   ].filter(Boolean);
 
+  // Sent again after an edit: said plainly at the top, and in the subject.
+  const resent = Boolean(edited && advisory.email?.sentAt);
+  const updateNote = resent ? `Updated on ${edited}. This replaces the earlier email about it.` : "";
+
   const text = [
+    ...(updateNote ? [updateNote, ""] : []),
     `PeakPath ${type}: ${title}`,
     "",
     ...details.map(([label, value]) => `${label}: ${value}`),
     "",
     desc,
+    link ? `\n${linkLabel}: ${link}` : "",
     images.length ? `\n${images.length} photo${images.length === 1 ? "" : "s"} attached.` : "",
     ...videos.map((video) => `Video: ${video.url}`),
     actions.length ? "\nRecommended actions:" : "",
@@ -998,6 +1022,7 @@ function advisoryMessage(advisory, images = []) {
 <head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
 <body style="margin:0;padding:0;background:#ffffff">
   <div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;padding:28px 24px;color:#1c231c">
+    ${updateNote ? `<p style="margin:0 0 16px;padding:10px 14px;border-radius:10px;background:#fbf1e2;color:#8a5a10;font-size:13.5px;font-weight:600">&#9998; ${escapeHtml(updateNote)}</p>` : ""}
     <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#1f6b39">PeakPath ${escapeHtml(type)}</p>
     <h2 style="margin:0 0 14px;font-size:21px;line-height:1.3;color:#1c231c">${escapeHtml(title)}</h2>
     ${risk ? `<p style="margin:0 0 16px"><span style="display:inline-block;padding:3px 12px;border-radius:999px;background:${riskColor.bg};color:${riskColor.text};font-size:12px;font-weight:700">${escapeHtml(risk)} risk</span></p>` : ""}
@@ -1006,6 +1031,8 @@ function advisoryMessage(advisory, images = []) {
         `<tr><td style="padding:3px 16px 3px 0;color:#5b6b60">${escapeHtml(label)}</td><td style="padding:3px 0;font-weight:600">${escapeHtml(value)}</td></tr>`).join("")}
     </table>
     ${desc ? `<p style="margin:0 0 18px;font-size:14.5px;line-height:1.6;white-space:pre-line">${escapeHtml(desc)}</p>` : ""}
+    ${link ? `<p style="margin:0 0 6px"><a href="${escapeHtml(link)}" style="display:inline-block;padding:11px 22px;border-radius:10px;background:#2f8f4e;color:#ffffff;font-size:14.5px;font-weight:700;text-decoration:none">${escapeHtml(linkLabel)}</a></p>
+    <p style="margin:0 0 18px;font-size:12px;color:#93a199;word-break:break-all">or open: <a href="${escapeHtml(link)}" style="color:#1f6b39">${escapeHtml(link)}</a></p>` : ""}
     ${images.map((image) =>
       `<p style="margin:0 0 12px"><img src="cid:${image.cid}" alt="${escapeHtml(image.filename)}" style="display:block;max-width:100%;height:auto;border-radius:10px"></p>`).join("")}
     ${videos.map((video) =>
@@ -1017,7 +1044,7 @@ function advisoryMessage(advisory, images = []) {
 </body>
 </html>`;
 
-  return { subject: `PeakPath ${type}: ${title}`, text, html, attachments: images };
+  return { subject: `PeakPath ${type}${resent ? " (Updated)" : ""}: ${title}`, text, html, attachments: images };
 }
 
 /* ---- Photos and videos in the email ----

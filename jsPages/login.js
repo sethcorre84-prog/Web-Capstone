@@ -15,7 +15,7 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { isAccountBlocked } from "./account-status.js";
-import { SESSION_ENDED_REASON, SESSION_IN_USE_REASON, activeSessionElsewhere, beginNewSession, describeSession } from "./admin-sessions.js";
+import { SESSION_ENDED_REASON, SESSION_IN_USE_REASON, activeSessionElsewhere, beginNewSession, describeSession, recordBlockedSignIn } from "./admin-sessions.js";
 import { requireTwoFactor } from "./two-factor.js";
 
 // Kept in step with ADMIN_ROLES in admin-identity.js (not imported here, as
@@ -299,6 +299,8 @@ function login() {
           return null;
         });
         if (elsewhere) {
+          // Kept in the account's Login Sessions, so the attempt is seen.
+          await recordBlockedSignIn(user, elsewhere);
           await signOut(auth);
           setSigningIn(false);
           showInUse(describeSession(elsewhere));

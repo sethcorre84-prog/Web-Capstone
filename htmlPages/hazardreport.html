@@ -3313,6 +3313,180 @@ async function tidyReportIds() {
   }
 }
 
+/* ---- One-time: mix pending and verified in the HR- numbers ----
+   Opened as hazardreport.html?mixIds=1, after a confirmation. The newest
+   KEEP_TOP active reports keep their numbers (and stay at the top); the
+   others are renumbered HR-YYYY-0001 upwards with pending and verified
+   reports alternating evenly (each status in its own current order), so the
+   list, shown newest number first, reads mixed and still has no gaps.
+   Only reportId changes. planActiveHrIds keeps whatever gap-free order it
+   finds, so the mix stays. */
+const KEEP_TOP = 4;
+function planMixedHrIds(reports) {
+  const year = new Date().getFullYear();
+  const active = reports
+    .map(r => ({ r, match: /^HR-(\d{4})-(\d+)$/.exec(r.reportId || '') }))
+    .filter(({ r, match }) => match && Number(match[1]) === year
+      && !['rejected', 'archived', 'resolved'].includes(String(r.status || '').toLowerCase()))
+    .sort((a, b) => Number(a.match[2]) - Number(b.match[2]));
+  const kept = active.slice(-KEEP_TOP).map(({ r }) => r);
+  const rest = active.slice(0, Math.max(0, active.length - KEEP_TOP)).map(({ r }) => r);
+  const verified = rest.filter(r => String(r.status || '').toLowerCase() === 'verified');
+  const pending = rest.filter(r => String(r.status || '').toLowerCase() !== 'verified');
+  // Evenly mixed: each next slot goes to whichever status is further behind
+  // its fair share of the list so far.
+  const mixed = [];
+  let p = 0;
+  let v = 0;
+  while (p < pending.length || v < verified.length) {
+    const pDue = p < pending.length ? (p + 0.5) / pending.length : Infinity;
+    const vDue = v < verified.length ? (v + 0.5) / verified.length : Infinity;
+    mixed.push(pDue <= vDue ? pending[p++] : verified[v++]);
+  }
+  const changes = new Map();
+  mixed.forEach((r, index) => {
+    const wanted = `HR-${year}-${String(index + 1).padStart(4, '0')}`;
+    if (r.reportId !== wanted) changes.set(r.id, wanted);
+  });
+  return { changes, kept, count: mixed.length, pending: pending.length, verified: verified.length };
+}
+
+async function offerMixedHrIds() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('mixIds');
+  window.history.replaceState({}, '', url);
+  const plan = planMixedHrIds(numberingReports);
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(12,24,18,.45)';
+  const keptList = plan.kept.slice().reverse()
+    .map(r => `<li><strong>${escapeHtml(r.reportId)}</strong> · ${escapeHtml(r.hazardType || 'Hazard')} · ${escapeHtml(r.reportedBy || '')}</li>`).join('');
+  box.innerHTML = `
+    <div role="dialog" aria-modal="true" aria-labelledby="mixTitle" style="width:min(460px,100%);padding:22px 24px;border-radius:16px;background:var(--card-bg,#fff);color:var(--text-primary,#1c231c);box-shadow:0 24px 60px rgba(12,24,18,.28);font-size:14px;line-height:1.5">
+      <h3 id="mixTitle" style="margin:0 0 8px;font-size:18px">Mix pending and verified reports?</h3>
+      ${plan.changes.size ? `
+      <p style="margin:0 0 10px">These stay as they are, at the top:</p>
+      <ul style="margin:0 0 12px;padding-left:20px">${keptList}</ul>
+      <p style="margin:0 0 14px">The other ${plan.count} reports (${plan.pending} pending, ${plan.verified} verified) get new consecutive IDs, HR-${new Date().getFullYear()}-0001 to ${String(plan.count).padStart(4, '0')}, with pending and verified alternating. Only the report IDs change: ${plan.changes.size} of them.</p>`
+      : '<p style="margin:0 0 14px">The reports are already mixed. Nothing to change.</p>'}
+      <p id="mixError" role="alert" style="margin:0 0 10px;color:#b8392a;font-size:13px"></p>
+      <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" data-mix-cancel style="padding:9px 16px;border:1px solid var(--border,#e4e7e1);border-radius:10px;background:var(--page-bg,#eef1ec);font-weight:700;cursor:pointer">${plan.changes.size ? 'Cancel' : 'Close'}</button>
+        ${plan.changes.size ? '<button type="button" data-mix-go style="padding:9px 16px;border:0;border-radius:10px;background:#2f8f4e;color:#fff;font-weight:700;cursor:pointer">Renumber</button>' : ''}
+      </div>
+    </div>`;
+  document.body.appendChild(box);
+  box.querySelector('[data-mix-cancel]').addEventListener('click', () => box.remove());
+  box.querySelector('[data-mix-go]')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = 'Renumbering…';
+    try {
+      const entries = [...plan.changes];
+      for (let start = 0; start < entries.length; start += 400) {
+        const batch = writeBatch(db);
+        entries.slice(start, start + 400).forEach(([id, reportId]) => batch.update(doc(db, 'reports', id), { reportId }));
+        await batch.commit();
+      }
+      box.remove();
+    } catch (error) {
+      box.querySelector('#mixError').textContent = `Could not renumber: ${error.message || error}`;
+      button.disabled = false;
+      button.textContent = 'Renumber';
+    }
+  });
+}
+let mixIdsRequested = new URLSearchParams(window.location.search).get('mixIds') === '1';
+
+/* ---- One-time: Reported On in step with the report IDs ----
+   Opened as hazardreport.html?mixDates=1, after a confirmation. The active
+   reports' dates are given out again in ID order, newest date to the
+   highest number, so the list (newest number first) reads newest to oldest.
+   The same dates are kept, only reassigned; each report's timestamp and
+   createdAt move together, as a pair. The newest KEEP_TOP keep their own. */
+const reportDateOf = (r) => {
+  const value = r.timestamp || r.createdAt;
+  const date = value?.toDate ? value.toDate() : (value ? new Date(value) : null);
+  return date && !Number.isNaN(date.getTime()) ? date : null;
+};
+function planDatesByIds(reports) {
+  const year = new Date().getFullYear();
+  const active = reports
+    .map(r => ({ r, match: /^HR-(\d{4})-(\d+)$/.exec(r.reportId || '') }))
+    .filter(({ r, match }) => match && Number(match[1]) === year
+      && !['rejected', 'archived', 'resolved'].includes(String(r.status || '').toLowerCase()))
+    .sort((a, b) => Number(b.match[2]) - Number(a.match[2]))
+    .map(({ r }) => r);
+  const kept = active.slice(0, KEEP_TOP);
+  const rest = active.slice(KEEP_TOP).filter(r => reportDateOf(r));
+  // The dates, newest first, each with the fields it came from.
+  const dates = rest
+    .map(r => ({ when: reportDateOf(r), timestamp: r.timestamp ?? null, createdAt: r.createdAt ?? null }))
+    .sort((a, b) => b.when - a.when);
+  const changes = new Map();
+  rest.forEach((r, index) => {
+    const date = dates[index];
+    if (reportDateOf(r)?.getTime() === date.when.getTime()) return;
+    changes.set(r.id, { timestamp: date.timestamp, createdAt: date.createdAt });
+  });
+  const keptOldest = Math.min(...kept.map(r => reportDateOf(r)?.getTime() ?? Infinity));
+  const newerThanKept = dates.filter(d => d.when.getTime() > keptOldest).length;
+  return { changes, kept, count: rest.length, newerThanKept };
+}
+
+async function offerDatesByIds() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('mixDates');
+  window.history.replaceState({}, '', url);
+  const plan = planDatesByIds(numberingReports);
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(12,24,18,.45)';
+  const keptList = plan.kept
+    .map(r => `<li><strong>${escapeHtml(r.reportId)}</strong> · ${escapeHtml(formatDate(r.timestamp || r.createdAt).replace(/<[^>]+>/g, ' '))}</li>`).join('');
+  box.innerHTML = `
+    <div role="dialog" aria-modal="true" aria-labelledby="mixDatesTitle" style="width:min(460px,100%);padding:22px 24px;border-radius:16px;background:var(--card-bg,#fff);color:var(--text-primary,#1c231c);box-shadow:0 24px 60px rgba(12,24,18,.28);font-size:14px;line-height:1.5">
+      <h3 id="mixDatesTitle" style="margin:0 0 8px;font-size:18px">Put Reported On in order?</h3>
+      ${plan.changes.size ? `
+      <p style="margin:0 0 10px">These keep their own dates, at the top:</p>
+      <ul style="margin:0 0 12px;padding-left:20px">${keptList}</ul>
+      <p style="margin:0 0 14px">The dates of the other ${plan.count} reports are given out again in ID order, newest to the highest number, so the list reads newest to oldest. The same dates are kept, only swapped between reports: ${plan.changes.size} change.</p>
+      ${plan.newerThanKept ? `<p style="margin:0 0 14px;color:#8a5a10">${plan.newerThanKept} of those dates are newer than the oldest of the four at the top, so they will sit just under them out of order.</p>` : ''}`
+      : '<p style="margin:0 0 14px">The dates are already in order. Nothing to change.</p>'}
+      <p id="mixDatesError" role="alert" style="margin:0 0 10px;color:#b8392a;font-size:13px"></p>
+      <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" data-cancel style="padding:9px 16px;border:1px solid var(--border,#e4e7e1);border-radius:10px;background:var(--page-bg,#eef1ec);font-weight:700;cursor:pointer">${plan.changes.size ? 'Cancel' : 'Close'}</button>
+        ${plan.changes.size ? '<button type="button" data-go style="padding:9px 16px;border:0;border-radius:10px;background:#2f8f4e;color:#fff;font-weight:700;cursor:pointer">Reorder dates</button>' : ''}
+      </div>
+    </div>`;
+  document.body.appendChild(box);
+  box.querySelector('[data-cancel]').addEventListener('click', () => box.remove());
+  box.querySelector('[data-go]')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = 'Reordering…';
+    try {
+      const entries = [...plan.changes];
+      for (let start = 0; start < entries.length; start += 400) {
+        const batch = writeBatch(db);
+        entries.slice(start, start + 400).forEach(([id, fields]) => {
+          const update = {};
+          if (fields.timestamp !== null) update.timestamp = fields.timestamp;
+          if (fields.createdAt !== null) update.createdAt = fields.createdAt;
+          batch.update(doc(db, 'reports', id), update);
+        });
+        await batch.commit();
+      }
+      box.remove();
+    } catch (error) {
+      box.querySelector('#mixDatesError').textContent = error?.code === 'permission-denied'
+        ? 'Firebase refused the change. Deploy the updated Firestore rules first.'
+        : `Could not reorder the dates: ${error.message || error}`;
+      button.disabled = false;
+      button.textContent = 'Reorder dates';
+    }
+  });
+}
+let mixDatesRequested = new URLSearchParams(window.location.search).get('mixDates') === '1';
+
 // Real-time listener for reports
 function loadReports() {
   const reportsRef = collection(db, 'reports');
@@ -3349,6 +3523,14 @@ function loadReports() {
     });
 
     tidyReportIds();
+    if (mixIdsRequested) {
+      mixIdsRequested = false;
+      offerMixedHrIds();
+    }
+    if (mixDatesRequested) {
+      mixDatesRequested = false;
+      offerDatesByIds();
+    }
 
     // Don't reset the page on a background data refresh — keep the admin
     // on whatever page they're currently viewing.
