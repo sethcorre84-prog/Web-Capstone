@@ -132,10 +132,14 @@ export const REFERENCE_STATIONS = {
                        ones in proportion to MCME's measured distances.
                        OpenStreetMap's "Station 13" is not used: it sits
                        beside Malaboo, against MCME's 312 m between them.
-     Sipit             estimates, spaced evenly along the trail's line
-                       (assets/data/makiling-trails.geojson) from 150 m past
-                       the Sto. Tomas jump-off (1) to Peak 2 (21); expect
-                       them to be off by up to a few hundred metres.
+     Sipit             the trail's station map, matched to the trail's
+                       line: the map's drawn trail (Station 1 at the Mount
+                       Makiling boundary to Station 21 by Peak 3) was
+                       traced and fitted onto the line, where half of it
+                       lies within 5 m (90% within 38 m), and each station
+                       put where the map draws it. Not by elevation: the
+                       90 m elevation data measures the forest canopy, some
+                       20-25 m above the map's MASL all along the trail.
    Replace any with a GPS reading taken at the marker (Trail Station
    Management). */
 export const STATION_COORDS = {
@@ -152,13 +156,13 @@ export const STATION_COORDS = {
     28: [14.135808, 121.194442], 29: [14.13585, 121.194054], 30: [14.13574, 121.19387]
   },
   sipit: {
-    1: [14.107584, 121.187988], 2: [14.109588, 121.187099], 3: [14.111757, 121.186862],
-    4: [14.113844, 121.187294], 5: [14.115493, 121.186152], 6: [14.117606, 121.185981],
-    7: [14.119641, 121.186052], 8: [14.119928, 121.184158], 9: [14.121195, 121.182925],
-    10: [14.122601, 121.18444], 11: [14.124765, 121.184548], 12: [14.126518, 121.185959],
-    13: [14.128397, 121.187002], 14: [14.12989, 121.186645], 15: [14.130857, 121.184749],
-    16: [14.132523, 121.184455], 17: [14.134333, 121.185363], 18: [14.134294, 121.187646],
-    19: [14.1349, 121.189578], 20: [14.1353, 121.191634], 21: [14.13574, 121.19387]
+    1: [14.11726, 121.18596], 2: [14.118607, 121.185936], 3: [14.11946, 121.18612],
+    4: [14.119964, 121.185649], 5: [14.119939, 121.184694], 6: [14.119967, 121.183603],
+    7: [14.121153, 121.182889], 8: [14.121676, 121.183748], 9: [14.123634, 121.184349],
+    10: [14.124791, 121.184568], 11: [14.126451, 121.185912], 12: [14.12803, 121.186916],
+    13: [14.12966, 121.187108], 14: [14.130416, 121.185674], 15: [14.13161, 121.18473],
+    16: [14.132469, 121.18442], 17: [14.13371, 121.184616], 18: [14.134314, 121.185498],
+    19: [14.134277, 121.186602], 20: [14.13434, 121.18812], 21: [14.13487, 121.189408]
   }
 };
 
@@ -187,9 +191,63 @@ const MARIANG_V1 = {
   30: { landmark: 'Peak 2', tags: ['peak'],
     description: 'Summit, 1,090 MASL, with a small metal viewing deck. End of the trail.' }
 };
+/* Every position the reference lists have given a station before, by
+   trail and number. A saved station still exactly on one of these (within
+   PREVIOUS_ESTIMATE_M) is still an estimate, whatever its coordsEstimated
+   says (editing a station's text in Trail Station Management could clear
+   that flag), so referenceUpgrade moves it; a GPS reading never matches one.
+   mariang: before MCME's map. sipit: spread evenly, then by elevation. */
+const PREVIOUS_ESTIMATE_M = 2;
+const PREVIOUS_ESTIMATES = {
+  mariang: [
+    {
+      1: [14.14814, 121.23185], 2: [14.145695, 121.23042], 3: [14.143921, 121.232058],
+      4: [14.141533, 121.229972], 5: [14.139733, 121.230711], 6: [14.137916, 121.23034],
+      7: [14.135944, 121.229063], 8: [14.1358, 121.22573], 9: [14.131933, 121.219781],
+      10: [14.129922, 121.212583], 11: [14.132792, 121.208493], 12: [14.133768, 121.20792],
+      13: [14.134999, 121.207767], 14: [14.1356, 121.206861], 15: [14.136559, 121.205869],
+      16: [14.137726, 121.205396], 17: [14.138667, 121.204845], 18: [14.138445, 121.203696],
+      19: [14.137375, 121.202754], 20: [14.136851, 121.201577], 21: [14.13737, 121.201344],
+      22: [14.1382, 121.201418], 23: [14.138841, 121.200423], 24: [14.138608, 121.199237],
+      25: [14.138996, 121.198965], 26: [14.138217, 121.197868], 27: [14.137965, 121.196808],
+      28: [14.136691, 121.196247], 29: [14.135815, 121.195149], 30: [14.13574, 121.19387]
+    }
+  ],
+  sipit: [
+    {
+      1: [14.107584, 121.187988], 2: [14.109588, 121.187099], 3: [14.111757, 121.186862],
+      4: [14.113844, 121.187294], 5: [14.115493, 121.186152], 6: [14.117606, 121.185981],
+      7: [14.119641, 121.186052], 8: [14.119928, 121.184158], 9: [14.121195, 121.182925],
+      10: [14.122601, 121.18444], 11: [14.124765, 121.184548], 12: [14.126518, 121.185959],
+      13: [14.128397, 121.187002], 14: [14.12989, 121.186645], 15: [14.130857, 121.184749],
+      16: [14.132523, 121.184455], 17: [14.134333, 121.185363], 18: [14.134294, 121.187646],
+      19: [14.1349, 121.189578], 20: [14.1353, 121.191634], 21: [14.13574, 121.19387]
+    },
+    {
+      1: [14.115529, 121.186101], 2: [14.117119, 121.18596], 3: [14.117997, 121.185925],
+      4: [14.118757, 121.186018], 5: [14.119653, 121.185874], 6: [14.119976, 121.184882],
+      7: [14.119975, 121.183603], 8: [14.120882, 121.183021], 9: [14.122165, 121.184307],
+      10: [14.123562, 121.184332], 11: [14.12562, 121.18536], 12: [14.127266, 121.186653],
+      13: [14.128781, 121.186966], 14: [14.129931, 121.186614], 15: [14.130474, 121.18509],
+      16: [14.131211, 121.184603], 17: [14.132154, 121.184227], 18: [14.133215, 121.184608],
+      19: [14.134221, 121.185186], 20: [14.134283, 121.18696], 21: [14.134677, 121.188355]
+    }
+  ]
+};
+const onPreviousEstimate = (key, n, lat, lng) => (PREVIOUS_ESTIMATES[key] || []).some((table) => {
+  const spot = table[n];
+  if (!spot) return false;
+  const ky = 111320;
+  const kx = ky * Math.cos(lat * Math.PI / 180);
+  return Math.hypot((spot[0] - lat) * ky, (spot[1] - lng) * kx) <= PREVIOUS_ESTIMATE_M;
+});
+
 /* The reference a saved station was last brought up to (referenceVersion
-   on the station). 2: the Mariang Makiling Trail from MCME's map. */
-const REFERENCE_VERSION = { mariang: 2 };
+   on the station). mariang 2: the Mariang Makiling Trail from MCME's map.
+   sipit 2: the Sipit stations placed from the trail's station map
+   (positions only; their text is left as saved). 3, both: also moves an
+   edited station still sitting on an old estimate (PREVIOUS_ESTIMATES). */
+const REFERENCE_VERSION = { mariang: 3, sipit: 3 };
 
 /* The changes that bring a saved station up to its reference, or null.
    Its position moves while it is still an estimate (coordsEstimated, or
@@ -205,7 +263,8 @@ function referenceUpgrade(key, data) {
   if (!next) return update;
   const hasCoords = Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng))
     && data.lat !== null && data.lng !== null && data.lat !== '' && data.lng !== '';
-  if (next.lat !== null && (data.coordsEstimated === true || !hasCoords)) {
+  const onOldEstimate = hasCoords && onPreviousEstimate(key, n, Number(data.lat), Number(data.lng));
+  if (next.lat !== null && (data.coordsEstimated === true || !hasCoords || onOldEstimate)) {
     Object.assign(update, { lat: next.lat, lng: next.lng, coordsEstimated: true });
   }
   const old = MARIANG_V1[n] || { landmark: '', tags: [], description: '' };
