@@ -31,7 +31,7 @@
 <script type="module" src="../jsPages/notification.js"></script>
 <script type="module" src="../jsPages/admin-identity.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PeakPath — AI Analytics</title>
+<title>PeakPath — Analytics</title>
 <style>
     /* Palette, radii and typography come from pages.css (:root). */
     * {
@@ -1269,10 +1269,29 @@
     }
     .kpi-row {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
         gap: 12px;
         margin-bottom: 12px;
     }
+    /* "Low data" note: shown where a figure rests on only a few records, so
+       it is read as an early signal rather than a proven trend. */
+    .low-data {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(201, 130, 31, .12);
+        color: #9a5f0e;
+        font-size: 10.5px;
+        font-weight: 600;
+        line-height: 1.5;
+    }
+    .low-data i { font-size: 10px; }
+    [data-theme="dark"] .low-data { background: rgba(240, 177, 80, .14); color: #f0b150; }
+    .kpi .low-data { margin-top: 6px; }
+    .chart-panel > .low-data, .sub-card > .low-data { align-self: flex-start; margin: 0 0 8px; }
     .kpi {
         background: var(--card-bg);
         border: 1px solid var(--border);
@@ -1725,7 +1744,7 @@
   <main class="main">
     <div class="topbar">
       <div class="topbar-left">
-        <h1>AI Analytics – Predictive &amp; Prescriptive<span class="ai-badge">AI</span></h1>
+        <h1>Analytics – Predictive &amp; Prescriptive<span class="ai-badge" title="Scores and recommendations come from fixed, explainable rules over live PeakPath data and the Open-Meteo forecast. No AI model is used.">Rule-based</span></h1>
         <p>Intelligent insights and recommendations for safety and trail management in Mount Makiling.</p>
       </div>
       <div class="topbar-right">
@@ -1741,7 +1760,7 @@
     <section class="overview-block">
       <div class="section-head">
         <span class="section-head-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3l2.1 4.6 4.9.6-3.6 3.4.9 4.9L12 14.9 7.7 16.5l.9-4.9L5 8.2l4.9-.6z"/></svg></span>
-        <h2>AI Overview (Mount Makiling)</h2>
+        <h2>Overview (Mount Makiling)</h2>
       </div>
       <div class="cards-row">
         <div class="card">
@@ -1825,7 +1844,8 @@
           <h3>Activity in this period</h3>
           <div class="row"><span>Advisories published</span><span id="descAdvisories" class="val-muted">—</span></div>
           <div class="row"><span>Emergency alerts logged</span><span id="descEmergencies" class="val-muted">—</span></div>
-          <div class="row"><span>New hiker accounts</span><span id="descNewUsers" class="val-muted">—</span></div>
+          <div class="row"><span>Registered accounts</span><span id="descNewUsers" class="val-muted">—</span></div>
+          <div class="row"><span>Registered guide accounts</span><span id="descGuides" class="val-muted">—</span></div>
           <div class="row"><span>Rainfall recorded (last 3 days)</span><span id="descRecentRain" class="val-muted">—</span></div>
           <div class="row"><span>Trails currently closed</span><span id="descClosedTrails" class="val-muted">—</span></div>
         </div>
@@ -1880,7 +1900,7 @@
         <div class="section-head">
           <span class="section-head-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>
           <h2>Prescriptive Analytics</h2>
-          <span class="ai-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3l2.1 4.6 4.9.6-3.6 3.4.9 4.9L12 14.9 7.7 16.5l.9-4.9L5 8.2l4.9-.6z"/></svg>AI Recommendations</span>
+          <span class="ai-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3l2.1 4.6 4.9.6-3.6 3.4.9 4.9L12 14.9 7.7 16.5l.9-4.9L5 8.2l4.9-.6z"/></svg>Rule-based Recommendations</span>
         </div>
         <div class="section-body">
           <div class="sub-card sub-card--wide">
@@ -1903,7 +1923,7 @@
           </div>
 
           <div class="sub-card" style="align-items:center;text-align:center;">
-            <h3 style="align-self:flex-start;">AI Prescriptive Summary</h3>
+            <h3 style="align-self:flex-start;">Prescriptive Summary</h3>
             <div class="summary-circle" id="actionsSummaryCircle">0</div>
             <div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">Total Actions</div>
             <div class="card-pill"><span style="background:#c8402f"></span><span id="highPriorityCount">0 High Priority</span></div>
@@ -2058,6 +2078,10 @@
   const hikers = () => (state.users || []).filter(
     (user) => (normalizeText(user?.role || user?.Role) || 'hiker').toLowerCase() === 'hiker'
   );
+  // Guide accounts (added in User Management with the Guide role).
+  const guides = () => (state.users || []).filter(
+    (user) => normalizeText(user?.role || user?.Role).toLowerCase().includes('guide')
+  );
 
   const trailName = (trail) =>
     normalizeText(trail?.Trail || trail?.name || trail?.trailName) || 'Unnamed trail';
@@ -2148,6 +2172,14 @@
     if (hours < 48) return `${hours.toFixed(hours < 10 ? 1 : 0)} h`;
     return `${(hours / 24).toFixed(1)} d`;
   };
+
+  /* Below this many records a figure is an early signal, not a proven trend:
+     one record more or less can swing it a lot. Panels built on fewer show a
+     "Low data" note with the number of records behind them. */
+  const LOW_DATA_MIN = 10;
+  const lowDataHtml = (count, noun = 'record') => (count > 0 && count < LOW_DATA_MIN
+    ? `<span class="low-data" title="Fewer than ${LOW_DATA_MIN} ${noun}s: read this as an early signal, not a trend."><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>Low data · based on ${count} ${noun}${count === 1 ? '' : 's'}</span>`
+    : '');
 
   /* Sum of rainfall over the three days before `date`, from recorded past days
      and the forecast combined. */
@@ -2715,10 +2747,29 @@
     const acceptedCount = data.submitted.filter((report) => ['verified', 'resolved'].includes(reportStatusOf(report))).length;
     const previousLabel = `Previous ${periodDays} days`;
 
+    /* SOS response time: from the alert (createdAt) to the first responder
+       action (respondedAt, set in Emergency when a ranger responds), and to
+       resolvedAt. Alerts without respondedAt are not timed. */
+    const hoursBetween = (from, to) => (from && to && to >= from ? (to - from) / 3600000 : null);
+    const sosIn = (offset) => (state.emergencies || []).filter((item) => inWindow(emergencyDate(item), periodDays, offset));
+    const respondHours = (list) => list.map((item) => hoursBetween(emergencyDate(item), toDate(item.respondedAt))).filter((v) => v !== null);
+    const sosNow = sosIn(0);
+    const sosRespondedNow = respondHours(sosNow);
+    const sosMedian = median(sosRespondedNow);
+    const sosMedianBefore = median(respondHours(sosIn(periodDays)));
+    const sosResolveMedian = median(sosNow
+      .map((item) => hoursBetween(emergencyDate(item), toDate(item.resolvedAt) || toDate(item.closedAt)))
+      .filter((v) => v !== null));
+    const sosOpen = activeEmergencies();
+    const sosWaiting = sosNow.filter((item) => !toDate(item.respondedAt) && sosOpen.includes(item)).length;
+    const sosLoading = state.emergencies === null;
+    const sosFailed = Boolean(state.errors.emergencies);
+
     const cards = [
       {
         label: `Reports submitted (${periodDays} days)`,
         value: String(data.submitted.length),
+        sample: { count: data.submitted.length, noun: 'report' },
         delta: deltaText(data.submitted.length, data.previous.length),
         tip: {
           title: `Reports submitted · last ${periodDays} days`,
@@ -2732,6 +2783,7 @@
       },
       {
         label: 'Verified or resolved',
+        sample: { count: data.submitted.length, noun: 'report' },
         value: data.acceptedShare === null ? '—' : `${Math.round(data.acceptedShare)}%`,
         delta: data.acceptedShare === null
           ? { text: 'No reports submitted in this period', tone: '' }
@@ -2748,6 +2800,7 @@
       {
         label: 'Hazards resolved',
         value: String(data.resolved.length),
+        sample: { count: data.resolved.length, noun: 'resolved hazard' },
         delta: deltaText(data.resolved.length, data.resolvedPrevious.length, { betterWhen: 'up' }),
         tip: {
           title: `Hazards resolved · last ${periodDays} days`,
@@ -2762,6 +2815,7 @@
       {
         label: 'Median review time',
         value: formatDuration(data.medianReviewHours),
+        sample: { count: data.submitted.length - data.pendingNow, noun: 'reviewed report' },
         delta: data.medianReviewHours === null
           ? { text: 'No reviewed reports in this period', tone: '' }
           : deltaText(data.medianReviewHours, data.medianReviewHoursPrevious, { unit: ' h', betterWhen: 'down', decimals: 1 }),
@@ -2773,6 +2827,28 @@
             `Reviewed: ${data.submitted.length - data.pendingNow} · Waiting: ${data.pendingNow}`
           ]
         }
+      },
+      {
+        label: 'SOS response time',
+        value: sosLoading ? '—' : sosFailed ? 'Unavailable' : formatDuration(sosMedian),
+        sample: { count: sosRespondedNow.length, noun: 'timed alert' },
+        delta: sosLoading
+          ? { text: 'Loading emergency alerts…', tone: '' }
+          : sosFailed
+            ? { text: 'Emergency alerts could not be loaded', tone: '' }
+            : sosMedian === null
+              ? { text: sosNow.length ? `${sosNow.length} alert${sosNow.length === 1 ? '' : 's'}, none responded to yet` : 'No SOS alerts in this period', tone: sosNow.length ? 'down' : '' }
+              : deltaText(sosMedian * 60, sosMedianBefore === null ? null : sosMedianBefore * 60, { unit: ' min', betterWhen: 'down' }),
+        tip: sosLoading || sosFailed ? null : {
+          title: `SOS response time · last ${periodDays} days`,
+          lines: [
+            'Median time from an SOS alert to the first responder action',
+            `Alerts: ${sosNow.length} · Responded: ${sosRespondedNow.length}${sosWaiting ? ` · Still waiting: ${sosWaiting}` : ''}`,
+            sosRespondedNow.length > 1 ? `Fastest ${formatDuration(Math.min(...sosRespondedNow))} · Slowest ${formatDuration(Math.max(...sosRespondedNow))}` : '',
+            sosResolveMedian === null ? '' : `Median time to resolve: ${formatDuration(sosResolveMedian)}`,
+            `${previousLabel}: ${formatDuration(sosMedianBefore)}`
+          ]
+        }
       }
     ];
 
@@ -2782,7 +2858,8 @@
       { icon: 'fa-file-circle-plus', tone: 'blue' },
       { icon: 'fa-circle-check', tone: 'green' },
       { icon: 'fa-clipboard-check', tone: 'green' },
-      { icon: 'fa-stopwatch', tone: 'amber' }
+      { icon: 'fa-stopwatch', tone: 'amber' },
+      { icon: 'fa-tower-broadcast', tone: 'red' }
     ];
 
     kpis.innerHTML = cards.map((card, index) => {
@@ -2795,6 +2872,7 @@
         </div>
         <div class="kpi-value">${escapeHtml(card.value)}</div>
         <div class="kpi-delta ${card.delta.tone}">${escapeHtml(card.delta.text)}</div>
+        ${card.sample ? lowDataHtml(card.sample.count, card.sample.noun) : ''}
       </div>
     `;
     }).join('');
@@ -2865,7 +2943,7 @@
       };
     });
     typeList.innerHTML = topTypes.length
-      ? barRows(topTypes, { total: data.verified.length, icons: true })
+      ? barRows(topTypes, { total: data.verified.length, icons: true }) + lowDataHtml(data.verified.length, 'verified report')
       : '<div class="empty-state">No verified hazard reports in this period.</div>';
 
     // Status split
@@ -2890,7 +2968,7 @@
         };
       });
     statusList.innerHTML = statusRows.length
-      ? barRows(statusRows, { total: data.submitted.length, statusColors: true })
+      ? barRows(statusRows, { total: data.submitted.length, statusColors: true }) + lowDataHtml(data.submitted.length, 'report')
       : '<div class="empty-state">No hazard reports in this period.</div>';
 
     // Trails
@@ -2912,6 +2990,7 @@
           }
         };
       }), { total: data.verified.length })
+        + lowDataHtml(data.byTrail.reduce((sum, row) => sum + row.count, 0), 'trail report')
       : '<div class="empty-state">No verified reports in this period name a trail.</div>';
 
     // Activity rows
@@ -2947,8 +3026,12 @@
         ]
       },
       users: {
-        title: `New hiker accounts · last ${periodDays} days`,
-        lines: [`${data.newAccounts} new of ${hikers().length} hiker accounts`]
+        title: 'Registered hiker accounts',
+        lines: [`${hikers().length} in all · ${data.newAccounts} new in the last ${periodDays} days`]
+      },
+      guides: {
+        title: 'Registered guide accounts',
+        lines: [`${guides().length} in all · ${guides().filter((user) => inWindow(accountDate(user), periodDays)).length} new in the last ${periodDays} days`]
       },
       rain: {
         title: 'Rainfall, last 3 days',
@@ -2964,7 +3047,8 @@
     };
     setRow('descAdvisories', state.advisories === null ? '—' : String(data.advisories), state.advisories === null, activityTips.advisories);
     setRow('descEmergencies', state.errors.emergencies ? 'Unavailable' : state.emergencies === null ? '—' : String(data.emergencies), state.errors.emergencies || state.emergencies === null, activityTips.emergencies);
-    setRow('descNewUsers', state.users === null ? '—' : String(data.newAccounts), state.users === null, activityTips.users);
+    setRow('descNewUsers', state.users === null ? '—' : String(hikers().length), state.users === null, activityTips.users);
+    setRow('descGuides', state.users === null ? '—' : String(guides().length), state.users === null, activityTips.guides);
     const recentRain = (state.pastRain || []).reduce((sum, day) => sum + day.rainfall, 0);
     setRow('descRecentRain', state.pastRain === null ? '—' : `${recentRain.toFixed(0)} mm`, state.pastRain === null, activityTips.rain);
     setRow('descClosedTrails', state.trails === null ? '—' : `${closedTrails().length} of ${(state.trails || []).length}`, state.trails === null, activityTips.closed);
@@ -3295,9 +3379,11 @@
       `;
     }).join('');
 
-    note.textContent = peak.count > 0
+    const usageText = peak.count > 0
       ? `Busiest day expected ${formatDay(peak.date)} (${formatDate(peak.date)}), from ${usage.sampled} record${usage.sampled === 1 ? '' : 's'} in ${usage.source}.`
       : `No activity falls on the next 7 days (sample of ${usage.sampled} record${usage.sampled === 1 ? '' : 's'} from ${usage.source}).`;
+    const usageBadge = lowDataHtml(usage.sampled, 'record');
+    note.innerHTML = escapeHtml(usageText) + (usageBadge ? `<div>${usageBadge}</div>` : '');
   };
 
   const renderHazardLikelihood = () => {
@@ -3372,7 +3458,7 @@
         <span class="lk-track"><span class="lk-fill ${likelihoodBand(row.likelihood)}" style="width:${Math.max(6, row.likelihood)}%"></span></span>
         <span class="lk-value">${row.likelihood}%</span>
       </div>
-    `).join('');
+    `).join('') + lowDataHtml(history.length, 'past report');
   };
 
   const renderTrailRisk = () => {

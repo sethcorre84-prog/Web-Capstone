@@ -948,75 +948,14 @@
         .gl-note .btn { align-self: flex-start; margin-top: 16px; }
 
         /* Pack list */
-        .pack { padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--bg); }
-        .pack-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-        .pack-top strong { font: 700 15px "Montserrat", sans-serif; }
-        .pack-count { font-size: 13px; color: var(--text-2); }
-        .pack-reset {
-            padding: 6px 12px;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            background: var(--surface);
-            color: var(--text-2);
-            font: 600 12.5px "Inter", sans-serif;
-            cursor: pointer;
-            transition: border-color .2s ease, color .2s ease;
-        }
-        .pack-reset:hover { border-color: var(--accent); color: var(--accent-dark); }
-        .pack-bar { height: 8px; margin-bottom: 18px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
-        .pack-bar span {
-            display: block;
-            height: 100%;
-            width: 0;
-            border-radius: inherit;
-            background: linear-gradient(90deg, var(--accent), var(--gold));
-            transition: width .5s var(--ease);
-        }
+        .pack { padding: 20px 22px; border: 1px solid var(--border); border-radius: 16px; background: var(--bg); }
+        .pack-title { margin: 0 0 14px; font: 700 15px "Montserrat", sans-serif; }
         .pack-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 22px; }
         .pack-groups h4 { margin: 0 0 6px; font: 700 12px "Inter", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-        .pack-item {
-            display: flex;
-            align-items: center;
-            gap: 11px;
-            padding: 8px 6px;
-            border-radius: 8px;
-            font-size: 14px;
-            color: var(--text);
-            cursor: pointer;
-            transition: background .2s ease, color .2s ease;
-        }
-        .pack-item:hover { background: var(--surface-2); }
-        .pack-item input {
-            appearance: none;
-            -webkit-appearance: none;
-            position: relative;
-            flex: 0 0 20px;
-            width: 20px;
-            height: 20px;
-            margin: 0;
-            border: 2px solid var(--border);
-            border-radius: 6px;
-            background: var(--surface);
-            cursor: pointer;
-            transition: background .2s ease, border-color .2s ease;
-        }
-        .pack-item input::after {
-            content: "";
-            position: absolute;
-            left: 5px;
-            top: 1px;
-            width: 5px;
-            height: 10px;
-            border: solid #fff;
-            border-width: 0 2px 2px 0;
-            transform: rotate(45deg) scale(0);
-            transition: transform .25s var(--ease);
-        }
-        .pack-item input:checked { background: var(--accent); border-color: var(--accent); }
-        .pack-item input:checked::after { transform: rotate(45deg) scale(1); }
-        .pack-item input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-        .pack-item input:checked + span { color: var(--muted); text-decoration: line-through; }
-        .pack-done { min-height: 20px; margin: 12px 0 0; font-size: 13px; font-weight: 600; color: var(--accent); }
+        .pack-groups ul { margin: 0; padding: 0; list-style: none; }
+        .pack-groups li { display: flex; align-items: baseline; gap: 10px; padding: 7px 0; font-size: 14px; color: var(--text); }
+        .pack-groups li + li { border-top: 1px dashed var(--border); }
+        .pack-groups li i { flex: 0 0 auto; font-size: 12px; color: var(--accent); }
 
         /* Back to top */
         .to-top {
@@ -1341,7 +1280,7 @@
 
     <!-- ===== Hiking guidelines & tips: a few numbers at a glance, then
          tabs (plan, pack, trail, leave no trace, emergencies, park rules).
-         The pack list remembers its ticks in this browser. ===== -->
+         ===== -->
     <section class="block alt" id="guidelines" aria-labelledby="guidelinesTitle">
         <div class="wrap">
             <div class="section-head">
@@ -1387,37 +1326,36 @@
                     </aside>
                 </div>
 
-                <!-- Pack list (an interactive checklist) -->
+                <!-- Pack list -->
                 <div class="gl-panel" role="tabpanel" id="panel-pack" aria-labelledby="tab-pack" tabindex="0" hidden>
-                    <div class="pack" id="packList">
-                        <div class="pack-top">
-                            <div><strong>Your pack checklist</strong> <span class="pack-count" id="packCount"></span></div>
-                            <button type="button" class="pack-reset" id="packReset"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset</button>
-                        </div>
-                        <div class="pack-bar" aria-hidden="true"><span id="packBar"></span></div>
+                    <div class="pack">
+                        <h3 class="pack-title">What to bring</h3>
                         <div class="pack-groups">
                             <div>
                                 <h4>Essentials</h4>
-                                <label class="pack-item"><input type="checkbox" value="water"><span>Water, 2–3 litres</span></label>
-                                <label class="pack-item"><input type="checkbox" value="food"><span>Trail food and energy snacks</span></label>
-                                <label class="pack-item"><input type="checkbox" value="rain"><span>Rain jacket or poncho</span></label>
-                                <label class="pack-item"><input type="checkbox" value="light"><span>Headlamp or flashlight</span></label>
-                                <label class="pack-item"><input type="checkbox" value="aid"><span>First-aid kit and personal meds</span></label>
-                                <label class="pack-item"><input type="checkbox" value="phone"><span>Charged phone and power bank</span></label>
-                                <label class="pack-item"><input type="checkbox" value="id"><span>Valid ID and cash for fees</span></label>
-                                <label class="pack-item"><input type="checkbox" value="whistle"><span>Whistle</span></label>
+                                <ul>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Water, 2–3 litres</li>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Trail food and energy snacks</li>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Rain jacket or poncho</li>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Headlamp or flashlight</li>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>First-aid kit and personal meds</li>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Charged phone and power bank</li>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Valid ID and cash for fees</li>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Whistle</li>
+                                </ul>
                             </div>
                             <div>
                                 <h4>Comfort &amp; the forest</h4>
-                                <label class="pack-item"><input type="checkbox" value="shoes"><span>Shoes with a good grip</span></label>
-                                <label class="pack-item"><input type="checkbox" value="socks"><span>Long or leech socks</span></label>
-                                <label class="pack-item"><input type="checkbox" value="repellent"><span>Insect repellent, salt or alcohol for leeches</span></label>
-                                <label class="pack-item"><input type="checkbox" value="shirt"><span>Spare shirt in a dry bag</span></label>
-                                <label class="pack-item"><input type="checkbox" value="towel"><span>Small towel</span></label>
-                                <label class="pack-item"><input type="checkbox" value="trash"><span>Trash bag to pack out</span></label>
+                                <ul>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Shoes with a good grip</li>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Long or leech socks</li>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Insect repellent, salt or alcohol for leeches</li>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Spare shirt in a dry bag</li>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Small towel</li>
+                                    <li><i class="fa-solid fa-check" aria-hidden="true"></i>Trash bag to pack out</li>
+                                </ul>
                             </div>
                         </div>
-                        <p class="pack-done" id="packDone" role="status" aria-live="polite"></p>
                     </div>
                     <aside class="gl-note" style="background-image: url('../assets/images/discovery/tree-fern.jpg')">
                         <span class="kicker">Pack light</span>
@@ -1877,34 +1815,6 @@
         place();
     })();
 
-    /* Pack checklist: progress as you tick, remembered in this browser. */
-    (() => {
-        const box = document.getElementById('packList');
-        if (!box) return;
-        const KEY = 'peakpath-pack-list';
-        const inputs = [...box.querySelectorAll('input[type="checkbox"]')];
-        const count = document.getElementById('packCount');
-        const fill = document.getElementById('packBar');
-        const done = document.getElementById('packDone');
-        let saved = [];
-        try { saved = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { saved = []; }
-        inputs.forEach((input) => { input.checked = saved.includes(input.value); });
-        const refresh = (save) => {
-            const ticked = inputs.filter((i) => i.checked);
-            count.textContent = `· ${ticked.length} of ${inputs.length} packed`;
-            fill.style.width = `${(ticked.length / inputs.length) * 100}%`;
-            done.textContent = ticked.length === inputs.length ? 'All packed. Have a safe hike!' : '';
-            if (save) {
-                try { localStorage.setItem(KEY, JSON.stringify(ticked.map((i) => i.value))); } catch { /* storage off */ }
-            }
-        };
-        inputs.forEach((input) => input.addEventListener('change', () => refresh(true)));
-        document.getElementById('packReset').addEventListener('click', () => {
-            inputs.forEach((input) => { input.checked = false; });
-            refresh(true);
-        });
-        refresh(false);
-    })();
 </script>
 </body>
 </html>

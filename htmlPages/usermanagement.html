@@ -6206,7 +6206,9 @@
     const previousKey = `m${previous.getFullYear()}_${String(previous.getMonth() + 1).padStart(2, '0')}`;
     const startsIn = (user, monthKey) => Number(user.raw?.hikeStarts?.[monthKey]?.count) || 0;
 
-    const users = state.users || [];
+    // Hiker accounts only: guides (and rangers / admins) who tap Start Hike
+    // while leading a group are not counted as hikers here.
+    const users = (state.users || []).filter((user) => toBadgeClass(user.role) === 'hiker');
     const hikers = users.filter((user) => startsIn(user, key) > 0);
     const hikes = hikers.reduce((sum, user) => sum + startsIn(user, key), 0);
     const lastMonth = users.filter((user) => startsIn(user, previousKey) > 0).length;
