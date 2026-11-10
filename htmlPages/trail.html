@@ -1241,8 +1241,15 @@
         color: #c0392b;
     }
 
-    #discardEditBtn[hidden] {
+    #discardEditBtn[hidden],
+    #editRouteInlineBtn[hidden] {
         display: none;
+    }
+
+    /* Edit Route on Map: the route colour, so it reads as the map tool. */
+    #editRouteInlineBtn {
+        border-color: #f08c00;
+        color: #b86a00;
     }
 
     .btn-secondary:hover {
@@ -1622,6 +1629,8 @@
           </div>
           <button class="btn-secondary" id="editTrailBtn" style="margin-top:12px;">✎ Edit Trail Information</button>
           <button class="btn-secondary" id="discardEditBtn" type="button" style="margin-top:8px;" hidden>↺ Discard Changes</button>
+          <!-- While editing: open the trail's line in the route editor (trail-routes.js). -->
+          <button class="btn-secondary" id="editRouteInlineBtn" type="button" style="margin-top:8px;" hidden title="Erase, redraw or adjust this trail's line on the map">🗺️ Edit Route on Map</button>
         </div>
 
         <div class="panel trail-detail-panel" id="stationMgmtPanel">
@@ -1926,10 +1935,19 @@ const trailLinesReady = trailLinesLoaded.then((lines) => {
   lines?.onChange(syncTrailLines);
 });
 
+// The trail whose route is open in the route editor (Edit Route): its own
+// line is hidden meanwhile, so only the line being edited shows.
+let hiddenLineTrail = null;
+
 function syncTrailLines() {
   if (!trailLines) return;
   trailLines.recolor();
   trailLines.highlight(lineKeyFor(getSelected()));
+  const hidden = hiddenLineTrail && trailLines.lines.get(lineKeyFor(hiddenLineTrail));
+  if (hidden) {
+    hidden.casing.setStyle({ opacity: 0 });
+    hidden.stroke.setStyle({ opacity: 0 });
+  }
 }
 
 const lineForTrail = (trail) => trailLines?.lines.get(lineKeyFor(trail))?.stroke || null;
@@ -2096,6 +2114,10 @@ trailRoutes = initTrailRoutes({
   db,
   getSelected,
   lineFor: lineForTrail,
+  showLine: (trail, visible) => {
+    hiddenLineTrail = visible ? null : trail;
+    syncTrailLines();
+  },
   buttons: {
     draw: document.getElementById('drawRouteBtn'),
     import: document.getElementById('importRouteBtn'),
@@ -2367,7 +2389,7 @@ function mappedRouteFor(name, excludeId = null) {
   const key = trailNameKey(name);
   if (!key) return null;
   const match = trails.find((other) => other.id !== excludeId && validRoute(other.route) && trailNameKey(other.Trail) === key);
-  if (match) return { route: match.route, routeSource: match.routeSource || 'drawn', from: match.Trail };
+  if (match) return { route: match.route, routeSource: match.routeSource || 'drawn', routeExact: Boolean(match.routeExact), from: match.Trail };
   return tracedRouteFor(name, excludeId);
 }
 
@@ -2430,6 +2452,8 @@ function tracedRouteFor(name, excludeId = null) {
   return {
     route: traced.map((p) => ({ lat: Number(p.lat.toFixed(6)), lng: Number(p.lng.toFixed(6)) })),
     routeSource: 'traced',
+    // Copied from the line as the maps draw it (roads included): drawn as is.
+    routeExact: true,
     from: place.trail?.Trail || line.name || 'the trail',
     place: place.name,
     traced: true
@@ -2477,6 +2501,8 @@ function renderDetail() {
   document.getElementById('detailDur').textContent = t.Duration || "—";
   renderDetailRating();
   document.getElementById('discardEditBtn').hidden = true;
+  // Edit Route on Map shows only while editing a trail that has a line.
+  document.getElementById('editRouteInlineBtn').hidden = !editing || !trailRoutes?.canEditRoute(t);
   document.getElementById('detailDesc').textContent = t.Description || "";
   document.getElementById('detailElev').textContent = elevationText(t.Elevation);
   // "Location" is the municipality (this row's id is a leftover name).
@@ -2925,7 +2951,14 @@ function openEditMode() {
   const editBtn = document.getElementById('editTrailBtn');
   editBtn.textContent = '💾 Save Changes';
   editBtn.onclick = saveEdit;
+
+  // The trail's line can be changed from here too (erase, redraw, adjust).
+  document.getElementById('editRouteInlineBtn').hidden = !trailRoutes?.canEditRoute(t);
 }
+
+document.getElementById('editRouteInlineBtn').addEventListener('click', () => {
+  trailRoutes?.editRoute(getSelected());
+});
 
 // The edit form's fields: trails/{id} field -> input id.
 const EDIT_FIELDS = {
@@ -3009,7 +3042,7 @@ async function saveEdit() {
   if (changed.includes('EntryType') && entryTypeLabel(current.EntryType) === 'Registered Trail'
     && !trailRoutes?.hasLine(t)) {
     const mapped = mappedRouteFor(t.Trail, t.id);
-    if (mapped) Object.assign(updated, { route: mapped.route, routeSource: mapped.routeSource, routeUpdatedAt: serverTimestamp() });
+    if (mapped) Object.assign(updated, { route: mapped.route, routeSource: mapped.routeSource, routeExact: mapped.routeExact, routeUpdatedAt: serverTimestamp() });
   }
 
   // The photo: a new one is uploaded first (trailPicture/{id}-...), and the old
@@ -3174,7 +3207,7 @@ document.getElementById('submitAddTrail').addEventListener('click', async () => 
     Difficulty: document.getElementById('newTrailDiff').value,
     Type: document.getElementById('newTrailType').value,
     EntryType: wantsRegistered && !mapped ? 'Unregistered Trail' : document.getElementById('newTrailEntryType').value,
-    ...(mapped ? { route: mapped.route, routeSource: mapped.routeSource, routeUpdatedAt: serverTimestamp() } : {}),
+    ...(mapped ? { route: mapped.route, routeSource: mapped.routeSource, routeExact: mapped.routeExact, routeUpdatedAt: serverTimestamp() } : {}),
     "Approximate Distance": document.getElementById('newTrailDist').value,
     Duration: document.getElementById('newTrailDur').value,
     Elevation: document.getElementById('newTrailElev').value,

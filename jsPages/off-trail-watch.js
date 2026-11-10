@@ -19,7 +19,7 @@
 import { db } from './firebase-config.js';
 import { announceAlert } from './sos-alarm.js';
 import { loadMapData } from './map-data.js';
-import { JUMP_OFFS, MAKILING_BOUNDS, validRoute } from './makiling-area.js';
+import { JUMP_OFFS, MAKILING_BOUNDS, trailPaths } from './makiling-area.js';
 import { toPortalDate as toDate } from './datetime-prefs.js';
 import { Timestamp, collection, getDocs, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -64,48 +64,45 @@ const coordinatesOf = (position) => {
   return Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : null;
 };
 
-/* Every line a hiker may be on: { name, points }. The file's lines (with
-   Peak 2 and the like left out), the jump-off roads, and the saved routes,
-   which stay current through a listener on trails. */
-let fileLines = [];
-let routeLines = [];
+/* Every line a hiker may be on: { name, points }. Exactly the lines the
+   maps draw (trailPaths in makiling-area.js): a trail whose route was
+   edited counts only along its new line, never its old path, and the
+   Traverse follows edited Sipit / Mariang routes. Plus the jump-off roads.
+   The saved routes stay current through a listener on trails. */
+let mapData = null;
+let trailDocs = [];
+let roadLines = [];
+let trailLines = [];
+const rebuildLines = () => {
+  trailLines = mapData || trailDocs.length
+    ? trailPaths(mapData, trailDocs).map(({ name, points }) => ({ name, points }))
+    : [];
+};
 const loadLines = async () => {
   try {
-    const data = await loadMapData(JUMP_OFFS);
-    const jumpOffs = Array.isArray(data.jumpOffs) ? data.jumpOffs : JUMP_OFFS;
-    fileLines = [
-      ...(data.trails?.features || [])
-        .filter((feature) => feature?.geometry?.type === 'LineString')
-        .map((feature) => ({
-          name: feature.properties?.name || 'the trail',
-          points: feature.geometry.coordinates.map(([lng, lat]) => [Number(lat), Number(lng)])
-        })),
-      ...jumpOffs
-        .filter((spot) => Array.isArray(spot.approach) && spot.approach.length)
-        .map((spot) => ({
-          name: spot.name || 'the jump-off road',
-          points: [spot.latLng, ...spot.approach].filter(Array.isArray)
-        }))
-    ].filter((line) => line.points.length >= 2);
+    mapData = await loadMapData(JUMP_OFFS);
+    const jumpOffs = Array.isArray(mapData.jumpOffs) ? mapData.jumpOffs : JUMP_OFFS;
+    roadLines = jumpOffs
+      .filter((spot) => Array.isArray(spot.approach) && spot.approach.length)
+      .map((spot) => ({
+        name: spot.name || 'the jump-off road',
+        points: [spot.latLng, ...spot.approach].filter(Array.isArray)
+      }))
+      .filter((line) => line.points.length >= 2);
   } catch (error) {
     console.warn('Off-trail alarm could not load the trail lines:', error.message);
   }
+  rebuildLines();
 };
 const watchRoutes = () => onSnapshot(collection(db, 'trails'), (snapshot) => {
-  routeLines = snapshot.docs
-    .map((snap) => snap.data() || {})
-    .filter((trail) => validRoute(trail.route))
-    .map((trail) => ({
-      name: trail.Trail || 'Trail',
-      points: trail.route.map((p) => [Number(p.lat), Number(p.lng)])
-        .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng))
-    }));
+  trailDocs = snapshot.docs.map((snap) => ({ id: snap.id, ...(snap.data() || {}) }));
+  rebuildLines();
 }, (error) => console.warn('Off-trail alarm could not read the saved routes:', error.message));
 
 // The nearest line to a position: { distance, name }, or null with no lines.
 const nearestLine = (coordinates) => {
   let best = null;
-  [...fileLines, ...routeLines].forEach((line) => {
+  [...trailLines, ...roadLines].forEach((line) => {
     const distance = distanceToLine(coordinates, line.points);
     if (!best || distance < best.distance) best = { distance, name: line.name };
   });
@@ -118,7 +115,7 @@ let polling = false;
 const poll = async () => {
   // This page's own map announces strays (hiker-layer.js): leave it to that.
   if (window.peakpathOffTrailOnPage || polling || document.hidden) return;
-  if (!fileLines.length && !routeLines.length) return;
+  if (!trailLines.length && !roadLines.length) return;
   polling = true;
   try {
     const cutoff = Timestamp.fromMillis(Date.now() - HIKER_EXPIRY_MS);

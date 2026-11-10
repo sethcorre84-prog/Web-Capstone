@@ -138,15 +138,29 @@ export function trailLineKey(name) {
 export const validRoute = (route) => Array.isArray(route)
   && route.filter((p) => Number.isFinite(Number(p?.lat)) && Number.isFinite(Number(p?.lng))).length >= 2;
 
+/* Only a Registered Trail's saved route is drawn (Entry Type "Registered
+   Trail", or its older names "Registered Map" / "Legal Entry", or true),
+   the same rule as the app's map (TrailItem._parseIsLegalEntry), so both
+   always show the same lines. */
+export const isRegisteredTrail = (trail) => {
+  const value = trail?.EntryType;
+  if (typeof value === 'boolean') return value;
+  const entry = String(value ?? '').trim().toLowerCase();
+  return entry.startsWith('registered') || entry.startsWith('legal');
+};
+
+// A trail whose saved route is drawn on the maps.
+export const hasDrawnRoute = (trail) => validRoute(trail?.route) && isRegisteredTrail(trail);
+
 // The key a trail's line is filed under in `lines`: its own route if it has
 // one, else the file line its name matches (or null).
-export const lineKeyFor = (trail) => (validRoute(trail?.route) ? `trail:${trail.id}` : trailLineKey(trail?.Trail));
+export const lineKeyFor = (trail) => (hasDrawnRoute(trail) ? `trail:${trail.id}` : trailLineKey(trail?.Trail));
 
 // The trail behind a key from lineKeyFor (or from the file), among `trails`.
 export const trailForLineKey = (trails, key) => {
   if (!key) return null;
   if (key.startsWith('trail:')) return trails.find((t) => t.id === key.slice(6)) || null;
-  return trails.find((t) => !validRoute(t.route) && trailLineKey(t.Trail) === key) || null;
+  return trails.find((t) => !hasDrawnRoute(t) && trailLineKey(t.Trail) === key) || null;
 };
 
 /* Where a trail starts, as [lat, lng]: the first point of its saved route
@@ -286,6 +300,234 @@ const escapeText = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[c]));
 
+/* ---- The trail lines as every map draws them, with no map ----
+   The rules for what a map shows, kept in one place so every page agrees
+   (the maps below, and the off-trail alarm in off-trail-watch.js, which has
+   no map). Points are [lat, lng]. */
+
+// Metres between two points ([lat, lng], or { lat, lng } / L.LatLng).
+const pairOf = (p) => (Array.isArray(p) ? p : [p.lat, p.lng]);
+export function metersApart(a, b) {
+  const [lat1, lng1] = pairOf(a);
+  const [lat2, lng2] = pairOf(b);
+  const k = Math.PI / 180;
+  const x = (lng2 - lng1) * k * Math.cos(((lat1 + lat2) / 2) * k);
+  const y = (lat2 - lat1) * k;
+  return Math.sqrt(x * x + y * y) * 6371000;
+}
+
+/* A line with the jump-off roads that meet its ends joined on: the road
+   from a jump-off or registration becomes part of the same line, so spot,
+   road and trail are one unbroken line with no join. Both ends of a line
+   are joined, to any jump-off whose road ends there (its own first): the
+   Makiling Traverse starts at the MakTrav jump-off and ends along the UPLB
+   road at the Mariang Makiling registration. */
+export function joinRoadsWith(jumpOffs, key, points) {
+  let latLngs = points;
+  const roadAt = (end) => jumpOffs
+    .filter((item) => item.approach?.length && metersApart(item.approach[item.approach.length - 1], end) < 15)
+    .sort((a, b) => (b.connectsTo === key) - (a.connectsTo === key))[0];
+  const startSpot = roadAt(latLngs[0]);
+  const endSpot = roadAt(latLngs[latLngs.length - 1]);
+  if (startSpot || endSpot) {
+    // The road's last point is the trail's end point: kept once.
+    if (startSpot) latLngs = [startSpot.latLng, ...startSpot.approach.slice(0, -1), ...latLngs];
+    if (endSpot && endSpot !== startSpot) latLngs = [...latLngs, ...endSpot.approach.slice(0, -1).reverse(), endSpot.latLng];
+  } else {
+    // A road that doesn't quite meet the line: from the nearer end, as before.
+    const spot = jumpOffs.find((item) => item.connectsTo === key && item.approach?.length);
+    if (spot) {
+      if (metersApart(spot.latLng, latLngs[latLngs.length - 1]) < metersApart(spot.latLng, latLngs[0])) latLngs = [...latLngs].reverse();
+      latLngs = [spot.latLng, ...spot.approach.slice(0, -1), ...latLngs];
+    }
+  }
+  return latLngs;
+}
+
+// A saved route's points as [lat, lng].
+const routePoints = (trail) => trail.route
+  .map((p) => [Number(p.lat), Number(p.lng)])
+  .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+
+/* A saved route as drawn. One saved from the route editor (routeExact) is
+   drawn exactly as saved: the editor showed it whole, roads and all, so
+   nothing is added. Older routes get the jump-off roads that meet their
+   ends: Agila Base Trail starts at the Mariang Makiling registration. */
+export function savedRouteLine(trail, jumpOffs) {
+  const points = routePoints(trail);
+  return trail.routeExact ? points : joinRoadsWith(jumpOffs, `trail:${trail.id}`, points);
+}
+
+/* ---- The shared path: Makiling Traverse = Sipit up + Mariang down ----
+   In the trail file the Traverse is the Sipit Trail up to the summit and the
+   Mariang Makiling Trail down from it, point for point, so the three trails
+   share one path. An edit to any of them must show on all three, or the
+   old path is left beside the new one. On each stretch (Sipit's, Mariang's)
+   the most recent edit wins, by routeUpdatedAt:
+     - Sipit / Mariang edited more recently than the Traverse (or the
+       Traverse has no route): the Traverse takes that stretch from it;
+     - the Traverse edited more recently (or the part has no route): the part
+       takes its stretch of the Traverse.
+   `fileRaw` is the file's lines by key as in the file (no roads joined),
+   `routed` the trails whose saved routes are drawn. Returns the lines to
+   draw for 'traverse', 'sipit' and 'mariang' (roads joined), each only when
+   it differs from what that trail would draw on its own. */
+const SHARED_PARTS = ['sipit', 'mariang'];
+const millisOf = (value) => (value?.toMillis ? value.toMillis()
+  : (value?.seconds ? value.seconds * 1000 : (value ? new Date(value).getTime() : 0))) || 0;
+
+// The index in `path` nearest `target`, or -1 when none is within `limit` m.
+function nearestIndex(path, target, limit, start = 0, end = path.length) {
+  let best = -1; let bestDistance = Infinity;
+  for (let i = start; i < end; i += 1) {
+    const distance = metersApart(path[i], target);
+    if (distance < bestDistance) { bestDistance = distance; best = i; }
+  }
+  return bestDistance <= limit ? best : -1;
+}
+
+export function sharedStretches(fileRaw, routed, jumpOffs) {
+  const raw = fileRaw.get('traverse');
+  const sipitRaw = fileRaw.get('sipit');
+  const mariangRaw = fileRaw.get('mariang');
+  if (!raw || !sipitRaw || !mariangRaw) return {};
+  const summit = sipitRaw[sipitRaw.length - 1];          // where Sipit and Mariang meet
+  const trailhead = { sipit: sipitRaw[0], mariang: mariangRaw[0] };
+  const ownRoute = (key) => routed.find((t) => trailLineKey(t.Trail) === key) || null;
+  const traverse = ownRoute('traverse');
+  const parts = { sipit: ownRoute('sipit'), mariang: ownRoute('mariang') };
+  const partWins = (key) => Boolean(parts[key])
+    && (!traverse || millisOf(parts[key].routeUpdatedAt) >= millisOf(traverse.routeUpdatedAt));
+  const drawnAs = (trail, key, points) => (trail
+    ? (trail.routeExact ? points : joinRoadsWith(jumpOffs, `trail:${trail.id}`, points))
+    : joinRoadsWith(jumpOffs, key, points));
+
+  // The Traverse: its own route (or the file line), with the stretches of
+  // any part edited more recently put in.
+  const base = traverse ? routePoints(traverse) : raw;
+  const swaps = SHARED_PARTS.filter(partWins).map((key) => {
+    const i0 = nearestIndex(base, trailhead[key], 80);
+    const i1 = nearestIndex(base, summit, 80);
+    if (i0 < 0 || i1 < 0 || i0 === i1) return null;
+    const from = Math.min(i0, i1);
+    const to = Math.max(i0, i1);
+    let route = routePoints(parts[key]);
+    // The same way round as the Traverse at this point.
+    if (metersApart(route[route.length - 1], base[from]) < metersApart(route[0], base[from])) route = route.reverse();
+    /* A route edited from the file line carries the jump-off road it was
+       drawn with; the Traverse has its own roads, so the route is cut at the
+       points nearest the stretch's ends when they are close by. */
+    const half = Math.floor(route.length / 2);
+    const head = nearestIndex(route, base[from], 25, 0, half);
+    const tail = nearestIndex(route, base[to], 25, half, route.length);
+    route = route.slice(head < 0 ? 0 : head, tail < 0 ? route.length : tail + 1);
+    return route.length >= 2 ? { from, to, route } : null;
+  }).filter(Boolean)
+    // From the far end back, so earlier positions stay right.
+    .sort((a, b) => b.from - a.from);
+  let path = base;
+  swaps.forEach(({ from, to, route }) => {
+    path = [...path.slice(0, from), ...route, ...path.slice(to + 1)];
+  });
+  const result = {};
+  if (swaps.length || traverse) result.traverse = drawnAs(traverse, 'traverse', path);
+
+  // The parts the Traverse's edit is newer than: their stretch of it, from
+  // the trailhead up to the summit, with their own roads joined.
+  if (traverse) {
+    SHARED_PARTS.filter((key) => !partWins(key)).forEach((key) => {
+      /* From the part's own jump-off (Sipit: the Eco Park; Mariang: its
+         registration) when the Traverse passes it: the road up to the trail
+         is then the Traverse's too, as edited, not the old road kept with
+         the jump-off. */
+      const spot = jumpOffs.find((j) => j.connectsTo === key && Array.isArray(j.latLng));
+      const iSpot = spot ? nearestIndex(path, spot.latLng, 80) : -1;
+      const iHead = iSpot >= 0 ? iSpot : nearestIndex(path, trailhead[key], 80);
+      const iTop = nearestIndex(path, summit, 80);
+      if (iHead < 0 || iTop < 0 || iHead === iTop) return;
+      let stretch = path.slice(Math.min(iHead, iTop), Math.max(iHead, iTop) + 1);
+      if (iHead > iTop) stretch = stretch.reverse();
+      if (stretch.length < 2) return;
+      if (iSpot >= 0) {
+        // Starts at the jump-off itself.
+        result[key] = metersApart(stretch[0], spot.latLng) > 3 ? [spot.latLng, ...stretch] : stretch;
+      } else {
+        result[key] = joinRoadsWith(jumpOffs, parts[key] ? `trail:${parts[key].id}` : key, stretch);
+      }
+    });
+  }
+  return result;
+}
+
+/* Every trail line a map shows, as plain points: [{ key, name, side,
+   points }]. The file's lines (settings/map, map-data.js) less those a
+   saved route replaces, the Traverse following edited parts, then the
+   saved routes of Registered trails. `mapData` is what loadMapData()
+   returns; `trails` the trails/{id} documents (with id). */
+export function trailPaths(mapData, trails) {
+  const jumpOffs = Array.isArray(mapData?.jumpOffs) ? mapData.jumpOffs : JUMP_OFFS;
+  const fileRaw = new Map();
+  const files = (mapData?.trails?.features || [])
+    .filter((feature) => feature?.geometry?.type === 'LineString' && feature.properties?.key)
+    .map((feature) => {
+      const { key, name, kind } = feature.properties;
+      const raw = feature.geometry.coordinates.map(([lng, lat]) => [Number(lat), Number(lng)]);
+      fileRaw.set(key, raw);
+      return { key, name: name || 'the trail', side: kind === 'side', points: joinRoadsWith(jumpOffs, key, raw) };
+    });
+  const routed = (trails || []).filter(hasDrawnRoute);
+  const replaced = new Set(routed.map((trail) => trailLineKey(trail.Trail)).filter(Boolean));
+  // The Traverse, Sipit and Mariang share one path: the newest edit wins.
+  const shared = sharedStretches(fileRaw, routed, jumpOffs);
+  const shownFiles = files
+    .filter((line) => !replaced.has(line.key))
+    .map((line) => (shared[line.key] ? { ...line, points: shared[line.key] } : line));
+  const asLine = (trail, points) => ({ key: `trail:${trail.id}`, name: trail.Trail || 'Trail', side: false, trail, points });
+  const own = routed.filter((trail) => trail.routeSource !== 'traced')
+    .map((trail) => asLine(trail, shared[trailLineKey(trail.Trail)] || savedRouteLine(trail, jumpOffs)));
+  // Traced trails follow the line they were traced from, as it is now.
+  const sources = [...shownFiles, ...own].filter((line) => line.points.length >= 2);
+  const traced = routed.filter((trail) => trail.routeSource === 'traced')
+    .map((trail) => asLine(trail, retracedLine(trail, sources) || savedRouteLine(trail, jumpOffs)));
+  return [...shownFiles, ...own, ...traced].filter((line) => line.points.length >= 2);
+}
+
+/* A traced trail (Trail Management's "traced" route: a trail named after a
+   place on another trail, e.g. Agila Base Trail, which follows the Mariang
+   Makiling Trail from its start up to Agila Base) is saved as a copy of that
+   line at the time. Drawn as it was, it would keep the old path once that
+   trail's route is edited. So it is traced again from the line it came from
+   as that line is drawn now: the line that starts where the copy starts
+   (within 40 m), from there to its point nearest the place (within 150 m),
+   then the place itself. Null when no such line is found (the copy is
+   then drawn as saved). Built-in lines are preferred over the Traverse,
+   which runs along the same path. */
+export function retracedLine(trail, sources) {
+  const route = routePoints(trail);
+  if (route.length < 2) return null;
+  const start = route[0];
+  const place = route[route.length - 1];
+  let best = null;
+  sources.forEach((line) => {
+    if (line.key === `trail:${trail.id}`) return;
+    const points = line.points;
+    // Where the copy starts and ends along this line (anywhere on it: the
+    // line may now begin a little before, at its jump-off).
+    const iStart = nearestIndex(points, start, 40);
+    const iPlace = nearestIndex(points, place, 150);
+    if (iStart < 0 || iPlace < 0 || iStart === iPlace) return;
+    const score = metersApart(points[iStart], start) + metersApart(points[iPlace], place)
+      + (line.key === 'traverse' || /traverse|maktrav/i.test(line.name || '') ? 1 : 0);
+    if (!best || score < best.score) best = { score, points, iStart, iPlace };
+  });
+  if (!best) return null;
+  const { points, iStart, iPlace } = best;
+  let path = points.slice(Math.min(iStart, iPlace), Math.max(iStart, iPlace) + 1);
+  if (iStart > iPlace) path = path.reverse();
+  if (metersApart(path[path.length - 1], place) > 3) path.push(place);
+  return path.length >= 2 ? path : null;
+}
+
 /* Draws every trail line on a map. Each line is a white casing under a
    coloured stroke, which keeps it readable on both forest and cloud.
    colorFor(key) picks a line's colour (Trail Management colours by open or
@@ -301,37 +543,12 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
   const data = mapData.trails;
   // The jump-offs as stored (settings/map), or the built-in list.
   const jumpOffs = Array.isArray(mapData.jumpOffs) ? mapData.jumpOffs : JUMP_OFFS;
-  // A line with the jump-off roads that meet its ends joined on (below):
-  // the file's lines and the routes saved on trails alike.
-  const joinRoads = (key, points) => {
-    let latLngs = points;
-    /* A trail reached from a jump-off or registration (the Sipit Trail from
-       the Sto. Tomas City Eco Park): the road from it becomes part of the same
-       line, so spot, road and trail are one unbroken line with no join. Both
-       ends of a line are joined, to any jump-off whose road ends there (its
-       own first): the Makiling Traverse starts at the MakTrav jump-off and
-       ends along the UPLB road at the Mariang Makiling registration. */
-    const roadAt = (end) => jumpOffs
-      .filter((item) => item.approach?.length && L.latLng(item.approach[item.approach.length - 1]).distanceTo(end) < 15)
-      .sort((a, b) => (b.connectsTo === key) - (a.connectsTo === key))[0];
-    const startSpot = roadAt(latLngs[0]);
-    const endSpot = roadAt(latLngs[latLngs.length - 1]);
-    if (startSpot || endSpot) {
-      // The road's last point is the trail's end point: kept once.
-      if (startSpot) latLngs = [startSpot.latLng, ...startSpot.approach.slice(0, -1), ...latLngs];
-      if (endSpot && endSpot !== startSpot) latLngs = [...latLngs, ...endSpot.approach.slice(0, -1).reverse(), endSpot.latLng];
-    } else {
-      // A road that doesn't quite meet the line: from the nearer end, as before.
-      const spot = jumpOffs.find((item) => item.connectsTo === key && item.approach?.length);
-      if (spot) {
-        const here = L.latLng(spot.latLng);
-        if (here.distanceTo(latLngs[latLngs.length - 1]) < here.distanceTo(latLngs[0])) latLngs = latLngs.reverse();
-        latLngs = [spot.latLng, ...spot.approach.slice(0, -1), ...latLngs];
-      }
-    }
-    return latLngs;
-  };
+  // A line with the jump-off roads that meet its ends joined on (joinRoadsWith).
+  const joinRoads = (key, points) => joinRoadsWith(jumpOffs, key, points);
   const lines = new Map();
+  // Each file line's points as in the file, and as drawn (roads joined on).
+  const fileRaw = new Map();
+  const fileJoined = new Map();
   const peaks = [];
   const group = L.layerGroup().addTo(map);
 
@@ -351,7 +568,9 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
       continue;
     }
     let latLngs = feature.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+    fileRaw.set(key, latLngs);
     latLngs = joinRoads(key, latLngs);
+    fileJoined.set(key, latLngs);
     const side = kind === 'side';
     const color = colorFor?.(key) || (side ? SIDE_TRAIL_COLOR : TRAIL_COLOR);
     const casing = L.polyline(latLngs, {
@@ -404,6 +623,10 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
     lines.set(key, { casing, stroke, side, name, trail });
   }
 
+  /* The Traverse's file line follows any edited Sipit / Mariang Makiling
+     route (sharedStretches). A Traverse with a saved route of its own replaces
+     this line altogether. */
+
   // Redraws the saved routes from the trails collection.
   function setRoutes(trails) {
     routeKeys.forEach((key) => {
@@ -420,7 +643,13 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
         lines.set(key, line);
       }
     });
-    trails.filter((trail) => validRoute(trail.route)).forEach((trail) => {
+    /* What to draw comes from trailPaths, the one set of rules every map and
+       the off-trail alarm share: saved routes (exactly as saved from the
+       editor), the Traverse following edited Sipit / Mariang routes, and
+       traced trails following the line they were traced from. */
+    const paths = new Map(trailPaths(mapData, trails).map((line) => [line.key, line.points]));
+    const routed = trails.filter(hasDrawnRoute);
+    routed.forEach((trail) => {
       const replaced = trailLineKey(trail.Trail);
       if (replaced && lines.has(replaced) && fileLines.has(replaced)) {
         const line = lines.get(replaced);
@@ -429,12 +658,8 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
         lines.delete(replaced);
       }
       const key = `trail:${trail.id}`;
-      // A saved route (drawn, imported or traced) gets the jump-off roads
-      // that meet its ends too: Agila Base Trail starts at the Mariang
-      // Makiling registration like the trail it was traced from.
-      const latLngs = joinRoads(`trail:${trail.id}`, trail.route
-        .map((p) => [Number(p.lat), Number(p.lng)])
-        .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng)));
+      const latLngs = paths.get(key);
+      if (!latLngs) return;
       const name = trail.Trail || 'Trail';
       const km = (routeLength(latLngs) / 1000).toFixed(1);
       drawLine(key, latLngs, {
@@ -445,6 +670,15 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
         trail
       });
       routeKeys.push(key);
+    });
+    /* The Traverse, Sipit and Mariang file lines share one path: each shows
+       its stretch of the newest edit (sharedStretches), else its own line. */
+    ['traverse', 'sipit', 'mariang'].forEach((key) => {
+      const line = fileLines.get(key);
+      if (!line) return;
+      const latLngs = paths.get(key) || fileJoined.get(key);
+      line.casing.setLatLngs(latLngs);
+      line.stroke.setLatLngs(latLngs);
     });
     // The summit badge stays above every line.
     peaks.forEach((peak) => { group.removeLayer(peak); peak.addTo(group); });

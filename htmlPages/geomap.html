@@ -1093,7 +1093,7 @@
     import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { formatPortalDate, portalHourCycle, portalTimeZone, toPortalDate as toDate } from "../jsPages/datetime-prefs.js";
     import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, watchWeatherLocation, weatherUrlFor } from "../jsPages/weather-locations.js";
-    import { createMakilingMap, trailForLineKey, PEAK_2 } from "../jsPages/makiling-area.js";
+    import { createMakilingMap, trailForLineKey, trailLineKey, hasDrawnRoute, PEAK_2 } from "../jsPages/makiling-area.js";
     import { initTrailPoints } from "../jsPages/trail-points.js";
     import { addMapFeatures, FACILITIES } from "../jsPages/map-features.js";
 
@@ -1471,6 +1471,11 @@
       trailPoints.render(trails);
       trailLayer.clearLayers();
       trails.forEach((data) => {
+        // A trail with a line on the map (its saved route, or a built-in
+        // line) is shown by that line, as in the app: a pin at the place
+        // saved when it was added would be left behind once its route is
+        // drawn or edited somewhere else.
+        if (hasDrawnRoute(data) || trailLineKey(data.Trail)) return;
         const coordinates = getCoordinates(data);
         // Trails off the mountain would land under the grey mask, out of reach.
         if (!coordinates || !makilingBounds.contains(coordinates)) return;
