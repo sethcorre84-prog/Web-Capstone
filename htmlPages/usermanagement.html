@@ -3117,6 +3117,7 @@
       <div class="email-verify-box" id="emailVerifyBox" hidden>
         <div class="verify-row">
           <input id="addUserEmailCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code from the email" aria-label="Email code">
+          <button type="button" class="verify-btn" id="verifyEmailCodeBtn">Verify</button>
           <button type="button" class="verify-btn" id="resendEmailCodeBtn">Resend</button>
         </div>
         <p id="addUserEmailVerifyHint" class="field-hint verify-status"></p>
@@ -4549,7 +4550,7 @@
     if (emailMode) {
       const ready = Boolean(parsed) && emailCodeReady();
       saveAddUserBtn.disabled = !ready;
-      saveAddUserBtn.title = ready ? '' : 'Enter the 6-digit code from the email first';
+      saveAddUserBtn.title = ready ? '' : 'Enter the 6-digit code from the email and press Verify first';
       return;
     }
     const phoneOk = Boolean(verifiedPhone && parsed && parsed.e164 === verifiedPhone);
@@ -4587,6 +4588,7 @@
   const emailCodeInput = document.getElementById('addUserEmailCode');
   const emailVerifyHint = document.getElementById('addUserEmailVerifyHint');
   const resendEmailCodeBtn = document.getElementById('resendEmailCodeBtn');
+  const verifyEmailCodeBtn = document.getElementById('verifyEmailCodeBtn');
   const addUserEmailInput = document.getElementById('addUserEmail');
   const signupFunctions = getFunctions(auth.app);
   const requestSignupOtp = httpsCallable(signupFunctions, 'requestSignupOtp');
@@ -4594,6 +4596,9 @@
   let emailMode = false;     // verifying by email instead of SMS
   let emailCodeFor = null;   // the address the code was sent to
   let emailResendTimer = null;
+  // The code Verify confirmed, for emailCodeFor (null until then): Add User
+  // then makes the account with it, as the SMS flow's Verify then Add User.
+  let emailVerifiedCode = null;
 
   const setEmailVerifyStatus = (text, tone = '') => {
     emailVerifyHint.textContent = text;
@@ -4601,7 +4606,16 @@
   };
   const emailCodeReady = () => emailMode
     && emailCodeFor === normalizeText(addUserEmailInput.value).toLowerCase()
-    && /^\d{6}$/.test(emailCodeInput.value.trim());
+    && /^\d{6}$/.test(emailCodeInput.value.trim())
+    && emailVerifiedCode === emailCodeInput.value.trim();
+
+  // Verify: ready to press once 6 digits are in and not yet confirmed.
+  const refreshVerifyEmailButton = () => {
+    const code = emailCodeInput.value.trim();
+    const verified = Boolean(emailVerifiedCode) && emailVerifiedCode === code;
+    verifyEmailCodeBtn.textContent = verified ? 'Verified ✓' : 'Verify';
+    verifyEmailCodeBtn.disabled = verified || !/^\d{6}$/.test(code);
+  };
 
   const resetEmailVerification = () => {
     emailMode = false;
@@ -4609,6 +4623,9 @@
     clearInterval(emailResendTimer);
     emailVerifyBox.hidden = true;
     emailCodeInput.value = '';
+    emailCodeInput.readOnly = false;
+    emailVerifiedCode = null;
+    refreshVerifyEmailButton();
     addUserEmailInput.readOnly = false;
     useEmailInsteadBtn.hidden = true;
     useEmailInsteadBtn.disabled = false;
@@ -4673,9 +4690,12 @@
       useEmailInsteadBtn.hidden = true;
       emailVerifyBox.hidden = false;
       emailCodeInput.value = '';
+      emailCodeInput.readOnly = false;
+      emailVerifiedCode = null;
+      refreshVerifyEmailButton();
       emailCodeInput.focus();
       setPhoneStatus('Verifying by email instead of SMS. The phone number is saved with the account, unverified.');
-      setEmailVerifyStatus(`Code sent to ${email}. Ask the user for the 6-digit code from the email, enter it, then press Add User.`);
+      setEmailVerifyStatus(`Code sent to ${email}. Ask the user for the 6-digit code from the email, enter it, then press Verify.`);
       startEmailResendCountdown(60);
     } catch (error) {
       console.error('Sending the email code failed:', error);
@@ -4699,7 +4719,46 @@
   });
   emailCodeInput.addEventListener('input', () => {
     emailCodeInput.value = emailCodeInput.value.replace(/\D/g, '').slice(0, 6);
+    refreshVerifyEmailButton();
     refreshAddUserButton();
+  });
+  emailCodeInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (!verifyEmailCodeBtn.disabled) verifyEmailCodeBtn.click();
+    }
+  });
+
+  /* Verify: checks the email code (verifySignupOtp, checkOnly) without
+     using it up; Add User then makes the account with the same code. */
+  verifyEmailCodeBtn.addEventListener('click', async () => {
+    const code = emailCodeInput.value.trim();
+    if (!emailMode || !emailCodeFor || !/^\d{6}$/.test(code)) {
+      setEmailVerifyStatus('Enter the 6-digit code from the email.', 'error');
+      return;
+    }
+    verifyEmailCodeBtn.disabled = true;
+    verifyEmailCodeBtn.textContent = 'Verifying…';
+    setEmailVerifyStatus('Checking the code…');
+    try {
+      const result = await verifySignupOtp({ email: emailCodeFor, code, checkOnly: true });
+      if (result?.data?.valid !== true) {
+        // An older verifySignupOtp (before checkOnly) can't check a code alone.
+        throw Object.assign(new Error('The code could not be checked. Send a new code and try again.'), { code: 'functions/failed-precondition' });
+      }
+      emailVerifiedCode = code;
+      emailCodeInput.readOnly = true;
+      setEmailVerifyStatus(`Email verified (${emailCodeFor}). Press Add User to create the account.`, 'ok');
+    } catch (error) {
+      console.error('Checking the email code failed:', error);
+      emailVerifiedCode = null;
+      setEmailVerifyStatus(error?.message || 'That code is not right. Check the email and try again.', 'error');
+      emailCodeInput.focus();
+      emailCodeInput.select();
+    } finally {
+      refreshVerifyEmailButton();
+      refreshAddUserButton();
+    }
   });
   // Clicking the locked email to change it starts the email check over.
   addUserEmailInput.addEventListener('click', () => {
@@ -4747,10 +4806,25 @@
     'auth/invalid-app-credential': 'Firebase rejected the reCAPTCHA check (auth/invalid-app-credential). Reload the page and try again.',
     'auth/network-request-failed': 'Network error. Check your connection and try again.'
   }[error?.code] || (isSmsServiceError(error)
-    // Firebase's SMS service refused to send (a 503 behind "auth/error-code:-39"):
-    // not this page's doing, so say what to check.
-    ? `Firebase could not send an SMS to this number right now (${error.code}). Wait a few minutes and try again. If it keeps happening: in Firebase Console > Authentication > Settings, make sure the SMS region policy allows the Philippines, and check that the project has not hit its SMS sending limit (Usage). For testing, a number can be added under Sign-in method > Phone > Phone numbers for testing.`
+    ? smsNotSentMessage()
     : `${error?.message || 'Something went wrong. Try again.'}${error?.code ? ` (${error.code})` : ''}`));
+
+  /* DITO numbers (0895-0898, 0991-0994): Firebase's SMS service often
+     can't deliver codes to them ("auth/error-code:-39"). */
+  const isDitoNumber = (number) => {
+    // As a local 11-digit number: +63 992... / 63992... / 992... -> 0992...
+    let digits = String(number || '').replace(/\D/g, '');
+    if (digits.startsWith('63')) digits = `0${digits.slice(2)}`;
+    else if (digits.length === 10) digits = `0${digits}`;
+    return /^0(?:89[5-8]|99[1-4])\d{7}$/.test(digits);
+  };
+
+  /* When the SMS service refuses to send (no code was sent): the same plain
+     words as the app (auth_service.dart), not Firebase's error code, and
+     said straight out for a DITO number. */
+  const smsNotSentMessage = (number = '') => (isDitoNumber(number)
+    ? 'This looks like a DITO number. Our SMS service can\'t send verification codes to DITO numbers right now. Verify with email instead, or use a number from another network.'
+    : 'Our SMS service couldn\'t send a code to this number right now. This happens with some mobile networks (such as DITO). Verify with email instead, or try again later.');
 
   // Changing the number undoes any verification of the old one.
   addUserPhoneInput.addEventListener('input', () => {
@@ -4802,7 +4876,8 @@
         await sendCode();
       } catch (error) {
         // The SMS service was briefly unavailable (nothing was sent): once more.
-        if (!isSmsServiceError(error)) throw error;
+        // A DITO number won't get it on a second try either: say so at once.
+        if (!isSmsServiceError(error) || isDitoNumber(parsed.e164 || parsed.local)) throw error;
         console.warn('The SMS service refused the code; trying again in 3 seconds.', error);
         setPhoneStatus(`Sending a code to ${parsed.local}… (trying again)`);
         await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -4819,7 +4894,10 @@
       await endSignupSession({ deleteAccount: false });
       sendPhoneCodeBtn.disabled = false;
       sendPhoneCodeBtn.textContent = 'Send code';
-      setPhoneStatus(`${describePhoneError(error)} You can verify with email instead.`, 'error');
+      setPhoneStatus(isSmsServiceError(error)
+        // Says "verify with email instead" itself.
+        ? smsNotSentMessage(parsed.e164 || parsed.local)
+        : `${describePhoneError(error)} You can verify with email instead.`, 'error');
       useEmailInsteadBtn.hidden = false;
     }
   });
@@ -4926,8 +5004,21 @@
     addUserCity.disabled = true;
     addUserBarangay.disabled = true;
   };
-  const loadAddressChoices = async () => {
-    if (phAddresses) return;
+  // Whether the Province list has its provinces (more than the placeholder).
+  const provincesShown = () => addUserProvince.options.length > 1;
+  let addressLoading = null;
+  const loadAddressChoices = () => {
+    // Already in the list: nothing to do. Loaded but the list is empty: fill it.
+    if (phAddresses && provincesShown()) return Promise.resolve();
+    if (phAddresses) {
+      fillSelect(addUserProvince, 'Province', Object.keys(phAddresses).sort((a, b) => a.localeCompare(b)));
+      return Promise.resolve();
+    }
+    // One load at a time (the page start, Add User and the list itself all ask).
+    addressLoading ||= fillAddressChoices().finally(() => { addressLoading = null; });
+    return addressLoading;
+  };
+  const fillAddressChoices = async () => {
     addUserProvince.disabled = true;
     addUserAddressHint.textContent = 'Loading the list of provinces...';
     try {
@@ -4936,7 +5027,7 @@
       addUserAddressHint.textContent = "Pick the province first, then the city and barangay, as in the app. Not from the Philippines? Enter where they are currently staying in the Philippines (hotel, rental or host's address).";
     } catch (error) {
       console.error('Could not load the address list:', error);
-      addUserAddressHint.textContent = 'The list of provinces could not be loaded. Close and reopen Add User to try again.';
+      addUserAddressHint.textContent = 'The list of provinces could not be loaded. Click the Province list to try again.';
     } finally {
       addUserProvince.disabled = false;
     }
@@ -4961,6 +5052,16 @@
     });
   });
   document.getElementById('addUserBtn').addEventListener('click', loadAddressChoices);
+  /* The provinces never depend on that one click: they start loading as
+     soon as the page is up (so the list is ready the first time Add User
+     opens, even right after signing in), and the Province list itself loads
+     them again if it is still empty when clicked or focused. */
+  ['mousedown', 'focus', 'touchstart'].forEach((type) => {
+    addUserProvince.addEventListener(type, () => {
+      if (!provincesShown()) loadAddressChoices();
+    }, { passive: true });
+  });
+  setTimeout(() => { loadAddressChoices().catch(() => {}); }, 0);
 
   /* ---- Show / hide password ----
      Every password field (Add User, Set Password) gets an eye button that

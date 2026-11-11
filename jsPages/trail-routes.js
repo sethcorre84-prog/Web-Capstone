@@ -810,6 +810,14 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, showLine, butto
       ? (touched || !['gpx', 'kml'].includes(source) ? 'drawn' : source)
       : source;
     const replacesStandard = !validRoute(trail.route) && Boolean(trailLineKey(trail.Trail));
+    /* The save itself gives the trail its route, and the page hears that at
+       once (the live trails listener, then update() below): marked saving,
+       so that is not taken for a route that arrived from elsewhere, which
+       would close the editor and cancel a registration mid-save. */
+    const session = editing;
+    session.saving = true;
+    const done = session.done;
+    session.done = null;
     try {
       await updateDoc(doc(db, 'trails', trail.id), {
         route: route.map((p) => ({ lat: Number(p.lat.toFixed(6)), lng: Number(p.lng.toFixed(6)) })),
@@ -821,9 +829,8 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, showLine, butto
         UpdatedAt: serverTimestamp(),
         ...(register ? { EntryType: 'Registered Trail' } : {})
       });
-      const done = editing.done;
-      editing.done = null;
-      stop();
+      // Closed only if this is still the editor that was saved.
+      if (editing === session) stop();
       done?.(true);
       const name = trail.Trail || 'the trail';
       notify?.(register
@@ -833,6 +840,10 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, showLine, butto
           : `Route saved for ${name}. It now shows on every map.`);
     } catch (error) {
       console.error('Could not save the route:', error);
+      // Still open: give the registration back to it, to finish or cancel.
+      session.saving = false;
+      if (editing === session) session.done = done;
+      else done?.(false);
       button.disabled = false;
       notify?.(error?.code === 'permission-denied'
         ? 'Firebase denied this. Only admins (not Viewers) can change a trail\'s route.'
@@ -911,7 +922,7 @@ export function initTrailRoutes({ map, db, getSelected, lineFor, showLine, butto
     }
     if (buttons.remove) buttons.remove.hidden = !validRoute(trail?.route);
     // The trail may have gained a route elsewhere while a new one was being drawn.
-    if (editing?.kind === 'new' && trail?.id === editing.trail.id && lockedReason(trail, registering)) stop();
+    if (editing?.kind === 'new' && !editing.saving && trail?.id === editing.trail.id && lockedReason(trail, registering)) stop();
   }
   [buttons.draw, buttons.import].forEach((button) => {
     if (button) button.dataset.title = button.title;
