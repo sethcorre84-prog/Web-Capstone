@@ -1,3 +1,4 @@
+import { hikeHistory } from './hike-history.js';
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const number = value => Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : 0;
@@ -7,7 +8,7 @@ export function summarizeUserSessions(users) {
         name: user.fullName || user.username || user.id,
         username: user.username || '',
         role: user.role || user.Role || 'hiker',
-        hikes: number(user.hikeCount), completed: number(user.completedHikes),
+        hikes: hikeHistory(user).total, completed: number(user.completedHikes),
         partial: number(user.partialHikes), km: number(user.hikeTotalKm),
         minutes: number(user.hikeTotalMinutes),
         trails: Array.isArray(user.hikedTrails) ? user.hikedTrails.map(String) : [],

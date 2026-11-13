@@ -3358,6 +3358,7 @@
     Timestamp,
     updateDoc
   } from '../jsPages/firestore-tracked.js';
+  import { hikeHistory } from '../jsPages/hike-history.js';
   import { GENDERS, NATIONALITIES, loadPhAddresses } from '../jsPages/signup-options.js';
 
   const PAGE_SIZE = 10;
@@ -6136,15 +6137,6 @@
      .count): their hikes on Mount Makiling in all, and the month of the
      first. One hike in all is a first-timer; more, a repeat hiker. Hikes
      from before they used PeakPath are not known. */
-  const hikeHistory = (raw) => {
-    const months = Object.entries(raw?.hikeStarts || {})
-      .filter(([monthKey, value]) => /^m\d{4}_\d{2}$/.test(monthKey) && Number(value?.count) > 0)
-      .sort(([a], [b]) => a.localeCompare(b));
-    return {
-      total: months.reduce((sum, [, value]) => sum + Number(value.count), 0),
-      first: months[0]?.[0] || null
-    };
-  };
   const monthLabelOf = (monthKey) => {
     const [, y, m] = /^m(\d{4})_(\d{2})$/.exec(monthKey || '') || [];
     return y ? new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
@@ -6157,7 +6149,7 @@
      (age at the month's last day, from birthdate, as the app's sign-up
      saves it). Each hiker counts once a month, however many hikes. */
   const hikerAnalyticsMonth = document.getElementById('hikerAnalyticsMonth');
-  hikerAnalyticsMonth.innerHTML = recentMonths(12).reverse().map((month, i) => `<option value="${month.key}">${
+  hikerAnalyticsMonth.innerHTML = '<option value="all">All time</option>' + recentMonths(12).reverse().map((month, i) => `<option value="${month.key}">${
     i === 0 ? 'This month' : month.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</option>`).join('');
 
   const AGE_BRACKETS = [
@@ -6298,20 +6290,26 @@
   let hikerReport = null;
 
   const renderHikerAnalytics = () => {
-    const key = hikerAnalyticsMonth.value;
-    if (!key) return;
+    const selected = hikerAnalyticsMonth.value || 'all';
+    const allTime = selected === 'all';
+    const knownMonths = new Set(recentMonths(12).map(month => month.key));
+    (state.users || []).forEach(user => Object.keys(hikeHistory(user.raw).months).forEach(key => knownMonths.add(key)));
+    hikerAnalyticsMonth.innerHTML = '<option value="all">All time</option>' + [...knownMonths].sort().reverse()
+      .map(key => `<option value="${key}">${monthLabelOf(key)}</option>`).join('');
+    hikerAnalyticsMonth.value = selected;
+    const key = allTime ? recentMonths(1)[0].key : selected;
     const [, y, m] = /^m(\d{4})_(\d{2})$/.exec(key) || [];
-    const monthEnd = new Date(Number(y), Number(m), 0);
-    const monthLabel = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const monthEnd = allTime ? new Date() : new Date(Number(y), Number(m), 0);
+    const monthLabel = allTime ? 'All time' : new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const previous = new Date(Number(y), Number(m) - 2, 1);
     const previousKey = `m${previous.getFullYear()}_${String(previous.getMonth() + 1).padStart(2, '0')}`;
-    const startsIn = (user, monthKey) => Number(user.raw?.hikeStarts?.[monthKey]?.count) || 0;
+    const startsIn = (user, monthKey) => hikeHistory(user.raw).months[monthKey] || 0;
 
     // Hiker accounts only: guides (and rangers / admins) who tap Start Hike
     // while leading a group are not counted as hikers here.
     const users = (state.users || []).filter((user) => toBadgeClass(user.role) === 'hiker');
-    const hikers = users.filter((user) => startsIn(user, key) > 0);
-    const hikes = hikers.reduce((sum, user) => sum + startsIn(user, key), 0);
+    const hikers = users.filter((user) => allTime ? hikeHistory(user.raw).total > 0 : startsIn(user, key) > 0);
+    const hikes = hikers.reduce((sum, user) => sum + (allTime ? hikeHistory(user.raw).total : startsIn(user, key)), 0);
     const lastMonth = users.filter((user) => startsIn(user, previousKey) > 0).length;
     const total = hikers.length;
     const change = !lastMonth
@@ -6319,7 +6317,7 @@
       : (total === lastMonth ? 'Same as the month before'
         : `${total > lastMonth ? '▲' : '▼'} ${Math.abs(Math.round(((total - lastMonth) / lastMonth) * 100))}% vs the month before (${lastMonth})`);
     const filipinos = hikers.filter((user) => isFilipino(user.raw?.nationality)).length;
-    const firstTimersNow = hikers.filter((user) => hikeHistory(user.raw).first === key).length;
+    const firstTimersNow = hikers.filter((user) => allTime ? hikeHistory(user.raw).total === 1 : hikeHistory(user.raw).undated === 0 && hikeHistory(user.raw).first === key).length;
     const firstTimersBefore = users.filter((user) => startsIn(user, previousKey) > 0 && hikeHistory(user.raw).first === previousKey).length;
     const hikesBefore = users.reduce((sum, user) => sum + startsIn(user, previousKey), 0);
 
@@ -6336,9 +6334,10 @@
         firstTimers: monthHikers.filter((user) => hikeHistory(user.raw).first === monthKey).length
       };
     });
+    const undated = users.reduce((sum, user) => sum + hikeHistory(user.raw).undated, 0);
     const sixMonths = trend.reduce((sum, t) => sum + t.count, 0);
     document.getElementById('hikerAnalyticsTrend').innerHTML = trendHtml(trend, key);
-    document.getElementById('hikerAnalyticsTrendSub').textContent = `${sixMonths.toLocaleString()} hiker-month${sixMonths === 1 ? '' : 's'} in all`;
+    document.getElementById('hikerAnalyticsTrendSub').textContent = `${sixMonths.toLocaleString()} hiker-month${sixMonths === 1 ? '' : 's'} in all${undated ? ` ? ${undated} sessions without monthly dates (included in All time)` : ''}`;
 
     const stat = (icon, label, value, extra, lead = false) => `
       <div class="ha-stat${lead ? ' is-lead' : ''}">
@@ -6347,9 +6346,9 @@
         ${extra}
       </div>`;
     document.getElementById('hikerAnalyticsStats').innerHTML =
-      stat('fa-users', 'Total hikers', total, `${deltaHtml(total, lastMonth)}${sparkHtml(trend.map((t) => t.count))}`, true)
-      + stat('fa-seedling', 'First-time hikers', firstTimersNow, `${deltaHtml(firstTimersNow, firstTimersBefore)}<small>First hike on Mount Makiling</small>`)
-      + stat('fa-person-hiking', 'Hikes started', hikes, `${deltaHtml(hikes, hikesBefore)}<small>${total ? `${(hikes / total).toFixed(1)} per hiker` : 'No hikes yet'}</small>`)
+      stat('fa-users', 'Total hikers', total, `${allTime ? '' : deltaHtml(total, lastMonth)}${sparkHtml(trend.map((t) => t.count))}`, true)
+      + stat('fa-seedling', 'First-time hikers', firstTimersNow, `${allTime ? '' : deltaHtml(firstTimersNow, firstTimersBefore)}<small>${allTime ? 'One recorded hike' : 'First recorded hike this month'}</small>`)
+      + stat('fa-person-hiking', 'Hikes started', hikes, `${allTime ? '' : deltaHtml(hikes, hikesBefore)}<small>${total ? `${(hikes / total).toFixed(1)} per hiker` : 'No hikes yet'}</small>`)
       + stat('fa-earth-asia', 'Foreign or unstated', total - filipinos, `<small>${filipinos.toLocaleString()} Filipino${total ? ` · ${pctOf(filipinos, total)}%` : ''}</small>`);
 
     // Gender, in the gender chart's own colours.
@@ -6386,11 +6385,14 @@
 
     // First-time: the month is their first on Mount Makiling (no hikes
     // before it). Repeat: they had hiked in an earlier month.
-    const firstTimers = hikers.filter((user) => hikeHistory(user.raw).first === key).length;
+    const firstTimers = hikers.filter((user) => allTime ? hikeHistory(user.raw).total === 1 : hikeHistory(user.raw).undated === 0 && hikeHistory(user.raw).first === key).length;
+    const unknownHistory = allTime ? 0 : hikers.filter(user => hikeHistory(user.raw).undated > 0 && hikeHistory(user.raw).first === key).length;
     const visitItems = [
       { label: 'First-time', value: firstTimers, color: HA_SLOTS[0][0], exportColor: HA_SLOTS[0][1] },
-      { label: 'Repeat', value: total - firstTimers, color: HA_SLOTS[1][0], exportColor: HA_SLOTS[1][1] }
+      { label: 'Repeat', value: total - firstTimers - unknownHistory, color: HA_SLOTS[1][0], exportColor: HA_SLOTS[1][1] }
     ];
+
+    if (unknownHistory) visitItems.push({ label: 'Earlier dates unknown', value: unknownHistory, color: HA_OTHER[0], exportColor: HA_OTHER[1] });
 
     document.getElementById('hikerAnalyticsGender').innerHTML = donutHtml(genderItems, total);
     document.getElementById('hikerAnalyticsAge').innerHTML = columnsHtml(ageRows, total);
@@ -6415,9 +6417,9 @@
     ].join('') : '';
 
     hikerReport = {
-      monthLabel, key, total, hikes, change, filipinos,
+      monthLabel, key, total, hikes, change: allTime ? 'All recorded sessions' : change, filipinos,
       gender: genderItems, age: ageRows, nationality: nationalityItems, province: provinceItems,
-      visits: visitItems, firstTimers
+      visits: visitItems, firstTimers, unknownHistory
     };
   };
   hikerAnalyticsMonth.addEventListener('change', renderHikerAnalytics);
@@ -6448,14 +6450,15 @@
           sections: [
             {
               title: 'Total Hikers',
-              note: 'Different hikers who started at least one hike in the PeakPath app this month.',
+              note: 'Different hikers with recorded hikes in the selected period. All time includes profile session totals; monthly charts include only dated starts.',
               headers: ['Measure', 'Value'],
               rows: [
                 ['Total hikers', r.total],
                 ['Hikes started', r.hikes],
                 ['Hikes per hiker', r.total ? (r.hikes / r.total).toFixed(1) : '—'],
                 ['First-time hikers', r.firstTimers],
-                ['Repeat hikers', r.total - r.firstTimers],
+                ['Repeat hikers', r.total - r.firstTimers - r.unknownHistory],
+                ['Earlier dates unknown', r.unknownHistory],
                 ['Filipino', r.filipinos],
                 ['Foreign or unstated nationality', r.total - r.filipinos],
                 ['Compared with the month before', r.change]
@@ -6471,7 +6474,7 @@
             },
             { title: 'Nationality', headers: ['Nationality', 'Hikers', 'Share'], rows: tableRows(r.nationality), chart: r.total ? donut('Hikers by nationality', r.nationality) : null },
             { title: 'Province (Address)', note: 'Hikers from abroad give where they are staying in the Philippines.', headers: ['Province', 'Hikers', 'Share'], rows: tableRows(r.province), chart: r.total ? donut('Hikers by province', r.province) : null },
-            { title: 'First-time vs Repeat Hikers', note: 'First-time: their first hike on Mount Makiling (Start Hike in the PeakPath app) was this month. Repeat: they had hiked in an earlier month. Hikes from before they used PeakPath are not known.', headers: ['Hikers', 'Count', 'Share'], rows: tableRows(r.visits), chart: r.total ? donut('First-time vs repeat hikers', r.visits) : null }
+            { title: 'First-time vs Repeat Hikers', note: 'All time: first-time means one recorded hike, repeat means multiple hikes. Monthly: first-time means the first dated hike was in this month with no undated sessions; earlier dates unknown means session totals cannot establish the first month.', headers: ['Hikers', 'Count', 'Share'], rows: tableRows(r.visits), chart: r.total ? donut('First-time vs repeat hikers', r.visits) : null }
           ]
         };
       }
@@ -6559,6 +6562,7 @@
       userPager.innerHTML = '';
       renderStats();
       renderSelectedUser();
+      renderHikerAnalytics();
       return;
     }
 
