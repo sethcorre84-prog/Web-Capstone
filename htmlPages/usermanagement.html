@@ -2662,6 +2662,11 @@
         <p>Manage hikers and view user reports about other users' behavior.</p>
       </div>
       <div class="topbar-right">
+        <div class="top-meta" aria-label="Current day and time">
+          <i class="fa-regular fa-clock" aria-hidden="true"></i>
+          <span id="live-day">&mdash;</span>
+          <strong id="live-clock">&mdash;</strong>
+        </div>
         <div class="bell-wrap">
           <button class="bell-btn" type="button" aria-label="Open notifications"></button>
           <span class="bell-badge" hidden>0</span>
@@ -3341,7 +3346,8 @@
   // mobile app has to mirror. Suspensions end on their own date.
   import { suspensionState } from '../jsPages/account-status.js';
   // The Dashboard and Geomap count active hikers from this too.
-  import { watchActiveHikers, watchLastSeen } from '../jsPages/active-hikers.js';
+  import { lastActiveForDisplay, watchActiveHikers, watchLastSeen } from '../jsPages/active-hikers.js';
+  import { watchPortalClock } from '../jsPages/portal-clock.js';
   import { pageList, pageGap, PAGE_GAP } from '../jsPages/pagination.js';
   import { openExportMenu } from '../jsPages/export-table.js';
   import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
@@ -3414,7 +3420,8 @@
     emergencies: [],
     userReports: [],
     selectedUserId: null,
-    page: 1
+    page: 1,
+    now: new Date()
   };
 
   const hasValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -3442,6 +3449,8 @@
     if (!date) return '<span class="stacked-empty">—</span>';
     return `<strong>${formatPortalDate(date)}</strong><span>${formatPortalTime(date)}</span>`;
   };
+
+  const lastActiveOf = (user) => lastActiveForDisplay(user, state.now);
 
   const getInitials = (name) => {
     const safeName = normalizeText(name) || 'User';
@@ -3870,7 +3879,7 @@
         <td data-label="Role"><span class="badge ${toBadgeClass(user.role)}">${escapeHtml(user.role)}</span></td>
         <td class="team-cell" data-label="Team / Group">${teamChipsHtml(user)}</td>
         <td data-label="Status"><span class="badge ${getUserStatusClass(effectiveStatusOf(user))}">${escapeHtml(effectiveStatusOf(user))}</span></td>
-        <td class="stacked-date" data-label="Last Active">${formatStackedDateTime(user.lastActive)}</td>
+        <td class="stacked-date" data-label="Last Active">${formatStackedDateTime(lastActiveOf(user))}</td>
         <td class="stacked-date" data-label="Registered On">${formatStackedDateTime(user.memberSince)}</td>
       </tr>
     `).join('');
@@ -4051,7 +4060,7 @@
     detailTeam.classList.add('team-value');
     detailTeam.innerHTML = teamChipsHtml(user);
     document.getElementById('detailMemberSince').textContent = formatDisplayDate(user.memberSince);
-    document.getElementById('detailLastActive').textContent = formatDisplayDateTime(user.lastActive);
+    document.getElementById('detailLastActive').textContent = formatDisplayDateTime(lastActiveOf(user));
     document.getElementById('detailTotalHikes').textContent = user.totalHikes || '—';
     document.getElementById('detailDistance').textContent = user.totalDistance || '—';
     document.getElementById('detailAlertCount').textContent = String(alerts.length);
@@ -4127,7 +4136,7 @@
     document.getElementById('profileModalAlertCount').textContent = String(getUserAlerts(user).length);
     document.getElementById('profileModalArea').textContent = userAreaText(user);
     document.getElementById('profileModalMemberSince').textContent = formatDisplayDate(user.memberSince);
-    document.getElementById('profileModalLastActive').textContent = formatDisplayDateTime(user.lastActive);
+    document.getElementById('profileModalLastActive').textContent = formatDisplayDateTime(lastActiveOf(user));
     document.getElementById('profileModalTotalHikes').textContent = user.totalHikes;
     document.getElementById('profileModalTotalDistance').textContent = user.totalDistance;
     // Age today from the birthdate (with the date), gender, nationality and
@@ -6064,7 +6073,7 @@
             userTeamNames(user).join('; '),
             effectiveStatusOf(user),
             user.phone,
-            formatDisplayDateTime(user.lastActive),
+            formatDisplayDateTime(lastActiveOf(user)),
             formatDisplayDate(user.memberSince)
           ])
         };
@@ -6533,21 +6542,47 @@
     }
   });
 
-  /* Last Active comes from the app's heartbeat, checkIns/{uid}.lastSeenAt
-     (active-hikers.js). A user with no check-in yet keeps whatever their
-     profile had (lastActive, lastLogin, ...); otherwise the newer wins. */
+  /* Keep recorded activity separate from the live display. The check-in
+     supplies presence as well as lastSeenAt; only online users follow the
+     website clock. Offline users keep their latest recorded timestamp. */
   let lastSeenByUid = new Map();
+  let checkedInUserIds = new Set();
   const applyLastSeen = (user) => {
     const seen = lastSeenByUid.get(user.uid) || lastSeenByUid.get(user.id);
     const stored = toDate(user.profileLastActive);
+    user.lastSeenAt = seen;
+    user.checkedIn = checkedInUserIds.has(user.uid) || checkedInUserIds.has(user.id);
     user.lastActive = seen && (!stored || seen > stored) ? seen : user.profileLastActive;
     return user;
   };
-  watchLastSeen(db, (lastSeen) => {
+  const refreshLastActiveTimes = () => {
+    // Update only the timestamps so clock ticks do not reset forms,
+    // selection, avatars, or the rest of the user details panel.
+    usersTableBody.querySelectorAll('tr[data-user-id]').forEach((row) => {
+      const user = state.users.find(item => item.id === row.dataset.userId);
+      const cell = row.querySelector('[data-label="Last Active"]');
+      if (!user || !cell) return;
+      const html = formatStackedDateTime(lastActiveOf(user));
+      if (cell.innerHTML !== html) cell.innerHTML = html;
+    });
+    const selected = getSelectedUser();
+    if (!selected) return;
+    const text = formatDisplayDateTime(lastActiveOf(selected));
+    for (const id of ['detailLastActive', 'profileModalLastActive']) {
+      const element = document.getElementById(id);
+      if (element.textContent !== text) element.textContent = text;
+    }
+  };
+  watchPortalClock((now) => {
+    state.now = now;
+    refreshLastActiveTimes();
+  });
+  watchLastSeen(db, (lastSeen, checkedInIds) => {
     lastSeenByUid = lastSeen;
+    checkedInUserIds = checkedInIds;
     if (!state.users?.length) return;
     state.users.forEach(applyLastSeen);
-    refreshAll();
+    refreshLastActiveTimes();
   });
 
   onSnapshot(collection(db, 'users'), (snapshot) => {

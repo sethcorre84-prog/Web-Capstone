@@ -66,7 +66,8 @@ function buildFormatters({ timeZone, timeFormat }) {
     medium: new Intl.DateTimeFormat('en-US', { timeZone, month: 'short', day: 'numeric', year: 'numeric' }),
     numeric: new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }),
     // Military time is always two-digit hours: 09:05, 15:45.
-    time: new Intl.DateTimeFormat('en-US', { timeZone, hour: military ? '2-digit' : 'numeric', minute: '2-digit', hourCycle: hourCycleFor(timeFormat) })
+    time: new Intl.DateTimeFormat('en-US', { timeZone, hour: military ? '2-digit' : 'numeric', minute: '2-digit', hourCycle: hourCycleFor(timeFormat) }),
+    timeWithSeconds: new Intl.DateTimeFormat('en-US', { timeZone, hour: military ? '2-digit' : 'numeric', minute: '2-digit', second: '2-digit', hourCycle: hourCycleFor(timeFormat) })
   };
 }
 
@@ -143,9 +144,9 @@ export function previewDateTime(value, candidate) {
   return `${formatDateWith(date, candidate.dateFormat, fmts)} ${fmts.time.format(date)}`;
 }
 
-export function formatPortalTime(value) {
+export function formatPortalTime(value, { seconds = false } = {}) {
   const date = toPortalDate(value);
-  return date ? formatters.time.format(date) : '';
+  return date ? (seconds ? formatters.timeWithSeconds : formatters.time).format(date) : '';
 }
 
 export function formatPortalDateTime(value) {

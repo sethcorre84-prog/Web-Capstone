@@ -1343,17 +1343,6 @@
                 </div>
             </section>
 
-            <section class="card" style="margin:20px 0" aria-labelledby="userSessionHeading">
-                <div class="card-top"><h2 id="userSessionHeading">All User Hiking Sessions</h2>
-                    <button type="button" id="exportUserSessions">Export CSV</button></div>
-                <p id="userSessionTotals" role="status">Loading all user session totals…</p>
-                <p>Lifetime totals include imported session summaries and update when users finish hikes. Imported summaries do not contain individual hike dates or routes for each session. Monthly visitor charts use separately recorded hike starts.</p>
-                <label>Find a user <input id="userSessionSearch" type="search" placeholder="Name, username or role"></label>
-                <div class="table-wrap" style="max-height:420px;overflow:auto">
-                    <table class="mini-table"><thead><tr><th>User</th><th>Role</th><th>Hikes</th><th>Completed</th><th>Partial</th><th>Km</th><th>Minutes</th><th>Trails hiked</th><th>Last hike</th><th>Source</th></tr></thead>
-                    <tbody id="userSessionRows"><tr><td colspan="10">Loading…</td></tr></tbody></table>
-                </div>
-            </section>
         </main>
     </div>
     <script type="module">
@@ -1372,8 +1361,6 @@
         /* What each Dashboard list is showing right now, recorded by the code
            that draws it, so Download Reports exports exactly the lists on screen. */
         const dashboardExport = {};
-        import { watchUserSessionSummaries } from "../jsPages/user-session-summaries.js";
-        watchUserSessionSummaries({ db, escapeHtml, formatPortalDate });
 
         // Follows Settings > Date & Time (datetime-prefs.js).
         const formatReportDate = (timestamp) => formatPortalDate(timestamp) || 'Date unavailable';

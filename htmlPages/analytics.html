@@ -1142,6 +1142,65 @@
         font-size: 11.5px;
         line-height: 1.55;
     }
+    /* Trail-specific usage prediction */
+    #trailUsagePrediction .trail-usage-list {
+        max-height: 340px;
+        margin-top: 12px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+    #trailUsagePrediction .trail-usage-list:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+    }
+    #trailUsagePrediction .trail-usage-row {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+    }
+    #trailUsagePrediction .trail-usage-row:last-child { border-bottom: none; }
+    #trailUsagePrediction .trail-usage-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 12px;
+    }
+    #trailUsagePrediction .trail-usage-head strong {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    #trailUsagePrediction .trail-usage-value {
+        flex-shrink: 0;
+        font-size: 14px;
+        font-weight: 700;
+    }
+    #trailUsagePrediction .trail-usage-value.is-pending {
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 400;
+    }
+    #trailUsagePrediction .trail-usage-track {
+        height: 8px;
+        margin: 7px 0;
+        border-radius: 999px;
+        background: var(--border);
+        overflow: hidden;
+    }
+    #trailUsagePrediction .trail-usage-track > span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--accent);
+    }
+    #trailUsagePrediction .trail-usage-track > .is-peak { background: var(--danger); }
+    #trailUsagePrediction .trail-usage-meta,
+    #trailUsagePrediction #trailUsageNote {
+        color: var(--text-secondary);
+        font-size: 11px;
+        line-height: 1.6;
+    }
+    #trailUsagePrediction #trailUsageNote { margin-top: 10px; }
+    /* End trail-specific usage prediction */
     .usage-grid {
         display: grid;
         grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -1231,6 +1290,210 @@
         white-space: nowrap;
     }
     /* ---- Descriptive analytics ---- */
+    /* Engagement styles apply only to this descriptive subsection. */
+    #descriptiveEngagement .de-card-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    #descriptiveEngagement .de-period {
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--accent-light);
+        color: var(--accent-dark);
+        font-size: 11px;
+        font-weight: 600;
+    }
+    #descriptiveEngagement .de-note {
+        margin: 0 0 12px;
+        color: var(--text-secondary);
+        font-size: 11.5px;
+        line-height: 1.6;
+    }
+    #descriptiveEngagement .de-kpis {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    #descriptiveEngagement .de-kpis > .empty-state { grid-column: 1 / -1; }
+    #descriptiveEngagement .de-trail-value {
+        font-size: 16px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+    #descriptiveEngagement .de-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+    #descriptiveEngagement .de-grid > * { min-width: 0; }
+    #descriptiveEngagement .de-pie-layout {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    #descriptiveEngagement .de-pie-chart,
+    #descriptiveEngagement .de-pie-empty {
+        flex: 0 1 240px;
+        width: 100%;
+        max-width: 260px;
+        margin-inline: auto;
+        aspect-ratio: 1;
+    }
+    #descriptiveEngagement .de-pie-slice {
+        stroke: var(--card-bg);
+        stroke-width: 2;
+        stroke-linejoin: round;
+        cursor: pointer;
+        transition: filter 0.15s;
+    }
+    #descriptiveEngagement .de-pie-slice:hover,
+    #descriptiveEngagement .de-pie-slice.is-active,
+    #descriptiveEngagement .de-pie-slice:focus-visible {
+        outline: none;
+        filter: brightness(1.04);
+    }
+    #descriptiveEngagement .de-pie-slice:focus-visible {
+        stroke: var(--text-primary);
+        stroke-width: 3;
+    }
+    #descriptiveEngagement .de-pie-center {
+        text-anchor: middle;
+        pointer-events: none;
+    }
+    #descriptiveEngagement .de-pie-center-label {
+        fill: var(--text-secondary);
+        font-size: 13px;
+    }
+    #descriptiveEngagement .de-pie-center-total {
+        fill: var(--text-primary);
+        font-size: 30px;
+        font-weight: 700;
+    }
+    #descriptiveEngagement .de-pie-tooltip {
+        position: fixed;
+        z-index: 2100;
+        max-width: min(360px, calc(100vw - 16px));
+        padding: 6px 9px;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 3px;
+        background: #172e47;
+        color: #fff;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+        font-size: 12px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+        pointer-events: none;
+    }
+    #descriptiveEngagement .de-pie-tooltip[hidden] { display: none; }
+    @media (prefers-reduced-motion: reduce) {
+        #descriptiveEngagement .de-pie-slice { transition: none; }
+    }
+    #descriptiveEngagement .de-pie-empty {
+        display: grid;
+        place-items: center;
+        border: 1px dashed var(--border);
+        border-radius: 50%;
+        padding: 24px;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 12px;
+    }
+    #descriptiveEngagement .de-pie-legend {
+        flex: 1 1 210px;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    #descriptiveEngagement .de-pie-legend li {
+        display: grid;
+        grid-template-columns: 10px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 9px;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+    }
+    #descriptiveEngagement .de-pie-legend li:last-child { border-bottom: none; }
+    #descriptiveEngagement .de-pie-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+    }
+    #descriptiveEngagement .de-pie-name {
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+    #descriptiveEngagement .de-pie-value {
+        display: grid;
+        gap: 2px;
+        text-align: right;
+        white-space: nowrap;
+    }
+    #descriptiveEngagement .de-pie-value small {
+        color: var(--text-secondary);
+        font-size: 11px;
+    }
+    #descriptiveEngagement .de-history-label {
+        display: block;
+        margin-top: 2px;
+        color: var(--text-secondary);
+        font-weight: 400;
+    }
+    #descriptiveEngagement .de-bar-track {
+        display: block;
+        height: 6px;
+        margin-top: 7px;
+        border-radius: 999px;
+        background: var(--border);
+        overflow: hidden;
+    }
+    #descriptiveEngagement .de-bar-track > span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--accent);
+    }
+    #descriptiveEngagement .de-duration .row {
+        align-items: center;
+        gap: 12px;
+    }
+    #descriptiveEngagement .de-duration h3 {
+        text-align: left;
+        white-space: normal;
+    }
+    #descriptiveEngagement .de-duration .row strong {
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+    #descriptiveEngagement .de-duration .de-note { margin: 12px 0; }
+    #descriptiveEngagement .de-participation {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 11.5px;
+    }
+    #descriptiveEngagement .de-summary {
+        margin-top: 12px;
+        padding: 12px 14px;
+        border-left: 3px solid var(--accent);
+        border-radius: 6px;
+        background: var(--accent-light);
+        color: var(--text-primary);
+        font-size: 12px;
+        line-height: 1.6;
+    }
+    @media (max-width: 1080px) {
+        #descriptiveEngagement .de-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 860px) {
+        #descriptiveEngagement .de-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 480px) {
+        #descriptiveEngagement .de-kpis { grid-template-columns: minmax(0, 1fr); }
+    }
     .panel-head {
         display: flex;
         align-items: center;
@@ -1807,36 +2070,35 @@
     </section>
     <!-- What has already happened, over a window the admin picks. Everything
          below it (predictive, prescriptive) is built on the same records. -->
-    <div class="panel" style="margin-bottom:16px;">
+    <div class="panel" id="descriptiveEngagement" aria-labelledby="descriptiveTitle" style="margin-bottom:16px;">
       <div class="panel-head">
-        <div class="panel-title">Descriptive Analytics</div>
+        <div class="panel-title" id="descriptiveTitle">Descriptive Analytics</div>
         <div class="segmented" role="group" aria-label="Reporting period">
           <button type="button" data-period="7" aria-pressed="false">7 days</button>
           <button type="button" data-period="30" aria-pressed="true">30 days</button>
           <button type="button" data-period="90" aria-pressed="false">90 days</button>
         </div>
       </div>
-      <div class="kpi-row" id="descriptiveKpis"></div>
-      <div class="panel-grid">
-        <div class="chart-panel fill">
-          <div class="chart-title" id="volumeChartTitle">Verified Hazard Reports</div>
-          <div class="day-bars" id="volumeChart" role="img" aria-label="Verified hazard reports per day"></div>
-          <div class="axis-row" id="volumeAxis"></div>
-          <div class="empty-state" id="volumeNote">Loading hazard reports…</div>
-        </div>
+      <p class="de-note">Hiking metrics cover all recorded activity, including imported history. Hazard and incident summaries follow the selected reporting period.</p>
+      <div class="kpi-row de-kpis" data-engagement-kpis aria-live="polite" aria-busy="true">
+        <div class="empty-state">Loading user engagement...</div>
+      </div>
+      <div class="de-grid">
+        <article class="chart-panel de-trails" data-engagement-trails aria-busy="true">
+          <h4 class="chart-title">Users per Trail &amp; Most Visited Trails</h4>
+          <div class="empty-state">Loading trail activity...</div>
+        </article>
         <div class="chart-panel">
           <div class="chart-title">Verified Hazard Types</div>
-          <div id="typeBreakdown"><div class="empty-state">Loading hazard reports…</div></div>
+          <div id="typeBreakdown"><div class="empty-state">Loading hazard reports...</div></div>
         </div>
-      </div>
-      <div class="panel-grid" style="margin-top:12px;">
+        <article class="small-card de-duration" data-engagement-duration aria-busy="true">
+          <h3>Session Duration &amp; Engagement</h3>
+          <div class="empty-state">Loading session durations...</div>
+        </article>
         <div class="chart-panel">
           <div class="chart-title">Report Status Breakdown</div>
-          <div id="statusBreakdown"><div class="empty-state">Loading hazard reports…</div></div>
-        </div>
-        <div class="chart-panel">
-          <div class="chart-title">Most Affected Trails</div>
-          <div id="trailBreakdown"><div class="empty-state">Loading hazard reports…</div></div>
+          <div id="statusBreakdown"><div class="empty-state">Loading hazard reports...</div></div>
         </div>
       </div>
       <div class="panel-grid" style="margin-top:12px;">
@@ -1851,6 +2113,7 @@
         </div>
         <div class="info-block"><h4>What the data shows</h4><p id="descriptiveSummary">Loading hazard reports…</p></div>
       </div>
+      <p class="de-summary" data-engagement-summary aria-live="polite" hidden></p>
     </div>
     <div class="grid-2">
       <!-- What is likely next. Four cards, two across. -->
@@ -1876,10 +2139,11 @@
             <a class="btn-outline" href="geomap.html">View Detailed Forecast</a>
           </div>
 
-          <div class="sub-card">
+          <div class="sub-card" id="trailUsagePrediction">
             <h3>Trail Usage Prediction</h3>
-            <div class="usage-grid" id="trailUsageChart"></div>
-            <div style="margin-top:10px;color:var(--text-secondary);font-size:11.5px;line-height:1.5;" id="trailUsageNote">Loading hiker activity…</div>
+            <div class="card-sub" id="trailUsageWindow">Estimated hike starts · Next 7 days</div>
+            <div class="trail-usage-list" id="trailUsageChart" tabindex="0" role="region" aria-label="Seven-day usage predictions by trail" aria-busy="true"></div>
+            <div id="trailUsageNote" aria-live="polite">Loading trails and hiking activity...</div>
           </div>
 
           <div class="sub-card">
@@ -1960,6 +2224,8 @@
   import { collection, doc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
   // Ticking the action plan is an admin's save (Settings > Last Updated).
   import { updateDoc as savePlanTicks } from '../jsPages/firestore-tracked.js';
+  import { renderDescriptiveEngagement } from '../jsPages/descriptive-engagement.js';
+  import { renderTrailUsagePrediction } from '../jsPages/trail-usage-prediction.js';
 
   /* Mount Makiling — the same coordinates the geomap page forecasts against. */
   const MAKILING = { latitude: 14.136, longitude: 121.197 };
@@ -2728,196 +2994,15 @@
   };
 
   const renderDescriptive = () => {
-    const kpis = document.getElementById('descriptiveKpis');
-    const chart = document.getElementById('volumeChart');
-    const axis = document.getElementById('volumeAxis');
-    const note = document.getElementById('volumeNote');
-
-    if (state.hazards === null) {
-      kpis.innerHTML = '';
-      chart.innerHTML = '';
-      axis.innerHTML = '';
-      note.textContent = 'Loading hazard reports…';
-      return;
-    }
+    renderDescriptiveEngagement({
+      root: document.getElementById('descriptiveEngagement'),
+      users: state.users,
+      trails: state.trails,
+      errors: state.errors
+    });
+    if (state.hazards === null) return;
 
     const data = describe();
-
-    const statusCount = (status) => data.submitted.filter((report) => reportStatusOf(report) === status).length;
-    const acceptedCount = data.submitted.filter((report) => ['verified', 'resolved'].includes(reportStatusOf(report))).length;
-    const previousLabel = `Previous ${periodDays} days`;
-
-    /* SOS response time: from the alert (createdAt) to the first responder
-       action (respondedAt, set in Emergency when a ranger responds), and to
-       resolvedAt. Alerts without respondedAt are not timed. */
-    const hoursBetween = (from, to) => (from && to && to >= from ? (to - from) / 3600000 : null);
-    const sosIn = (offset) => (state.emergencies || []).filter((item) => inWindow(emergencyDate(item), periodDays, offset));
-    const respondHours = (list) => list.map((item) => hoursBetween(emergencyDate(item), toDate(item.respondedAt))).filter((v) => v !== null);
-    const sosNow = sosIn(0);
-    const sosRespondedNow = respondHours(sosNow);
-    const sosMedian = median(sosRespondedNow);
-    const sosMedianBefore = median(respondHours(sosIn(periodDays)));
-    const sosResolveMedian = median(sosNow
-      .map((item) => hoursBetween(emergencyDate(item), toDate(item.resolvedAt) || toDate(item.closedAt)))
-      .filter((v) => v !== null));
-    const sosOpen = activeEmergencies();
-    const sosWaiting = sosNow.filter((item) => !toDate(item.respondedAt) && sosOpen.includes(item)).length;
-    const sosLoading = state.emergencies === null;
-    const sosFailed = Boolean(state.errors.emergencies);
-
-    const cards = [
-      {
-        label: `Reports submitted (${periodDays} days)`,
-        value: String(data.submitted.length),
-        sample: { count: data.submitted.length, noun: 'report' },
-        delta: deltaText(data.submitted.length, data.previous.length),
-        tip: {
-          title: `Reports submitted · last ${periodDays} days`,
-          lines: [
-            `This period: ${data.submitted.length}`,
-            `${previousLabel}: ${data.previous.length}`,
-            data.submitted.length ? `Pending ${statusCount('pending')} · Verified ${statusCount('verified')} · Resolved ${statusCount('resolved')} · Rejected ${statusCount('rejected')}` : '',
-            data.byType.length ? `Top types: ${topOf(data.submitted, typeOf)}` : ''
-          ]
-        }
-      },
-      {
-        label: 'Verified or resolved',
-        sample: { count: data.submitted.length, noun: 'report' },
-        value: data.acceptedShare === null ? '—' : `${Math.round(data.acceptedShare)}%`,
-        delta: data.acceptedShare === null
-          ? { text: 'No reports submitted in this period', tone: '' }
-          : deltaText(data.acceptedShare, data.acceptedSharePrevious, { unit: ' pts', betterWhen: 'up' }),
-        tip: {
-          title: 'Reports accepted as genuine',
-          lines: [
-            `${acceptedCount} of ${data.submitted.length} report${data.submitted.length === 1 ? '' : 's'} verified or resolved`,
-            `Rejected: ${statusCount('rejected')} · Still pending: ${statusCount('pending')}`,
-            data.acceptedSharePrevious === null ? '' : `${previousLabel}: ${Math.round(data.acceptedSharePrevious)}%`
-          ]
-        }
-      },
-      {
-        label: 'Hazards resolved',
-        value: String(data.resolved.length),
-        sample: { count: data.resolved.length, noun: 'resolved hazard' },
-        delta: deltaText(data.resolved.length, data.resolvedPrevious.length, { betterWhen: 'up' }),
-        tip: {
-          title: `Hazards resolved · last ${periodDays} days`,
-          lines: [
-            `This period: ${data.resolved.length}`,
-            `${previousLabel}: ${data.resolvedPrevious.length}`,
-            data.medianResolutionHours === null ? '' : `Median time to resolve: ${formatDuration(data.medianResolutionHours)}`,
-            data.resolved.length ? `Types: ${topOf(data.resolved, typeOf)}` : ''
-          ]
-        }
-      },
-      {
-        label: 'Median review time',
-        value: formatDuration(data.medianReviewHours),
-        sample: { count: data.submitted.length - data.pendingNow, noun: 'reviewed report' },
-        delta: data.medianReviewHours === null
-          ? { text: 'No reviewed reports in this period', tone: '' }
-          : deltaText(data.medianReviewHours, data.medianReviewHoursPrevious, { unit: ' h', betterWhen: 'down', decimals: 1 }),
-        tip: {
-          title: 'Time from submission to admin decision',
-          lines: [
-            `This period: ${formatDuration(data.medianReviewHours)}`,
-            `${previousLabel}: ${formatDuration(data.medianReviewHoursPrevious)}`,
-            `Reviewed: ${data.submitted.length - data.pendingNow} · Waiting: ${data.pendingNow}`
-          ]
-        }
-      },
-      {
-        label: 'SOS response time',
-        value: sosLoading ? '—' : sosFailed ? 'Unavailable' : formatDuration(sosMedian),
-        sample: { count: sosRespondedNow.length, noun: 'timed alert' },
-        delta: sosLoading
-          ? { text: 'Loading emergency alerts…', tone: '' }
-          : sosFailed
-            ? { text: 'Emergency alerts could not be loaded', tone: '' }
-            : sosMedian === null
-              ? { text: sosNow.length ? `${sosNow.length} alert${sosNow.length === 1 ? '' : 's'}, none responded to yet` : 'No SOS alerts in this period', tone: sosNow.length ? 'down' : '' }
-              : deltaText(sosMedian * 60, sosMedianBefore === null ? null : sosMedianBefore * 60, { unit: ' min', betterWhen: 'down' }),
-        tip: sosLoading || sosFailed ? null : {
-          title: `SOS response time · last ${periodDays} days`,
-          lines: [
-            'Median time from an SOS alert to the first responder action',
-            `Alerts: ${sosNow.length} · Responded: ${sosRespondedNow.length}${sosWaiting ? ` · Still waiting: ${sosWaiting}` : ''}`,
-            sosRespondedNow.length > 1 ? `Fastest ${formatDuration(Math.min(...sosRespondedNow))} · Slowest ${formatDuration(Math.max(...sosRespondedNow))}` : '',
-            sosResolveMedian === null ? '' : `Median time to resolve: ${formatDuration(sosResolveMedian)}`,
-            `${previousLabel}: ${formatDuration(sosMedianBefore)}`
-          ]
-        }
-      }
-    ];
-
-    /* One icon and colour family per tile, in the order the cards are built
-       above: submitted, verified/resolved, resolved, review time. */
-    const kpiMarks = [
-      { icon: 'fa-file-circle-plus', tone: 'blue' },
-      { icon: 'fa-circle-check', tone: 'green' },
-      { icon: 'fa-clipboard-check', tone: 'green' },
-      { icon: 'fa-stopwatch', tone: 'amber' },
-      { icon: 'fa-tower-broadcast', tone: 'red' }
-    ];
-
-    kpis.innerHTML = cards.map((card, index) => {
-      const mark = kpiMarks[index] || { icon: 'fa-chart-simple', tone: 'slate' };
-      return `
-      <div class="kpi"${tipAttr(card.tip)}>
-        <div class="kpi-top">
-          <span class="type-icon ${mark.tone}" aria-hidden="true"><i class="fa-solid ${mark.icon}"></i></span>
-          <div class="kpi-label">${escapeHtml(card.label)}</div>
-        </div>
-        <div class="kpi-value">${escapeHtml(card.value)}</div>
-        <div class="kpi-delta ${card.delta.tone}">${escapeHtml(card.delta.text)}</div>
-        ${card.sample ? lowDataHtml(card.sample.count, card.sample.noun) : ''}
-      </div>
-    `;
-    }).join('');
-
-    // Volume over time
-    const maxCount = Math.max(...data.series.map((bucket) => bucket.count), 1);
-    setText('volumeChartTitle', data.bucketDays === 1
-      ? 'Verified Hazard Reports (per day)'
-      : 'Verified Hazard Reports (per week)');
-    chart.innerHTML = data.series.map((bucket) => {
-      const height = bucket.count ? Math.max(6, Math.round((bucket.count / maxCount) * 100)) : 2;
-      const period = data.bucketDays === 1
-        ? `${formatDay(bucket.end)}, ${formatDate(bucket.end)}`
-        : `${formatDate(bucket.start)}–${formatDate(bucket.end)}`;
-      const endExclusive = new Date(bucket.end.getTime() + DAY_MS);
-      const inBucket = data.verified.filter((report) => {
-        const date = reportDate(report);
-        return date && date >= bucket.start && date < endExclusive;
-      });
-      const tip = {
-        title: period,
-        lines: [
-          `${bucket.count} verified report${bucket.count === 1 ? '' : 's'}`,
-          inBucket.length ? `Types: ${topOf(inBucket, typeOf)}` : '',
-          inBucket.length ? `Status: ${topOf(inBucket, (report) => capitalise(reportStatusOf(report)), 5)}` : '',
-          inBucket.length ? `Trails: ${topOf(inBucket, reportTrailLabel)}` : ''
-        ]
-      };
-      return `<div class="day-bar${bucket.count ? '' : ' empty'}" style="height:${height}%"${tipAttr(tip)}></div>`;
-    }).join('');
-    /* Start, scale and end — the bars carry no y-axis, so the peak names it. */
-    const peakCount = Math.max(...data.series.map((bucket) => bucket.count), 0);
-    axis.innerHTML = data.series.length
-      ? `<span>${escapeHtml(formatDate(data.series[0].start))}</span>` +
-        `<span>${peakCount ? `peak ${peakCount} per ${data.bucketDays === 1 ? 'day' : 'week'}` : 'no reports'}</span>` +
-        `<span>${escapeHtml(formatDate(data.series[data.series.length - 1].end))}</span>`
-      : '';
-
-    const busiest = [...data.series].sort((a, b) => b.count - a.count)[0];
-    note.textContent = data.verified.length
-      ? `${data.verified.length} verified report${data.verified.length === 1 ? '' : 's'} in the last ${periodDays} days` +
-        (busiest && busiest.count
-          ? ` · busiest ${data.bucketDays === 1 ? 'day' : 'week'}: ${formatDate(busiest.end)} (${busiest.count})`
-          : '')
-      : `No verified hazard reports in the last ${periodDays} days.`;
 
     // Hazard types
     const typeList = document.getElementById('typeBreakdown');
@@ -2970,28 +3055,6 @@
     statusList.innerHTML = statusRows.length
       ? barRows(statusRows, { total: data.submitted.length, statusColors: true }) + lowDataHtml(data.submitted.length, 'report')
       : '<div class="empty-state">No hazard reports in this period.</div>';
-
-    // Trails
-    const trailList = document.getElementById('trailBreakdown');
-    trailList.innerHTML = data.byTrail.length
-      ? barRows(data.byTrail.slice(0, 5).map((row) => {
-        const reports = data.verified.filter((report) => reportTrailLabel(report) === row.label);
-        const trail = (state.trails || []).find((item) => trailName(item) === row.label);
-        return {
-          ...row,
-          tip: {
-            title: row.label,
-            lines: [
-              `${row.count} verified report${row.count === 1 ? '' : 's'} · ${verifiedShare(row.count)}`,
-              `Types: ${topOf(reports, typeOf)}`,
-              `Status: ${topOf(reports, (report) => capitalise(reportStatusOf(report)), 5)}`,
-              trail ? `Trail is currently ${closedTrails().includes(trail) ? 'closed' : 'open'}` : ''
-            ]
-          }
-        };
-      }), { total: data.verified.length })
-        + lowDataHtml(data.byTrail.reduce((sum, row) => sum + row.count, 0), 'trail report')
-      : '<div class="empty-state">No verified reports in this period name a trail.</div>';
 
     // Activity rows
     const setRow = (id, value, muted, tip) => {
@@ -3329,61 +3392,12 @@
   };
 
   const renderTrailUsage = () => {
-    const chart = document.getElementById('trailUsageChart');
-    const note = document.getElementById('trailUsageNote');
-    const usage = usageByWeekday();
-
-    if (state.users === null) {
-      chart.innerHTML = '';
-      note.textContent = 'Loading hiker activity…';
-      return;
-    }
-
-    if (!usage.sampled) {
-      chart.innerHTML = '';
-      note.textContent = 'No hiker activity recorded yet. Usage predictions appear once hikers finish a hike in the app (Start Hike) or hazard reports start coming in.';
-      return;
-    }
-
-    const upcoming = Array.from({ length: 7 }, (unused, index) => {
-      const date = new Date();
-      date.setHours(0, 0, 0, 0);
-      date.setDate(date.getDate() + index);
-      return { date, count: usage.counts[date.getDay()] };
+    renderTrailUsagePrediction({
+      root: document.getElementById('trailUsagePrediction'),
+      trails: state.trails,
+      users: state.users,
+      errors: state.errors
     });
-
-    const maxCount = Math.max(...upcoming.map((day) => day.count), 1);
-    const peak = upcoming.reduce((best, day) => (day.count > best.count ? day : best), upcoming[0]);
-
-    const average = upcoming.reduce((sum, day) => sum + day.count, 0) / upcoming.length;
-    chart.innerHTML = upcoming.map((day, index) => {
-      const height = Math.max(16, Math.round((day.count / maxCount) * 132));
-      const isPeak = day.count === peak.count && peak.count > 0;
-      const versus = average
-        ? `${day.count >= average ? '+' : '−'}${Math.abs(Math.round(((day.count - average) / average) * 100))}% vs the week's average (${average.toFixed(1)})`
-        : '';
-      const tip = {
-        title: `${day.date.toLocaleDateString('en-US', { weekday: 'long' })}, ${formatDate(day.date)}${index === 0 ? ' (today)' : ''}`,
-        lines: [
-          `${day.count} record${day.count === 1 ? '' : 's'} on past ${day.date.toLocaleDateString('en-US', { weekday: 'long' })}s`,
-          versus,
-          isPeak ? 'Busiest day of the coming week' : '',
-          `Based on ${usage.sampled} ${usage.source}`
-        ]
-      };
-      return `
-        <div class="usage-col"${tipAttr(tip)}>
-          <div class="chart-bar${isPeak ? ' peak' : ''}" style="height:${height}px;">${day.count}</div>
-          <div class="day">${escapeHtml(formatDay(day.date))}</div>
-        </div>
-      `;
-    }).join('');
-
-    const usageText = peak.count > 0
-      ? `Busiest day expected ${formatDay(peak.date)} (${formatDate(peak.date)}), from ${usage.sampled} record${usage.sampled === 1 ? '' : 's'} in ${usage.source}.`
-      : `No activity falls on the next 7 days (sample of ${usage.sampled} record${usage.sampled === 1 ? '' : 's'} from ${usage.source}).`;
-    const usageBadge = lowDataHtml(usage.sampled, 'record');
-    note.innerHTML = escapeHtml(usageText) + (usageBadge ? `<div>${usageBadge}</div>` : '');
   };
 
   const renderHazardLikelihood = () => {

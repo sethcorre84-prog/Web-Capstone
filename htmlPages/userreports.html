@@ -2590,28 +2590,30 @@
     return null; // timestamp id or free text — no usable sequence
   };
 
-  /* Report numbers are assigned here rather than shown straight from the
-     record, because the stored ids skip numbers, restart, and sometimes fall
-     back to a timestamp — which is what reads as random. Order follows the
-     sequence in each record's own Report ID; records that carry none fall in
-     behind them by date. Each year counts from 001, so the list is
-     UR-2026-001, 002, 003 … The stored value stays in `storedId` and still
-     matches in search. */
+  /* Rebuild the sequence in submission order, since stored app counters may
+     restart or contain a larger number on an older report. The next report
+     must receive the next number instead of being inserted below that older
+     record. Stored numbers only break ties when submission times match.
+     Undated legacy records come first so they cannot hold the highest ID.
+     Each year counts from 001; the table then sorts by these IDs, descending.
+     The original value stays in `storedId` and still matches in search. */
   const assignReportNumbers = (reports) => {
     const nextByYear = new Map();
     [...reports]
       .map((report) => {
         const stored = storedSequence(report.storedId);
+        const submitted = report.submittedAt || report.date;
         return {
           report,
-          year: stored?.year ?? (report.date || new Date()).getFullYear(),
+          year: submitted?.getFullYear() ?? stored?.year ?? new Date().getFullYear(),
           sequence: stored ? stored.sequence : null,
-          time: report.date ? report.date.getTime() : Infinity
+          time: submitted ? submitted.getTime() : -Infinity
         };
       })
       .sort((first, second) => {
         if (first.year !== second.year) return first.year - second.year;
-        // Numbered records first, in their own order; the rest by date.
+        if (first.time !== second.time) return first.time - second.time;
+        // Equal submission times: retain the existing sequence when known.
         if (first.sequence !== null && second.sequence !== null) {
           return first.sequence === second.sequence
             ? first.report.id.localeCompare(second.report.id)
@@ -2619,9 +2621,7 @@
         }
         if (first.sequence !== null) return -1;
         if (second.sequence !== null) return 1;
-        return first.time === second.time
-          ? first.report.id.localeCompare(second.report.id)
-          : first.time - second.time;
+        return first.report.id.localeCompare(second.report.id);
       })
       .forEach(({ report, year }) => {
         const number = (nextByYear.get(year) || 0) + 1;
@@ -2831,10 +2831,11 @@
           && (!range || inRange(report.date, range))
           && (trailFilter.value === 'all' || reportTrailId(report) === trailFilter.value);
       })
-      // By Report ID, highest first (UR-2026-009, 008, 007 ...), so the
-      // numbers always run in descending order; submission time breaks ties.
+      // Highest Report ID first. assignReportNumbers() fixes stale counters
+      // before the list is filtered, so new reports get the next highest ID.
       .sort((a, b) => reportOrder(b) - reportOrder(a)
-        || (b.submittedAt?.getTime() || 0) - (a.submittedAt?.getTime() || 0));
+        || (b.submittedAt?.getTime() ?? 0) - (a.submittedAt?.getTime() ?? 0)
+        || a.id.localeCompare(b.id));
   };
 
   /* =====================================================================

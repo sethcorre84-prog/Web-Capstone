@@ -40,6 +40,18 @@ export const HIKER_EXPIRY_MS = 12 * 60 * 60 * 1000;
    drops offline -- the window the app's CheckInService recommends. */
 export const ACTIVE_ONLINE_MS = 5 * 60 * 1000;
 
+/* A recent check-in means the app is still open between heartbeats. Show
+   the website's current instant while that presence is valid; after a
+   sign-out or expired heartbeat, keep the last recorded activity instead.
+   Account status "Active" alone is not evidence that someone is online. */
+export function lastActiveForDisplay(user, now = new Date()) {
+    const seen = toPortalDate(user.lastSeenAt);
+    const age = seen ? now.getTime() - seen.getTime() : Infinity;
+    return user.checkedIn === true && age >= 0 && age <= ACTIVE_ONLINE_MS
+        ? now
+        : user.lastActive;
+}
+
 /* Midnight today in the portal's time zone (Settings > Date & Time), so the
    count rolls over with the clock the admin is reading rather than with the
    browser's own zone. Derived by asking the zone what time it is now and
@@ -202,16 +214,20 @@ export function watchActiveHikers({ db, onUpdate, onError, live = false }) {
 }
 
 /* Each user's last-seen time from the app's heartbeat: listens to every
-   checkIns/{uid} and hands onChange a Map of uid -> Date (lastSeenAt).
-   User Management shows it as Last Active. Returns the unsubscribe. */
+   checkIns/{uid} and hands onChange a Map of uid -> Date (lastSeenAt), plus
+   a Set of checked-in uids. User Management uses both to keep Last Active
+   in step with its clock while the user is online. Returns the unsubscribe. */
 export function watchLastSeen(db, onChange) {
     return onSnapshot(collection(db, 'checkIns'), (snapshot) => {
         const lastSeen = new Map();
+        const checkedInIds = new Set();
         snapshot.docs.forEach((snap) => {
-            const date = toPortalDate(snap.data().lastSeenAt);
+            const data = snap.data();
+            const date = toPortalDate(data.lastSeenAt);
             if (date) lastSeen.set(snap.id, date);
+            if (data.checkedIn === true) checkedInIds.add(snap.id);
         });
-        onChange(lastSeen);
+        onChange(lastSeen, checkedInIds);
     }, (error) => {
         console.warn('Could not read check-ins (lastSeenAt):', error.message);
     });
