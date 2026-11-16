@@ -925,6 +925,7 @@ async function adminIdentities() {
 
 async function advisoryRecipients(visibility) {
   const guidesOnly = visibility === "Guide";
+  const hikersOnly = visibility === "Hikers";
   const [snap, admins] = await Promise.all([db.collection("users").get(), adminIdentities()]);
   const emails = new Set();
   snap.forEach((userDoc) => {
@@ -937,7 +938,9 @@ async function advisoryRecipients(visibility) {
     // Suspended hikers still get safety advisories; only deactivated
     // accounts are left out.
     if (String(user.status || user.Status || "").toLowerCase() === "deactivated") return;
-    if (guidesOnly && !String(user.role || user.Role || "").toLowerCase().includes("guide")) return;
+        const role = String(user.role || user.Role || "").toLowerCase();
+    if (guidesOnly && !role.includes("guide")) return;
+    if (hikersOnly && role.includes("guide")) return;
     emails.add(email);
   });
   return [...emails];
@@ -978,7 +981,10 @@ function advisoryMessage(advisory, images = []) {
   const effective = formatManila(advisory.effectiveDate || advisory.publishedAt);
   const expires = formatManila(advisory.expiresAt);
   const edited = advisory.editedAt ? formatManila(advisory.editedAt) : null;
-  const audience = advisory.visibility === "Guide" ? "Guides only" : "All PeakPath users";
+    const audience =
+    advisory.visibility === "Guide" ? "Guides only"
+    : advisory.visibility === "Hikers" ? "Hikers only"
+    : "All PeakPath users";
   const desc = advisory.desc || "";
   const actions = Array.isArray(advisory.recommendedActions) ? advisory.recommendedActions : [];
   const publishedBy = advisory.publishedBy || "PeakPath Admin";
@@ -988,7 +994,7 @@ function advisoryMessage(advisory, images = []) {
 
   const details = [
     ["Type", type],
-    ["Trail", trail],
+    ["Target", trail],
     ["For", audience],
     risk && ["Risk level", risk],
     effective && ["Effective", effective],

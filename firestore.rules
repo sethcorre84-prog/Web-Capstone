@@ -9,9 +9,33 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // An admin record counts only once it has a role (see adminRole()).
     function isAdmin() {
       return signedIn()
-        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && adminRole() in ['Super Administrator', 'Administrator', 'Viewer'];
+    }
+
+    /* Admin roles (Settings > Role & Permission Settings), on admins/{uid}.role:
+         Super Administrator  everything, and manages the other admins
+         Administrator        day-to-day operations: every write below
+         Viewer               read-only
+       An admin with no role has no admin access at all until a Super
+       Administrator assigns one, so a record missing its role can never
+       grant full access by accident. Reads stay isAdmin(); writes need
+       isEditor(), so a Viewer can see everything and change nothing. Roles
+       are changed only by the setAdminRole / addAdmin / removeAdmin Cloud
+       Functions, never by a client. */
+    function adminRole() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('role', '');
+    }
+
+    function isEditor() {
+      return isAdmin() && adminRole() != 'Viewer';
+    }
+
+    function isSuperAdmin() {
+      return isAdmin() && adminRole() == 'Super Administrator';
     }
 
     /* Timed suspensions -------------------------------------------------
@@ -93,7 +117,7 @@ service cloud.firestore {
          emailVerifications/{email} verified for an hour. Without it the
          profile is refused and the page removes the sign-in account it
          had just made. Self-registration in the app is unaffected. */
-      allow create: if (isAdmin() && emailVerifiedForNewUser())
+      allow create: if (isEditor() && emailVerifiedForNewUser())
         || (
           signedIn()
           && request.auth.uid == userId
@@ -107,24 +131,47 @@ service cloud.firestore {
               && request.resource.data.role.lower() == 'hiker'
             )
           )
+          && (!('Role' in request.resource.data)
+              || (request.resource.data.Role is string
+                  && request.resource.data.Role.lower() == 'hiker'))
         );
 
       /* CHANGED. A hiker may still edit their own profile, but no longer
          their own status, role or suspension. Writing status "Active" from
          the app would otherwise undo a suspension in a single request,
          which made the whole feature decorative. Admins are unrestricted. */
-      allow update: if isAdmin()
+      allow update: if isEditor()
         || (
           signedIn()
           && request.auth.uid == userId
           && !changedKeys().hasAny([
-               'status', 'role',
+               'status', 'role', 'Role',
                'suspendedUntil', 'suspendedAt', 'suspendedBy',
-               'suspensionDays', 'suspensionReason'
+               'suspensionDays', 'suspensionReason',
+               'deactivatedAt', 'deactivatedBy'
              ])
+        )
+        // App Settings > Deactivate account: an account may close itself,
+        // only to Inactive and marked as its own doing. Undoing it is an
+        // admin's job (User Management), after a reactivation request.
+        || (
+          signedIn()
+          && request.auth.uid == userId
+          && changedKeys().hasOnly(['status', 'deactivatedAt', 'deactivatedBy'])
+          && request.resource.data.status == 'Inactive'
+          && request.resource.data.deactivatedBy == request.auth.uid
+          && request.resource.data.deactivatedAt == request.time
         );
 
-      allow delete: if isAdmin();
+      /* An account whose email isn't verified yet may delete its own
+         profile: that's Cancel sign-up on the verify screen
+         (AuthService.cancelSignup). email_verified comes from the Auth
+         token, which only the server can set, so a verified hiker can never
+         delete their profile this way. */
+      allow delete: if isEditor()
+        || (signedIn()
+            && request.auth.uid == userId
+            && request.auth.token.email_verified != true);
     }
 
     /* CHANGED: an admin may also create the entry, for someone else. User
@@ -135,12 +182,15 @@ service cloud.firestore {
       allow get: if true;
       allow list: if false;
       allow create: if signedIn()
-                    && (request.resource.data.uid == request.auth.uid || isAdmin());
+                    && (request.resource.data.uid == request.auth.uid || isEditor());
       allow update: if signedIn()
                     && request.auth.uid == resource.data.uid
                     && request.resource.data.uid == resource.data.uid
                     && request.resource.data.email == resource.data.email;
-      allow delete: if false;
+      // Cancel sign-up frees the username again (see users above).
+      allow delete: if signedIn()
+                    && resource.data.uid == request.auth.uid
+                    && request.auth.token.email_verified != true;
     }
 
     match /admins/{userId} {
@@ -155,6 +205,15 @@ service cloud.firestore {
                     && request.auth.uid == userId
                     && changedKeys().hasOnly(['name', 'username', 'phone', 'gender', 'updatedAt']);
       allow create, delete: if false;
+    }
+
+    // Settings > Login Sessions: one record per browser an admin is signed
+    // in on. Only that admin reads or changes their own; another device
+    // ends a session by marking it revoked.
+    match /admins/{userId}/sessions/{sessionId} {
+      allow read, create, update, delete: if signedIn()
+                                          && request.auth.uid == userId
+                                          && isAdmin();
     }
 
     /* Admin sign-in addresses, one document per admin, id = the email in
@@ -173,14 +232,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    /* Forgot Password codes, one per admin UID. Only the Cloud Functions in
-       functions/index.js touch these, through the Admin SDK, which skips
-       these rules. No browser may read or write one, or the code would be
-       no secret. */
-    match /passwordResets/{uid} {
-      allow read, write: if false;
-    }
-
     // ===================================================================
     // Safety. Never gated by a suspension.
     // ===================================================================
@@ -190,11 +241,17 @@ service cloud.firestore {
       // get() with defaults for the same reason as suspensionActive: a doc
       // left by an older build without isPublic would otherwise error and
       // deny the read, quietly hiding that teammate from the map.
+      //
+      // The isPublic default is TRUE: publishing a position is what makes
+      // you visible, and the app now writes isPublic true on every update,
+      // so a document without the field is an old one rather than someone
+      // who asked to be hidden. Anyone who wants out stops publishing
+      // (Privacy & Security), which deletes the document entirely.
       allow read: if signedIn() &&
                      (request.auth.uid == userId ||
                       request.auth.uid in resource.data.get('sharedWith', []) ||
                       isAdmin() ||
-                      resource.data.get('isPublic', false) == true);
+                      resource.data.get('isPublic', true) == true);
       allow create, update: if signedIn()
                             && request.auth.uid == userId
                             && request.resource.data.sharedWith is list
@@ -202,22 +259,32 @@ service cloud.firestore {
       allow delete: if signedIn() && request.auth.uid == userId;
     }
 
-    /* A hiker's check-in, one document per hiker (id = uid): checkedIn and
-       the lastSeenAt heartbeat the app refreshes every two minutes
-       (CheckInService in the app). The portal reads them all for the
-       "on the mountain now" count and User Management's Last Active; a
-       hiker reads and writes only their own. Not gated by a suspension,
-       like locations: a suspended hiker already on the mountain still has
-       to be counted. Same block as the app repo's firestore.rules. */
+    /* A hiker's check-in, one document per hiker (id = uid), checkedIn: true
+       while they are out. The portal's Active Hikers Today tile counts the
+       true ones, so admins read them all; a hiker reads and writes only
+       their own. Not gated by a suspension, like locations: a suspended
+       hiker already on the mountain still has to be counted. */
     match /checkIns/{userId} {
       allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
-      allow create, update, delete: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      allow create, update, delete: if isEditor() || (signedIn() && request.auth.uid == userId);
     }
 
     match /emergency/{alertId} {
       allow read: if signedIn();
       allow create: if signedIn();
-      allow update, delete: if isAdmin();
+      /* The hiker who sent an SOS (SosActiveScreen) may keep its position
+         current and cancel it -- nothing else, and never undo a ranger's
+         "responding"/"resolved" by writing another status. */
+      allow update: if isEditor()
+        || (signedIn()
+            && resource.data.get('userId', '') == request.auth.uid
+            && changedKeys().hasOnly([
+                 'latitude', 'longitude', 'accuracy', 'updatedAt',
+                 'status', 'cancelledAt'
+               ])
+            && (!changedKeys().hasAny(['status'])
+                || request.resource.data.status == 'cancelled'));
+      allow delete: if isEditor();
     }
 
     // The app's SosService still writes here (lib/features/sos/sos_service.dart).
@@ -226,7 +293,7 @@ service cloud.firestore {
     match /sos_alerts/{alertId} {
       allow read: if signedIn();
       allow create: if signedIn();
-      allow update, delete: if isAdmin();
+      allow update, delete: if isEditor();
     }
 
     // ===================================================================
@@ -238,7 +305,7 @@ service cloud.firestore {
       // CHANGED: a suspended hiker cannot file new reports.
       allow create: if signedIn() && notSuspended();
 
-      allow update: if isAdmin() && (
+      allow update: if isEditor() && (
         /* Before it is resolved: the ordinary verify / reject / edit /
            archive-a-rejected-report writes, plus the HR-, R- and A-
            renumbering of the reports left behind.
@@ -253,8 +320,13 @@ service cloud.firestore {
                'status', 'statusNote', 'updatedAt', 'reportId',
                'archivedAt', 'archivedBy', 'unarchivedAt',
                'resolvedAt', 'resolvedBy', 'resolutionNote', 'resolutionDetails',
+               // Who verified / rejected it and when (Settings > Audit Logs).
+               'verifiedAt', 'verifiedBy', 'rejectedAt', 'rejectedBy',
                'hazardType', 'riskLevel', 'location', 'trail',
-               'reportedBy', 'contact', 'description'
+               'reportedBy', 'contact', 'description',
+               // The report's date: the portal's one-time ordering of
+               // Reported On to follow the report IDs (hazardreport.html).
+               'timestamp', 'createdAt'
              ])
           && (
             !('status' in changedKeys())
@@ -280,13 +352,37 @@ service cloud.firestore {
         )
       );
 
-      allow delete: if isAdmin();
+      allow delete: if isEditor();
+    }
+
+    /* A deactivated account's request to be let back in (the app's
+       "Account deactivated" screen; ReactivationService). One per account,
+       id = uid. The account may only file its own, as a new pending request,
+       and send a new one once the last was decided; the admin portal's User
+       Management reviews it. */
+    match /reactivationRequests/{uid} {
+      function validRequest() {
+        return request.resource.data.uid == uid
+          && request.resource.data.status == 'pending'
+          && request.resource.data.reason is string
+          && request.resource.data.reason.size() > 0
+          && request.resource.data.reason.size() <= 100
+          && request.resource.data.get('message', '') is string
+          && request.resource.data.get('message', '').size() <= 1000;
+      }
+      allow read: if (signedIn() && request.auth.uid == uid) || isAdmin();
+      allow create: if signedIn() && request.auth.uid == uid && validRequest();
+      allow update: if isEditor()
+        || (signedIn() && request.auth.uid == uid && validRequest()
+            && resource.data.get('status', '') != 'pending');
+      allow delete: if isEditor();
     }
 
     match /reportedUser/{reportId} {
       // CHANGED: a suspended hiker cannot report other users.
       allow create: if signedIn() && notSuspended();
-      allow read, update, delete: if isAdmin();
+      allow read: if isAdmin();
+      allow update, delete: if isEditor();
     }
 
     // ===================================================================
@@ -294,7 +390,7 @@ service cloud.firestore {
     // ===================================================================
     match /trails/{trailId} {
       allow read: if signedIn();
-      allow write: if isAdmin();
+      allow write: if isEditor();
     }
 
     /* Stations along a trail: the checkpoints listed on a trail's page and
@@ -304,7 +400,7 @@ service cloud.firestore {
        is permanently empty, since every read is denied. */
     match /stations/{stationId} {
       allow read: if signedIn();
-      allow write: if isAdmin();
+      allow write: if isEditor();
     }
 
     match /teams/{teamsId} {
@@ -313,7 +409,7 @@ service cloud.firestore {
       // exempt, since User Management edits membership with arrayUnion and
       // arrayRemove on these documents.
       allow create: if signedIn() && notSuspended();
-      allow update: if isAdmin() || (signedIn() && notSuspended());
+      allow update: if isEditor() || (signedIn() && notSuspended());
       allow delete: if signedIn() && request.auth.uid == resource.data.leaderID;
     }
 
@@ -323,9 +419,18 @@ service cloud.firestore {
        someone writing a review as another user. */
     match /reviews/{reviewId} {
       allow read: if signedIn();
-      // CHANGED: a suspended hiker cannot post or edit reviews.
+      // CHANGED: a suspended hiker cannot post or edit reviews, and only a
+      // hiker who hiked the trail can: to its end (users/{uid}.completedTrails)
+      // or partway to a station (partialTrails), both written by
+      // HikeSessionService.
       allow create, update: if signedIn()
                             && notSuspended()
+                            && (request.resource.data.trailName in
+                                  get(/databases/$(database)/documents/users/$(request.auth.uid))
+                                    .data.get('completedTrails', [])
+                                || request.resource.data.trailName in
+                                  get(/databases/$(database)/documents/users/$(request.auth.uid))
+                                    .data.get('partialTrails', []))
                             && reviewId == request.auth.uid + '_' +
                                request.resource.data.trailID
                             && request.resource.data.userID == request.auth.uid
@@ -335,7 +440,343 @@ service cloud.firestore {
                             && request.resource.data.comment.size() <= 300;
       // The author can remove their own review; an admin can remove any.
       allow delete: if signedIn()
-                    && (resource.data.userID == request.auth.uid || isAdmin());
+                    && (resource.data.userID == request.auth.uid || isEditor());
+    }
+
+    /* One-to-one messages between hikers (lib/features/chat/). The chat id
+       is the two uids sorted and joined with "_", so a conversation can't
+       be created on behalf of two other people, and only its two
+       participants can read it or post to it. A one-to-one chat's
+       participants can't be changed after creation. */
+    /* Group chats live here too, with type "group", a name, and up to 50
+       participants. A team's chat has the id "team_<teamID>" and a teamID
+       field: only the team's leader (a guide) can create it, team members
+       can add themselves, and its membership follows the team rather than
+       manual adds. In any group a member can leave (remove only
+       themselves); in a regular group any member can add people. */
+    match /chats/{chatId} {
+      function isParticipant(data) {
+        return signedIn() && request.auth.uid in data.participants;
+      }
+      function isGroup(data) {
+        return data.get('type', 'direct') == 'group';
+      }
+      function team(teamID) {
+        return get(/databases/$(database)/documents/teams/$(teamID)).data;
+      }
+      function isTeamMember(data) {
+        return 'teamID' in data && request.auth.uid in team(data.teamID).members;
+      }
+      // What a group is can't change after it's made.
+      /* adminNotice marks a chat an admin started from the portal (a warning
+         about a report): an official notice the user can read but not
+         answer. Only an admin can set or clear it. */
+      function sameIdentity() {
+        return request.resource.data.get('type', 'direct') == resource.data.get('type', 'direct')
+            && request.resource.data.get('teamID', '') == resource.data.get('teamID', '')
+            && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '')
+            && (isAdmin()
+                || request.resource.data.get('adminNotice', false) == resource.data.get('adminNotice', false));
+      }
+      function before() { return resource.data.participants.toSet(); }
+      function after() { return request.resource.data.participants.toSet(); }
+      // Only the caller was removed.
+      function leftOnlySelf() {
+        return before().difference(after()) == [request.auth.uid].toSet()
+            && after().difference(before()).size() == 0;
+      }
+      // Nobody was removed, and the group stays within its limit: 50, or
+      // 60 for a team's chat (up to 50 hikers plus their guides, who don't
+      // count toward the team's limit; TeamService.guideSlotsFor).
+      function onlyAdded() {
+        return after().hasAll(before())
+            && request.resource.data.participants.size()
+                 <= (request.resource.data.get('teamID', '') != '' ? 60 : 50);
+      }
+
+      // A chat that doesn't exist yet can be checked for (team chat sync).
+      // Keep team-member lookup on single-document reads; inbox queries are
+      // scoped to participants so Firestore can prove every listed chat is
+      // readable from the participants arrayContains constraint.
+      allow get: if resource == null
+                 || isParticipant(resource.data)
+                 || (isGroup(resource.data) && isTeamMember(resource.data));
+      allow list: if isParticipant(resource.data);
+
+      // Only an admin can make a chat that is already an admin's notice.
+      allow create: if notSuspended()
+        && (isAdmin() || !request.resource.data.get('adminNotice', false))
+        && (
+          // One-to-one.
+          (!isGroup(request.resource.data)
+           && isParticipant(request.resource.data)
+           && request.resource.data.participants is list
+           && request.resource.data.participants.size() == 2
+           && chatId == request.resource.data.participants[0] + '_'
+                        + request.resource.data.participants[1])
+          // Group, made by one of its members.
+          || (isGroup(request.resource.data)
+              && isParticipant(request.resource.data)
+              && request.resource.data.createdBy == request.auth.uid
+              && request.resource.data.participants is list
+              && request.resource.data.participants.size() <= 50
+              && request.resource.data.name is string
+              && request.resource.data.name.size() > 0
+              && request.resource.data.name.size() <= 60
+              && (!('teamID' in request.resource.data)
+                  || (chatId == 'team_' + request.resource.data.teamID
+                      && team(request.resource.data.teamID).leaderID == request.auth.uid))));
+
+      allow update: if sameIdentity() && (
+          // Members: new messages, read receipts, renaming...
+          (isParticipant(resource.data)
+           && request.resource.data.participants == resource.data.participants)
+          // ...leaving a group...
+          || (isParticipant(resource.data) && isGroup(resource.data) && leftOnlySelf())
+          // ...or adding people: anyone in a regular group, only the leader
+          // in a team chat.
+          || (isParticipant(resource.data) && isGroup(resource.data) && onlyAdded()
+              && (!('teamID' in resource.data)
+                  || resource.data.createdBy == request.auth.uid))
+          // A team member joining their team's chat: adds only themselves.
+          || (isGroup(resource.data) && isTeamMember(resource.data)
+              && onlyAdded()
+              && after().difference(before()) == [request.auth.uid].toSet())
+          // The leader removing one person they already removed from the
+          // team (TeamService.kickMember), and adding nobody.
+          || (isParticipant(resource.data) && isGroup(resource.data)
+              && 'teamID' in resource.data
+              && team(resource.data.teamID).leaderID == request.auth.uid
+              && after().difference(before()).size() == 0
+              && before().difference(after()).size() == 1
+              && !before().difference(after())
+                    .hasAny(team(resource.data.teamID).members)));
+
+      // A team chat goes when its leader deletes the team.
+      allow delete: if isEditor()
+                    || (isGroup(resource.data)
+                        && 'teamID' in resource.data
+                        && resource.data.createdBy == request.auth.uid);
+
+      match /messages/{messageId} {
+        function chat() {
+          return get(/databases/$(database)/documents/chats/$(chatId)).data;
+        }
+
+        allow read: if isParticipant(chat()) || isAdmin();
+        allow create: if isParticipant(chat())
+                      && notSuspended()
+                      // An admin's notice takes no replies (see adminNotice).
+                      && (!chat().get('adminNotice', false) || isAdmin())
+                      && request.resource.data.senderId == request.auth.uid
+                      // system: "Ana joined the group" and the like.
+                      && request.resource.data.type in ['text', 'location', 'system']
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() <= 2000;
+        allow update: if false;
+        // Senders can delete their own messages (not "joined" lines).
+        allow delete: if isEditor()
+                      || (signedIn()
+                          && resource.data.senderId == request.auth.uid
+                          && resource.data.type != 'system');
+      }
+    }
+
+    /* Community threads (lib/features/community/): a public feed. Any
+       signed-in hiker reads it and posts as themselves; a post is never
+       edited, only liked and replied to. A like is the hiker's own uid in
+       likedBy, so a hiker can only ever add or remove themselves.
+       commentCount only moves by one, alongside a reply (see comments). A
+       post or reply can be deleted by its author or an admin. */
+    match /communityPosts/{postId} {
+      function likedByMe(data) {
+        return request.auth.uid in data.get('likedBy', []);
+      }
+      // Exactly the hiker's own uid added to, or taken out of, likedBy.
+      function onlyMyLikeChanged() {
+        let before = resource.data.get('likedBy', []).toSet();
+        let after = request.resource.data.likedBy.toSet();
+        return changedKeys().hasOnly(['likedBy'])
+          && request.resource.data.likedBy is list
+          && (
+            (!likedByMe(resource.data)
+              && after.difference(before) == [request.auth.uid].toSet()
+              && before.difference(after).size() == 0)
+            || (likedByMe(resource.data)
+              && before.difference(after) == [request.auth.uid].toSet()
+              && after.difference(before).size() == 0)
+          );
+      }
+      function commentCountStep() {
+        return changedKeys().hasOnly(['commentCount'])
+          && request.resource.data.commentCount is int
+          && request.resource.data.commentCount >= 0
+          && (request.resource.data.commentCount == resource.data.commentCount + 1
+              || request.resource.data.commentCount == resource.data.commentCount - 1);
+      }
+
+      allow read: if signedIn();
+      allow create: if signedIn()
+                    && notSuspended()
+                    && request.resource.data.keys().hasOnly([
+                         'authorId', 'authorName', 'authorAvatar', 'text',
+                         'imageUrls', 'imagePaths', 'likedBy',
+                         'commentCount', 'createdAt', 'type', 'teamId'])
+                    // A team post (Create team) points at a team the
+                    // poster leads.
+                    && (!('type' in request.resource.data)
+                        || (request.resource.data.type == 'team'
+                            && request.resource.data.teamId is string
+                            && get(/databases/$(database)/documents/teams/$(request.resource.data.teamId))
+                                 .data.leaderID == request.auth.uid))
+                    && request.resource.data.authorId == request.auth.uid
+                    && request.resource.data.authorName is string
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() <= 2000
+                    // Up to 10 photos (CommunityService.maxPhotos).
+                    && request.resource.data.get('imageUrls', []) is list
+                    && request.resource.data.get('imageUrls', []).size() <= 10
+                    && request.resource.data.get('imagePaths', []) is list
+                    && request.resource.data.get('imagePaths', []).size() <= 10
+                    && (request.resource.data.text.size() > 0
+                        || request.resource.data.get('imageUrls', []).size() > 0
+                        || request.resource.data.get('type', '') == 'team')
+                    && request.resource.data.likedBy == []
+                    && request.resource.data.commentCount == 0
+                    && request.resource.data.createdAt == request.time;
+      // Edit: the author changes only the text, which still fits and
+      // isn't left empty unless the post has photos or a team.
+      function authorEdit() {
+        return resource.data.authorId == request.auth.uid
+          && changedKeys().hasOnly(['text', 'editedAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() <= 2000
+          && (request.resource.data.text.size() > 0
+              || request.resource.data.get('imageUrls', []).size() > 0
+              || request.resource.data.get('type', '') == 'team')
+          && request.resource.data.editedAt == request.time;
+      }
+
+      /* An admin removing a hiker's post for the community guidelines
+         (portal Profile page): the post stays, marked, and only its author
+         still sees it, as "unavailable" (the app hides it from everyone
+         else). Only these three fields, set by that admin, now. */
+      function adminRemoval() {
+        return isEditor()
+          && changedKeys().hasOnly(['removedByAdmin', 'removedAt', 'removedBy'])
+          && request.resource.data.removedByAdmin == true
+          && request.resource.data.removedBy == request.auth.uid
+          && request.resource.data.removedAt == request.time;
+      }
+
+      allow update: if signedIn()
+                    && notSuspended()
+                    && (onlyMyLikeChanged() || commentCountStep() || authorEdit()
+                        || adminRemoval());
+      allow delete: if signedIn()
+                    && (resource.data.authorId == request.auth.uid || isEditor());
+
+      // A reply is added together with its post's commentCount + 1 (one
+      // batch), and removed with commentCount - 1.
+      match /comments/{commentId} {
+        function post() {
+          return /databases/$(database)/documents/communityPosts/$(postId);
+        }
+        allow read: if signedIn();
+        allow create: if signedIn()
+                      && notSuspended()
+                      && request.resource.data.keys().hasOnly([
+                           'authorId', 'authorName', 'authorAvatar', 'text',
+                           'createdAt'])
+                      && request.resource.data.authorId == request.auth.uid
+                      && request.resource.data.authorName is string
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 500
+                      && request.resource.data.createdAt == request.time
+                      && getAfter(post()).data.commentCount
+                           == get(post()).data.commentCount + 1;
+        allow delete: if signedIn()
+                      && (resource.data.authorId == request.auth.uid || isEditor());
+        /* An admin removing a hiker's comment for the community guidelines
+           (portal Profile page): the comment stays, marked, and only its
+           author still sees it, as "unavailable" (the app hides it from
+           everyone else). Only these three fields, set by that admin, now. */
+        allow update: if signedIn()
+                      && isEditor()
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly(['removedByAdmin', 'removedAt', 'removedBy'])
+                      && request.resource.data.removedByAdmin == true
+                      && request.resource.data.removedBy == request.auth.uid
+                      && request.resource.data.removedAt == request.time;
+      }
+    }
+
+    /* Following between hikers (lib/features/community/follow_service.dart):
+       one document per follow, its id "followerId_followingId", so it
+       can't be made twice or on someone else's behalf. Anyone signed in can
+       read them (follower counts are public); a hiker creates and removes
+       only their own follows, and never follows themselves. */
+    match /follows/{followId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+                    && notSuspended()
+                    && request.resource.data.keys().hasOnly(['followerId', 'followingId', 'createdAt'])
+                    && request.resource.data.followerId == request.auth.uid
+                    && request.resource.data.followingId is string
+                    && request.resource.data.followingId != request.auth.uid
+                    && followId == request.auth.uid + '_' + request.resource.data.followingId
+                    && request.resource.data.createdAt == request.time;
+      allow delete: if signedIn()
+                    && (resource.data.followerId == request.auth.uid || isEditor());
+    }
+
+    /* Community notifications (lib/features/community/
+       community_notifications.dart): someone liked, replied to or shared a
+       hiker's post, or asked to join their team. Written by the person
+       acting, as themselves and never to themselves; read and cleared by
+       the hiker they're for. The actor can take back their own (unlike,
+       cancel a join request). */
+    match /communityNotifications/{notificationId} {
+      function validNotification() {
+        return request.resource.data.keys().hasOnly([
+                 'recipientId', 'actorId', 'actorName', 'actorAvatar',
+                 'type', 'postId', 'preview', 'createdAt'])
+          && request.resource.data.actorId == request.auth.uid
+          && request.resource.data.recipientId is string
+          && request.resource.data.recipientId != request.auth.uid
+          && request.resource.data.type in ['like', 'comment', 'share', 'joinRequest', 'follow']
+          && request.resource.data.postId is string
+          && request.resource.data.preview is string
+          && request.resource.data.preview.size() <= 200
+          && request.resource.data.createdAt == request.time;
+      }
+      allow read: if signedIn() && resource.data.recipientId == request.auth.uid;
+      allow create: if signedIn() && notSuspended() && validNotification();
+      // A like sent again after an unlike reuses its id.
+      allow update: if signedIn()
+                    && notSuspended()
+                    && resource.data.actorId == request.auth.uid
+                    && validNotification();
+      allow delete: if signedIn()
+                    && (resource.data.recipientId == request.auth.uid
+                        || resource.data.actorId == request.auth.uid);
+    }
+
+    // Shared settings. settings/weather { location }: where the portal's
+    // weather cards and the app's Current Conditions read the weather,
+    // chosen in the portal's Settings > Dashboard Weather.
+    // settings/appVersion { versionCode, versionName, apkUrl, notes, force }:
+    // the newest APK (AppUpdateService), readable signed out too so a phone
+    // stuck on the sign-in screen with an old build still gets offered it.
+    match /settings/{settingId} {
+      allow read: if signedIn() || settingId == 'appVersion';
+      allow write: if isEditor()
+                    && settingId == 'weather'
+                    && request.resource.data.keys().hasOnly(['location', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.location in ['summit', 'sipit', 'losBanos']
+                    && request.resource.data.updatedAt == request.time
+                    && request.resource.data.updatedBy == request.auth.uid;
     }
 
     match /Popularity/{PopularityId} {
@@ -346,6 +787,48 @@ service cloud.firestore {
     // ===================================================================
     // Content and housekeeping
     // ===================================================================
+    function isAdvisoryGuide() {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      let profile = get(userPath).data;
+      let role = profile.get('role', profile.get('Role', ''));
+      return signedIn() && exists(userPath)
+        && role is string && role.lower().matches('.*guide.*');
+    }
+
+    function advisoryExpired() {
+      return resource.data.get('status', '') == 'Expired'
+        || (resource.data.get('expiresAt', null) is timestamp
+            && resource.data.expiresAt <= request.time);
+    }
+
+    match /Advisory/{advisoryId} {
+      // Keep this audience list consistent with ReportService.watchAdvisories.
+      allow read: if isAdmin() || (signedIn() && (
+        resource.data.get('visibility', '') == 'All Users'
+        || (isAdvisoryGuide() && resource.data.get('visibility', '') == 'Guide')
+        || (!isAdvisoryGuide() && resource.data.get('visibility', '') == 'Hikers')
+      ));
+      allow create: if isEditor()
+        && request.resource.data.get('visibility', '') in ['All Users', 'Hikers', 'Guide'];
+      allow delete: if isEditor();
+      // Keep the portal's expired-advisory protections when sharing rules.
+      allow update: if isEditor() && (
+        !advisoryExpired()
+        || (changedKeys().hasOnly(['status'])
+            && request.resource.data.status == 'Expired')
+        || (changedKeys().hasOnly(['status', 'archivedAt', 'archivedBy', 'visible', 'expiresAt'])
+            && request.resource.data.status == 'Archived')
+        || (resource.data.get('status', '') == 'Archived'
+            && changedKeys().hasOnly(['status', 'unarchivedAt'])
+            && request.resource.data.status == 'Expired')
+      );
+    }
+
+    // Admin password resets are handled by the server only.
+    match /passwordResets/{uid} {
+      allow read, write: if false;
+    }
+
     match /faqs/{faqId} {
       function canManageFaqs() {
         return isAdmin() && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('role', '')
@@ -367,7 +850,7 @@ service cloud.firestore {
           && request.resource.data.updatedAt is timestamp
           && request.resource.data.updatedBy is string;
       }
-      allow read: if signedIn();
+      allow read: if true;
       allow create: if canManageFaqs() && validFaq()
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time
@@ -420,38 +903,6 @@ service cloud.firestore {
       allow delete: if canManageChecklist();
     }
 
-    /* An expired advisory is read-only: past its expiry date, or marked
-       Expired (by End Advisory or the A&A page catching up on a lapsed
-       date). The writes still allowed are the ones that file it away:
-       stamping status "Expired", archiving it, and Settings' unarchive,
-       which returns it to Expired. The emailAdvisory Cloud Function uses
-       the Admin SDK and is not subject to these rules. */
-    function advisoryExpired() {
-      return resource.data.get('status', '') == 'Expired'
-        || (resource.data.get('expiresAt', null) is timestamp
-            && resource.data.expiresAt <= request.time);
-    }
-
-    function isAdvisoryGuide() {
-      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
-      return signedIn() && exists(userPath)
-        && get(userPath).data.get('role', get(userPath).data.get('Role', '')) is string
-        && get(userPath).data.get('role', get(userPath).data.get('Role', '')).lower().matches('.*guide.*');
-    }
-
-    match /Advisory/{advisoryId} {
-      allow read: if resource.data.get('visibility', 'All Users') != 'Guide'
-        || isAdmin() || (signedIn() && isAdvisoryGuide());
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() && (
-        !advisoryExpired()
-        || (changedKeys().hasOnly(['status'])
-            && request.resource.data.status == 'Expired')
-        || (changedKeys().hasOnly(['status', 'archivedAt', 'archivedBy', 'visible', 'expiresAt'])
-            && request.resource.data.status == 'Archived')
-      );
-    }
-
     match /notifications/{notificationId} {
       allow read: if signedIn();
       allow create: if signedIn();
@@ -471,7 +922,15 @@ service cloud.firestore {
     }
 
     match /prescriptiveHistory/{day} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin();
+      allow write: if isEditor();
+    }
+
+    // Role & Permission Settings: who changed which admin's role, when.
+    // Written only by the admin-role Cloud Functions.
+    match /adminRoleLog/{entryId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // Email verification codes for Add User: written only by Cloud Functions.
@@ -480,6 +939,19 @@ service cloud.firestore {
     }
 
     match /passwordResetOtps/{username} {
+      allow read, write: if false;
+    }
+
+    /* Two-factor authentication (functions/index.js): the app reads its own
+       setting and trusted devices; only the Cloud Functions write them, so
+       a password alone can't trust a device or switch the protection off. */
+    match /twoFactor/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // The sign-in codes in flight: Cloud Functions only.
+    match /loginOtps/{userId} {
       allow read, write: if false;
     }
   }

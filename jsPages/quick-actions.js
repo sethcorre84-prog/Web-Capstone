@@ -381,7 +381,7 @@ function createAdvisoryModal() {
         </div>
         <div class="qa-row">
           <div class="qa-field"><label for="qaAdvPublishedBy">Published By</label><input id="qaAdvPublishedBy" value="Admin User"></div>
-          <div class="qa-field"><label for="qaAdvVisibility">Visibility</label><select id="qaAdvVisibility"><option>All Users</option><option>Guide</option></select></div>
+          <div class="qa-field"><label for="qaAdvVisibility">Visibility</label><select id="qaAdvVisibility"><option>All Users</option><option>Hikers</option><option>Guide</option></select></div>
         </div>
         <div class="qa-field"><label>Channels</label>
           <div class="qa-checks">

@@ -1374,7 +1374,7 @@
 			<div class="field-row">
 				<div class="field"><label>Published By</label><input id="mPublishedBy" value="Admin User" readonly aria-readonly="true" tabindex="-1" title="Set automatically to the signed-in admin"></div>
 				<div class="field"><label>Visibility</label>
-					<select id="mVisibility"><option>All Users</option><option>Guide</option></select>
+					<select id="mVisibility"><option>All Users</option><option>Hikers</option><option>Guide</option></select>
 				</div>
 			</div>
 			<!-- Where it goes: the app, Gmail (to every user's email), or both. -->
@@ -2537,7 +2537,8 @@ setInterval(refreshExpiry, 60000);
 			document.getElementById('mPublishedBy').value = it?.publishedBy || authorName;
 			// Advisories saved with a retired option (Registered/Premium Users)
 			// open as All Users, since the select no longer offers those.
-			document.getElementById('mVisibility').value = it?.visibility === 'Guide' ? 'Guide' : 'All Users';
+			const allowedVisibility = ['All Users', 'Hikers', 'Guide'];
+			document.getElementById('mVisibility').value = allowedVisibility.includes(it?.visibility) ? it.visibility : 'All Users';
 			const channels = it?.channels || ['In-App', 'Email'];
 			document.getElementById('mChanInApp').checked = channels.includes('In-App');
 			document.getElementById('mChanEmail').checked = channels.includes('Email');
