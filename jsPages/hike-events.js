@@ -10,7 +10,9 @@
 //                       Exact; exists for hikes ended after that app update.
 //   users/{uid}         before that, only totals and the date of the
 //                       hiker's LAST hike (lastHikeAt; the imported session
-//                       data has the same). A hiker with no session records
+//                       data has the same), or of their last Start Hike
+//                       (lastHikeStartedAt) when that is later, e.g. a hike
+//                       never ended. A hiker with no session records
 //                       therefore contributes one dated hike: their last,
 //                       on lastHikeStartTrail if the app saved it, else on
 //                       the trails listed in hikedTrails.
@@ -58,7 +60,12 @@ export function datedHikes(users = [], sessions = []) {
   const fromLastHike = users
     .filter((user) => !withSessions.has(text(user.id)))
     .map((user) => {
-      const date = toPortalDate(user.lastHikeAt);
+      /* The later of the last hike's end (lastHikeAt) and the last Start
+         Hike (lastHikeStartedAt): a hike started but never ended still
+         happened, and has only the start date. */
+      const date = [toPortalDate(user.lastHikeAt), toPortalDate(user.lastHikeStartedAt)]
+        .filter(Boolean)
+        .sort((a, b) => b - a)[0];
       if (!date) return null;
       const last = text(user.lastHikeStartTrail);
       const listed = Array.isArray(user.hikedTrails)

@@ -1249,8 +1249,10 @@
                                  (hikeStarts.{m2026_10}), so there is no Last 7 Days. -->
                             <select id="visitorsPeriod" class="trend-period" aria-label="Visitors per Trail period">
                                 <option value="month" selected>This Month</option>
+                                <option value="lastMonth">Last Month</option>
                                 <option value="quarter">Last 3 Months</option>
                                 <option value="year">This Year</option>
+                                <option value="lastYear">Last Year</option>
                             </select>
                         </div>
                     </div>
@@ -1715,13 +1717,19 @@
         /* Visitors per Trail period, like Hazard Trends' dropdown. Calendar
            months in the portal time zone: Last 3 Months is this month and the
            two before it (Hazard Trends' quarter), This Year is January to now. */
+        // This calendar month's number (1-12) in the portal time zone.
+        const currentMonthNumber = () => Number(new Date().toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).split('-')[1]);
+        // Month offsets back from this month: [first, first + 1, ...], `count` long.
+        const offsets = (first, count) => Array.from({ length: count }, (unused, index) => first + index);
+        /* Each period is the list of months it covers, as offsets from this
+           month (0 = this month, 1 = last month ...). Last Year is the whole
+           previous calendar year, January to December. */
         const VISITOR_PERIODS = {
-            month: { label: 'This Month', phrase: 'this month', months: () => 1 },
-            quarter: { label: 'Last 3 Months', phrase: 'in the last 3 months', months: () => 3 },
-            year: {
-                label: 'This Year', phrase: 'this year',
-                months: () => Number(new Date().toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).split('-')[1])
-            }
+            month: { label: 'This Month', phrase: 'this month', offsets: () => [0] },
+            lastMonth: { label: 'Last Month', phrase: 'last month', offsets: () => [1] },
+            quarter: { label: 'Last 3 Months', phrase: 'in the last 3 months', offsets: () => offsets(0, 3) },
+            year: { label: 'This Year', phrase: 'this year', offsets: () => offsets(0, currentMonthNumber()) },
+            lastYear: { label: 'Last Year', phrase: 'last year', offsets: () => offsets(currentMonthNumber(), 12) }
         };
         const VISITORS_PERIOD_KEY = 'peakpath-visitors-period';
         let visitorsPeriod = 'month';
@@ -1793,7 +1801,7 @@
             const period = VISITOR_PERIODS[visitorsPeriod];
             document.getElementById('visitorsPeriod').value = visitorsPeriod;
             document.getElementById('visitorsPeriodLabel').textContent = `(${period.label})`;
-            const periodStarts = startsOver(Array.from({ length: period.months() }, (unused, offset) => startsMonthKey(offset)));
+            const periodStarts = startsOver(period.offsets().map((offset) => startsMonthKey(offset)));
 
             const visitors = new Map(); // trailID (or name) -> Set of uids
             const teamCounts = new Map(); // trailID (or name) -> hikes started
