@@ -1368,6 +1368,8 @@
         import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, watchWeatherLocation, weatherUrlFor } from "../jsPages/weather-locations.js";
         // Time limit, one retry and the last good reading (weather-fetch.js).
         import { fetchWeather } from "../jsPages/weather-fetch.js";
+        // The monthly hiker count shared with User Management (Hiker Analytics).
+        import { isHikerAccount, monthlyVisits, visitsOver } from "../jsPages/hike-events.js";
         import { openExportMenu } from "../jsPages/export-table.js";
 
         /* What each Dashboard list is showing right now, recorded by the code
@@ -1701,12 +1703,13 @@
            { count, trails } for this month and last month. */
         let latestStarts = null;
         let lastMonthStarts = null;
-        // users/{uid}.hikeStarts for every hiker, so any period can be summed.
-        let latestHikeStarts = null;
-        /* Per hiker, their per-hike records by month: uid -> { m2026_11:
-           { count, trails: { trailKey: n } } }. From hikeSessions, which the
-           app writes when a hike ends (empty until the rule is deployed). */
-        let sessionsByUid = new Map();
+        /* Hiker accounts' user documents, the per-hike records, and from them
+           the ONE monthly count shared with User Management's Hiker Analytics
+           (hike-events.js monthlyVisits): uid -> { months: { m2026_11: {
+           count, trails } } }, on trails that still exist. */
+        let latestHikerDocs = null;
+        let latestSessions = [];
+        let visitsByUid = new Map();
         // The month field for `offset` months back, in the portal time zone.
         const startsMonthKey = (offset = 0) => {
             const [year, month] = new Date().toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).split('-').map(Number);
@@ -1738,104 +1741,45 @@
             if (VISITOR_PERIODS[saved]) visitorsPeriod = saved;
         } catch { /* storage blocked: use the default */ }
 
-        /* Per hiker, their starts summed over the given months:
-           { uid, count, trails: { trailID: n } }. Hikers with none are left out. */
-        /* Two sources of hikes, both counted:
-             - Start Hike in the app: hikeStarts.{month} = { count, trails }.
-             - Imported session data (sessionDataSource, the seeded hiker
-               sessions): no monthly record, only the date of the hiker's last
-               hike (lastHikeAt) and the trails they have hiked (hikedTrails,
-               by name). That hiker counts as one hike in the month of the
-               last hike, on each listed trail -- the data cannot say which
-               one when it lists two. A month the app already recorded for the
-               hiker is not counted again from the import. */
-        const startsOver = (monthKeys) => (latestHikeStarts || []).map(({ uid, hikeStarts, imported }) => {
-            let count = 0;
-            const trails = {};
-            monthKeys.forEach((key) => {
-                const entry = hikeStarts?.[key];
-                const started = Number(entry?.count) || 0;
-                const recorded = sessionsByUid.get(uid)?.[key];
-                /* A hike from the updated app is in both: counted at Start
-                   Hike and recorded when it ends. Per month and per trail
-                   take the larger of the two, never their sum. */
-                if (started > 0 || recorded) {
-                    count += Math.max(started, recorded?.count || 0);
-                    const monthTrails = {};
-                    [entry?.trails || {}, recorded?.trails || {}].forEach((source) => {
-                        Object.entries(source).forEach(([trailKey, hikes]) => {
-                            monthTrails[trailKey] = Math.max(monthTrails[trailKey] || 0, Number(hikes) || 0);
-                        });
-                    });
-                    Object.entries(monthTrails).forEach(([trailKey, hikes]) => {
-                        trails[trailKey] = (trails[trailKey] || 0) + hikes;
-                    });
-                    return;
-                }
-                if (imported?.month !== key) return;
-                count += 1;
-                imported.trails.forEach((name) => { trails[name] = (trails[name] || 0) + 1; });
+        /* Recomputes every hiker's monthly visits whenever users, per-hike
+           records or trails change -- a trail deleted in Trail Management
+           drops out of both visitor cards at once. */
+        function recomputeVisits() {
+            if (!latestHikerDocs || !latestTrails) return;
+            visitsByUid = monthlyVisits({
+                users: latestHikerDocs, sessions: latestSessions, trails: latestTrails, timeZone: portalTimeZone()
             });
-            return { uid, count, trails };
-        }).filter((hiker) => hiker.count > 0);
-
-        // The hikeStarts month key ("m2026_11") of a date, in the portal time zone.
-        const monthKeyOf = (date) => {
-            const [year, month] = date.toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).split('-');
-            return `m${year}_${month}`;
-        };
-        // An imported hiker's last hike: its month and the trails it can be on.
-        const importedHikeOf = (data) => {
-            if (!data.sessionDataSource) return null;
-            const last = toPortalDate(data.lastHikeAt);
-            if (!last) return null;
-            const trails = Array.isArray(data.hikedTrails)
-                ? [...new Set(data.hikedTrails.map((name) => String(name || '').trim()).filter(Boolean))]
-                : [];
-            return { month: monthKeyOf(last), trails };
-        };
+            latestStarts = visitsOver(visitsByUid, [startsMonthKey(0)]);
+            lastMonthStarts = visitsOver(visitsByUid, [startsMonthKey(1)]);
+            renderTotalVisitors();
+            renderVisitorsPerTrail();
+        }
 
         function renderVisitorsPerTrail() {
             const container = document.getElementById('visitorsPerTrail');
-            if (!latestHikeStarts || !latestTrails) return;
+            if (!latestHikerDocs || !latestTrails) return;
             const period = VISITOR_PERIODS[visitorsPeriod];
             document.getElementById('visitorsPeriod').value = visitorsPeriod;
             document.getElementById('visitorsPeriodLabel').textContent = `(${period.label})`;
-            const periodStarts = startsOver(period.offsets().map((offset) => startsMonthKey(offset)));
+            const periodStarts = visitsOver(visitsByUid, period.offsets().map((offset) => startsMonthKey(offset)));
 
-            const visitors = new Map(); // trailID (or name) -> Set of uids
-            const teamCounts = new Map(); // trailID (or name) -> hikes started
+            const visitors = new Map(); // trailID -> Set of uids
+            const teamCounts = new Map(); // trailID -> hikes started
             periodStarts.forEach(({ uid, trails }) => {
-                Object.entries(trails || {}).forEach(([trailID, hikes]) => {
-                    const count = Number(hikes) || 0;
-                    if (count <= 0) return;
+                Object.entries(trails).forEach(([trailID, hikes]) => {
                     if (!visitors.has(trailID)) visitors.set(trailID, new Set());
                     visitors.get(trailID).add(uid);
-                    teamCounts.set(trailID, (teamCounts.get(trailID) || 0) + count);
+                    teamCounts.set(trailID, (teamCounts.get(trailID) || 0) + hikes);
                 });
             });
-            // A start saved under the trail's name (no id) joins that trail.
-            latestTrails.forEach((trail) => {
-                const name = trail.Trail;
-                if (!name || !visitors.has(name) || name === trail.id) return;
-                if (!visitors.has(trail.id)) visitors.set(trail.id, new Set());
-                visitors.get(name).forEach((uid) => visitors.get(trail.id).add(uid));
-                teamCounts.set(trail.id, (teamCounts.get(trail.id) || 0) + (teamCounts.get(name) || 0));
-                visitors.delete(name);
-                teamCounts.delete(name);
-            });
 
-            // Every trail gets a row, so a quiet trail reads as 0 rather than
-            // missing; teams for a trail that was since deleted still count.
+            // Every current trail gets a row, so a quiet trail reads as 0
+            // rather than missing. A deleted trail has no row at all.
             const rows = latestTrails.map((trail) => ({
                 name: trail.Trail || 'Untitled Trail',
                 count: visitors.get(trail.id)?.size || 0,
                 teams: teamCounts.get(trail.id) || 0
             }));
-            const known = new Set(latestTrails.map((trail) => trail.id));
-            visitors.forEach((uids, trailID) => {
-                if (!known.has(trailID)) rows.push({ name: 'Removed trail', count: uids.size, teams: teamCounts.get(trailID) || 0 });
-            });
             rows.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
             const allVisitors = new Set();
@@ -1928,7 +1872,9 @@
            the app this month (portal time zone), the same count as the centre
            of the Visitors per Trail donut, compared with last month. */
         function renderTotalVisitors() {
-            if (!latestStarts) return;
+            // Waits for the trails too: only visits to current trails count,
+            // the same rule as the Visitors per Trail donut beside it.
+            if (!latestStarts || !latestTrails) return;
             const value = document.getElementById('totalVisitorsValue');
             const meta = document.getElementById('totalVisitorsMeta');
             const thisMonth = latestStarts.length;
@@ -1970,42 +1916,17 @@
            Analytics: guides (and admins / rangers) also tap Start Hike when
            they lead a group, but they are not visitors. Each hiker is one
            entry however many hikes they start, so a repeat hiker counts once. */
-        const isHikerAccount = (data) => !/admin|manager|guide|ranger/i.test(String(data.role || data.Role || ''));
         onSnapshot(collection(db, 'users'), (snapshot) => {
-            latestHikeStarts = snapshot.docs
-                .filter((document) => isHikerAccount(document.data()))
-                .map((document) => {
-                    const data = document.data();
-                    return { uid: document.id, hikeStarts: data.hikeStarts || {}, imported: importedHikeOf(data) };
-                });
-            latestStarts = startsOver([startsMonthKey(0)]);
-            lastMonthStarts = startsOver([startsMonthKey(1)]);
-            renderTotalVisitors();
-            renderVisitorsPerTrail();
+            latestHikerDocs = snapshot.docs
+                .map((document) => ({ id: document.id, ...document.data() }))
+                .filter(isHikerAccount);
+            recomputeVisits();
         }, showVisitorsError);
 
         // Per-hike records (hike-events.js reads the same collection for Analytics).
         onSnapshot(collection(db, 'hikeSessions'), (snapshot) => {
-            const byUid = new Map();
-            snapshot.docs.forEach((document) => {
-                const data = document.data();
-                const uid = String(data.uid || '').trim();
-                const date = toPortalDate(data.startedAt) || toPortalDate(data.endedAt);
-                if (!uid || !date) return;
-                const month = monthKeyOf(date);
-                const trailKey = String(data.trailID || '').trim() || String(data.trailName || '').trim();
-                const months = byUid.get(uid) || {};
-                const slot = months[month] || (months[month] = { count: 0, trails: {} });
-                slot.count += 1;
-                if (trailKey) slot.trails[trailKey] = (slot.trails[trailKey] || 0) + 1;
-                byUid.set(uid, months);
-            });
-            sessionsByUid = byUid;
-            if (!latestHikeStarts) return;
-            latestStarts = startsOver([startsMonthKey(0)]);
-            lastMonthStarts = startsOver([startsMonthKey(1)]);
-            renderTotalVisitors();
-            renderVisitorsPerTrail();
+            latestSessions = snapshot.docs.map((document) => document.data());
+            recomputeVisits();
         }, (error) => console.warn('Per-hike records unavailable; using monthly hike starts:', error.message));
 
         document.getElementById('visitorsPeriod').addEventListener('change', (event) => {
@@ -2024,6 +1945,8 @@
         onSnapshot(collection(db, 'trails'), (snapshot) => {
             const trails = snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
             latestTrails = trails;
+            // A trail added, renamed or deleted changes who counts as a visitor.
+            recomputeVisits();
             stationFeatures.render();
             trailLayer.clearLayers();
             trails.forEach(trail => {

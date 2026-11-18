@@ -2225,6 +2225,8 @@
   // Ticking the action plan is an admin's save (Settings > Last Updated).
   import { updateDoc as savePlanTicks } from '../jsPages/firestore-tracked.js';
   import { renderDescriptiveEngagement } from '../jsPages/descriptive-engagement.js';
+  // Dated hikes on current trails, shared with the Dashboard and User Management.
+  import { datedHikesOnTrails } from '../jsPages/hike-events.js';
   import { renderTrailUsagePrediction } from '../jsPages/trail-usage-prediction.js';
   // The trail set every page counts from (Dashboard and Geomap too).
   import { isAppTrail } from '../jsPages/makiling-area.js';
@@ -2571,14 +2573,16 @@
     const counts = [0, 0, 0, 0, 0, 0, 0];
     let sampled = 0;
 
-    hikers().forEach((user) => {
-      const date = toDate(user.lastHikeAt);
-      if (!date) return;
-      counts[date.getDay()] += 1;
+    /* Dated hikes on trails that still exist (hike-events.js), the same
+       rule as every other hiker count on the website: the app's per-hike
+       records, else each hiker's latest hike. A deleted trail's hikes
+       drop out here too. */
+    datedHikesOnTrails(hikers(), state.hikeSessions, state.allTrails ?? null).forEach((hike) => {
+      counts[hike.date.getDay()] += 1;
       sampled += 1;
     });
 
-    if (sampled) return { counts, sampled, source: "hikers' most recent hikes" };
+    if (sampled) return { counts, sampled, source: 'dated hikes' };
 
     const reportCounts = [0, 0, 0, 0, 0, 0, 0];
     let reportSampled = 0;
@@ -2982,6 +2986,7 @@
       trails: state.trails,
       // The hiking metrics follow the selected period, like everything else.
       sessions: state.hikeSessions,
+      knownTrails: state.allTrails,
       days: periodDays,
       errors: state.errors
     });
@@ -4345,9 +4350,11 @@
 
   const watchCollection = (name, key) => {
     onSnapshot(collection(db, name), (snapshot) => {
-      state[key] = snapshot.docs
-        .map((docSnapshot) => ({ id: docSnapshot.id, ...docSnapshot.data() }))
-        .filter(KEEP[key] || (() => true));
+      const docs = snapshot.docs.map((docSnapshot) => ({ id: docSnapshot.id, ...docSnapshot.data() }));
+      // Every trail that still exists, listed in the app or not: a hike on
+      // a trail deleted in Trail Management stops counting anywhere.
+      if (key === 'trails') state.allTrails = docs;
+      state[key] = docs.filter(KEEP[key] || (() => true));
       delete state.errors[key];
       renderAll();
     }, (error) => {
@@ -4368,7 +4375,8 @@
      the published analysis. The page just keeps using last-hike dates. */
   onSnapshot(collection(db, 'hikeSessions'), (snapshot) => {
     state.hikeSessions = snapshot.docs.map((docSnapshot) => ({ id: docSnapshot.id, ...docSnapshot.data() }));
-    renderDescriptive();
+    // Hiking metrics, trail congestion and the busy-day part of the risk score.
+    renderAll();
   }, (error) => {
     console.warn('Per-hike records unavailable; using last-hike dates:', error.message);
     state.hikeSessions = [];

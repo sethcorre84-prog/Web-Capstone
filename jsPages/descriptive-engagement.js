@@ -23,29 +23,43 @@ export function formatEngagementDuration(minutes) {
    any -- their last hike. Lifetime totals have no date per hike, so they
    are never spread over a period. Trail popularity measures distinct
    hikers, not visits. */
-export function summarizeDescriptiveEngagement(users = [], trails = [], { sessions = [], days = 30, now = Date.now() } = {}) {
+/* `trails` are the ones listed (trails in the app); `knownTrails` every trail
+   document that still exists, hidden or unregistered ones included (defaults
+   to `trails`). A hike on a trail that was DELETED in Trail Management no
+   longer counts at all -- no row for it, and a hiker whose only hike in the
+   period was there is not counted as hiking. A hike on an existing trail
+   that is just not listed in the app keeps its own row. */
+export function summarizeDescriptiveEngagement(users = [], trails = [], { sessions = [], days = 30, now = Date.now(), knownTrails = null } = {}) {
     const rows = new Map();
     const trailIds = new Map();
     const trailNames = new Map();
-    trails.forEach((trail, index) => {
+    const index = (list, listed) => list.forEach((trail, position) => {
         const id = normalizeText(trail.id);
+        if (id && trailIds.has(id)) return; // listed already
         const name = normalizeText(trail.Trail || trail.name || trail.trailName) || 'Unnamed trail';
-        const key = `trail:${id || index}`;
-        rows.set(key, { name, listed: true, users: new Set() });
+        const key = `${listed ? 'trail' : 'other'}:${id || position}`;
+        if (listed) rows.set(key, { name, listed: true, users: new Set() });
+        else rows.set(key, { name, listed: false, users: new Set(), hiddenUntilUsed: true });
         if (id) trailIds.set(id, key);
         [trail.Trail, trail.name, trail.trailName].forEach(alias => {
-            if (normalizeText(alias)) trailNames.set(nameKey(alias), key);
+            const aliasKey = nameKey(alias);
+            if (aliasKey && !trailNames.has(aliasKey)) trailNames.set(aliasKey, key);
         });
     });
+    index(trails, true);
+    index(knownTrails || [], false);
+    // null for a trail that no longer exists.
     const resolveTrail = value => {
         if (typeof value !== 'string' || !value.trim()) return null;
         const name = value.trim();
-        const key = trailIds.get(name) || trailNames.get(nameKey(name)) || `history:${nameKey(name)}`;
-        if (!rows.has(key)) rows.set(key, { name, listed: false, users: new Set() });
-        return key;
+        return trailIds.get(name) || trailNames.get(nameKey(name)) || null;
     };
 
-    const hikes = hikesWithinDays(datedHikes(users, sessions), days, now);
+    const hikes = hikesWithinDays(datedHikes(users, sessions), days, now)
+        .map(hike => ({ ...hike, trailKeys: [...new Set(hike.trails.map(resolveTrail).filter(Boolean))] }))
+        // Hikes naming only deleted trails are dropped; a hike with no trail
+        // recorded at all still counts (as a hike without trail details).
+        .filter(hike => !hike.trails.length || hike.trailKeys.length);
     const totals = {
         registeredUsers: users.length, engagedUsers: 0, hikes: hikes.length,
         completed: 0, partial: 0, statusUnknown: 0, timedSessions: 0, usersWithoutTrails: 0,
@@ -64,9 +78,7 @@ export function summarizeDescriptiveEngagement(users = [], trails = [], { sessio
             totalMinutes += hike.minutes;
             totals.timedSessions += 1;
         }
-        hike.trails.forEach(value => {
-            const key = resolveTrail(value);
-            if (!key) return;
+        hike.trailKeys.forEach(key => {
             rows.get(key).users.add(hike.uid);
             withTrail.add(hike.uid);
         });
@@ -75,6 +87,8 @@ export function summarizeDescriptiveEngagement(users = [], trails = [], { sessio
     totals.usersWithoutTrails = [...engaged].filter(uid => !withTrail.has(uid)).length;
 
     const trailRows = [...rows.values()]
+        // An existing trail outside the app list shows only once it has hikers.
+        .filter(row => !row.hiddenUntilUsed || row.users.size)
         .map(row => ({ name: row.name, listed: row.listed, users: row.users.size }))
         .sort((a, b) => b.users - a.users || a.name.localeCompare(b.name));
     const topCount = trailRows[0]?.users || 0;
@@ -138,7 +152,7 @@ const trailPieChart = (rows, hikers) => {
         <ul class="de-pie-legend" aria-label="Unique users and percentage share per trail">
             ${rows.map(row => `<li title="${escapeHtml(labelOf(row))}">
                 <span class="de-pie-swatch" style="background:${row.users ? colorByName.get(row.name) : 'var(--text-muted)'}" aria-hidden="true"></span>
-                <span class="de-pie-name">${escapeHtml(row.name)}${row.listed ? '' : '<small class="de-history-label">Saved trail history</small>'}</span>
+                <span class="de-pie-name">${escapeHtml(row.name)}${row.listed ? '' : '<small class="de-history-label">Not listed in the app</small>'}</span>
                 <span class="de-pie-value"><strong>${numberText(row.users)} ${row.users === 1 ? 'user' : 'users'}</strong><small>${escapeHtml(shareOf(row.users))}</small></span>
             </li>`).join('')}
         </ul>
@@ -205,7 +219,7 @@ const bindTrailPieInteractions = root => {
     pieInteractions.set(root, { hide });
 };
 
-export function renderDescriptiveEngagement({ root, users, trails, sessions = [], days = 30, errors = {} }) {
+export function renderDescriptiveEngagement({ root, users, trails, sessions = [], days = 30, knownTrails = null, errors = {} }) {
     const kpis = root?.querySelector('[data-engagement-kpis]');
     const trailCard = root?.querySelector('[data-engagement-trails]');
     const durationCard = root?.querySelector('[data-engagement-duration]');
@@ -226,7 +240,7 @@ export function renderDescriptiveEngagement({ root, users, trails, sessions = []
         return;
     }
 
-    const data = summarizeDescriptiveEngagement(users, trails || [], { sessions, days });
+    const data = summarizeDescriptiveEngagement(users, trails || [], { sessions, days, knownTrails });
     const trailsReady = trails !== null && !errors.trails;
     const top = data.topTrails[0];
     const participation = data.registeredUsers ? Math.round(data.engagedUsers / data.registeredUsers * 100) : 0;

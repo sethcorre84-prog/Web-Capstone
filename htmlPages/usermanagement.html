@@ -3365,6 +3365,8 @@
     updateDoc
   } from '../jsPages/firestore-tracked.js';
   import { hikeHistory } from '../jsPages/hike-history.js';
+  // The monthly hiker count shared with the Dashboard (and Analytics' rules).
+  import { monthlyVisits } from '../jsPages/hike-events.js';
   import { GENDERS, NATIONALITIES, loadPhAddresses } from '../jsPages/signup-options.js';
 
   const PAGE_SIZE = 10;
@@ -3419,6 +3421,11 @@
     teams: [],
     // trails/{id} -> trail name, for each team's trailID (Assigned Area).
     trailNames: new Map(),
+    // Every trail document (null until loaded): Hiker Analytics counts only
+    // visits to trails that still exist.
+    trailDocs: null,
+    // hikeSessions: the app's per-hike records ([] until loaded / if refused).
+    hikeSessions: [],
     hazardReports: [],
     emergencies: [],
     userReports: [],
@@ -6327,8 +6334,35 @@
   const renderHikerAnalytics = () => {
     const selected = hikerAnalyticsMonth.value || 'all';
     const allTime = selected === 'all';
+    // Hiker accounts only: guides (and rangers / admins) who tap Start Hike
+    // while leading a group are not counted as hikers here.
+    const users = (state.users || []).filter((user) => toBadgeClass(user.role) === 'hiker');
+    /* The same monthly count as the Dashboard's Total Hikers Visitors and
+       Visitors per Trail (hike-events.js monthlyVisits): Start Hike, the
+       app's per-hike records and the imported session data, on trails that
+       still exist -- delete a trail in Trail Management and its visits leave
+       this panel too. A hiker's lifetime total keeps their undated hikes
+       (imported counts), which is what "Earlier dates unknown" reads. */
+    const visits = monthlyVisits({
+      users: users.map((user) => ({ id: user.id, ...user.raw })),
+      sessions: state.hikeSessions,
+      trails: state.trailDocs,
+      timeZone: portalTimeZone()
+    });
+    const histories = new Map();
+    const historyOf = (user) => {
+      if (histories.has(user.id)) return histories.get(user.id);
+      const visit = visits.get(user.id);
+      const months = visit ? Object.fromEntries(Object.entries(visit.months).map(([monthKey, month]) => [monthKey, month.count])) : {};
+      const dated = visit ? visit.dated : 0;
+      // Lifetime hikes only count for someone who hiked a current trail.
+      const total = visit ? Math.max(hikeHistory(user.raw).total, dated) : 0;
+      const history = { total, dated, undated: total - dated, first: Object.keys(months).sort()[0] || null, months };
+      histories.set(user.id, history);
+      return history;
+    };
     const knownMonths = new Set(recentMonths(12).map(month => month.key));
-    (state.users || []).forEach(user => Object.keys(hikeHistory(user.raw).months).forEach(key => knownMonths.add(key)));
+    users.forEach(user => Object.keys(historyOf(user).months).forEach(key => knownMonths.add(key)));
     hikerAnalyticsMonth.innerHTML = '<option value="all">All time</option>' + [...knownMonths].sort().reverse()
       .map(key => `<option value="${key}">${monthLabelOf(key)}</option>`).join('');
     hikerAnalyticsMonth.value = selected;
@@ -6338,13 +6372,9 @@
     const monthLabel = allTime ? 'All time' : new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const previous = new Date(Number(y), Number(m) - 2, 1);
     const previousKey = `m${previous.getFullYear()}_${String(previous.getMonth() + 1).padStart(2, '0')}`;
-    const startsIn = (user, monthKey) => hikeHistory(user.raw).months[monthKey] || 0;
-
-    // Hiker accounts only: guides (and rangers / admins) who tap Start Hike
-    // while leading a group are not counted as hikers here.
-    const users = (state.users || []).filter((user) => toBadgeClass(user.role) === 'hiker');
-    const hikers = users.filter((user) => allTime ? hikeHistory(user.raw).total > 0 : startsIn(user, key) > 0);
-    const hikes = hikers.reduce((sum, user) => sum + (allTime ? hikeHistory(user.raw).total : startsIn(user, key)), 0);
+    const startsIn = (user, monthKey) => historyOf(user).months[monthKey] || 0;
+    const hikers = users.filter((user) => allTime ? historyOf(user).total > 0 : startsIn(user, key) > 0);
+    const hikes = hikers.reduce((sum, user) => sum + (allTime ? historyOf(user).total : startsIn(user, key)), 0);
     const lastMonth = users.filter((user) => startsIn(user, previousKey) > 0).length;
     const total = hikers.length;
     const change = !lastMonth
@@ -6352,8 +6382,8 @@
       : (total === lastMonth ? 'Same as the month before'
         : `${total > lastMonth ? '▲' : '▼'} ${Math.abs(Math.round(((total - lastMonth) / lastMonth) * 100))}% vs the month before (${lastMonth})`);
     const filipinos = hikers.filter((user) => isFilipino(user.raw?.nationality)).length;
-    const firstTimersNow = hikers.filter((user) => allTime ? hikeHistory(user.raw).total === 1 : hikeHistory(user.raw).undated === 0 && hikeHistory(user.raw).first === key).length;
-    const isFirstMonth = (user, monthKey) => hikeHistory(user.raw).undated === 0 && hikeHistory(user.raw).first === monthKey;
+    const firstTimersNow = hikers.filter((user) => allTime ? historyOf(user).total === 1 : historyOf(user).undated === 0 && historyOf(user).first === key).length;
+    const isFirstMonth = (user, monthKey) => historyOf(user).undated === 0 && historyOf(user).first === monthKey;
     const firstTimersBefore = users.filter((user) => startsIn(user, previousKey) > 0 && isFirstMonth(user, previousKey)).length;
     const hikesBefore = users.reduce((sum, user) => sum + startsIn(user, previousKey), 0);
 
@@ -6370,7 +6400,7 @@
         firstTimers: monthHikers.filter((user) => isFirstMonth(user, monthKey)).length
       };
     });
-    const undated = users.reduce((sum, user) => sum + hikeHistory(user.raw).undated, 0);
+    const undated = users.reduce((sum, user) => sum + historyOf(user).undated, 0);
     const sixMonths = trend.reduce((sum, t) => sum + t.count, 0);
     document.getElementById('hikerAnalyticsTrend').innerHTML = trendHtml(trend, key);
     document.getElementById('hikerAnalyticsTrendSub').textContent = `${sixMonths.toLocaleString()} hiker-month${sixMonths === 1 ? '' : 's'} in all${undated ? ` · ${undated} sessions without monthly dates (included in All time)` : ''}`;
@@ -6421,8 +6451,8 @@
 
     // First-time: the month is their first on Mount Makiling (no hikes
     // before it). Repeat: they had hiked in an earlier month.
-    const firstTimers = hikers.filter((user) => allTime ? hikeHistory(user.raw).total === 1 : hikeHistory(user.raw).undated === 0 && hikeHistory(user.raw).first === key).length;
-    const unknownHistory = allTime ? 0 : hikers.filter(user => hikeHistory(user.raw).undated > 0 && hikeHistory(user.raw).first === key).length;
+    const firstTimers = hikers.filter((user) => allTime ? historyOf(user).total === 1 : historyOf(user).undated === 0 && historyOf(user).first === key).length;
+    const unknownHistory = allTime ? 0 : hikers.filter(user => historyOf(user).undated > 0 && historyOf(user).first === key).length;
     const visitItems = [
       { label: 'First-time', value: firstTimers, color: HA_SLOTS[0][0], exportColor: HA_SLOTS[0][1] },
       { label: 'Repeat', value: total - firstTimers - unknownHistory, color: HA_SLOTS[1][0], exportColor: HA_SLOTS[1][1] }
@@ -6708,6 +6738,9 @@
   // Trail names for each team's trailID, live, so renaming a trail in Trail
   // Management updates Assigned Area too.
   onSnapshot(collection(db, 'trails'), (snapshot) => {
+    state.trailDocs = snapshot.docs.map((trailDoc) => ({ id: trailDoc.id, ...trailDoc.data() }));
+    // A trail added, renamed or deleted changes who counts in Hiker Analytics.
+    scheduleRender(renderHikerAnalytics);
     state.trailNames = new Map(snapshot.docs.map(trailDoc => {
       const data = trailDoc.data() || {};
       return [trailDoc.id, normalizeText(data.Trail || data.name || data.trailName)];
@@ -6731,6 +6764,12 @@
   };
   new ResizeObserver(syncDetailHeight).observe(userListCard);
   window.addEventListener('resize', syncDetailHeight);
+
+  // Per-hike records for Hiker Analytics, the same collection the Dashboard reads.
+  onSnapshot(collection(db, 'hikeSessions'), (snapshot) => {
+    state.hikeSessions = snapshot.docs.map((snapshotDoc) => snapshotDoc.data());
+    scheduleRender(renderHikerAnalytics);
+  }, (error) => console.warn('Per-hike records unavailable for Hiker Analytics:', error.message));
 
   watchCollection('reports', 'hazardReports');
   watchCollection('emergency', 'emergencies');
