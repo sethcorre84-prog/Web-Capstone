@@ -2062,7 +2062,7 @@
             <div class="card-icon purple"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></div>
           </div>
           <div class="card-content">
-            <div class="label">Model Confidence</div>
+            <div class="label" title="How complete the model's inputs are (data sources, days of history, number of reports). Not a statistical confidence level.">Data Completeness</div>
             <div class="hint" id="confidenceHint">Based on available data inputs</div>
           </div>
         </div>
@@ -2079,7 +2079,7 @@
           <button type="button" data-period="90" aria-pressed="false">90 days</button>
         </div>
       </div>
-      <p class="de-note">Hiking metrics cover all recorded activity, including imported history. Hazard and incident summaries follow the selected reporting period.</p>
+      <p class="de-note">Everything below follows the selected period, hiking included: hikes dated in it, from the app's per-hike records or, before those, each hiker's latest hike (imported session data included).</p>
       <div class="kpi-row de-kpis" data-engagement-kpis aria-live="polite" aria-busy="true">
         <div class="empty-state">Loading user engagement...</div>
       </div>
@@ -2103,11 +2103,11 @@
       </div>
       <div class="panel-grid" style="margin-top:12px;">
         <div class="small-card">
-          <h3>Activity in this period</h3>
-          <div class="row"><span>Advisories published</span><span id="descAdvisories" class="val-muted">—</span></div>
-          <div class="row"><span>Emergency alerts logged</span><span id="descEmergencies" class="val-muted">—</span></div>
-          <div class="row"><span>Registered accounts</span><span id="descNewUsers" class="val-muted">—</span></div>
-          <div class="row"><span>Registered guide accounts</span><span id="descGuides" class="val-muted">—</span></div>
+          <h3>Activity and current status</h3>
+          <div class="row"><span>Advisories published (this period)</span><span id="descAdvisories" class="val-muted">—</span></div>
+          <div class="row"><span>Emergency alerts logged (this period)</span><span id="descEmergencies" class="val-muted">—</span></div>
+          <div class="row"><span>Registered hiker accounts (total)</span><span id="descNewUsers" class="val-muted">—</span></div>
+          <div class="row"><span>Registered guide accounts (total)</span><span id="descGuides" class="val-muted">—</span></div>
           <div class="row"><span>Rainfall recorded (last 3 days)</span><span id="descRecentRain" class="val-muted">—</span></div>
           <div class="row"><span>Trails currently closed</span><span id="descClosedTrails" class="val-muted">—</span></div>
         </div>
@@ -2226,6 +2226,10 @@
   import { updateDoc as savePlanTicks } from '../jsPages/firestore-tracked.js';
   import { renderDescriptiveEngagement } from '../jsPages/descriptive-engagement.js';
   import { renderTrailUsagePrediction } from '../jsPages/trail-usage-prediction.js';
+  // The trail set every page counts from (Dashboard and Geomap too).
+  import { isAppTrail } from '../jsPages/makiling-area.js';
+  // Time limit, one retry and the last good forecast (weather-fetch.js).
+  import { fetchWeather } from '../jsPages/weather-fetch.js';
 
   /* Mount Makiling — the same coordinates the geomap page forecasts against. */
   const MAKILING = { latitude: 14.136, longitude: 121.197 };
@@ -2287,6 +2291,10 @@
     /* Rainfall already recorded for the previous three days (Open-Meteo
        past_days), used for soil saturation and the descriptive panel. */
     pastRain: null,
+    /* hikeSessions: one dated record per finished hike (the app writes them
+       since the per-hike update). [] until loaded or if unavailable -- the
+       hiking metrics then fall back to each hiker's last hike date. */
+    hikeSessions: [],
     errors: {}
   };
 
@@ -2325,9 +2333,15 @@
     (hazard) => normalizeText(hazard.status ?? hazard.Status ?? 'pending').toLowerCase() === 'pending'
   );
 
-  const activeEmergencies = () => (state.emergencies || []).filter(
-    (item) => !CLOSED_EMERGENCY_STATUS.includes(normalizeText(item?.status ?? item?.Status ?? item?.state ?? 'active').toLowerCase())
-  );
+  /* Open exactly as Emergency Monitoring (emergency.html statusOf) decides it:
+     anything cancelled or resolved in any wording ("Rescued", "False alarm",
+     "Safe") is closed, everything else is still awaiting or responding. */
+  const isClosedEmergency = (item) => {
+    const status = normalizeText(item?.status ?? item?.Status ?? item?.state ?? 'active').toLowerCase();
+    return CLOSED_EMERGENCY_STATUS.includes(status)
+      || /cancel|false alarm|dismiss|resolv|closed|complet|rescued|safe/.test(status);
+  };
+  const activeEmergencies = () => (state.emergencies || []).filter((item) => !isClosedEmergency(item));
 
   /* Active exactly as Advisories & Announcements (A&A.html) shows it:
      visible, status Active (not Scheduled, Expired or Archived), and not past
@@ -2340,10 +2354,15 @@
   });
 
   /* Hiker accounts only: users/{uid} also holds the guides and other roles
-     added in User Management. Accounts from the app's sign-up are 'hiker'. */
-  const hikers = () => (state.users || []).filter(
-    (user) => (normalizeText(user?.role || user?.Role) || 'hiker').toLowerCase() === 'hiker'
-  );
+     added in User Management. Same rule as User Management's role badge and
+     Hiker Analytics: any account that is not an admin, manager, guide or
+     ranger is a hiker (the app's sign-up saves 'hiker'), so both pages
+     count the same people. */
+  const isHikerAccount = (user) => {
+    const role = normalizeText(user?.role || user?.Role).toLowerCase();
+    return !/admin|manager|guide|ranger/.test(role);
+  };
+  const hikers = () => (state.users || []).filter(isHikerAccount);
   // Guide accounts (added in User Management with the Guide role).
   const guides = () => (state.users || []).filter(
     (user) => normalizeText(user?.role || user?.Role).toLowerCase().includes('guide')
@@ -2358,27 +2377,31 @@
     (trail) => trailStatus(trail).toLowerCase() !== 'open'
   );
 
-  /* A hazard belongs to a trail when it names the trail directly or mentions
-     it in the free-text location field. */
-  const reportMatchesTrail = (report, needle) => {
-    const trail = normalizeText(report.trail || report.Trail).toLowerCase();
+  /* A hazard belongs to a trail the way Hazard Reports' trail filter decides
+     it (hazardreport.html reportOnTrail): the trail's document id in
+     trailId/trailID, or its name in trail/trailName ignoring case, spacing
+     and punctuation. A report with no trail at all can still name it in the
+     free-text location. The old substring test let a short trail value
+     ("Makiling") land on every trail whose name contained it. */
+  const trailKey = (value) => normalizeText(value).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  const reportMatchesTrail = (report, trail) => {
+    const id = normalizeText(trail?.id);
+    if (id && [report.trailId, report.trailID].map(normalizeText).includes(id)) return true;
+    const key = trailKey(trailName(trail));
+    if (!key || key === 'unnamedtrail') return false;
+    const named = [report.trail, report.Trail, report.trailName].filter((value) => normalizeText(value));
+    if (named.length) return named.some((value) => trailKey(value) === key);
     const location = normalizeText(report.location || report.Location || report.area).toLowerCase();
-    return trail === needle || (trail && needle.includes(trail)) || location.includes(needle);
+    const name = trailName(trail).toLowerCase();
+    return Boolean(location) && location.includes(name);
   };
 
-  const hazardsOnTrail = (name) => {
-    const needle = name.toLowerCase();
-    if (!needle || needle === 'unnamed trail') return [];
-    return activeHazards().filter((hazard) => reportMatchesTrail(hazard, needle));
-  };
+  const hazardsOnTrail = (trail) => activeHazards().filter((hazard) => reportMatchesTrail(hazard, trail));
 
   /* Everything ever reported on a trail in the history window — what the trail
      does over time, rather than what is open on it right now. */
-  const trailHistory = (name) => {
-    const needle = name.toLowerCase();
-    if (!needle || needle === 'unnamed trail') return [];
-    return reportsWithin(HISTORY_DAYS).filter((report) => reportMatchesTrail(report, needle));
-  };
+  const trailHistory = (trail) => reportsWithin(HISTORY_DAYS).filter((report) => reportMatchesTrail(report, trail));
 
   /* ---------------- Report statistics ---------------- */
 
@@ -2608,15 +2631,16 @@
       .sort((a, b) => b.count - a.count);
   };
 
-  const startOfDay = (date) => {
-    const copy = new Date(date);
-    copy.setHours(0, 0, 0, 0);
-    return copy;
-  };
-
   const reportTrailLabel = (report) => {
-    const trail = normalizeText(report?.trail || report?.Trail);
-    if (trail) return trail;
+    const trail = normalizeText(report?.trail || report?.Trail || report?.trailName);
+    if (trail) {
+      // One label per trail, however the report spelled it.
+      const listed = (state.trails || []).find((item) => trailKey(trailName(item)) === trailKey(trail));
+      return listed ? trailName(listed) : trail;
+    }
+    const byId = normalizeText(report?.trailId || report?.trailID);
+    const listedById = byId && (state.trails || []).find((item) => item.id === byId);
+    if (listedById) return trailName(listedById);
     const location = normalizeText(report?.location);
     /* A bare GPS fix names no trail, so it would only add noise to the ranking. */
     if (!location || /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(location)) return 'Not specified';
@@ -2650,8 +2674,7 @@
       })
       .filter((hours) => hours !== null);
 
-    const resolvedIn = (offset) => reports.filter((report) => inWindow(toDate(report.resolvedAt), periodDays, offset));
-    const resolved = resolvedIn(0);
+    const resolved = reports.filter((report) => inWindow(toDate(report.resolvedAt), periodDays));
 
     const resolutionHours = resolved
       .map((report) => {
@@ -2663,47 +2686,21 @@
       })
       .filter((hours) => hours !== null);
 
-    const acceptedShare = (list) => (list.length ? (list.filter(isAccepted).length / list.length) * 100 : null);
-
     /* Hazard Reports Submitted and Hazard Types Reported count only hazards an
        admin verified (still verified, or since resolved): pending reports are
        unconfirmed and rejected ones were false. */
     const verified = submitted.filter(isAccepted);
 
-    /* Daily bars up to 45 days; weekly beyond that, so 90 days stays readable. */
-    const bucketDays = periodDays <= 45 ? 1 : 7;
-    const bucketCount = Math.ceil(periodDays / bucketDays);
-    const todayStart = startOfDay(new Date());
-    const series = Array.from({ length: bucketCount }, (unused, index) => {
-      const end = new Date(todayStart.getTime() - (bucketCount - 1 - index) * bucketDays * DAY_MS);
-      const start = new Date(end.getTime() - (bucketDays - 1) * DAY_MS);
-      const endExclusive = new Date(end.getTime() + DAY_MS);
-      const count = verified.filter((report) => {
-        const date = reportDate(report);
-        return date && date >= start && date < endExclusive;
-      }).length;
-      return { start, end, count };
-    });
-
     return {
-      periodDays,
-      bucketDays,
-      series,
       submitted,
       verified,
       previous,
-      resolved,
-      resolvedPrevious: resolvedIn(periodDays),
       medianReviewHours: median(reviewHours(submitted)),
-      medianReviewHoursPrevious: median(reviewHours(previous)),
       medianResolutionHours: median(resolutionHours),
-      acceptedShare: acceptedShare(submitted),
-      acceptedSharePrevious: acceptedShare(previous),
       pendingNow: submitted.filter((report) => reportStatusOf(report) === 'pending').length,
       byType: countBy(verified, (report) => normalizeText(report.hazardType || report.type) || 'Unspecified'),
       byStatus: countBy(submitted, reportStatusOf),
       byTrail: countBy(verified.filter((report) => reportTrailLabel(report) !== 'Not specified'), reportTrailLabel),
-      byRisk: countBy(verified, (report) => riskLevelKey(report)),
       advisories: (state.advisories || []).filter((item) => inWindow(advisoryDate(item), periodDays)).length,
       emergencies: (state.emergencies || []).filter((item) => inWindow(emergencyDate(item), periodDays)).length,
       newAccounts: hikers().filter((user) => inWindow(accountDate(user), periodDays)).length
@@ -2975,29 +2972,17 @@
     `;
   }).join('');
 
-  const deltaText = (current, previous, { unit = '', betterWhen = null, decimals = 0 } = {}) => {
-    if (previous === null || previous === undefined || current === null) {
-      return { text: `No comparable data for the previous ${periodDays} days`, tone: '' };
-    }
-    const change = current - previous;
-    if (Math.abs(change) < (decimals ? 0.05 : 0.5)) {
-      return { text: `Unchanged vs previous ${periodDays} days`, tone: '' };
-    }
-    const arrow = change > 0 ? '▲' : '▼';
-    const tone = betterWhen === null
-      ? ''
-      : (betterWhen === 'up') === (change > 0) ? 'up' : 'down';
-    return {
-      text: `${arrow} ${Math.abs(change).toFixed(decimals)}${unit} vs previous ${periodDays} days`,
-      tone
-    };
-  };
-
   const renderDescriptive = () => {
+    /* Hiker accounts only, like the "Registered hiker accounts" row below and
+       User Management's Hiker Analytics: otherwise "x% of N registered users"
+       and the "Hikers" pie counted guides too and disagreed with both. */
     renderDescriptiveEngagement({
       root: document.getElementById('descriptiveEngagement'),
-      users: state.users,
+      users: state.users === null ? null : hikers(),
       trails: state.trails,
+      // The hiking metrics follow the selected period, like everything else.
+      sessions: state.hikeSessions,
+      days: periodDays,
       errors: state.errors
     });
     if (state.hazards === null) return;
@@ -3133,13 +3118,13 @@
         summary.push(`${data.byTrail[0].label} had the most verified hazards (${data.byTrail[0].count}).`);
       }
       if (data.medianReviewHours !== null) {
-        summary.push(`Admins reviewed reports in ${formatDuration(data.medianReviewHours)} on average (median).`);
+        summary.push(`The median time for an admin to review a report was ${formatDuration(data.medianReviewHours)}.`);
       }
       if (data.pendingNow) {
         summary.push(`${data.pendingNow} of them ${data.pendingNow === 1 ? 'is' : 'are'} still pending review.`);
       }
       if (data.medianResolutionHours !== null) {
-        summary.push(`Resolved hazards took ${formatDuration(data.medianResolutionHours)} from report to resolution.`);
+        summary.push(`Resolved hazards took a median of ${formatDuration(data.medianResolutionHours)} from report to resolution.`);
       }
     } else {
       summary.push(`No hazard reports were submitted in the last ${periodDays} days.`);
@@ -3372,7 +3357,7 @@
       setRow('weatherAffectedTrails', 'No trails yet', true);
     } else {
       const affectedTrails = trails.filter((trail) =>
-        trailStatus(trail).toLowerCase() !== 'open' || hazardsOnTrail(trailName(trail)).length > 0
+        trailStatus(trail).toLowerCase() !== 'open' || hazardsOnTrail(trail).length > 0
       );
       const affected = affectedTrails.length;
       setRow('weatherAffectedTrails', `${affected} / ${trails.length}`, false, {
@@ -3380,7 +3365,7 @@
         lines: affectedTrails.length
           ? affectedTrails.slice(0, 6).map((trail) => {
             const name = trailName(trail);
-            const count = hazardsOnTrail(name).length;
+            const count = hazardsOnTrail(trail).length;
             const reasons = [];
             if (trailStatus(trail).toLowerCase() !== 'open') reasons.push(trailStatus(trail).toLowerCase());
             if (count) reasons.push(`${count} active hazard${count === 1 ? '' : 's'}`);
@@ -3395,7 +3380,7 @@
     renderTrailUsagePrediction({
       root: document.getElementById('trailUsagePrediction'),
       trails: state.trails,
-      users: state.users,
+      users: state.users === null ? null : hikers(),
       errors: state.errors
     });
   };
@@ -3496,8 +3481,8 @@
     const rows = state.trails.map((trail) => {
       const name = trailName(trail);
       const closed = trailStatus(trail).toLowerCase() !== 'open';
-      const active = hazardsOnTrail(name);
-      const history = trailHistory(name);
+      const active = hazardsOnTrail(trail);
+      const history = trailHistory(trail);
 
       /* What is open on the trail now, by severity and recency. */
       const hazardPoints = Math.min(active.reduce((sum, hazard) => sum + hazardWeight(hazard), 0) * 1.4, 40);
@@ -3600,7 +3585,7 @@
     }
 
     const busiestTrail = (state.trails || [])
-      .map((trail) => ({ name: trailName(trail), count: hazardsOnTrail(trailName(trail)).length }))
+      .map((trail) => ({ name: trailName(trail), count: hazardsOnTrail(trail).length }))
       .sort((a, b) => b.count - a.count)[0];
 
     if (busiestTrail && busiestTrail.count >= 2) {
@@ -3649,7 +3634,7 @@
     /* The trail that keeps producing reports needs maintenance, not another
        inspection. */
     const recurring = (state.trails || [])
-      .map((trail) => ({ name: trailName(trail), count: trailHistory(trailName(trail)).length }))
+      .map((trail) => ({ name: trailName(trail), count: trailHistory(trail).length }))
       .filter((row) => row.count >= 3)
       .sort((a, b) => b.count - a.count)[0];
     if (recurring) {
@@ -4081,7 +4066,7 @@
 
     if (trails.length) {
       const riskiest = trails
-        .map((trail) => ({ name: trailName(trail), count: hazardsOnTrail(trailName(trail)).length }))
+        .map((trail) => ({ name: trailName(trail), count: hazardsOnTrail(trail).length }))
         .sort((a, b) => b.count - a.count)[0];
       points.push(riskiest && riskiest.count
         ? {
@@ -4354,15 +4339,9 @@
      isLegalEntry: an entry type starting "Registered", or the older "Legal
      Entry") that Trail Management has not hidden. Unregistered and hidden
      trails are not on the mountain for hikers, so they are left out of
-     every count, closure ratio and trail forecast. */
-  const isPublicTrail = (trail) => {
-    if (trail?.Visible === false) return false;
-    const entry = trail?.EntryType;
-    if (typeof entry === 'boolean') return entry;
-    const text = normalizeText(entry).toLowerCase();
-    return text.startsWith('registered') || text.startsWith('legal');
-  };
-  const KEEP = { trails: isPublicTrail };
+     every count, closure ratio and trail forecast -- the same set the
+     Dashboard and Geomap count open / closed trails from (makiling-area.js). */
+  const KEEP = { trails: isAppTrail };
 
   const watchCollection = (name, key) => {
     onSnapshot(collection(db, name), (snapshot) => {
@@ -4384,6 +4363,16 @@
   watchCollection('users', 'users');
   watchCollection('Advisory', 'advisories');
   watchCollection('emergency', 'emergencies');
+  /* Not through watchCollection: before the hikeSessions rule is deployed
+     the read is refused, and that must not mark an input as unavailable in
+     the published analysis. The page just keeps using last-hike dates. */
+  onSnapshot(collection(db, 'hikeSessions'), (snapshot) => {
+    state.hikeSessions = snapshot.docs.map((docSnapshot) => ({ id: docSnapshot.id, ...docSnapshot.data() }));
+    renderDescriptive();
+  }, (error) => {
+    console.warn('Per-hike records unavailable; using last-hike dates:', error.message);
+    state.hikeSessions = [];
+  });
 
   const loadForecast = async () => {
     /* past_days=3 brings the rain that already fell, which decides how soaked
@@ -4392,10 +4381,8 @@
       '&daily=precipitation_sum,precipitation_probability_max,weather_code&past_days=3&forecast_days=7&timezone=Asia%2FManila';
 
     try {
-      const response = await fetch(url, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Forecast request failed with ${response.status}`);
-
-      const data = await response.json();
+      const { data, stale } = await fetchWeather(url, { maxAgeMs: 30 * 60 * 1000 });
+      if (stale) console.warn('Using the last saved forecast; Open-Meteo could not be reached.');
       const daily = data?.daily;
       if (!daily?.time?.length) throw new Error('Forecast response contained no daily data');
 

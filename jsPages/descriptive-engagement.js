@@ -1,4 +1,4 @@
-import { hikeHistory } from './hike-history.js';
+import { datedHikes, hikesWithinDays } from './hike-events.js';
 import { escapeHtml, normalizeText } from './utils.js';
 
 const nameKey = value => normalizeText(value).replace(/\s+/g, ' ').toLowerCase();
@@ -7,7 +7,6 @@ const validNumber = value => {
     const number = Number(value);
     return Number.isFinite(number) && number >= 0 ? number : null;
 };
-const count = value => Math.floor(validNumber(value) ?? 0);
 const numberText = value => value.toLocaleString('en-US');
 
 export function formatEngagementDuration(minutes) {
@@ -19,10 +18,12 @@ export function formatEngagementDuration(minutes) {
     return hours ? `${numberText(hours)} h${remainder ? ` ${remainder} min` : ''}` : `${rounded} min`;
 }
 
-// Lifetime summaries have no date for every session. Reconcile overlapping
-// hike counters, and never distribute lifetime minutes into a date window
-// or across trails. Trail popularity measures distinct users, not visits.
-export function summarizeDescriptiveEngagement(users = [], trails = []) {
+/* Hiking engagement in the last `days` days, from dated hikes only
+   (hike-events.js): the app's per-hike records, or -- for a hiker without
+   any -- their last hike. Lifetime totals have no date per hike, so they
+   are never spread over a period. Trail popularity measures distinct
+   hikers, not visits. */
+export function summarizeDescriptiveEngagement(users = [], trails = [], { sessions = [], days = 30, now = Date.now() } = {}) {
     const rows = new Map();
     const trailIds = new Map();
     const trailNames = new Map();
@@ -44,48 +45,34 @@ export function summarizeDescriptiveEngagement(users = [], trails = []) {
         return key;
     };
 
-    const profiles = new Map();
-    users.forEach((user, index) => {
-        const uid = normalizeText(user.id || user.uid || user.userId) || `profile:${index}`;
-        profiles.set(uid, user);
-    });
+    const hikes = hikesWithinDays(datedHikes(users, sessions), days, now);
     const totals = {
-        registeredUsers: profiles.size, engagedUsers: 0, hikes: 0,
-        completed: 0, partial: 0, timedSessions: 0, usersWithoutTrails: 0
+        registeredUsers: users.length, engagedUsers: 0, hikes: hikes.length,
+        completed: 0, partial: 0, statusUnknown: 0, timedSessions: 0, usersWithoutTrails: 0,
+        fromSessions: 0, fromLastHike: 0
     };
     let totalMinutes = 0;
-    profiles.forEach((user, uid) => {
-        const history = hikeHistory(user);
-        const completed = count(user.completedHikes);
-        const partial = count(user.partialHikes);
-        totals.hikes += history.total;
-        totals.completed += completed;
-        totals.partial += partial;
-
-        // Weight the average by ended sessions, excluding users whose time
-        // is missing. Starts may include ongoing hikes, so are not its divisor.
-        const minutes = validNumber(user.hikeTotalMinutes);
-        if (minutes !== null && completed + partial > 0) {
-            totalMinutes += minutes;
-            totals.timedSessions += completed + partial;
+    const engaged = new Set();
+    const withTrail = new Set();
+    hikes.forEach(hike => {
+        engaged.add(hike.uid);
+        if (hike.source === 'session') totals.fromSessions += 1; else totals.fromLastHike += 1;
+        if (hike.status === 'completed') totals.completed += 1;
+        else if (hike.status === 'partial') totals.partial += 1;
+        else totals.statusUnknown += 1;
+        if (hike.minutes !== null) {
+            totalMinutes += hike.minutes;
+            totals.timedSessions += 1;
         }
-
-        const visited = new Set();
-        const addTrail = value => {
+        hike.trails.forEach(value => {
             const key = resolveTrail(value);
-            if (key) visited.add(key);
-        };
-        if (Array.isArray(user.hikedTrails)) user.hikedTrails.forEach(addTrail);
-        Object.entries(user.hikeStarts || {}).forEach(([month, entry]) => {
-            if (!/^m\d{4}_(0[1-9]|1[0-2])$/.test(month)) return;
-            Object.entries(entry?.trails || {}).forEach(([trail, starts]) => {
-                if (count(starts) > 0) addTrail(trail);
-            });
+            if (!key) return;
+            rows.get(key).users.add(hike.uid);
+            withTrail.add(hike.uid);
         });
-        visited.forEach(key => rows.get(key).users.add(uid));
-        if (history.total > 0 || visited.size > 0) totals.engagedUsers += 1;
-        if (history.total > 0 && visited.size === 0) totals.usersWithoutTrails += 1;
     });
+    totals.engagedUsers = engaged.size;
+    totals.usersWithoutTrails = [...engaged].filter(uid => !withTrail.has(uid)).length;
 
     const trailRows = [...rows.values()]
         .map(row => ({ name: row.name, listed: row.listed, users: row.users.size }))
@@ -218,7 +205,7 @@ const bindTrailPieInteractions = root => {
     pieInteractions.set(root, { hide });
 };
 
-export function renderDescriptiveEngagement({ root, users, trails, errors = {} }) {
+export function renderDescriptiveEngagement({ root, users, trails, sessions = [], days = 30, errors = {} }) {
     const kpis = root?.querySelector('[data-engagement-kpis]');
     const trailCard = root?.querySelector('[data-engagement-trails]');
     const durationCard = root?.querySelector('[data-engagement-duration]');
@@ -228,8 +215,9 @@ export function renderDescriptiveEngagement({ root, users, trails, errors = {} }
     for (const element of [kpis, trailCard, durationCard]) {
         element.setAttribute('aria-busy', String(users === null && !errors.users));
     }
-    const trailHeading = '<h4 class="chart-title de-card-heading">Users per Trail &amp; Most Visited Trails<span class="de-period">All time</span></h4>';
-    const durationHeading = '<h3 class="de-card-heading">Session Duration &amp; Engagement<span class="de-period">All time</span></h3>';
+    const periodLabel = `Last ${days} days`;
+    const trailHeading = `<h4 class="chart-title de-card-heading">Users per Trail &amp; Most Visited Trails<span class="de-period">${escapeHtml(periodLabel)}</span></h4>`;
+    const durationHeading = `<h3 class="de-card-heading">Session Duration &amp; Engagement<span class="de-period">${escapeHtml(periodLabel)}</span></h3>`;
     if (errors.users || users === null) {
         kpis.innerHTML = `<div class="empty-state" role="status">${errors.users ? 'User engagement data could not be loaded. Check your connection and admin permissions.' : 'Loading user engagement...'}</div>`;
         trailCard.innerHTML = trailHeading + `<div class="empty-state">${errors.users ? 'Trail activity unavailable.' : 'Loading trail activity...'}</div>`;
@@ -238,16 +226,20 @@ export function renderDescriptiveEngagement({ root, users, trails, errors = {} }
         return;
     }
 
-    const data = summarizeDescriptiveEngagement(users, trails || []);
+    const data = summarizeDescriptiveEngagement(users, trails || [], { sessions, days });
     const trailsReady = trails !== null && !errors.trails;
     const top = data.topTrails[0];
     const participation = data.registeredUsers ? Math.round(data.engagedUsers / data.registeredUsers * 100) : 0;
     const leader = !trailsReady ? (errors.trails ? 'Unavailable' : 'Loading...')
         : data.topTrails.length > 1 ? `${data.topTrails.length} trails tied`
         : top?.name || 'No visits recorded';
-    const timed = `${numberText(data.timedSessions)} completed or partial sessions with recorded time`;
-    const metrics = metric('Users with hikes', numberText(data.engagedUsers), `${participation}% of ${numberText(data.registeredUsers)} registered users`)
-        + metric('Recorded hikes', numberText(data.hikes), 'Includes recorded starts and imported session history')
+    const timed = `${numberText(data.timedSessions)} hike${data.timedSessions === 1 ? '' : 's'} with a recorded time, ${periodLabel.toLowerCase()}`;
+    const sources = [
+        data.fromSessions ? `${numberText(data.fromSessions)} from per-hike records` : '',
+        data.fromLastHike ? `${numberText(data.fromLastHike)} hikers' latest hike` : ''
+    ].filter(Boolean).join(' · ') || 'No dated hikes in this period';
+    const metrics = metric('Users with hikes', numberText(data.engagedUsers), `${participation}% of ${numberText(data.registeredUsers)} registered hikers · ${periodLabel.toLowerCase()}`)
+        + metric('Recorded hikes', numberText(data.hikes), sources)
         + metric('Average session duration', formatEngagementDuration(data.averageMinutes), timed)
         + metric('Most visited trail', leader, trailsReady && top ? `${numberText(top.users)} unique users per leading trail` : 'Ranked by unique users, including repeat hikers', {
             name: true, title: trailsReady ? data.topTrails.map(row => row.name).join(', ') : ''
@@ -257,20 +249,21 @@ export function renderDescriptiveEngagement({ root, users, trails, errors = {} }
     if (!trailsReady) {
         trailContent = `<div class="empty-state" role="status">${errors.trails ? 'Trail data could not be loaded. Trail rankings are unavailable.' : 'Loading trail data...'}</div>`;
     } else if (!data.trailRows.length) {
-        trailContent = '<div class="empty-state">No trails or trail visits have been recorded yet.</div>';
+        trailContent = `<div class="empty-state">No trails or trail visits recorded in the ${escapeHtml(periodLabel.toLowerCase())}.</div>`;
     } else {
         trailContent = trailPieChart(data.trailRows, data.engagedUsers - data.usersWithoutTrails);
     }
 
     const durationRows = [
         ['Total recorded hiking time', formatEngagementDuration(data.totalMinutes)],
-        ['Completed sessions', numberText(data.completed)],
-        ['Partial sessions', numberText(data.partial)],
-        ['Sessions with recorded time', numberText(data.timedSessions)]
+        ['Completed hikes', numberText(data.completed)],
+        ['Partial hikes', numberText(data.partial)],
+        ['Hikes without a recorded result', numberText(data.statusUnknown)],
+        ['Hikes with recorded time', numberText(data.timedSessions)]
     ];
     const visitedCount = data.trailRows.filter(row => row.users > 0).length;
-    const summary = [`${numberText(data.engagedUsers)} of ${numberText(data.registeredUsers)} users have recorded hiking activity.`];
-    if (trailsReady) summary.push(`${numberText(visitedCount)} trails have recorded visitors.`);
+    const summary = [`${numberText(data.engagedUsers)} of ${numberText(data.registeredUsers)} hikers hiked in the ${periodLabel.toLowerCase()}.`];
+    if (trailsReady) summary.push(`${numberText(visitedCount)} trail${visitedCount === 1 ? ' had' : 's had'} visitors.`);
     if (data.averageMinutes !== null) summary.push(`Sessions with recorded duration average ${formatEngagementDuration(data.averageMinutes)}.`);
     if (data.usersWithoutTrails) summary.push(`${numberText(data.usersWithoutTrails)} users have hikes without trail details.`);
 
@@ -280,7 +273,7 @@ export function renderDescriptiveEngagement({ root, users, trails, errors = {} }
         ${trailContent}`;
     durationCard.innerHTML = durationHeading + `
         ${durationRows.map(([label, value]) => `<div class="row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}
-        <p class="de-note">Average duration uses total recorded minutes divided by completed and partial sessions with recorded time. Sessions without duration are excluded.</p>
+        <p class="de-note">Hikes dated in the period only. Per-hike records give each hike's time and result; for a hiker without them, only their latest hike has a date, with their average hike length as its time and no result.</p>
         <div class="de-participation"><span>Users with hiking activity</span><strong>${participation}%</strong></div>
         <div class="de-bar-track" role="progressbar" aria-label="Registered users with hiking activity" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${participation}"><span style="width:${participation}%"></span></div>`;
     summaryText.textContent = summary.join(' ');

@@ -2188,8 +2188,8 @@ function openArchivePrompt() {
   if (!items.length) return;
 
   document.getElementById('archiveConfirmSubtitle').textContent = items.length === 1
-    ? `"${items[0].hazardType || 'Hazard Report'}" at ${items[0].location || 'the reported location'} will be moved to the archive.`
-    : `${items.length} rejected reports will be moved to the archive.`;
+    ? `"${items[0].hazardType || 'Hazard Report'}" at ${items[0].location || 'the reported location'} will be moved to Settings > Archived Rejected Reports.`
+    : `${items.length} rejected reports will be moved to Settings > Archived Rejected Reports.`;
   document.getElementById('archiveReportError').textContent = '';
 
   const confirmBtn = document.getElementById('archiveModalConfirmBtn');
@@ -3078,7 +3078,7 @@ function updateStats() {
   // cards never count the same report twice.
   const resolved = countWhere(r => statusOf(r) === 'resolved' && r.archived !== true);
 
-  // Archived covers both archives in Settings: Archived Hazard Reports and
+  // Archived covers both archives in Settings: Archived Rejected Reports and
   // Archived Resolved Reports.
   const archivedTotal = archived + archivedResolved;
 

@@ -149,6 +149,14 @@ export const isRegisteredTrail = (trail) => {
   return entry.startsWith('registered') || entry.startsWith('legal');
 };
 
+/* A trail hikers can see in the app: Registered and not hidden in Trail
+   Management. The one set every page counts open / closed trails from
+   (Dashboard, Geomap, Analytics), so their numbers always agree. */
+export const isAppTrail = (trail) => trail?.Visible !== false && isRegisteredTrail(trail);
+
+// Open unless Trail Management says otherwise; compared without case.
+export const isTrailOpen = (trail) => String(trail?.Status || 'Open').trim().toLowerCase() === 'open';
+
 // A trail whose saved route is drawn on the maps.
 export const hasDrawnRoute = (trail) => validRoute(trail?.route) && isRegisteredTrail(trail);
 

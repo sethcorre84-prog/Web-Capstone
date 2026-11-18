@@ -269,6 +269,32 @@ service cloud.firestore {
       allow create, update, delete: if isEditor() || (signedIn() && request.auth.uid == userId);
     }
 
+    /* One dated record per finished hike (HikeSessionService._recordSession
+       in the app), so the portal's Dashboard and Analytics can count hikers
+       and trail visits for any period. A hiker writes only their own, once;
+       nobody edits or deletes one afterwards. Admins read them all. */
+    match /hikeSessions/{sessionId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.get('uid', '') == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+             'uid', 'trailName', 'trailID', 'startedAt', 'endedAt',
+             'minutes', 'km', 'status'
+           ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.trailName is string
+        && request.resource.data.trailID is string
+        && request.resource.data.startedAt is timestamp
+        && request.resource.data.startedAt <= request.time
+        && request.resource.data.endedAt == request.time
+        && request.resource.data.minutes is number
+        && request.resource.data.minutes >= 0
+        && request.resource.data.km is number
+        && request.resource.data.km >= 0
+        && request.resource.data.status in ['completed', 'partial', 'ended'];
+      allow update, delete: if false;
+    }
+
     match /emergency/{alertId} {
       allow read: if signedIn();
       allow create: if signedIn();

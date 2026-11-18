@@ -1304,6 +1304,8 @@
   import { createMakilingMap } from '../jsPages/makiling-area.js';
   import { addHikerLayer, offTrailLabel } from '../jsPages/hiker-layer.js';
   import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, watchWeatherLocation, weatherUrlFor } from '../jsPages/weather-locations.js';
+  // Time limit, one retry and the last good reading (weather-fetch.js).
+  import { fetchWeather } from '../jsPages/weather-fetch.js';
 
   const $ = (id) => document.getElementById(id);
 
@@ -2403,9 +2405,7 @@
     // A slow reply for a place that is no longer selected is dropped.
     const request = ++weatherRequest;
     try {
-      const response = await fetch(weatherUrlFor(locationKey), { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Weather request failed with ${response.status}`);
-      const { current } = await response.json();
+      const { data: { current }, stale } = await fetchWeather(weatherUrlFor(locationKey));
       if (request !== weatherRequest) return;
       weather = {
         code: Number(current.weather_code),
@@ -2417,7 +2417,7 @@
       $('weatherPlace').textContent = place.name;
       // Open-Meteo gives Manila local time without an offset.
       const readAt = toPortalDate(`${current.time}:00+08:00`) || new Date();
-      $('weatherUpdated').textContent = `Updated ${formatPortalTime(readAt)}`;
+      $('weatherUpdated').textContent = `${stale ? 'Last reading' : 'Updated'} ${formatPortalTime(readAt)}`;
       $('weatherIcon').className = `fa-solid ${weatherGlyph(weather.code)}`;
       $('weatherCard').hidden = false;
     } catch (error) {

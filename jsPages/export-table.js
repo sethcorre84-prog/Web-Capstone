@@ -8,7 +8,7 @@
 //     onDone: (format, table) => {}   // optional, after the file is saved
 //   })
 //
-// title       shown at the top of the PDF, e.g. "Archived Hazard Reports"
+// title       shown at the top of the PDF, e.g. "Archived Rejected Reports"
 // headers     column names
 // rows        arrays of cell values, in header order
 // filename    without extension or date, e.g. "archived-hazard-reports"

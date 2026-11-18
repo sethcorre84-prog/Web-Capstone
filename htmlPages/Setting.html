@@ -482,7 +482,7 @@
     }
 
     /* ===== Archive dialogs: forest-green theme ===============================
-       Archived Hazard Reports, Archived Resolved Reports, Expired Advisories and
+       Archived Rejected Reports, Archived Resolved Reports, Expired Advisories and
        their Unarchive confirmations, in the PeakPath mountain greens (the same
        tokens as the sidebar and accent). */
     .archive-theme {
@@ -1441,8 +1441,8 @@
   <div class="setting-left">
     <div class="setting-icon">🗃️</div>
     <div class="setting-text">
-      <div class="label">Archived Hazard Reports</div>
-      <div class="desc">Review hazard reports that have been archived.</div>
+      <div class="label">Archived Rejected Reports</div>
+      <div class="desc">Review rejected hazard reports that have been archived.</div>
     </div>
   </div>
   <div class="setting-right"><span class="chevron">›</span></div>
@@ -1696,7 +1696,7 @@
   </div>
 </div>
 
-<!-- Unarchive confirmation modal (for Archived Hazard and Archived Resolved Reports) -->
+<!-- Unarchive confirmation modal (for Archived Rejected and Archived Resolved Reports) -->
 <div id="unarchiveConfirmModal" class="modal-backdrop" aria-hidden="true">
   <div class="modal-card archive-theme" role="dialog" aria-modal="true" aria-labelledby="unarchiveConfirmTitle">
     <div class="modal-header">
@@ -2012,7 +2012,7 @@
     ].join('');
 
     openArchiveDetail({
-      title: kind === 'resolved' ? 'Archived Resolved Report' : 'Archived Hazard Report',
+      title: kind === 'resolved' ? 'Archived Resolved Report' : 'Archived Rejected Report',
       heading: item.hazardType || 'Unknown Hazard',
       sub: `${item.reportId || item.id} • ${item.location || 'No location'}`,
       chip: item.status || 'Archived',
@@ -2138,7 +2138,7 @@
     const archiveList = document.getElementById('archivedHazardList');
     if (!archiveList) return;
 
-    archiveList.innerHTML = '<div class="archive-empty">Loading archived hazard reports...</div>';
+    archiveList.innerHTML = '<div class="archive-empty">Loading archived rejected reports...</div>';
 
     try {
       const reportsQuery = query(collection(db, 'reports'), orderBy('timestamp', 'desc'));
@@ -2154,7 +2154,7 @@
       lastArchivedHazardReports = archived; // cache for PDF export and modal lookups
 
       if (!archived.length) {
-        archiveList.innerHTML = '<div class="archive-empty">There are no archived hazard reports yet.</div>';
+        archiveList.innerHTML = '<div class="archive-empty">There are no archived rejected reports yet.</div>';
         return;
       }
 
@@ -2180,15 +2180,15 @@
       bindArchiveMenus(archiveList);
       bindArchiveRows(archiveList, '[data-detail-report]', (row) => openHazardDetail(row.dataset.detailReport));
     } catch (error) {
-      console.error('Error loading archived hazard reports:', error);
+      console.error('Error loading archived rejected reports:', error);
       archiveList.innerHTML = '<div class="archive-empty">Unable to load the archive right now.</div>';
     }
   }
 
   // -----------------------------
-  // Unarchive confirmation modal (Archived Hazard and Archived Resolved Reports)
+  // Unarchive confirmation modal (Archived Rejected and Archived Resolved Reports)
   // -----------------------------
-  // kind 'archived': an archived hazard report, which goes back to Rejected.
+  // kind 'archived': an archived rejected report, which goes back to Rejected.
   // kind 'resolved': an archived resolved report, which goes back to the
   // Resolved Reports panel and stays resolved.
   let pendingUnarchive = null;
@@ -2260,7 +2260,7 @@
         return;
       }
 
-      // Back to Rejected Reports as the next R-YYYY-###, and Archived Hazard
+      // Back to Rejected Reports as the next R-YYYY-###, and Archived Rejected
       // Reports closes up behind it.
       const idPlan = planReportIds(allReports, new Map([[reportId, { status: 'rejected' }]]));
       batch.update(doc(db, 'reports', reportId), {
@@ -2607,7 +2607,7 @@
      always used. */
   function archivedHazardReportsTable() {
     return {
-      title: 'Archived Hazard Reports',
+      title: 'Archived Rejected Reports',
       filename: 'archived-hazard-reports',
       countLabel: `${lastArchivedHazardReports.length} report(s)`,
       headers: ['Report ID', 'Hazard Type', 'Location', 'Archived On'],
@@ -4594,10 +4594,10 @@
         `
       },
       archivedHazardReports: {
-        title: 'Archived Hazard Reports',
+        title: 'Archived Rejected Reports',
         content: `
           <div class="archive-list" id="archivedHazardList">
-            <div class="archive-empty">Loading archived hazard reports...</div>
+            <div class="archive-empty">Loading archived rejected reports...</div>
           </div>
           <div class="modal-actions">
             <button type="button" class="ghost-btn" data-close-modal>Close</button>

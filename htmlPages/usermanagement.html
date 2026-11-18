@@ -2699,7 +2699,7 @@
           <div class="hero-icon green"><i class="fa-solid fa-user-check"></i></div>
         </div>
         <div class="card-content">
-          <h3>Active Users Today</h3>
+          <h3>Active Users Now</h3>
           <span class="hero-trend" id="activeUsersTrend">—</span>
         </div>
       </div>
@@ -2781,7 +2781,7 @@
                 <th style="width:15%">Registered On</th>
               </tr>
             </thead>
-            <tbody id="usersTableBody"></tbody>
+            <tbody id="usersTableBody"><tr><td colspan="6" style="padding:20px;text-align:center;color:#93a199;">Loading users…</td></tr></tbody>
           </table>
         </div>
 
@@ -2798,8 +2798,8 @@
           <div class="avatar" id="detailAvatar">U</div>
           <div class="profile-name-wrap">
             <div class="profile-name-block">
-              <div class="profile-name" id="detailName">No user selected</div>
-              <div class="profile-email" id="detailEmail">Select a user to view details</div>
+              <div class="profile-name" id="detailName">Loading…</div>
+              <div class="profile-email" id="detailEmail">&nbsp;</div>
               <span class="badge hiker" id="detailRoleBadge">—</span>
             </div>
             <span class="status-pill" id="detailStatusBadge">—</span>
@@ -3368,6 +3368,9 @@
   import { GENDERS, NATIONALITIES, loadPhAddresses } from '../jsPages/signup-options.js';
 
   const PAGE_SIZE = 10;
+  // First-load state, see scheduleRender below.
+  const loaded = { users: false, teams: false };
+  let firstDrawDone = false;
 
   const usersTableBody = document.getElementById('usersTableBody');
   const searchInput = document.getElementById('userSearchInput');
@@ -3460,6 +3463,9 @@
   // Mobile profile photos are referenced by the user's Firestore document.
   // Resolve Storage paths once; download URLs can be displayed directly.
   const avatarUrls = new Map();
+  // Storage path -> download URL once known, so a redraw can put the photo
+  // in at once (from the browser cache) instead of flashing the initials.
+  const resolvedAvatarUrls = new Map();
   const profilePhotoOf = (data) => {
     const values = [data.photoURL, data.photoUrl, data.profilePhoto, data.profileImage,
       data.profileImageUrl, data.profileImageURL, data.profilePicture, data.profilePictureUrl,
@@ -3472,8 +3478,12 @@
     return '';
   };
 
-  const avatarMarkup = (user) => `${escapeHtml(getInitials(user.name))}${user.photo
-    ? `<img data-user-avatar="${escapeHtml(user.id)}" alt="" hidden>` : ''}`;
+  const avatarMarkup = (user) => {
+    const known = user.photo ? resolvedAvatarUrls.get(user.photo) : '';
+    if (known) return `${escapeHtml(getInitials(user.name))}<img src="${escapeHtml(known)}" alt="">`;
+    return `${escapeHtml(getInitials(user.name))}${user.photo
+      ? `<img data-user-avatar="${escapeHtml(user.id)}" alt="" hidden>` : ''}`;
+  };
 
   const loadAvatars = (root) => {
     root.querySelectorAll('img[data-user-avatar]').forEach((image) => {
@@ -3493,6 +3503,7 @@
       image.addEventListener('load', () => { image.hidden = false; }, { once: true });
       image.addEventListener('error', () => { image.remove(); }, { once: true });
       avatarUrls.get(source).then(url => {
+        if (url) resolvedAvatarUrls.set(source, url);
         if (url && image.isConnected) image.src = url;
       });
     });
@@ -3672,7 +3683,7 @@
   });
 
   const HAZARD_USER_FIELDS = ['userId', 'uid', 'reportedById', 'reportedBy', 'reporterId', 'reporterEmail', 'email'];
-  const EMERGENCY_USER_FIELDS = ['userId', 'uid', 'hikerId', 'hikerName', 'userName', 'reportedBy', 'name', 'email'];
+  const EMERGENCY_USER_FIELDS = ['missingUserId', 'userId', 'uid', 'hikerId', 'hikerName', 'userName', 'reportedBy', 'name', 'email'];
   const REPORTED_USER_FIELDS = ['reportedUserId', 'reportedUserUid', 'reportedUid', 'reportedUserID', 'reportedUserEmail', 'reportedUserName', 'reportedUser'];
 
   // The mobile app saves a user report's category as a `reason` key; these
@@ -3769,15 +3780,19 @@
     const teamCount = state.teams.length;
     const usersInTeams = users.filter(user => userTeamNames(user).length).length;
 
-    const now = new Date();
+    // Calendar month in the portal time zone (Settings > Date & Time).
+    const monthOf = (date) => date.toLocaleDateString('en-CA', { timeZone: portalTimeZone() }).slice(0, 7);
+    const thisMonth = monthOf(new Date());
     const newThisMonth = users.filter((user) => {
       const joined = toDate(user.memberSince);
-      return joined && joined.getMonth() === now.getMonth() && joined.getFullYear() === now.getFullYear();
+      return joined && monthOf(joined) === thisMonth;
     }).length;
 
+    // Open as Emergency Monitoring (emergency.html statusOf) decides it, so
+    // "Rescued", "Safe" or "False alarm" are not shown as unresolved here.
     const unresolvedAlerts = state.emergencies.filter((record) => {
       const status = normalizeText(record.status || record.Status || record.state || 'active').toLowerCase();
-      return !['resolved', 'closed', 'completed', 'cancelled'].includes(status);
+      return !/cancel|false alarm|dismiss|resolv|closed|complet|rescued|safe/.test(status);
     }).length;
 
     const percent = (part) => (total ? Math.round((part / total) * 100) : 0);
@@ -3973,11 +3988,16 @@
   }
 
   const renderSelectedUser = () => {
+    // Keep "Loading…" until the first draw, rather than flashing
+    // "No user selected" while the collections are still arriving.
+    if (!firstDrawDone) return;
     const user = getSelectedUser();
     renderReactivationRequest(user);
 
+    const detailAvatar = document.getElementById('detailAvatar');
     if (!user) {
-      document.getElementById('detailAvatar').textContent = 'U';
+      detailAvatar.textContent = 'U';
+      delete detailAvatar.dataset.shown;
       document.getElementById('detailName').textContent = 'No user selected';
       document.getElementById('detailEmail').textContent = 'Select a user to view details';
       document.getElementById('detailRoleBadge').textContent = '—';
@@ -4000,8 +4020,14 @@
       return;
     }
 
-    document.getElementById('detailAvatar').innerHTML = avatarMarkup(user);
-    loadAvatars(document.getElementById('detailAvatar'));
+    // Redrawn only when the user or their photo changes, so an update to
+    // teams, reports or alerts does not blink the picture.
+    const shownKey = `${user.id}|${user.photo}|${user.name}`;
+    if (detailAvatar.dataset.shown !== shownKey) {
+      detailAvatar.innerHTML = avatarMarkup(user);
+      detailAvatar.dataset.shown = shownKey;
+      loadAvatars(detailAvatar);
+    }
     document.getElementById('detailName').textContent = user.name;
     document.getElementById('detailEmail').textContent = user.email;
 
@@ -6047,7 +6073,7 @@
   onSnapshot(collection(db, 'reactivationRequests'), (snapshot) => {
     reactivationRequests.clear();
     snapshot.forEach((item) => reactivationRequests.set(item.id, { uid: item.id, ...item.data() }));
-    renderSelectedUser();
+    scheduleRender(renderSelectedUser);
   }, (error) => console.warn('Could not load reactivation requests:', error.message));
 
   // Opens the PDF / Excel menu (export-table.js) for the users the current
@@ -6327,7 +6353,8 @@
         : `${total > lastMonth ? '▲' : '▼'} ${Math.abs(Math.round(((total - lastMonth) / lastMonth) * 100))}% vs the month before (${lastMonth})`);
     const filipinos = hikers.filter((user) => isFilipino(user.raw?.nationality)).length;
     const firstTimersNow = hikers.filter((user) => allTime ? hikeHistory(user.raw).total === 1 : hikeHistory(user.raw).undated === 0 && hikeHistory(user.raw).first === key).length;
-    const firstTimersBefore = users.filter((user) => startsIn(user, previousKey) > 0 && hikeHistory(user.raw).first === previousKey).length;
+    const isFirstMonth = (user, monthKey) => hikeHistory(user.raw).undated === 0 && hikeHistory(user.raw).first === monthKey;
+    const firstTimersBefore = users.filter((user) => startsIn(user, previousKey) > 0 && isFirstMonth(user, previousKey)).length;
     const hikesBefore = users.reduce((sum, user) => sum + startsIn(user, previousKey), 0);
 
     // The six months up to this one, for the trend and the sparkline.
@@ -6340,13 +6367,13 @@
         label: d.toLocaleDateString('en-US', { month: 'short' }),
         full: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
         count: monthHikers.length,
-        firstTimers: monthHikers.filter((user) => hikeHistory(user.raw).first === monthKey).length
+        firstTimers: monthHikers.filter((user) => isFirstMonth(user, monthKey)).length
       };
     });
     const undated = users.reduce((sum, user) => sum + hikeHistory(user.raw).undated, 0);
     const sixMonths = trend.reduce((sum, t) => sum + t.count, 0);
     document.getElementById('hikerAnalyticsTrend').innerHTML = trendHtml(trend, key);
-    document.getElementById('hikerAnalyticsTrendSub').textContent = `${sixMonths.toLocaleString()} hiker-month${sixMonths === 1 ? '' : 's'} in all${undated ? ` ? ${undated} sessions without monthly dates (included in All time)` : ''}`;
+    document.getElementById('hikerAnalyticsTrendSub').textContent = `${sixMonths.toLocaleString()} hiker-month${sixMonths === 1 ? '' : 's'} in all${undated ? ` · ${undated} sessions without monthly dates (included in All time)` : ''}`;
 
     const stat = (icon, label, value, extra, lead = false) => `
       <div class="ha-stat${lead ? ' is-lead' : ''}">
@@ -6490,6 +6517,31 @@
     });
   });
 
+  /* The page opens with seven collections arriving one after another. Each
+     used to redraw the table and User Details as it came in, so the page
+     visibly rebuilt itself several times. Now:
+       - nothing is drawn until both users and teams have loaded (the Team
+         column depends on teams), so the first draw is already complete;
+       - updates from the listeners are batched to one draw per frame. */
+  let pendingRenders = new Set();
+  let renderFrame = 0;
+  const scheduleRender = (...renders) => {
+    renders.forEach((render) => pendingRenders.add(render));
+    if (renderFrame) return;
+    renderFrame = requestAnimationFrame(() => {
+      renderFrame = 0;
+      if (!loaded.users || !loaded.teams) return;
+      const due = pendingRenders;
+      pendingRenders = new Set();
+      if (!firstDrawDone || due.has(refreshAll)) {
+        firstDrawDone = true;
+        refreshAll();
+        return;
+      }
+      due.forEach((render) => render());
+    });
+  };
+
   const refreshAll = () => {
     syncFilterOptions();
     renderStats();
@@ -6590,8 +6642,10 @@
       .map((user) => applyLastSeen({ ...user, profileLastActive: user.lastActive }))
       .sort((a, b) => (toDate(b.memberSince)?.getTime() || 0) - (toDate(a.memberSince)?.getTime() || 0));
 
+    loaded.users = true;
     if (!state.users.length) {
       state.selectedUserId = null;
+      firstDrawDone = true;
       usersTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#93a199;">No users found in database.</td></tr>';
       userCountSummary.textContent = 'No users to show';
       userPager.innerHTML = '';
@@ -6613,7 +6667,7 @@
       state.page = Math.floor(linkedIndex / PAGE_SIZE) + 1;
     }
 
-    refreshAll();
+    scheduleRender(refreshAll);
     tidyExpiredSuspensions(state.users);
 
     if (linkedIndex !== -1) {
@@ -6621,6 +6675,7 @@
     }
   }, (error) => {
     console.error('Error loading users:', error);
+    loaded.users = true;
     usersTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#93a199;">Unable to load users from database.</td></tr>';
     userCountSummary.textContent = 'Unable to load users';
   });
@@ -6630,8 +6685,7 @@
   const watchCollection = (name, key) => {
     onSnapshot(collection(db, name), (snapshot) => {
       state[key] = snapshot.docs.map(snapshotDoc => ({ id: snapshotDoc.id, ...snapshotDoc.data() }));
-      renderStats();
-      renderSelectedUser();
+      scheduleRender(renderStats, renderSelectedUser);
     }, (error) => {
       console.error(`Error loading ${name}:`, error);
     });
@@ -6642,9 +6696,13 @@
   onSnapshot(collection(db, 'teams'), (snapshot) => {
     state.teams = snapshot.docs.map(normalizeTeam)
       .sort((a, b) => a.name.localeCompare(b.name));
-    refreshAll();
+    loaded.teams = true;
+    scheduleRender(refreshAll);
   }, (error) => {
     console.error('Error loading teams:', error);
+    // Show the users anyway, without team names.
+    loaded.teams = true;
+    scheduleRender(refreshAll);
   });
 
   // Trail names for each team's trailID, live, so renaming a trail in Trail
@@ -6659,7 +6717,7 @@
       .map((trailDoc) => ({ id: trailDoc.id, name: state.trailNames.get(trailDoc.id) }))
       .filter((trail) => trail.name)
       .sort((a, b) => a.name.localeCompare(b.name)));
-    renderSelectedUser();
+    scheduleRender(renderSelectedUser);
   }, (error) => {
     console.error('Error loading trails:', error);
   });

@@ -922,7 +922,7 @@
             </div>
           </div>
           <div class="card-content">
-            <div class="label">Active Users Today</div>
+            <div class="label">Active Users Now</div>
             <div class="percentage" id="activeHikersMeta">Loading user activity…</div>
           </div>
         </div>
@@ -1093,7 +1093,9 @@
     import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { formatPortalDate, portalHourCycle, portalTimeZone, toPortalDate as toDate } from "../jsPages/datetime-prefs.js";
     import { WEATHER_LOCATIONS, WEATHER_STORAGE_KEY, getWeatherLocationKey, watchWeatherLocation, weatherUrlFor } from "../jsPages/weather-locations.js";
-    import { createMakilingMap, trailForLineKey, trailLineKey, hasDrawnRoute, PEAK_2 } from "../jsPages/makiling-area.js";
+    // Time limit, one retry and the last good reading (weather-fetch.js).
+    import { fetchWeather } from "../jsPages/weather-fetch.js";
+    import { createMakilingMap, trailForLineKey, trailLineKey, hasDrawnRoute, isAppTrail, isTrailOpen, PEAK_2 } from "../jsPages/makiling-area.js";
     import { initTrailPoints } from "../jsPages/trail-points.js";
     import { addMapFeatures, FACILITIES } from "../jsPages/map-features.js";
 
@@ -1675,10 +1677,11 @@
     });
 
     onSnapshot(collection(db, 'trails'), (snapshot) => {
-      const trails = snapshot.docs.map(document => document.data());
-      const openTrails = trails.filter(trail => (trail.Status || 'Open') === 'Open');
+      // Trails hikers can see in the app, as on the Dashboard and Analytics.
+      const trails = snapshot.docs.map(document => document.data()).filter(isAppTrail);
+      const openTrails = trails.filter(isTrailOpen);
       setSummaryValue('openTrailsValue', `${openTrails.length} / ${trails.length}`);
-      setSummaryValue('openTrailsPercentage', `${trails.length ? Math.round((openTrails.length / trails.length) * 100) : 0}% of trails`);
+      setSummaryValue('openTrailsPercentage', `${trails.length ? Math.round((openTrails.length / trails.length) * 100) : 0}% of trails in the app`);
     }, (error) => {
       console.error('Error loading trail summary:', error);
       setSummaryValue('openTrailsValue', '—');
@@ -1721,13 +1724,11 @@
       const request = ++weatherRequest;
 
       try {
-        const response = await fetch(weatherUrlFor(locationKey), { cache: 'no-store' });
-        if (!response.ok) throw new Error(`Weather request failed with ${response.status}`);
-        const data = await response.json();
+        const { data, stale } = await fetchWeather(weatherUrlFor(locationKey));
         if (request !== weatherRequest) return;
         const current = data.current;
         temperature.textContent = `${Number(current.temperature_2m).toFixed(1)}°C`;
-        condition.textContent = `${weatherCodes[current.weather_code] || 'Current conditions'} · Updated ${new Date(current.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+        condition.textContent = `${weatherCodes[current.weather_code] || 'Current conditions'} · ${stale ? 'Last reading' : 'Updated'} ${new Date(current.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
       } catch (error) {
         if (request !== weatherRequest) return;
         console.error(`Error loading ${place.name} weather:`, error);
