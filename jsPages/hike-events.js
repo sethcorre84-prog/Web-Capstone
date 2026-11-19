@@ -147,8 +147,9 @@ const MONTH_KEY = /^m\d{4}_(0[1-9]|1[0-2])$/;
    Then only trails that still exist are kept; a month's hike count never
    exceeds the hikes on those trails (an imported hike listed on two trails
    stays one hike). Returns Map uid -> { months: { m2026_11: { count,
-   trails: { trailId: n } } }, dated }  -- hikers with nothing left are not
-   in the map. `users` are hiker accounts' documents with their `id`.
+   completed, partial, trails: { trailId: n } } }, dated, completed,
+   partial }  -- the last two are lifetime results. Hikers with nothing left
+   are not in the map. `users` are hiker accounts' documents with their `id`.
    --------------------------------------------------------------------- */
 export function monthlyVisits({ users = [], sessions = [], trails = [], timeZone = 'Asia/Manila' } = {}) {
   const resolve = trailResolver(trails);
@@ -160,8 +161,10 @@ export function monthlyVisits({ users = [], sessions = [], trails = [], timeZone
     const month = monthKeyOf(date, timeZone);
     const trailKey = text(session.trailID) || text(session.trailName);
     const months = recordedByUid.get(uid) || {};
-    const slot = months[month] || (months[month] = { count: 0, trails: {} });
+    const slot = months[month] || (months[month] = { count: 0, completed: 0, partial: 0, trails: {} });
     slot.count += 1;
+    if (session.status === 'completed') slot.completed += 1;
+    if (session.status === 'partial') slot.partial += 1;
     if (trailKey) slot.trails[trailKey] = (slot.trails[trailKey] || 0) + 1;
     recordedByUid.set(uid, months);
   });
@@ -175,6 +178,23 @@ export function monthlyVisits({ users = [], sessions = [], trails = [], timeZone
     const lastImported = user.sessionDataSource ? toPortalDate(user.lastHikeAt) : null;
     const importedMonth = lastImported ? monthKeyOf(lastImported, timeZone) : null;
     const importedTrails = Array.isArray(user.hikedTrails) ? [...new Set(user.hikedTrails.map(text).filter(Boolean))] : [];
+    /* Completed / partial by month. Exact from per-hike records; otherwise
+       only what has a date: the app's lastCompletedHikeAt and
+       lastPartialHike.at (one each), and an imported hiker's last hike when
+       every one of their hikes had the same result (all completed, or all
+       partial). Anything else has no date for its result. */
+    const lifetimeCompleted = number(user.completedHikes) || 0;
+    const lifetimePartial = number(user.partialHikes) || 0;
+    const lifetimeHikes = Math.max(number(user.hikeCount) || 0, number(user.totalHikes) || 0, lifetimeCompleted + lifetimePartial);
+    const resultMonths = { completed: {}, partial: {} };
+    const lastCompleted = toPortalDate(user.lastCompletedHikeAt);
+    if (lastCompleted) resultMonths.completed[monthKeyOf(lastCompleted, timeZone)] = 1;
+    const lastPartial = toPortalDate(user.lastPartialHike?.at);
+    if (lastPartial) resultMonths.partial[monthKeyOf(lastPartial, timeZone)] = 1;
+    if (importedMonth && lifetimeHikes > 0) {
+      if (lifetimeCompleted === lifetimeHikes) resultMonths.completed[importedMonth] = 1;
+      if (lifetimePartial === lifetimeHikes) resultMonths.partial[importedMonth] = 1;
+    }
     const keys = new Set([
       ...Object.keys(starts).filter((key) => MONTH_KEY.test(key) && Number(starts[key]?.count) > 0),
       ...Object.keys(recorded),
@@ -210,10 +230,22 @@ export function monthlyVisits({ users = [], sessions = [], trails = [], timeZone
       const onTrails = Object.values(kept).reduce((sum, n) => sum + n, 0);
       const monthCount = Math.min(count, onTrails);
       if (monthCount <= 0) return;
-      months[key] = { count: monthCount, trails: kept };
+      const completed = Math.min(monthCount, Math.max(fromRecords?.completed || 0, resultMonths.completed[key] || 0));
+      const partial = Math.min(monthCount - completed, Math.max(fromRecords?.partial || 0, resultMonths.partial[key] || 0));
+      months[key] = { count: monthCount, completed, partial, trails: kept };
       dated += monthCount;
     });
-    if (dated > 0) visits.set(uid, { months, dated });
+    if (dated > 0) {
+      const recordedCompleted = Object.values(months).reduce((sum, month) => sum + month.completed, 0);
+      const recordedPartial = Object.values(months).reduce((sum, month) => sum + month.partial, 0);
+      visits.set(uid, {
+        months,
+        dated,
+        // Lifetime results from the profile (exact, though undated).
+        completed: Math.max(lifetimeCompleted, recordedCompleted),
+        partial: Math.max(lifetimePartial, recordedPartial)
+      });
+    }
   });
   return visits;
 }

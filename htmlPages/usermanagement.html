@@ -1676,7 +1676,7 @@
 
     .profile-stats {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 10px;
         padding: 16px 24px 0;
     }
@@ -2812,7 +2812,8 @@
           <div class="detail-row"><i class="fa-solid fa-people-group"></i><span class="detail-label">Team / Group</span><span class="detail-value" id="detailTeam">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-calendar-check"></i><span class="detail-label">Member Since</span><span class="detail-value" id="detailMemberSince">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-clock"></i><span class="detail-label">Last Active</span><span class="detail-value" id="detailLastActive">—</span></div>
-          <div class="detail-row"><i class="fa-solid fa-person-hiking"></i><span class="detail-label">Total Hikes</span><span class="detail-value" id="detailTotalHikes">—</span></div>
+          <div class="detail-row"><i class="fa-solid fa-flag-checkered"></i><span class="detail-label">Completed Hikes</span><span class="detail-value" id="detailCompletedHikes">—</span></div>
+          <div class="detail-row"><i class="fa-solid fa-circle-half-stroke"></i><span class="detail-label">Partial Hikes</span><span class="detail-value" id="detailPartialHikes">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-route"></i><span class="detail-label">Total Distance</span><span class="detail-value" id="detailDistance">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-triangle-exclamation"></i><span class="detail-label">Emergency Alerts</span><span class="detail-value" id="detailAlertCount">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-location-dot"></i><span class="detail-label">Assigned Area</span><span class="detail-value" id="detailArea">—</span></div>
@@ -2861,6 +2862,13 @@
         <h2 id="hikerAnalyticsTitle">Hiker Analytics</h2>
         <div class="card-head-actions">
           <select id="hikerAnalyticsMonth" aria-label="Month"></select>
+          <!-- Which hikes the panel counts: all, only completed (reached the
+               end of the trail) or only partial (ended at a station). -->
+          <select id="hikerAnalyticsResult" aria-label="Hike result">
+            <option value="all" selected>All hikes</option>
+            <option value="completed">Completed</option>
+            <option value="partial">Partial</option>
+          </select>
           <button type="button" class="btn-ghost icon-only" id="hikerAnalyticsExport" aria-haspopup="menu" aria-expanded="false" aria-label="Download as PDF or Word"><i class="fa-solid fa-download" aria-hidden="true"></i><span class="btn-tooltip">Download</span></button>
         </div>
       </div>
@@ -3256,8 +3264,12 @@
 
     <div class="profile-stats">
       <div class="profile-stat">
-        <div class="stat-num" id="profileModalTotalHikes">—</div>
-        <div class="stat-cap">Total Hikes</div>
+        <div class="stat-num" id="profileModalCompletedHikes">—</div>
+        <div class="stat-cap">Completed Hikes</div>
+      </div>
+      <div class="profile-stat">
+        <div class="stat-num" id="profileModalPartialHikes">—</div>
+        <div class="stat-cap">Partial Hikes</div>
       </div>
       <div class="profile-stat">
         <div class="stat-num" id="profileModalTotalDistance">—</div>
@@ -3371,7 +3383,8 @@
 
   const PAGE_SIZE = 10;
   // First-load state, see scheduleRender below.
-  const loaded = { users: false, teams: false };
+  // Trails too: Hiker Analytics counts only visits to trails that exist.
+  const loaded = { users: false, teams: false, trails: false };
   let firstDrawDone = false;
 
   const usersTableBody = document.getElementById('usersTableBody');
@@ -3557,8 +3570,16 @@
     const lastActive = data.lastActive || data.lastLogin || data.lastSeen || data.lastHikeAt;
     /* What the app's Profile page shows (HikeSessionService.watchTotals):
        completedHikes and hikeTotalKm, kept up to date as hikes end. */
-    const hikes = Number(data.completedHikes ?? data.hikeCount ?? data.totalHikes);
-    const totalHikes = Number.isFinite(hikes) ? String(Math.floor(hikes)) : '—';
+    /* Completed and partial hikes, kept apart (the app's completedHikes and
+       partialHikes): a completed hike reached the end of its trail, a
+       partial one ended early after reaching a station. A hike ended before
+       any station is neither. No hikes recorded reads 0. */
+    const hikeNumber = (value) => {
+      const n = Number(value);
+      return Number.isFinite(n) && n >= 0 ? String(Math.floor(n)) : '0';
+    };
+    const completedHikes = hikeNumber(data.completedHikes);
+    const partialHikes = hikeNumber(data.partialHikes);
     const km = Number(data.hikeTotalKm ?? data.totalDistanceKm ?? data.totalDistance);
     const totalDistance = Number.isFinite(km) ? `${km.toFixed(km < 10 ? 2 : 1)} km` : '—';
     const area = normalizeText(data.assignedArea || data.area || data.trailArea || data.location || '—');
@@ -3583,7 +3604,8 @@
       emergencyContact,
       memberSince,
       lastActive,
-      totalHikes,
+      completedHikes,
+      partialHikes,
       totalDistance,
       area
     };
@@ -4012,7 +4034,7 @@
       const statusBadge = document.getElementById('detailStatusBadge');
       statusBadge.textContent = '—';
       statusBadge.className = 'status-pill';
-      ['detailPhone', 'detailTeam', 'detailMemberSince', 'detailLastActive', 'detailTotalHikes', 'detailDistance', 'detailAlertCount', 'detailArea']
+      ['detailPhone', 'detailTeam', 'detailMemberSince', 'detailLastActive', 'detailCompletedHikes', 'detailPartialHikes', 'detailDistance', 'detailAlertCount', 'detailArea']
         .forEach(id => { document.getElementById(id).textContent = '—'; });
       detailActionButtons.forEach(button => { if (button) button.disabled = true; });
       document.getElementById('detailSuspensionRow').hidden = true;
@@ -4094,7 +4116,8 @@
     detailTeam.innerHTML = teamChipsHtml(user);
     document.getElementById('detailMemberSince').textContent = formatDisplayDate(user.memberSince);
     document.getElementById('detailLastActive').textContent = formatDisplayDateTime(lastActiveOf(user));
-    document.getElementById('detailTotalHikes').textContent = user.totalHikes || '—';
+    document.getElementById('detailCompletedHikes').textContent = user.completedHikes;
+    document.getElementById('detailPartialHikes').textContent = user.partialHikes;
     document.getElementById('detailDistance').textContent = user.totalDistance || '—';
     document.getElementById('detailAlertCount').textContent = String(alerts.length);
     document.getElementById('detailArea').textContent = userAreaText(user);
@@ -4170,7 +4193,8 @@
     document.getElementById('profileModalArea').textContent = userAreaText(user);
     document.getElementById('profileModalMemberSince').textContent = formatDisplayDate(user.memberSince);
     document.getElementById('profileModalLastActive').textContent = formatDisplayDateTime(lastActiveOf(user));
-    document.getElementById('profileModalTotalHikes').textContent = user.totalHikes;
+    document.getElementById('profileModalCompletedHikes').textContent = user.completedHikes;
+    document.getElementById('profileModalPartialHikes').textContent = user.partialHikes;
     document.getElementById('profileModalTotalDistance').textContent = user.totalDistance;
     // Age today from the birthdate (with the date), gender, nationality and
     // address, as saved at sign-up (the app's or Add User's).
@@ -6191,6 +6215,14 @@
      (age at the month's last day, from birthdate, as the app's sign-up
      saves it). Each hiker counts once a month, however many hikes. */
   const hikerAnalyticsMonth = document.getElementById('hikerAnalyticsMonth');
+  /* The result filter beside the month: which hikes every card, chart and
+     the download count. field: the per-month figure in monthlyVisits. */
+  const hikerAnalyticsResult = document.getElementById('hikerAnalyticsResult');
+  const HA_RESULTS = {
+    all: { label: 'All hikes', field: 'count', hikersLabel: 'Total hikers', hikesLabel: 'Hikes started', icon: 'fa-person-hiking', noun: 'hikes' },
+    completed: { label: 'Completed', field: 'completed', hikersLabel: 'Hikers who completed', hikesLabel: 'Completed hikes', icon: 'fa-flag-checkered', noun: 'completed hikes' },
+    partial: { label: 'Partial', field: 'partial', hikersLabel: 'Hikers with partial hikes', hikesLabel: 'Partial hikes', icon: 'fa-circle-half-stroke', noun: 'partial hikes' }
+  };
   hikerAnalyticsMonth.innerHTML = '<option value="all">All time</option>' + recentMonths(12).reverse().map((month, i) => `<option value="${month.key}">${
     i === 0 ? 'This month' : month.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</option>`).join('');
 
@@ -6331,8 +6363,33 @@
   // What the panels show, kept for the PDF / Word download.
   let hikerReport = null;
 
+  /* Hiker Analytics writes through this: a chart is only rebuilt when its
+     markup actually changes. Every rebuild replays the bars' grow animation
+     (haGrow), so redrawing identical charts on each live update -- users,
+     teams, trails, per-hike records -- made the panel flicker. */
+  const haLastWrite = new WeakMap();
+  const haTarget = (idOrElement) => {
+    const element = typeof idOrElement === 'string' ? document.getElementById(idOrElement) : idOrElement;
+    const write = (property, value) => {
+      const last = haLastWrite.get(element);
+      if (last && last.property === property && last.value === value) return;
+      haLastWrite.set(element, { property, value });
+      element[property] = value;
+    };
+    return {
+      set innerHTML(value) { write('innerHTML', value); },
+      set textContent(value) { write('textContent', value); }
+    };
+  };
+
   const renderHikerAnalytics = () => {
+    // Nothing until the first draw (users, teams and trails loaded), so the
+    // panel appears once, already filtered, instead of rebuilding itself as
+    // each collection arrives.
+    if (!firstDrawDone) return;
     const selected = hikerAnalyticsMonth.value || 'all';
+    const result = HA_RESULTS[hikerAnalyticsResult.value] ? hikerAnalyticsResult.value : 'all';
+    const resultInfo = HA_RESULTS[result];
     const allTime = selected === 'all';
     // Hiker accounts only: guides (and rangers / admins) who tap Start Hike
     // while leading a group are not counted as hikers here.
@@ -6350,20 +6407,34 @@
       timeZone: portalTimeZone()
     });
     const histories = new Map();
+    /* A hiker's hikes for the chosen result. months: month -> hikes with a
+       date (all / completed / partial); total: lifetime (profile counts,
+       undated ones included). First-time vs repeat always reads ALL their
+       hikes (allTotal, first, undatedAll): a hiker whose first hike was
+       partial and second completed is not a first-timer when completing. */
     const historyOf = (user) => {
       if (histories.has(user.id)) return histories.get(user.id);
       const visit = visits.get(user.id);
-      const months = visit ? Object.fromEntries(Object.entries(visit.months).map(([monthKey, month]) => [monthKey, month.count])) : {};
-      const dated = visit ? visit.dated : 0;
+      const months = visit
+        ? Object.fromEntries(Object.entries(visit.months)
+          .map(([monthKey, month]) => [monthKey, month[resultInfo.field]])
+          .filter(([, n]) => n > 0))
+        : {};
+      const dated = Object.values(months).reduce((sum, n) => sum + n, 0);
       // Lifetime hikes only count for someone who hiked a current trail.
-      const total = visit ? Math.max(hikeHistory(user.raw).total, dated) : 0;
-      const history = { total, dated, undated: total - dated, first: Object.keys(months).sort()[0] || null, months };
+      const allTotal = visit ? Math.max(hikeHistory(user.raw).total, visit.dated) : 0;
+      const total = !visit ? 0 : result === 'all' ? allTotal : visit[result];
+      const history = {
+        total, dated, undated: Math.max(0, total - dated), months,
+        allTotal, first: visit ? Object.keys(visit.months).sort()[0] || null : null,
+        undatedAll: visit ? allTotal - visit.dated : 0
+      };
       histories.set(user.id, history);
       return history;
     };
     const knownMonths = new Set(recentMonths(12).map(month => month.key));
     users.forEach(user => Object.keys(historyOf(user).months).forEach(key => knownMonths.add(key)));
-    hikerAnalyticsMonth.innerHTML = '<option value="all">All time</option>' + [...knownMonths].sort().reverse()
+    haTarget(hikerAnalyticsMonth).innerHTML = '<option value="all">All time</option>' + [...knownMonths].sort().reverse()
       .map(key => `<option value="${key}">${monthLabelOf(key)}</option>`).join('');
     hikerAnalyticsMonth.value = selected;
     const key = allTime ? recentMonths(1)[0].key : selected;
@@ -6382,8 +6453,8 @@
       : (total === lastMonth ? 'Same as the month before'
         : `${total > lastMonth ? '▲' : '▼'} ${Math.abs(Math.round(((total - lastMonth) / lastMonth) * 100))}% vs the month before (${lastMonth})`);
     const filipinos = hikers.filter((user) => isFilipino(user.raw?.nationality)).length;
-    const firstTimersNow = hikers.filter((user) => allTime ? historyOf(user).total === 1 : historyOf(user).undated === 0 && historyOf(user).first === key).length;
-    const isFirstMonth = (user, monthKey) => historyOf(user).undated === 0 && historyOf(user).first === monthKey;
+    const firstTimersNow = hikers.filter((user) => allTime ? historyOf(user).allTotal === 1 : historyOf(user).undatedAll === 0 && historyOf(user).first === key).length;
+    const isFirstMonth = (user, monthKey) => historyOf(user).undatedAll === 0 && historyOf(user).first === monthKey;
     const firstTimersBefore = users.filter((user) => startsIn(user, previousKey) > 0 && isFirstMonth(user, previousKey)).length;
     const hikesBefore = users.reduce((sum, user) => sum + startsIn(user, previousKey), 0);
 
@@ -6402,8 +6473,8 @@
     });
     const undated = users.reduce((sum, user) => sum + historyOf(user).undated, 0);
     const sixMonths = trend.reduce((sum, t) => sum + t.count, 0);
-    document.getElementById('hikerAnalyticsTrend').innerHTML = trendHtml(trend, key);
-    document.getElementById('hikerAnalyticsTrendSub').textContent = `${sixMonths.toLocaleString()} hiker-month${sixMonths === 1 ? '' : 's'} in all${undated ? ` · ${undated} sessions without monthly dates (included in All time)` : ''}`;
+    haTarget('hikerAnalyticsTrend').innerHTML = trendHtml(trend, key);
+    haTarget('hikerAnalyticsTrendSub').textContent = `${sixMonths.toLocaleString()} hiker-month${sixMonths === 1 ? '' : 's'} in all${undated ? ` · ${undated} ${resultInfo.noun} without monthly dates (included in All time)` : ''}`;
 
     const stat = (icon, label, value, extra, lead = false) => `
       <div class="ha-stat${lead ? ' is-lead' : ''}">
@@ -6411,10 +6482,10 @@
         <strong>${value.toLocaleString()}</strong>
         ${extra}
       </div>`;
-    document.getElementById('hikerAnalyticsStats').innerHTML =
-      stat('fa-users', 'Total hikers', total, `${allTime ? '' : deltaHtml(total, lastMonth)}${sparkHtml(trend.map((t) => t.count))}`, true)
+    haTarget('hikerAnalyticsStats').innerHTML =
+      stat('fa-users', resultInfo.hikersLabel, total, `${allTime ? '' : deltaHtml(total, lastMonth)}${sparkHtml(trend.map((t) => t.count))}`, true)
       + stat('fa-seedling', 'First-time hikers', firstTimersNow, `${allTime ? '' : deltaHtml(firstTimersNow, firstTimersBefore)}<small>${allTime ? 'One recorded hike' : 'First recorded hike this month'}</small>`)
-      + stat('fa-person-hiking', 'Hikes started', hikes, `${allTime ? '' : deltaHtml(hikes, hikesBefore)}<small>${total ? `${(hikes / total).toFixed(1)} per hiker` : 'No hikes yet'}</small>`)
+      + stat(resultInfo.icon, resultInfo.hikesLabel, hikes, `${allTime ? '' : deltaHtml(hikes, hikesBefore)}<small>${total ? `${(hikes / total).toFixed(1)} per hiker` : 'No hikes yet'}</small>`)
       + stat('fa-earth-asia', 'Foreign or unstated', total - filipinos, `<small>${filipinos.toLocaleString()} Filipino${total ? ` · ${pctOf(filipinos, total)}%` : ''}</small>`);
 
     // Gender, in the gender chart's own colours.
@@ -6451,8 +6522,8 @@
 
     // First-time: the month is their first on Mount Makiling (no hikes
     // before it). Repeat: they had hiked in an earlier month.
-    const firstTimers = hikers.filter((user) => allTime ? historyOf(user).total === 1 : historyOf(user).undated === 0 && historyOf(user).first === key).length;
-    const unknownHistory = allTime ? 0 : hikers.filter(user => historyOf(user).undated > 0 && historyOf(user).first === key).length;
+    const firstTimers = hikers.filter((user) => allTime ? historyOf(user).allTotal === 1 : historyOf(user).undatedAll === 0 && historyOf(user).first === key).length;
+    const unknownHistory = allTime ? 0 : hikers.filter(user => historyOf(user).undatedAll > 0 && historyOf(user).first === key).length;
     const visitItems = [
       { label: 'First-time', value: firstTimers, color: HA_SLOTS[0][0], exportColor: HA_SLOTS[0][1] },
       { label: 'Repeat', value: total - firstTimers - unknownHistory, color: HA_SLOTS[1][0], exportColor: HA_SLOTS[1][1] }
@@ -6460,11 +6531,11 @@
 
     if (unknownHistory) visitItems.push({ label: 'Earlier dates unknown', value: unknownHistory, color: HA_OTHER[0], exportColor: HA_OTHER[1] });
 
-    document.getElementById('hikerAnalyticsGender').innerHTML = donutHtml(genderItems, total);
-    document.getElementById('hikerAnalyticsAge').innerHTML = columnsHtml(ageRows, total);
-    document.getElementById('hikerAnalyticsNationality').innerHTML = donutHtml(nationalityItems, total);
-    document.getElementById('hikerAnalyticsProvince').innerHTML = donutHtml(provinceItems, total);
-    document.getElementById('hikerAnalyticsVisits').innerHTML = donutHtml(visitItems, total);
+    haTarget('hikerAnalyticsGender').innerHTML = donutHtml(genderItems, total);
+    haTarget('hikerAnalyticsAge').innerHTML = columnsHtml(ageRows, total);
+    haTarget('hikerAnalyticsNationality').innerHTML = donutHtml(nationalityItems, total);
+    haTarget('hikerAnalyticsProvince').innerHTML = donutHtml(provinceItems, total);
+    haTarget('hikerAnalyticsVisits').innerHTML = donutHtml(visitItems, total);
 
     // Highlights: the biggest group in each category, in words.
     const biggest = (items) => [...items].filter((item) => item.value > 0 && !isRest(item.label))
@@ -6474,7 +6545,7 @@
     const topGender = biggest(genderItems);
     const busiest = [...trend].sort((a, b) => b.count - a.count)[0];
     const highlight = (icon, html) => `<span class="ha-highlight"><i class="fa-solid ${icon}" aria-hidden="true"></i><span>${html}</span></span>`;
-    document.getElementById('hikerAnalyticsHighlights').innerHTML = total ? [
+    haTarget('hikerAnalyticsHighlights').innerHTML = total ? [
       topAge ? highlight('fa-cake-candles', `Most hikers are <b>${escapeHtml(topAge[0])}</b> (${pctOf(topAge[1], total)}%)`) : '',
       topProvince ? highlight('fa-location-dot', `Top province: <b>${escapeHtml(topProvince.label)}</b> (${topProvince.value})`) : '',
       topGender ? highlight('fa-venus-mars', `<b>${pctOf(topGender.value, total)}%</b> ${escapeHtml(topGender.label.toLowerCase())}`) : '',
@@ -6483,13 +6554,15 @@
     ].join('') : '';
 
     hikerReport = {
-      monthLabel, key, total, hikes, change: allTime ? 'All recorded sessions' : change, filipinos,
+      monthLabel, resultLabel: resultInfo.label, hikesLabel: resultInfo.hikesLabel, key, total, hikes, change: allTime ? 'All recorded sessions' : change, filipinos,
       gender: genderItems, age: ageRows, nationality: nationalityItems, province: provinceItems,
       visits: visitItems, firstTimers, unknownHistory
     };
   };
   hikerAnalyticsMonth.addEventListener('change', renderHikerAnalytics);
-  renderHikerAnalytics();
+  hikerAnalyticsResult.addEventListener('change', renderHikerAnalytics);
+  // Until the first draw: a loading line rather than empty charts.
+  document.getElementById('hikerAnalyticsStats').innerHTML = '<p class="ha-empty">Loading hiker analytics…</p>';
 
   /* Download: the same month as one report, PDF or Word (export-table.js),
      a section per category with its chart and table. */
@@ -6510,8 +6583,8 @@
           centerValue: r.total.toLocaleString()
         });
         return {
-          title: `Hiker Analytics — ${r.monthLabel}`,
-          filename: `hiker-analytics-${r.monthLabel.toLowerCase().replace(/\s+/g, '-')}`,
+          title: `Hiker Analytics — ${r.monthLabel} · ${r.resultLabel}`,
+          filename: `hiker-analytics-${`${r.monthLabel} ${r.resultLabel}`.toLowerCase().replace(/\s+/g, '-')}`,
           countLabel: `${r.total} hiker(s), ${r.hikes} hike(s) started`,
           sections: [
             {
@@ -6520,7 +6593,7 @@
               headers: ['Measure', 'Value'],
               rows: [
                 ['Total hikers', r.total],
-                ['Hikes started', r.hikes],
+                [r.hikesLabel, r.hikes],
                 ['Hikes per hiker', r.total ? (r.hikes / r.total).toFixed(1) : '—'],
                 ['First-time hikers', r.firstTimers],
                 ['Repeat hikers', r.total - r.firstTimers - r.unknownHistory],
@@ -6560,7 +6633,7 @@
     if (renderFrame) return;
     renderFrame = requestAnimationFrame(() => {
       renderFrame = 0;
-      if (!loaded.users || !loaded.teams) return;
+      if (!loaded.users || !loaded.teams || !loaded.trails) return;
       const due = pendingRenders;
       pendingRenders = new Set();
       if (!firstDrawDone || due.has(refreshAll)) {
@@ -6739,6 +6812,7 @@
   // Management updates Assigned Area too.
   onSnapshot(collection(db, 'trails'), (snapshot) => {
     state.trailDocs = snapshot.docs.map((trailDoc) => ({ id: trailDoc.id, ...trailDoc.data() }));
+    loaded.trails = true;
     // A trail added, renamed or deleted changes who counts in Hiker Analytics.
     scheduleRender(renderHikerAnalytics);
     state.trailNames = new Map(snapshot.docs.map(trailDoc => {
@@ -6753,6 +6827,9 @@
     scheduleRender(renderSelectedUser);
   }, (error) => {
     console.error('Error loading trails:', error);
+    // Draw anyway; Hiker Analytics then counts trails as saved.
+    loaded.trails = true;
+    scheduleRender(refreshAll);
   });
 
   // User Details as tall as the user list beside it (scrolling the rest);
