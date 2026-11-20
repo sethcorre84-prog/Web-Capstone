@@ -55,25 +55,29 @@ export function summarizeDescriptiveEngagement(users = [], trails = [], { sessio
         return trailIds.get(name) || trailNames.get(nameKey(name)) || null;
     };
 
-    const hikes = hikesWithinDays(datedHikes(users, sessions), days, now)
+    // Every trail that still exists (listed or not): hikes on deleted trails
+    // are left out before results are handed out.
+    const hikes = hikesWithinDays(datedHikes(users, sessions, undefined, knownTrails || trails), days, now)
         .map(hike => ({ ...hike, trailKeys: [...new Set(hike.trails.map(resolveTrail).filter(Boolean))] }))
         // Hikes naming only deleted trails are dropped; a hike with no trail
         // recorded at all still counts (as a hike without trail details).
         .filter(hike => !hike.trails.length || hike.trailKeys.length);
     const totals = {
         registeredUsers: users.length, engagedUsers: 0, hikes: hikes.length,
-        completed: 0, partial: 0, statusUnknown: 0, timedSessions: 0, usersWithoutTrails: 0,
-        fromSessions: 0, fromLastHike: 0
+        completed: 0, partial: 0, ended: 0, timedSessions: 0, usersWithoutTrails: 0,
+        fromSessions: 0, fromStarts: 0, fromTotals: 0
     };
     let totalMinutes = 0;
     const engaged = new Set();
     const withTrail = new Set();
     hikes.forEach(hike => {
         engaged.add(hike.uid);
-        if (hike.source === 'session') totals.fromSessions += 1; else totals.fromLastHike += 1;
+        if (hike.source === 'session') totals.fromSessions += 1;
+        else if (hike.source === 'start') totals.fromStarts += 1;
+        else totals.fromTotals += 1;
         if (hike.status === 'completed') totals.completed += 1;
         else if (hike.status === 'partial') totals.partial += 1;
-        else totals.statusUnknown += 1;
+        else totals.ended += 1;
         if (hike.minutes !== null) {
             totalMinutes += hike.minutes;
             totals.timedSessions += 1;
@@ -249,8 +253,9 @@ export function renderDescriptiveEngagement({ root, users, trails, sessions = []
         : top?.name || 'No visits recorded';
     const timed = `${numberText(data.timedSessions)} hike${data.timedSessions === 1 ? '' : 's'} with a recorded time, ${periodLabel.toLowerCase()}`;
     const sources = [
-        data.fromSessions ? `${numberText(data.fromSessions)} from per-hike records` : '',
-        data.fromLastHike ? `${numberText(data.fromLastHike)} hikers' latest hike` : ''
+        data.fromSessions ? `${numberText(data.fromSessions)} per-hike records` : '',
+        data.fromStarts ? `${numberText(data.fromStarts)} app Start Hike` : '',
+        data.fromTotals ? `${numberText(data.fromTotals)} from hikers' totals` : ''
     ].filter(Boolean).join(' · ') || 'No dated hikes in this period';
     const metrics = metric('Users with hikes', numberText(data.engagedUsers), `${participation}% of ${numberText(data.registeredUsers)} registered hikers · ${periodLabel.toLowerCase()}`)
         + metric('Recorded hikes', numberText(data.hikes), sources)
@@ -272,7 +277,7 @@ export function renderDescriptiveEngagement({ root, users, trails, sessions = []
         ['Total recorded hiking time', formatEngagementDuration(data.totalMinutes)],
         ['Completed hikes', numberText(data.completed)],
         ['Partial hikes', numberText(data.partial)],
-        ['Hikes without a recorded result', numberText(data.statusUnknown)],
+        ['Ended early (before a station)', numberText(data.ended)],
         ['Hikes with recorded time', numberText(data.timedSessions)]
     ];
     const visitedCount = data.trailRows.filter(row => row.users > 0).length;
@@ -287,7 +292,7 @@ export function renderDescriptiveEngagement({ root, users, trails, sessions = []
         ${trailContent}`;
     durationCard.innerHTML = durationHeading + `
         ${durationRows.map(([label, value]) => `<div class="row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}
-        <p class="de-note">Hikes dated in the period only. Per-hike records give each hike's time and result; for a hiker without them, only their latest hike has a date, with their average hike length as its time and no result.</p>
+        <p class="de-note">Every hike of every hiker, app and imported dummy data alike: completed, partial and ended early from their totals. A hike with no date of its own (most imported ones) is counted on the hiker's latest hike, the only date the data gives. Time is each hiker's total spread over their completed and partial hikes.</p>
         <div class="de-participation"><span>Users with hiking activity</span><strong>${participation}%</strong></div>
         <div class="de-bar-track" role="progressbar" aria-label="Registered users with hiking activity" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${participation}"><span style="width:${participation}%"></span></div>`;
     summaryText.textContent = summary.join(' ');

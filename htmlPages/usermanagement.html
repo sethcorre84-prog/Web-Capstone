@@ -2814,6 +2814,8 @@
           <div class="detail-row"><i class="fa-solid fa-clock"></i><span class="detail-label">Last Active</span><span class="detail-value" id="detailLastActive">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-flag-checkered"></i><span class="detail-label">Completed Hikes</span><span class="detail-value" id="detailCompletedHikes">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-circle-half-stroke"></i><span class="detail-label">Partial Hikes</span><span class="detail-value" id="detailPartialHikes">—</span></div>
+          <div class="detail-row"><i class="fa-solid fa-flag"></i><span class="detail-label">First Hike</span><span class="detail-value wrap-value" id="detailFirstHike">—</span></div>
+          <div class="detail-row"><i class="fa-solid fa-flag-checkered"></i><span class="detail-label">Last Hike</span><span class="detail-value wrap-value" id="detailLastHike">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-route"></i><span class="detail-label">Total Distance</span><span class="detail-value" id="detailDistance">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-triangle-exclamation"></i><span class="detail-label">Emergency Alerts</span><span class="detail-value" id="detailAlertCount">—</span></div>
           <div class="detail-row"><i class="fa-solid fa-location-dot"></i><span class="detail-label">Assigned Area</span><span class="detail-value" id="detailArea">—</span></div>
@@ -2929,6 +2931,19 @@
       <button type="submit" class="btn-primary danger" id="confirmSuspendUserBtn">Suspend</button>
     </div>
   </form>
+</div>
+
+<!-- Activate / Deactivate User: confirmation pop-up, in place of the
+     browser's own confirm() box. -->
+<div id="statusChangeModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="statusChangeTitle">
+  <div class="modal">
+    <h2 id="statusChangeTitle">Deactivate User</h2>
+    <p class="modal-lede" id="statusChangeLede"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="cancelStatusChangeBtn">Cancel</button>
+      <button type="button" class="btn-primary danger" id="confirmStatusChangeBtn">Deactivate</button>
+    </div>
+  </div>
 </div>
 
 <!-- Contact User (Emergency): the user's numbers and email, to copy or
@@ -3378,7 +3393,7 @@
   } from '../jsPages/firestore-tracked.js';
   import { hikeHistory } from '../jsPages/hike-history.js';
   // The monthly hiker count shared with the Dashboard (and Analytics' rules).
-  import { monthlyVisits } from '../jsPages/hike-events.js';
+  import { firstAndLastHike, monthlyVisits } from '../jsPages/hike-events.js';
   import { GENDERS, NATIONALITIES, loadPhAddresses } from '../jsPages/signup-options.js';
 
   const PAGE_SIZE = 10;
@@ -4034,7 +4049,7 @@
       const statusBadge = document.getElementById('detailStatusBadge');
       statusBadge.textContent = '—';
       statusBadge.className = 'status-pill';
-      ['detailPhone', 'detailTeam', 'detailMemberSince', 'detailLastActive', 'detailCompletedHikes', 'detailPartialHikes', 'detailDistance', 'detailAlertCount', 'detailArea']
+      ['detailPhone', 'detailTeam', 'detailMemberSince', 'detailLastActive', 'detailCompletedHikes', 'detailPartialHikes', 'detailFirstHike', 'detailLastHike', 'detailDistance', 'detailAlertCount', 'detailArea']
         .forEach(id => { document.getElementById(id).textContent = '—'; });
       detailActionButtons.forEach(button => { if (button) button.disabled = true; });
       document.getElementById('detailSuspensionRow').hidden = true;
@@ -4118,6 +4133,25 @@
     document.getElementById('detailLastActive').textContent = formatDisplayDateTime(lastActiveOf(user));
     document.getElementById('detailCompletedHikes').textContent = user.completedHikes;
     document.getElementById('detailPartialHikes').textContent = user.partialHikes;
+    /* First and last hike: date (or only the month, when the app recorded
+       just that), trail, result and, for a hike timed on its own, its
+       length -- from the same hikes the analytics count. Nothing is
+       guessed: an unknown first hike reads "Date not recorded". */
+    const { first, last } = firstAndLastHike({ id: user.id, ...user.raw }, state.hikeSessions, state.trailDocs, portalTimeZone());
+    const RESULT_TEXT = { completed: 'Completed', partial: 'Partial', ended: 'Ended early' };
+    const hikeText = (hike) => {
+      if (!hike) return null;
+      const when = hike.precision === 'month'
+        ? hike.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: portalTimeZone() })
+        : formatPortalDate(hike.date);
+      const minutes = Number(hike.minutes);
+      const length = Number.isFinite(minutes) && minutes > 0
+        ? (minutes >= 60 ? `${Math.floor(minutes / 60)} h ${Math.round(minutes % 60)} min` : `${Math.round(minutes)} min`) : '';
+      return [when, hike.trails.join(' or '), RESULT_TEXT[hike.status] || '', length].filter(Boolean).join(' · ');
+    };
+    document.getElementById('detailFirstHike').textContent = hikeText(first)
+      || (last ? `Date not recorded (before ${formatPortalDate(last.date)})` : '—');
+    document.getElementById('detailLastHike').textContent = hikeText(last) || '—';
     document.getElementById('detailDistance').textContent = user.totalDistance || '—';
     document.getElementById('detailAlertCount').textContent = String(alerts.length);
     document.getElementById('detailArea').textContent = userAreaText(user);
@@ -6010,6 +6044,44 @@
     }
   });
 
+  /* Activate / Deactivate confirmation: the page's own pop-up instead of
+     window.confirm(). Resolves true on the confirm button, false on Cancel,
+     Esc or a click outside. */
+  const statusChangeModal = document.getElementById('statusChangeModal');
+  const statusChangeTitle = document.getElementById('statusChangeTitle');
+  const statusChangeLede = document.getElementById('statusChangeLede');
+  const confirmStatusChangeBtn = document.getElementById('confirmStatusChangeBtn');
+  const cancelStatusChangeBtn = document.getElementById('cancelStatusChangeBtn');
+
+  const confirmStatusChange = (user, deactivating) => new Promise((resolve) => {
+    statusChangeTitle.textContent = deactivating ? 'Deactivate User' : 'Activate User';
+    statusChangeLede.textContent = deactivating
+      ? `Deactivate ${user.name}? They will be signed out and blocked from signing in until you activate them again.`
+      : `Activate ${user.name}? They will be able to sign in again.`;
+    confirmStatusChangeBtn.textContent = deactivating ? 'Deactivate' : 'Activate';
+    confirmStatusChangeBtn.classList.toggle('danger', deactivating);
+
+    const finish = (answer) => {
+      statusChangeModal.classList.remove('open');
+      confirmStatusChangeBtn.removeEventListener('click', onConfirm);
+      cancelStatusChangeBtn.removeEventListener('click', onCancel);
+      statusChangeModal.removeEventListener('click', onOverlay);
+      document.removeEventListener('keydown', onKey);
+      resolve(answer);
+    };
+    const onConfirm = () => finish(true);
+    const onCancel = () => finish(false);
+    const onOverlay = (event) => { if (event.target === statusChangeModal) finish(false); };
+    const onKey = (event) => { if (event.key === 'Escape') finish(false); };
+
+    confirmStatusChangeBtn.addEventListener('click', onConfirm);
+    cancelStatusChangeBtn.addEventListener('click', onCancel);
+    statusChangeModal.addEventListener('click', onOverlay);
+    document.addEventListener('keydown', onKey);
+    statusChangeModal.classList.add('open');
+    confirmStatusChangeBtn.focus();
+  });
+
   deactivateUserBtn.addEventListener('click', async () => {
     const user = getSelectedUser();
     if (!user) return;
@@ -6028,9 +6100,7 @@
       return;
     }
 
-    const confirmed = window.confirm(deactivating
-      ? `Deactivate ${user.name}? They will be signed out and blocked from signing in until you activate them again.`
-      : `Activate ${user.name}? They will be able to sign in again.`);
+    const confirmed = await confirmStatusChange(user, deactivating);
     if (!confirmed) return;
 
     deactivateUserBtn.disabled = true;
@@ -6427,7 +6497,10 @@
       const history = {
         total, dated, undated: Math.max(0, total - dated), months,
         allTotal, first: visit ? Object.keys(visit.months).sort()[0] || null : null,
-        undatedAll: visit ? allTotal - visit.dated : 0
+        // 1 when the hiker's earliest hike has only an assumed date
+        // (imported totals without a first-hike date): their first month
+        // is then unknown. A given first-hike date makes it known.
+        undatedAll: visit && visit.firstEstimated ? 1 : 0
       };
       histories.set(user.id, history);
       return history;
@@ -6845,7 +6918,8 @@
   // Per-hike records for Hiker Analytics, the same collection the Dashboard reads.
   onSnapshot(collection(db, 'hikeSessions'), (snapshot) => {
     state.hikeSessions = snapshot.docs.map((snapshotDoc) => snapshotDoc.data());
-    scheduleRender(renderHikerAnalytics);
+    // Hiker Analytics and the selected user's First / Last Hike.
+    scheduleRender(renderHikerAnalytics, renderSelectedUser);
   }, (error) => console.warn('Per-hike records unavailable for Hiker Analytics:', error.message));
 
   watchCollection('reports', 'hazardReports');

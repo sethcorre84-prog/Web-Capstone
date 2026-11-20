@@ -2137,3 +2137,98 @@ exports.syncUsersNow = onCall({ region: FIRESTORE_REGION, timeoutSeconds: 540 },
   }
   return syncAllUsers();
 });
+
+// ---------------------------------------------------------------------
+// hikeSummaries/{uid}: each hiker's first and last hike, totals and hikes
+// per month, kept up to date automatically, so they can be inspected in
+// Firestore. Built by functions/shared/hike-summary.mjs, a copy of the
+// portal's own jsPages/hike-summary.js made before every deploy
+// (tool/copy-shared-to-functions.mjs, firebase.json "predeploy"), so the
+// documents always count exactly like the Dashboard, Analytics and User
+// Management. Read-only on users/{uid}: only hikeSummaries is written, and
+// only when a summary actually changed.
+// ---------------------------------------------------------------------
+let hikeSummaryModule = null;
+const hikeSummaryLib = () => (hikeSummaryModule ||= import("./shared/hike-summary.mjs"));
+const HIKE_SUMMARY_BY = "Cloud Function (functions/shared/hike-summary.mjs)";
+
+const allTrailDocs = async () => (await db.collection("trails").get()).docs.map((d) => ({ id: d.id, ...d.data() }));
+
+/* Rebuilds one hiker's summary: written when it changed, deleted when the
+   account is gone, no longer a hiker or has no hike. Returns what it did. */
+async function refreshHikeSummary(uid, { trails = null, userData = undefined } = {}) {
+  const { buildHikeSummary, summaryFingerprint } = await hikeSummaryLib();
+  const ref = db.collection("hikeSummaries").doc(uid);
+  const [user, sessions, trailDocs, current] = await Promise.all([
+    userData !== undefined ? userData : db.collection("users").doc(uid).get().then((s) => (s.exists ? s.data() : null)),
+    db.collection("hikeSessions").where("uid", "==", uid).get().then((s) => s.docs.map((d) => d.data())),
+    trails || allTrailDocs(),
+    ref.get()
+  ]);
+  const summary = user ? buildHikeSummary({ id: uid, ...user }, { sessions, trails: trailDocs }) : null;
+  if (!summary) {
+    if (!current.exists) return "none";
+    await ref.delete();
+    return "deleted";
+  }
+  if (current.exists && summaryFingerprint(current.data()) === summaryFingerprint(summary)) return "unchanged";
+  await ref.set({ ...summary, generatedAt: FieldValue.serverTimestamp(), generatedBy: HIKE_SUMMARY_BY });
+  return "written";
+}
+
+// The profile fields a summary is built from: other changes (the portal's
+// own users/{uid}.summary, a check-in, a photo) do not rebuild it.
+const HIKE_SUMMARY_FIELDS = [
+  "role", "Role", "fullName", "username", "hikeStarts", "hikeCount", "totalHikes", "completedHikes", "partialHikes",
+  "hikeTotalKm", "hikeTotalMinutes", "hikedTrails", "lastHikeAt", "lastHikeStartedAt", "lastHikeStartTrail",
+  "lastCompletedHikeAt", "lastPartialHike", "sessionDataSource", "firstHikeAt", "firstHikeTrail", "firstHikeResult",
+  "lastHikeTrail", "lastHikeResult"
+];
+const hikeFieldsOf = (snap) => (snap?.exists
+  ? JSON.stringify(HIKE_SUMMARY_FIELDS.map((key) => {
+    const value = snap.data()[key];
+    return value && typeof value.toDate === "function" ? value.toDate().toISOString() : value ?? null;
+  }))
+  : null);
+
+// A hiker's profile changed: hikes counted, a hike ended, the role changed,
+// imported session data, or the account was deleted.
+exports.updateHikeSummaryOnUser = onDocumentWritten({ document: "users/{uid}", region: FIRESTORE_REGION }, async (event) => {
+  const before = event.data?.before;
+  const after = event.data?.after;
+  if (hikeFieldsOf(before) === hikeFieldsOf(after)) return;
+  const result = await refreshHikeSummary(event.params.uid, { userData: after?.exists ? after.data() : null });
+  logger.info(`hikeSummaries/${event.params.uid}: ${result}`);
+});
+
+// A per-hike record from the app (hikeSessions) was added or changed.
+exports.updateHikeSummaryOnSession = onDocumentWritten({ document: "hikeSessions/{sessionId}", region: FIRESTORE_REGION }, async (event) => {
+  const data = event.data?.after?.exists ? event.data.after.data() : event.data?.before?.data();
+  const uid = String(data?.uid || "").trim();
+  if (!uid) return;
+  const result = await refreshHikeSummary(uid);
+  logger.info(`hikeSummaries/${uid} (session ${event.params.sessionId}): ${result}`);
+});
+
+/* A trail was added, renamed or deleted (Trail Management): every hiker's
+   summary is rebuilt, since visits to a deleted trail drop out. */
+exports.updateHikeSummaryOnTrail = onDocumentWritten(
+  { document: "trails/{trailId}", region: FIRESTORE_REGION, timeoutSeconds: 300 },
+  async (event) => {
+    const before = event.data?.before?.exists ? event.data.before.data() : null;
+    const after = event.data?.after?.exists ? event.data.after.data() : null;
+    const nameOf = (data) => String(data?.Trail || data?.name || data?.trailName || "");
+    // Only an added or deleted trail, or a new name, changes any summary.
+    if (before && after && nameOf(before) === nameOf(after)) return;
+    const trails = await allTrailDocs();
+    const [users, summaries] = await Promise.all([db.collection("users").get(), db.collection("hikeSummaries").get()]);
+    const uids = new Set([...users.docs.map((d) => d.id), ...summaries.docs.map((d) => d.id)]);
+    const userData = new Map(users.docs.map((d) => [d.id, d.data()]));
+    const counts = {};
+    for (const uid of uids) {
+      const result = await refreshHikeSummary(uid, { trails, userData: userData.get(uid) || null });
+      counts[result] = (counts[result] || 0) + 1;
+    }
+    logger.info(`hikeSummaries rebuilt after trail ${event.params.trailId} changed: ${JSON.stringify(counts)}`);
+  }
+);

@@ -172,6 +172,13 @@ service cloud.firestore {
         || (signedIn()
             && request.auth.uid == userId
             && request.auth.token.email_verified != true);
+
+      /* A hiker's favorite trails (FavoritesManager): private to the
+         account. Only its owner can see, add or remove them; other hikers
+         can't, unlike the profile above, which every signed-in user reads. */
+      match /favorites/{trailKey} {
+        allow read, write: if signedIn() && request.auth.uid == userId;
+      }
     }
 
     /* CHANGED: an admin may also create the entry, for someone else. User
