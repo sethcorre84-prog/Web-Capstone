@@ -862,7 +862,8 @@ export function addHikerLayer({ map, db, bounds, layer = null, onCaption = () =>
       }
       if (estimate) {
         estimateShown.add(data.id);
-        const label = `Estimated position of ${data.name || 'Hiker'} (signal lost ${formatAgo(updatedAt)})`;
+        // A tooltip is HTML: the hiker's own name is escaped.
+        const label = `Estimated position of ${escapeHtml(data.name || 'Hiker')} (signal lost ${escapeHtml(formatAgo(updatedAt))})`;
         const existing = estimateLayers.get(data.id);
         if (existing) {
           existing.stretch.setLatLngs(estimate.stretch);

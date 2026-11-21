@@ -18,11 +18,10 @@ export function formatEngagementDuration(minutes) {
     return hours ? `${numberText(hours)} h${remainder ? ` ${remainder} min` : ''}` : `${rounded} min`;
 }
 
-/* Hiking engagement in the last `days` days, from dated hikes only
-   (hike-events.js): the app's per-hike records, or -- for a hiker without
-   any -- their last hike. Lifetime totals have no date per hike, so they
-   are never spread over a period. Trail popularity measures distinct
-   hikers, not visits. */
+/* Hiking engagement in the last `days` days, from every hike of every
+   hiker, app and imported dummy session data alike (hike-events.js): a
+   hike with no date of its own is counted on the hiker's last hike. Trail
+   popularity measures distinct hikers, not visits. */
 /* `trails` are the ones listed (trails in the app); `knownTrails` every trail
    document that still exists, hidden or unregistered ones included (defaults
    to `trails`). A hike on a trail that was DELETED in Trail Management no

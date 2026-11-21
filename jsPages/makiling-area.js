@@ -572,7 +572,7 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
         icon: L.divIcon({ className: '', html: PEAK_ICON_HTML, iconSize: [24, 24], iconAnchor: [12, 12] }),
         title: name,
         keyboard: false
-      }).bindTooltip(`${name}${elevation ? ` · ${elevation}` : ''}`, { direction: 'top', offset: [0, -12] }));
+      }).bindTooltip(`${escapeText(name)}${elevation ? ` · ${escapeText(elevation)}` : ''}`, { direction: 'top', offset: [0, -12] }));
       continue;
     }
     let latLngs = feature.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
@@ -586,7 +586,7 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
     }).addTo(group);
     const stroke = L.polyline(latLngs, {
       color, weight: side ? 3 : 4, opacity: 1, dashArray: side ? '6 6' : null
-    }).bindTooltip(`${name}${lengthKm ? ` · ${lengthKm} km` : ''}`, { sticky: true }).addTo(group);
+    }).bindTooltip(`${escapeText(name)}${lengthKm ? ` · ${lengthKm} km` : ''}`, { sticky: true }).addTo(group);
     if (onClick) stroke.on('click', () => onClick(key));
     lines.set(key, { casing, stroke, side, name });
   }
@@ -674,7 +674,7 @@ export async function addTrailLines(map, { colorFor, onClick } = {}) {
         side: false,
         name,
         color: colorFor?.(key) || statusColor(trail),
-        tooltip: `${name} · ${km} km`,
+        tooltip: `${escapeText(name)} · ${km} km`,
         trail
       });
       routeKeys.push(key);

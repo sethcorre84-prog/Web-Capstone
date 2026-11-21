@@ -862,6 +862,42 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    /* Emergency hotlines (portal Settings > General Settings > Emergency
+       Hotlines), read by the app's SOS button and Help & Support. Each
+       belongs to an office: CITY ENRO (Sto. Tomas side) or UPLB MCME (Los
+       Banos side). Only an admin of that office -- admins/{uid}.office --
+       may add, edit or delete its hotlines; an admin without an office
+       (the Super Administrator, Viewers) can only read them. Numbers are
+       11-digit Philippine mobile numbers (09 + 9 digits). Anyone may read:
+       they are public emergency numbers, needed even before sign-in. */
+    function hotlineOffice() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('office', '');
+    }
+    function validHotline() {
+      return request.resource.data.keys().hasOnly([
+          'name', 'number', 'office', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.number is string
+        && request.resource.data.number.matches('^09[0-9]{9}$')
+        && request.resource.data.office in ['CITY ENRO', 'UPLB MCME']
+        && request.resource.data.updatedBy == request.auth.uid;
+    }
+    match /emergencyHotlines/{hotlineId} {
+      allow read: if true;
+      allow create: if isEditor() && validHotline()
+        && request.resource.data.office == hotlineOffice()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isEditor() && validHotline()
+        && resource.data.office == hotlineOffice()
+        && request.resource.data.office == resource.data.office
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isEditor() && resource.data.office == hotlineOffice();
+    }
+
     match /faqs/{faqId} {
       function canManageFaqs() {
         return isAdmin() && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('role', '')

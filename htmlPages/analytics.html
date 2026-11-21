@@ -482,6 +482,11 @@
         font-weight: 700;
         margin-bottom: 10px;
     }
+    .chart-title .chart-sub {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--muted, #6b7280);
+    }
     .chart-bar {
         display: flex;
         align-items: flex-end;
@@ -621,6 +626,13 @@
         color: var(--text-primary);
         font-size: 22px;
         font-weight: 700;
+    }
+    /* One line under a card heading saying what the card measures. */
+    .card-note {
+        margin: -4px 0 10px;
+        font-size: 11.5px;
+        line-height: 1.45;
+        color: var(--text-secondary);
     }
     .card-pill {
         display: inline-flex;
@@ -2079,7 +2091,7 @@
           <button type="button" data-period="90" aria-pressed="false">90 days</button>
         </div>
       </div>
-      <p class="de-note">Everything below follows the selected period, hiking included: hikes dated in it, from the app's per-hike records or, before those, each hiker's latest hike (imported session data included).</p>
+      <p class="de-note">Everything below follows the selected period, hiking included: every hike of every hiker, from the app and the imported dummy session data alike; a hike with no date of its own counts on the hiker's last hike.</p>
       <div class="kpi-row de-kpis" data-engagement-kpis aria-live="polite" aria-busy="true">
         <div class="empty-state">Loading user engagement...</div>
       </div>
@@ -2089,7 +2101,7 @@
           <div class="empty-state">Loading trail activity...</div>
         </article>
         <div class="chart-panel">
-          <div class="chart-title">Verified Hazard Types</div>
+          <div class="chart-title" title="Hazards an admin confirmed: reports still Verified plus those since Resolved, as listed on the Hazard Reports page. Pending and rejected reports are left out.">Confirmed Hazard Types <small class="chart-sub">(Verified + Resolved)</small></div>
           <div id="typeBreakdown"><div class="empty-state">Loading hazard reports...</div></div>
         </div>
         <article class="small-card de-duration" data-engagement-duration aria-busy="true">
@@ -2141,7 +2153,7 @@
 
           <div class="sub-card" id="trailUsagePrediction">
             <h3>Trail Usage Prediction</h3>
-            <div class="card-sub" id="trailUsageWindow">Estimated hike starts · Next 7 days</div>
+            <div class="card-sub" id="trailUsageWindow">Estimated hikes · Next 7 days</div>
             <div class="trail-usage-list" id="trailUsageChart" tabindex="0" role="region" aria-label="Seven-day usage predictions by trail" aria-busy="true"></div>
             <div id="trailUsageNote" aria-live="polite">Loading trails and hiking activity...</div>
           </div>
@@ -2182,6 +2194,7 @@
 
           <div class="sub-card">
             <h3>Trail-Specific Risk Forecast</h3>
+            <p class="card-note">Risk index from open hazards, report history, weather forecast and hiker traffic. Hover a trail for its points.</p>
             <div id="trailRiskList"><div class="empty-state">Loading trails…</div></div>
             <a class="btn-outline" href="geomap.html">View on Map</a>
           </div>
@@ -2189,10 +2202,11 @@
           <div class="sub-card" style="align-items:center;text-align:center;">
             <h3 style="align-self:flex-start;">Prescriptive Summary</h3>
             <div class="summary-circle" id="actionsSummaryCircle">0</div>
-            <div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">Total Actions</div>
+            <div id="actionsSummaryCaption" style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">Actions done</div>
             <div class="card-pill"><span style="background:#c8402f"></span><span id="highPriorityCount">0 High Priority</span></div>
             <div class="card-pill"><span style="background:#c9821f"></span><span id="medPriorityCount">0 Medium Priority</span></div>
             <div class="card-pill"><span style="background:var(--accent)"></span><span id="lowPriorityCount">0 Low Priority</span></div>
+            <p class="card-note" id="actionsSummaryWhen" style="margin-top:10px">Loading the latest analysis…</p>
             <button type="button" class="btn-outline" id="viewActionPlanBtn" aria-haspopup="dialog">View Action Plan</button>
           </div>
         </div>
@@ -2226,7 +2240,7 @@
   import { updateDoc as savePlanTicks } from '../jsPages/firestore-tracked.js';
   import { renderDescriptiveEngagement } from '../jsPages/descriptive-engagement.js';
   // Dated hikes on current trails, shared with the Dashboard and User Management.
-  import { datedHikesOnTrails } from '../jsPages/hike-events.js';
+  import { datedHikesOnTrails, hikesWithinDays } from '../jsPages/hike-events.js';
   import { renderTrailUsagePrediction } from '../jsPages/trail-usage-prediction.js';
   // The trail set every page counts from (Dashboard and Geomap too).
   import { isAppTrail } from '../jsPages/makiling-area.js';
@@ -2329,7 +2343,15 @@
   const isDismissed = (item) =>
     DISMISSED_STATUS.includes(normalizeText(item?.status ?? item?.Status ?? 'pending').toLowerCase());
 
-  const activeHazards = () => (state.hazards || []).filter((hazard) => !isDismissed(hazard));
+  /* Every report still open: verified hazards and pending reports awaiting
+     review. Only the risk scores read it, a pending report counting at
+     pendingHazardFactor of a verified one. */
+  const openHazardReports = () => (state.hazards || []).filter((hazard) => !isDismissed(hazard));
+  /* Active hazards: VERIFIED and not yet resolved -- what the Hazard
+     Reports page lists as Verified and the map shows. A pending report is
+     not a confirmed hazard yet, so counts and recommendations name it
+     separately ("awaiting review") rather than as active. */
+  const activeHazards = () => (state.hazards || []).filter((hazard) => reportStatusOf(hazard) === 'verified');
 
   const pendingHazards = () => (state.hazards || []).filter(
     (hazard) => normalizeText(hazard.status ?? hazard.Status ?? 'pending').toLowerCase() === 'pending'
@@ -2400,6 +2422,9 @@
   };
 
   const hazardsOnTrail = (trail) => activeHazards().filter((hazard) => reportMatchesTrail(hazard, trail));
+  const pendingOnTrail = (trail) => pendingHazards().filter((hazard) => reportMatchesTrail(hazard, trail));
+  // ", 5 pending review" after a verified count, when there are any.
+  const pendingNote = (count) => (count ? ` · ${count} pending review` : '');
 
   /* Everything ever reported on a trail in the history window — what the trail
      does over time, rather than what is open on it right now. */
@@ -2499,7 +2524,7 @@
 
   const baselinePoints = () => {
     const hazardPoints = Math.min(
-      activeHazards().reduce((sum, hazard) => sum + hazardWeight(hazard), 0),
+      openHazardReports().reduce((sum, hazard) => sum + hazardWeight(hazard), 0),
       RISK_MODEL.hazardMaxPoints
     );
     const emergencyPoints = Math.min(
@@ -2569,6 +2594,23 @@
      the mountain -- unlike updatedAt, which any profile edit changes. It holds
      each hiker's latest hike only. With no hikes recorded yet, hazard report
      submissions stand in, and the panel says which source it used. */
+  /* Hikers on each trail in the last `days` days (trail id -> Set of hiker
+     uids), from every hike of every hiker: app and imported dummy session
+     data alike (hike-events.js), on trails that still exist. More hikers
+     on a trail means more people exposed to its hazards, so the
+     Trail-Specific Risk Forecast and its recommendation read it. */
+  const TRAIL_TRAFFIC_DAYS = 30;
+  const hikersByTrail = (days = TRAIL_TRAFFIC_DAYS) => {
+    const byTrail = new Map();
+    hikesWithinDays(datedHikesOnTrails(hikers(), state.hikeSessions, state.allTrails ?? null), days).forEach((hike) => {
+      hike.trailIds.forEach((id) => {
+        if (!byTrail.has(id)) byTrail.set(id, new Set());
+        byTrail.get(id).add(hike.uid);
+      });
+    });
+    return byTrail;
+  };
+
   const usageByWeekday = () => {
     const counts = [0, 0, 0, 0, 0, 0, 0];
     let sampled = 0;
@@ -3002,7 +3044,15 @@
     const otherTypes = data.byType.slice(6).map((row) => row.label);
     if (otherCount) topTypes.push({ label: 'Other types', count: otherCount });
     const share = (count) => (data.submitted.length ? `${Math.round((count / data.submitted.length) * 100)}% of reports` : '');
-    const verifiedShare = (count) => (data.verified.length ? `${Math.round((count / data.verified.length) * 100)}% of verified reports` : '');
+    /* "Confirmed" = Verified + Resolved, the two Hazard Reports lists of
+       hazards an admin accepted. Called "verified" before, which read as the
+       Verified list alone and disagreed with it (a resolved report is no
+       longer in that list). Each row's tooltip gives both. */
+    const verifiedShare = (count) => (data.verified.length ? `${Math.round((count / data.verified.length) * 100)}% of confirmed reports` : '');
+    const statusSplit = (reports) => {
+      const still = reports.filter((report) => reportStatusOf(report) === 'verified').length;
+      return `Verified (still open) ${still} · Resolved ${reports.length - still}`;
+    };
     topTypes.forEach((row) => {
       const reports = row.label === 'Other types'
         ? data.verified.filter((report) => otherTypes.includes(typeOf(report)))
@@ -3010,17 +3060,17 @@
       row.tip = {
         title: row.label,
         lines: [
-          `${row.count} verified report${row.count === 1 ? '' : 's'} · ${verifiedShare(row.count)}`,
+          `${row.count} confirmed report${row.count === 1 ? '' : 's'} · ${verifiedShare(row.count)}`,
           row.label === 'Other types' ? `Includes: ${otherTypes.join(', ')}` : '',
-          `Status: ${topOf(reports, (report) => capitalise(reportStatusOf(report)), 5)}`,
+          statusSplit(reports),
           `Risk: ${topOf(reports, (report) => capitalise(riskLevelKey(report)), 4)}`,
           `Trails: ${topOf(reports, reportTrailLabel)}`
         ]
       };
     });
     typeList.innerHTML = topTypes.length
-      ? barRows(topTypes, { total: data.verified.length, icons: true }) + lowDataHtml(data.verified.length, 'verified report')
-      : '<div class="empty-state">No verified hazard reports in this period.</div>';
+      ? barRows(topTypes, { total: data.verified.length, icons: true }) + lowDataHtml(data.verified.length, 'confirmed report')
+      : '<div class="empty-state">No verified or resolved hazard reports in this period.</div>';
 
     // Status split
     const statusOrder = ['pending', 'verified', 'resolved', 'rejected'];
@@ -3118,10 +3168,10 @@
           : '.')
       );
       if (data.byType.length) {
-        summary.push(`${data.byType[0].label} was the most verified hazard (${data.byType[0].count} of ${data.verified.length} verified reports).`);
+        summary.push(`${data.byType[0].label} was the most confirmed hazard (${data.byType[0].count} of ${data.verified.length} reports verified or resolved).`);
       }
       if (data.byTrail.length) {
-        summary.push(`${data.byTrail[0].label} had the most verified hazards (${data.byTrail[0].count}).`);
+        summary.push(`${data.byTrail[0].label} had the most confirmed hazards (${data.byTrail[0].count} verified or resolved).`);
       }
       if (data.medianReviewHours !== null) {
         summary.push(`The median time for an admin to review a report was ${formatDuration(data.medianReviewHours)}.`);
@@ -3155,7 +3205,7 @@
     } else {
       setValueCard('overallRiskValue', bucketLabel(today.bucket), false);
       const parts = [
-        `${activeHazards().length} active hazard${activeHazards().length === 1 ? '' : 's'}`,
+        `${activeHazards().length} verified hazard${activeHazards().length === 1 ? '' : 's'}${pendingNote(pendingHazards().length)}`,
         `${activeEmergencies().length} emergency alert${activeEmergencies().length === 1 ? '' : 's'}`
       ];
       if (hasForecast) parts.push(`${today.rainfall.toFixed(0)} mm rain today`);
@@ -3260,7 +3310,7 @@
             ? `Rain: ${day.rainfall.toFixed(1)} mm${day.probability ? ` · ${Math.round(day.probability)}% chance` : ''} → ${points1(day.rainfallPoints)}`
             : 'Rain: no forecast available',
           day.saturationPoints > 0 ? `Soaked ground: ${day.antecedent.toFixed(0)} mm in the 3 days before → ${points1(day.saturationPoints)}` : '',
-          baseline.hazardPoints > 0 ? `Active hazards: ${activeHazards().length} → ${points1(baseline.hazardPoints)}` : '',
+          baseline.hazardPoints > 0 ? `Open hazards: ${activeHazards().length} verified${pendingNote(pendingHazards().length)} → ${points1(baseline.hazardPoints)}` : '',
           baseline.emergencyPoints > 0 ? `Open emergencies: ${activeEmergencies().length} → ${points1(baseline.emergencyPoints)}` : '',
           baseline.closurePoints > 0 ? `Closed trails: ${closedTrails().length} → ${points1(baseline.closurePoints)}` : '',
           day.busy ? `Busier-than-average day → ${points1(day.exposurePoints)}` : ''
@@ -3303,7 +3353,7 @@
 
     const drivers = [];
     if (peak.rainfallPoints > 0) drivers.push(`${peak.rainfall.toFixed(0)} mm of rain`);
-    if (baseline.hazardPoints > 0) drivers.push(`${activeHazards().length} active hazard report(s)`);
+    if (baseline.hazardPoints > 0) drivers.push(`${activeHazards().length} verified hazard(s)${pendingHazards().length ? ` and ${pendingHazards().length} pending report(s)` : ''}`);
     if (baseline.emergencyPoints > 0) drivers.push(`${activeEmergencies().length} active emergency alert(s)`);
     if (baseline.closurePoints > 0) drivers.push(`${closedTrails().length} closed trail(s)`);
 
@@ -3387,6 +3437,9 @@
       root: document.getElementById('trailUsagePrediction'),
       trails: state.trails,
       users: state.users === null ? null : hikers(),
+      // Every hike, app and imported dummy data alike (hike-events.js).
+      sessions: state.hikeSessions,
+      knownTrails: state.allTrails ?? null,
       errors: state.errors
     });
   };
@@ -3483,15 +3536,24 @@
     const peakRain = forecast.length ? Math.max(...forecast.map((day) => day.rainfall)) : 0;
     const weatherPoints = Math.min(peakRain * RISK_MODEL.rainfallPointsPerMm, RISK_MODEL.rainfallMaxPoints);
     const span = observedSpanDays();
+    /* Hiker traffic: up to the same 5 points a busy day adds to the
+       mountain-wide score, in proportion to the busiest trail's hikers. */
+    const traffic = hikersByTrail();
+    const hikersOn = (trail) => traffic.get(trail.id)?.size || 0;
+    const mostHikers = Math.max(0, ...state.trails.map(hikersOn));
 
     const rows = state.trails.map((trail) => {
       const name = trailName(trail);
+      const trailHikers = hikersOn(trail);
+      const trafficPoints = mostHikers ? RISK_MODEL.busyDayPoints * trailHikers / mostHikers : 0;
       const closed = trailStatus(trail).toLowerCase() !== 'open';
       const active = hazardsOnTrail(trail);
+      const pendingHere = pendingOnTrail(trail);
       const history = trailHistory(trail);
 
-      /* What is open on the trail now, by severity and recency. */
-      const hazardPoints = Math.min(active.reduce((sum, hazard) => sum + hazardWeight(hazard), 0) * 1.4, 40);
+      /* What is open on the trail now, by severity and recency: verified
+         hazards in full, pending reports at pendingHazardFactor. */
+      const hazardPoints = Math.min([...active, ...pendingHere].reduce((sum, hazard) => sum + hazardWeight(hazard), 0) * 1.4, 40);
       /* How reliably this trail produces reports at all. */
       const recurrence = history.length ? chanceWithin(history.length / span, 7) : 0;
       const recurrencePoints = recurrence * 25;
@@ -3503,18 +3565,20 @@
 
       const score = Math.min(
         100,
-        Math.round(hazardPoints + recurrencePoints + weatherShare + (closed ? 20 : 0))
+        Math.round(hazardPoints + recurrencePoints + weatherShare + trafficPoints + (closed ? 20 : 0))
       );
       return {
         name,
         score,
         bucket: bucketFromScore(score),
         hazardCount: active.length,
+        pendingCount: pendingHere.length,
         historyCount: history.length,
         recurrence: Math.round(recurrence * 100),
         closed,
         active,
-        points: { hazards: hazardPoints, recurrence: recurrencePoints, weather: weatherShare, closed: closed ? 20 : 0 },
+        hikers: trailHikers,
+        points: { hazards: hazardPoints, recurrence: recurrencePoints, weather: weatherShare, traffic: trafficPoints, closed: closed ? 20 : 0 },
         rainShare
       };
     }).sort((a, b) => b.score - a.score);
@@ -3523,16 +3587,18 @@
        carries the full reading. */
     list.innerHTML = rows.map((row) => {
       const notes = [];
-      if (row.hazardCount) notes.push(`${row.hazardCount} active`);
-      if (row.recurrence >= 10) notes.push(`${row.recurrence}% next 7d`);
+      if (row.hazardCount) notes.push(`${row.hazardCount} verified`);
+      if (row.pendingCount) notes.push(`${row.pendingCount} pending`);
+      if (row.recurrence >= 10) notes.push(`${row.recurrence}% chance of a new report in 7 days`);
       if (row.closed) notes.push('closed');
       const pts = (value) => `${Math.round(value)} pts`;
       const tip = {
         title: `${row.name} · ${bucketLabel(row.bucket)} risk (${row.score}/100)`,
         lines: [
-          `Active hazards: ${row.hazardCount}${row.hazardCount ? ` (${topOf(row.active, typeOf)})` : ''} → ${pts(row.points.hazards)}`,
+          `Open hazards: ${row.hazardCount} verified${row.hazardCount ? ` (${topOf(row.active, typeOf)})` : ''}${pendingNote(row.pendingCount)} → ${pts(row.points.hazards)}`,
           `History: ${row.historyCount} report${row.historyCount === 1 ? '' : 's'} in ${span} days, ${row.recurrence}% chance of another within 7 days → ${pts(row.points.recurrence)}`,
           `Weather: ${peakRain.toFixed(0)} mm peak day, ${Math.round(row.rainShare * 100)}% of its history rain-driven → ${pts(row.points.weather)}`,
+          `Hikers: ${row.hikers} in the last ${TRAIL_TRAFFIC_DAYS} days (app and imported session data) → ${pts(row.points.traffic)}`,
           row.closed ? `Trail closed → ${pts(row.points.closed)}` : 'Trail open'
         ]
       };
@@ -3590,23 +3656,28 @@
       });
     }
 
+    const traffic = hikersByTrail();
     const busiestTrail = (state.trails || [])
-      .map((trail) => ({ name: trailName(trail), count: hazardsOnTrail(trail).length }))
-      .sort((a, b) => b.count - a.count)[0];
+      .map((trail) => ({ name: trailName(trail), count: hazardsOnTrail(trail).length, pending: pendingOnTrail(trail).length, hikers: traffic.get(trail.id)?.size || 0 }))
+      // Most open hazards first; on a tie, the trail more hikers use.
+      .sort((a, b) => b.count - a.count || b.hikers - a.hikers)[0];
+    const exposed = (trail) => (trail.hikers
+      ? ` ${trail.hikers} hiker${trail.hikers === 1 ? '' : 's'} used it in the last ${TRAIL_TRAFFIC_DAYS} days.`
+      : '');
 
     if (busiestTrail && busiestTrail.count >= 2) {
       actions.push({
         priority: 'high',
         kind: 'inspect',
         title: `Inspect and secure ${busiestTrail.name}.`,
-        meta: `${busiestTrail.count} active hazard reports are linked to this trail.`
+        meta: `${busiestTrail.count} verified hazards are still open on this trail${busiestTrail.pending ? ` (and ${busiestTrail.pending} pending review)` : ''}.${exposed(busiestTrail)}`
       });
     } else if (busiestTrail && busiestTrail.count === 1) {
       actions.push({
         priority: 'med',
         kind: 'survey',
         title: `Schedule an inspection of ${busiestTrail.name}.`,
-        meta: '1 active hazard report is linked to this trail.'
+        meta: `1 verified hazard is still open on this trail${busiestTrail.pending ? ` (and ${busiestTrail.pending} pending review)` : ''}.${exposed(busiestTrail)}`
       });
     }
 
@@ -3721,7 +3792,7 @@
       actions.push({
         priority: 'med',
         kind: 'expiry',
-        title: `Extend or replace ${expiringSoon.length} advisory${expiringSoon.length === 1 ? '' : 'ies'} expiring within 48 hours.`,
+        title: `Extend or replace ${expiringSoon.length} ${expiringSoon.length === 1 ? 'advisory' : 'advisories'} expiring within 48 hours.`,
         meta: `Risk is still ${bucketLabel(bucketFromScore(todayScore))} (${todayScore}/100) when ${expiringSoon.length === 1 ? 'it lapses' : 'they lapse'}.`
       });
     }
@@ -3754,11 +3825,7 @@
     // (and its notification) only changes when the analysis is refreshed.
     if (!published.record) {
       list.innerHTML = `<div class="empty-state">${published.loaded ? 'No analysis yet. Click Refresh analysis to run the first one.' : 'Loading recommendations…'}</div>`;
-      setText('actionsSummaryCircle', '0');
-      ['actionsSummaryCircle', 'highPriorityCount', 'medPriorityCount', 'lowPriorityCount'].forEach((id) => {
-        const element = document.getElementById(id);
-        setTip(element?.closest('.card-pill') || element, null);
-      });
+      renderSummary();
       return;
     }
 
@@ -3795,47 +3862,73 @@
       `).join('')
       : '<div class="empty-state">No actions recommended. No active hazards, emergency alerts, trail closures, or heavy rainfall were found in the current data.</div>';
 
-    setText('actionsSummaryCircle', String(actions.length));
-    setText('highPriorityCount', `${counts.high} High Priority`);
-    setText('medPriorityCount', `${counts.med} Medium Priority`);
-    setText('lowPriorityCount', `${counts.low} Low Priority`);
+    renderSummary();
+  };
 
-    /* Each pill lists the actions it counts; the circle recalls the analysis. */
-    const titlesOf = (priority) => actions.filter((action) => action.priority === priority).map((action) => `• ${action.title}`);
-    ['high', 'med', 'low'].forEach((priority) => {
-      const id = { high: 'highPriorityCount', med: 'medPriorityCount', low: 'lowPriorityCount' }[priority];
-      const titles = titlesOf(priority);
+  /* Prescriptive Summary: how far the team is through the published
+     analysis's actions -- the same ticks as the Action Plan
+     (prescriptiveHistory/{date}.planDone) -- per priority, and when that
+     analysis was made. The ring fills as actions are ticked done. */
+  const renderSummary = () => {
+    const record = published.record;
+    const actions = record && Array.isArray(record.actions) ? record.actions : [];
+    const circle = document.getElementById('actionsSummaryCircle');
+    const when = document.getElementById('actionsSummaryWhen');
+    const pillIds = { high: 'highPriorityCount', med: 'medPriorityCount', low: 'lowPriorityCount' };
+    const hole = 'radial-gradient(closest-side, var(--card-bg) 63%, transparent 64%)';
+
+    if (!record) {
+      circle.textContent = '0';
+      circle.style.background = `${hole}, conic-gradient(var(--border) 0 100%)`;
+      setText('actionsSummaryCaption', published.loaded ? 'No analysis yet' : 'Actions done');
+      when.textContent = published.loaded ? 'Click Refresh analysis to run the first one.' : 'Loading the latest analysis…';
+      Object.entries(pillIds).forEach(([priority, id]) => {
+        setText(id, `0 ${PRIORITY_LABEL[priority]} Priority`);
+        setTip(document.getElementById(id)?.closest('.card-pill'), null);
+      });
+      setTip(circle, null);
+      return;
+    }
+
+    const done = readPlanDone();
+    const isDone = (action) => done.has(planItemId(action));
+    const doneCount = actions.filter(isDone).length;
+    const total = actions.length;
+
+    circle.textContent = total ? `${doneCount}/${total}` : '0';
+    setText('actionsSummaryCaption', total
+      ? (doneCount === total ? 'All actions done' : `Actions done · ${total - doneCount} remaining`)
+      : 'No actions recommended');
+    const pct = total ? (doneCount / total) * 100 : 0;
+    circle.style.background = total
+      ? `${hole}, conic-gradient(#2f8f4e 0 ${pct}%, var(--border) ${pct}% 100%)`
+      : `${hole}, conic-gradient(var(--border) 0 100%)`;
+
+    Object.entries(pillIds).forEach(([priority, id]) => {
+      const mine = actions.filter((action) => action.priority === priority);
+      const mineDone = mine.filter(isDone).length;
+      setText(id, `${mine.length} ${PRIORITY_LABEL[priority]} Priority${mine.length ? ` · ${mineDone} done` : ''}`);
       setTip(document.getElementById(id)?.closest('.card-pill'), {
-        title: `${PRIORITY_LABEL[priority]} priority · ${titles.length} action${titles.length === 1 ? '' : 's'}`,
-        lines: titles.length ? [...titles, PRIORITY_NARRATIVE[priority]] : [`No ${PRIORITY_LABEL[priority].toLowerCase()}-priority actions in this analysis`]
+        title: `${PRIORITY_LABEL[priority]} priority · ${mineDone} of ${mine.length} done`,
+        lines: mine.length
+          ? [...mine.map((action) => `${isDone(action) ? '✓' : '○'} ${action.title}`), PRIORITY_NARRATIVE[priority]]
+          : [`No ${PRIORITY_LABEL[priority].toLowerCase()}-priority actions in this analysis`]
       });
     });
-    const record = published.record;
+
+    const analysedAt = publishedAt();
+    when.textContent = analysedAt ? `Analysed ${formatPortalDateTime(analysedAt)}` : '';
     const inputs = record.inputs || {};
-    setTip(document.getElementById('actionsSummaryCircle'), {
-      title: `${actions.length} recommended action${actions.length === 1 ? '' : 's'}`,
+    setTip(circle, {
+      title: `${doneCount} of ${total} action${total === 1 ? '' : 's'} done`,
       lines: [
-        `High ${counts.high} · Medium ${counts.med} · Low ${counts.low}`,
+        'Ticked in View Action Plan; every admin sees the same progress.',
         Number.isFinite(record.riskScore) ? `Risk at the time: ${record.riskLevel} (${record.riskScore}/100)` : '',
-        `Analysed ${formatPortalDateTime(publishedAt())} (${record.trigger === 'auto' ? 'automatic' : 'manual'} run)`,
+        analysedAt ? `Analysed ${formatPortalDateTime(analysedAt)} (${record.trigger === 'auto' ? 'automatic' : 'manual'} run)` : '',
         `Inputs: ${inputs.hazards ?? 0} hazards, ${inputs.trails ?? 0} trails, ${inputs.users ?? 0} hikers, ${inputs.advisories ?? 0} advisories, ${inputs.emergencies ?? 0} emergencies, ${inputs.forecast ?? 0} forecast days`,
         (record.unavailableInputs || []).length ? `Unavailable then: ${record.unavailableInputs.join(', ')}` : ''
       ]
     });
-
-    // Mirror the priority split in the donut instead of leaving a fixed gradient.
-    const circle = document.getElementById('actionsSummaryCircle');
-    const total = actions.length;
-    // The radial layer punches the hole; only the conic ring changes.
-    const hole = 'radial-gradient(closest-side, var(--card-bg) 63%, transparent 64%)';
-    if (!total) {
-      circle.style.background = `${hole}, conic-gradient(var(--border) 0 100%)`;
-    } else {
-      const highEnd = (counts.high / total) * 100;
-      const medEnd = highEnd + (counts.med / total) * 100;
-      circle.style.background =
-        `${hole}, conic-gradient(#c8402f 0 ${highEnd}%, #c9821f ${highEnd}% ${medEnd}%, #2f8f4e ${medEnd}% 100%)`;
-    }
   };
 
   /* ---------------- Action plan ---------------- */
@@ -3881,6 +3974,7 @@
       console.error('Could not save the action plan:', error);
       record.planDone = previous;
       if (planModal) renderPlan();
+      renderSummary();
       alert(error?.code === 'permission-denied'
         ? 'Your admin role cannot tick the action plan (Viewers can only read it).'
         : 'The tick could not be saved. Check your connection and try again.');
@@ -3934,6 +4028,7 @@
       writePlanDone(done);
       box.closest('.plan-item').classList.toggle('done', box.checked);
       updatePlanProgress();
+      renderSummary();
     });
 
     backdrop.addEventListener('keydown', (event) => {
@@ -4064,10 +4159,11 @@
     points.push({
       icon: 'fa-triangle-exclamation',
       tone: hazards.length ? 'amber' : 'green',
-      headline: hazards.length ? `${plural(hazards.length, 'hazard')} still open` : 'No open hazards',
-      text: hazards.length
-        ? 'These are reported problems on the trails that have not been fixed yet.'
-        : 'Every reported problem has been fixed or closed.'
+      headline: hazards.length ? `${plural(hazards.length, 'verified hazard')} still open` : 'No open verified hazards',
+      text: (hazards.length
+        ? 'Confirmed problems on the trails that have not been resolved yet.'
+        : 'Every confirmed problem has been resolved.')
+        + (pendingHazards().length ? ` ${plural(pendingHazards().length, 'more report')} ${pendingHazards().length === 1 ? 'is' : 'are'} waiting for review.` : '')
     });
 
     if (trails.length) {
@@ -4079,7 +4175,7 @@
           icon: 'fa-location-dot',
           tone: 'red',
           headline: `Trail to watch: ${riskiest.name}`,
-          text: `It has ${plural(riskiest.count, 'open hazard')}, more than any other trail.`
+          text: `It has ${plural(riskiest.count, 'open verified hazard')}, more than any other trail.`
         }
         : {
           icon: 'fa-location-dot',
@@ -4132,7 +4228,8 @@
       ['Emergencies', RISK_MODEL.emergencyMaxPoints],
       ['Closed trails', RISK_MODEL.closedTrailMaxPoints],
       ['Rain in past 3 days', RISK_MODEL.saturationMaxPoints],
-      ['Busy hiking day', RISK_MODEL.busyDayPoints]
+      ['Busy hiking day', RISK_MODEL.busyDayPoints],
+      ['Hikers on the trail (per-trail score)', RISK_MODEL.busyDayPoints]
     ];
     const span = observedSpanDays();
 

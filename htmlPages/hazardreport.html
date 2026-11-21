@@ -1997,7 +1997,7 @@ function renderRejectedList() {
   // In ID order, newest first (R-YYYY-0003, 0002, 0001), like Resolved Reports
   // and the Settings archives. The numbers have no gaps (report-ids.js).
   const rejected = sortByReportId(
-    allReports.filter(r => r.status === 'rejected' && matchesTrailFilter(r)),
+    allReports.filter(r => r.status === 'rejected' && matchesListFilters(r)),
     r => toJsDate(r.updatedAt)
   );
 
@@ -2009,7 +2009,7 @@ function renderRejectedList() {
   wrap.innerHTML = '';
 
   if (!rejected.length) {
-    wrap.innerHTML = '<div style="padding:10px 0;color:var(--text-400);font-size:12.5px">No rejected reports.</div>';
+    wrap.innerHTML = `<div style="padding:10px 0;color:var(--text-400);font-size:12.5px">${panelFiltersActive() ? 'No rejected reports match the filters.' : 'No rejected reports.'}</div>`;
     renderRejectedPagination(0);
     updateArchiveButtonState();
     return;
@@ -2114,14 +2114,14 @@ function renderResolvedList() {
   // Settings archives. The numbers have no gaps (report-ids.js), so the list
   // ends at 001 and a report unarchived in Settings joins it at the top.
   const resolved = sortByReportId(
-    allReports.filter(r => r.status === 'resolved' && !r.archived && matchesTrailFilter(r)),
+    allReports.filter(r => r.status === 'resolved' && !r.archived && matchesListFilters(r)),
     r => toJsDate(r.resolvedAt)
   );
 
   wrap.innerHTML = '';
 
   if (!resolved.length) {
-    wrap.innerHTML = '<div style="padding:10px 0;color:var(--text-400);font-size:12.5px">No resolved reports.</div>';
+    wrap.innerHTML = `<div style="padding:10px 0;color:var(--text-400);font-size:12.5px">${panelFiltersActive() ? 'No resolved reports match the filters.' : 'No resolved reports.'}</div>`;
     renderResolvedPagination(0);
     updateResolvedArchiveButtonState();
     return;
@@ -2386,8 +2386,8 @@ function renderReportDetails(report) {
       <div class="details-title">
         <div class="ic-circle">${hazardIcon}</div>
         <div>
-          <h3>${report.hazardType}</h3>
-          <div class="sub-id">${report.reportId || 'N/A'}</div>
+          <h3>${escapeHtml(report.hazardType || 'Unknown')}</h3>
+          <div class="sub-id">${escapeHtml(report.reportId || 'N/A')}</div>
         </div>
       </div>
       <span class="status-pill" style="${statusStyle}">${getStatusLabel(report.status)}</span>
@@ -2396,8 +2396,8 @@ function renderReportDetails(report) {
     <div class="info-row">
       <span class="ic">📍</span>
       <div>
-        <strong>${report.location || 'Unknown Location'}</strong>
-        <span>${report.trail || 'No trail specified'}</span>
+        <strong>${escapeHtml(report.location || 'Unknown Location')}</strong>
+        <span>${escapeHtml(report.trail || 'No trail specified')}</span>
       </div>
     </div>
 
@@ -2413,7 +2413,7 @@ function renderReportDetails(report) {
 
     <div>
       <p class="section-label">Description</p>
-      <p class="desc-text">${report.description || 'No description provided'}</p>
+      <p class="desc-text">${escapeHtml(report.description || 'No description provided')}</p>
     </div>
 
     <div class="reporter-block">
@@ -2421,13 +2421,13 @@ function renderReportDetails(report) {
       <div class="reporter-row">
         <div class="reporter-col">
           <div class="lbl">Name</div>
-          <div class="val">${report.reportedBy || 'Anonymous'}</div>
+          <div class="val">${escapeHtml(report.reportedBy || 'Anonymous')}</div>
         </div>
       </div>
       <div class="reporter-row">
         <div class="reporter-col">
           <div class="lbl">Contact</div>
-          <div class="val">${report.contact || 'Not provided'}</div>
+          <div class="val">${escapeHtml(report.contact || 'Not provided')}</div>
         </div>
       </div>
     </div>
@@ -3121,56 +3121,69 @@ function updateStats() {
 function filterReports(resetPage = true) {
   if (resetPage) currentPage = 1;
 
-  const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
   const statusFilter = document.getElementById('statusFilter').value;
-  const hazardFilter = document.getElementById('hazardFilter').value;
-  const dateFilter = document.getElementById('dateFilter').value;
 
-  // Rejected and resolved reports have their own panels under the list.
+  // Rejected and resolved reports have their own panels under the list;
+  // the search, trail, hazard type and date filters narrow those too
+  // (matchesListFilters). Status is the list's own: Pending or Verified.
   let filtered = allReports.filter(r => !['rejected', 'archived', 'resolved'].includes(r.status));
-
-  if (searchTerm) {
-    filtered = filtered.filter(r =>
-      String(r.reportId || '').toLowerCase().includes(searchTerm) ||
-      String(r.hazardType || '').toLowerCase().includes(searchTerm) ||
-      String(r.location || '').toLowerCase().includes(searchTerm) ||
-      String(r.reportedBy || '').toLowerCase().includes(searchTerm)
-    );
-  }
-
-  if (statusFilter) {
-    filtered = filtered.filter(r => r.status === statusFilter);
-  }
-
-  if (hazardFilter) {
-    filtered = filtered.filter(r => r.hazardType === hazardFilter);
-  }
-
-  filtered = filtered.filter(matchesTrailFilter);
-
-  if (dateFilter) {
-    const now = new Date();
-    filtered = filtered.filter(r => {
-      const reportDate = r.timestamp ? (r.timestamp.toDate ? r.timestamp.toDate() : new Date(r.timestamp)) : null;
-      if (!reportDate) return false;
-      
-      if (dateFilter === 'today') {
-        return reportDate.toDateString() === now.toDateString();
-      } else if (dateFilter === 'week') {
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return reportDate >= sevenDaysAgo;
-      } else if (dateFilter === 'month') {
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        return reportDate >= thirtyDaysAgo;
-      } else if (dateFilter === 'older') {
-        const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-        return reportDate < sixtyDaysAgo;
-      }
-      return true;
-    });
-  }
+  if (statusFilter) filtered = filtered.filter(r => r.status === statusFilter);
+  filtered = filtered.filter(matchesListFilters);
 
   renderReportsTable(filtered);
+}
+
+/* The filters shared by the reports list and the Rejected and Resolved
+   panels, so filtering once narrows all three. */
+function matchesSearch(report) {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+  if (!searchTerm) return true;
+  return [report.reportId, report.hazardType, report.location, report.reportedBy, report.trail]
+    .some(value => String(value || '').toLowerCase().includes(searchTerm));
+}
+
+function matchesHazardFilter(report) {
+  const hazardFilter = document.getElementById('hazardFilter').value;
+  return !hazardFilter || report.hazardType === hazardFilter;
+}
+
+/* Date Reported: when the hiker sent it (timestamp, else createdAt).
+   Today = today's date; This Week = the last 7 days; This Month = this
+   calendar month, as Advisories and User Reports read it; Older = before
+   this month, so every report falls in This Month or Older (Older was
+   "over 60 days", which hid the reports in between). */
+function reportedOn(report) {
+  for (const value of [report.timestamp, report.createdAt]) {
+    if (!value) continue;
+    const date = value.toDate ? value.toDate() : new Date(value);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  return null;
+}
+
+function matchesDateFilter(report) {
+  const dateFilter = document.getElementById('dateFilter').value;
+  if (!dateFilter) return true;
+  const reportDate = reportedOn(report);
+  if (!reportDate) return false;
+  const now = new Date();
+  const daysAgo = (days) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  if (dateFilter === 'today') return reportDate.toDateString() === now.toDateString();
+  if (dateFilter === 'week') return reportDate >= daysAgo(7);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  if (dateFilter === 'month') return reportDate >= monthStart;
+  if (dateFilter === 'older') return reportDate < monthStart;
+  return true;
+}
+
+function matchesListFilters(report) {
+  return matchesSearch(report) && matchesTrailFilter(report) && matchesHazardFilter(report) && matchesDateFilter(report);
+}
+
+// Whether any filter that narrows the panels is set (for their empty text).
+function panelFiltersActive() {
+  return ['searchInput', 'trailFilter', 'hazardFilter', 'dateFilter']
+    .some(id => document.getElementById(id).value.trim());
 }
 
 /* Trail filter: one option per document in the trails collection, kept live,
@@ -3188,7 +3201,7 @@ function reportOnTrail(report, trailId) {
   return [report.trail, report.trailName].some(value => value && trailKey(value) === key);
 }
 
-// The trail filter also narrows the Rejected and Resolved panels.
+// The trail filter (like search, hazard type and date) also narrows the Rejected and Resolved panels.
 function matchesTrailFilter(report) {
   const trailId = document.getElementById('trailFilter').value;
   return !trailId || reportOnTrail(report, trailId);
@@ -3588,7 +3601,7 @@ function loadReports() {
   }, (error) => {
     console.error('Error loading reports:', error);
     document.getElementById('reportsTable').innerHTML = `
-      <tr><td colspan="7" class="loading" style="padding:20px;color:red;">Error loading reports: ${error.message}</td></tr>
+      <tr><td colspan="7" class="loading" style="padding:20px;color:red;">Error loading reports: ${escapeHtml(error.message)}</td></tr>
     `;
   });
 }
@@ -3597,10 +3610,12 @@ function loadReports() {
 // A real filter change (search / status / hazard / date) should always
 // jump back to page 1, so these call filterReports() with its default
 // resetPage=true.
-document.getElementById('searchInput').addEventListener('input', () => filterReports());
+// Search, hazard type and date narrow the Rejected and Resolved panels as
+// well (applyTrailFilter re-renders all three); status is the list's own.
+document.getElementById('searchInput').addEventListener('input', () => applyTrailFilter());
 document.getElementById('statusFilter').addEventListener('change', () => filterReports());
-document.getElementById('hazardFilter').addEventListener('change', () => filterReports());
-document.getElementById('dateFilter').addEventListener('change', () => filterReports());
+document.getElementById('hazardFilter').addEventListener('change', () => applyTrailFilter());
+document.getElementById('dateFilter').addEventListener('change', () => applyTrailFilter());
 document.getElementById('trailFilter').addEventListener('change', () => applyTrailFilter());
 document.getElementById('clearFiltersBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';

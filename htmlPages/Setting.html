@@ -916,7 +916,7 @@
     .rm-status.is-error, .rm-error { color: var(--danger, #c8402f); }
     .rm-add, .rm-history { padding: 12px; border-radius: 10px; background: var(--dm-surface-2, #f6f8f5); }
     .rm-add-title { margin-bottom: 8px; font-weight: 700; font-size: 12.5px; }
-    .rm-add-grid { display: grid; grid-template-columns: 1fr 1.2fr auto auto; gap: 8px; margin-bottom: 6px; }
+    .rm-add-grid { display: grid; grid-template-columns: 1fr 1.2fr auto auto auto; gap: 8px; margin-bottom: 6px; }
     .rm-add-grid input, .rm-add-grid select { min-width: 0; padding: 8px 10px; border: 1px solid var(--border, #e4e7e1); border-radius: 8px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 13px; }
     .rm-add-grid input:disabled, .rm-add-grid input:read-only { opacity: .7; }
     .rm-add-phone { grid-template-columns: 1fr auto 1fr auto; }
@@ -936,6 +936,25 @@
     @media (max-width: 640px) { .rm-add-grid { grid-template-columns: 1fr; } }
     /* Help & Support > FAQs */
     .faq-tools { display: flex; gap: 8px; align-items: center; }
+    /* Emergency Hotlines: one column per office, side by side. */
+    .hotline-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .hotline-col { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--border, #e4e7e1); border-radius: 12px; background: var(--dm-surface, #fff); min-width: 0; }
+    .hotline-col.is-mine { border-color: var(--accent, #2f8f4e); box-shadow: 0 0 0 1px var(--accent, #2f8f4e) inset; }
+    .hotline-col-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border, #e4e7e1); }
+    .hotline-col-head h4 { margin: 0; font-size: 14.5px; letter-spacing: .02em; }
+    .hotline-col-head small { color: var(--text-secondary, #5b6b60); font-size: 11.5px; }
+    .hotline-tag { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--dm-surface-2, #eef3ee); color: var(--text-secondary, #5b6b60); white-space: nowrap; }
+    .hotline-col.is-mine .hotline-tag { background: var(--accent, #2f8f4e); color: #fff; }
+    .hotline-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    .hotline-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px; border-radius: 9px; background: var(--dm-surface-2, #f6f8f5); }
+    .hotline-item-text { display: flex; flex-direction: column; min-width: 0; }
+    .hotline-item-text strong { font-size: 13px; overflow-wrap: anywhere; }
+    .hotline-item-text a { font-size: 13px; color: var(--accent-dark, #1f6b39); font-variant-numeric: tabular-nums; text-decoration: none; }
+    .hotline-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .hotline-actions button { padding: 5px 9px; border: 1px solid var(--border, #e4e7e1); border-radius: 7px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 12px; cursor: pointer; }
+    .hotline-field-hint { font-size: 11.5px; color: var(--text-secondary, #5b6b60); }
+    .hotline-field-hint.is-error { color: #c8402f; }
+    @media (max-width: 720px) { .hotline-columns { grid-template-columns: 1fr; } }
     .faq-tools input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--border, #e4e7e1); border-radius: 8px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 13px; }
     .faq-form { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 10px; background: var(--dm-surface-2, #f6f8f5); }
     .faq-form label { font-size: 12px; font-weight: 700; color: var(--text-secondary, #5b6b60); }
@@ -1407,6 +1426,20 @@
             <div class="setting-text">
               <div class="label">Date &amp; Time</div>
               <div class="desc">Choose Philippine or Military time and a date format.</div>
+            </div>
+          </div>
+          <div class="setting-right"><span class="chevron">›</span></div>
+        </div>
+
+        <!-- CITY ENRO (Sto. Tomas side) and UPLB MCME (Los Baños side) emergency
+             numbers, read by the app's SOS button and Help & Support. Each
+             office's admin account manages only its own (bindHotlines). -->
+        <div class="setting-row" data-action="emergencyHotlines">
+          <div class="setting-left">
+            <div class="setting-icon">📞</div>
+            <div class="setting-text">
+              <div class="label">Emergency Hotlines</div>
+              <div class="desc" id="hotlineRowDesc">CITY ENRO and UPLB MCME emergency numbers shown to hikers in the app.</div>
             </div>
           </div>
           <div class="setting-right"><span class="chevron">›</span></div>
@@ -3013,6 +3046,7 @@
     ['User Management & User Reports', 'Edit', 'Edit', 'View'],
     ['Settings: archives', 'Edit', 'Edit', 'View'],
     ['Settings: own profile & password', 'Edit', 'Edit', 'Edit'],
+    ['Settings: emergency hotlines', 'View', 'Edit (own office)', 'View'],
     ['Role & Permission Settings', 'Manage', 'View', 'View']
   ];
   const ROLE_HINTS = {
@@ -3025,6 +3059,13 @@
   const callSetAdminRole = httpsCallable(roleFunctions, 'setAdminRole');
   const callAddAdmin = httpsCallable(roleFunctions, 'addAdmin');
   const callRemoveAdmin = httpsCallable(roleFunctions, 'removeAdmin');
+  const callSetAdminOffice = httpsCallable(roleFunctions, 'setAdminOffice');
+  /* Every Administrator and Viewer works for an office -- CITY ENRO (Sto.
+     Tomas side) or UPLB MCME (Los Banos side) -- which decides the
+     emergency hotlines they manage. The Super Administrator has none. */
+  const ADMIN_OFFICES = ['CITY ENRO', 'UPLB MCME'];
+  const officeOptions = (current, placeholder = 'Choose office') => (ADMIN_OFFICES.includes(current) ? '' : `<option value="" selected disabled>${placeholder}</option>`)
+    + ADMIN_OFFICES.map((office) => `<option${office === current ? ' selected' : ''}>${office}</option>`).join('');
 
   const roleCallError = (error, fallback) => (error?.code === 'functions/not-found' && !error?.details
     ? 'Role management is not set up yet: deploy the Cloud Functions (listAdmins, setAdminRole, addAdmin, removeAdmin).'
@@ -3058,7 +3099,7 @@
       ${isSuper ? '' : '<p class="rm-muted">Only a Super Administrator can change roles or add and remove admins.</p>'}
       <div class="rm-table-wrap">
         <table class="rm-table rm-stack">
-          <thead><tr><th>Admin</th><th>Email</th><th>Role</th><th>Last sign-in</th>${isSuper ? '<th></th>' : ''}</tr></thead>
+          <thead><tr><th>Admin</th><th>Email</th><th>Role</th><th>Office</th><th>Last sign-in</th>${isSuper ? '<th></th>' : ''}</tr></thead>
           <tbody>${data.admins.map((admin) => {
             const self = admin.uid === data.me;
             return `<tr data-uid="${escapeHTML(admin.uid)}">
@@ -3067,6 +3108,11 @@
               <td data-label="Role">${isSuper && !self
                 ? `<select class="rm-role-select" aria-label="Role of ${escapeHTML(admin.name || admin.email)}">${roleOptions(admin.role)}</select>`
                 : `<span class="rm-role">${escapeHTML(admin.role || NO_ROLE_LABEL)}</span>`}</td>
+              <td data-label="Office">${admin.role === 'Super Administrator'
+                ? '<span class="rm-muted">—</span>'
+                : isSuper && !self
+                  ? `<select class="rm-office-select" aria-label="Office of ${escapeHTML(admin.name || admin.email)}">${officeOptions(admin.office)}</select>`
+                  : escapeHTML(admin.office || 'No office')}</td>
               <td data-label="Last sign-in">${escapeHTML(when(admin.lastSignIn))}</td>
               ${isSuper ? `<td class="rm-actions">${self ? '' : '<button type="button" class="rm-remove">Remove</button>'}</td>` : ''}
             </tr>`;
@@ -3081,6 +3127,7 @@
             <input id="rmAddName" type="text" maxlength="80" placeholder="Full name" aria-label="Full name">
             <input id="rmAddEmail" type="email" placeholder="Email address" aria-label="Email address" required>
             <select id="rmAddRole" aria-label="Role">${roleOptions('Administrator')}</select>
+            <select id="rmAddOffice" aria-label="Office">${officeOptions(null, 'Office (CITY ENRO / UPLB MCME)')}</select>
             <button type="submit" class="primary-btn">Add Admin</button>
           </div>
           <div class="rm-add-grid rm-add-phone">
@@ -3091,7 +3138,7 @@
           </div>
           <p class="rm-status" id="rmPhoneStatus" role="status"></p>
           <div id="rmAddRecaptcha"></div>
-          <p class="rm-muted">The new admin's mobile number is verified with a code sent to it by SMS. An email with no PeakPath account gets one, and is emailed a link to set their password.</p>
+          <p class="rm-muted">The new admin's mobile number is verified with a code sent to it by SMS. An email with no PeakPath account gets one, and is emailed a link to set their password. An Administrator or Viewer works for an office (CITY ENRO or UPLB MCME): an Administrator manages that office's emergency hotlines.</p>
         </form>` : ''}
       <div class="rm-history">
         <div class="rm-add-title">Recent role changes</div>
@@ -3104,13 +3151,22 @@
     box.querySelectorAll('.rm-role-select').forEach((select) => {
       const previous = select.value;
       select.addEventListener('change', async () => {
-        const uid = select.closest('tr').dataset.uid;
+        const row = select.closest('tr');
+        const uid = row.dataset.uid;
+        const office = row.querySelector('.rm-office-select')?.value || '';
+        if (select.value !== 'Super Administrator' && !office) {
+          // e.g. a Super Administrator made an Administrator: their office first.
+          select.value = previous;
+          say('Choose this admin\'s office first (CITY ENRO or UPLB MCME), then change the role.', 'error');
+          bindRoleManagementOfficeFor(row);
+          return;
+        }
         select.disabled = true;
         say('Saving…');
         try {
-          await callSetAdminRole({ uid, role: select.value });
+          await callSetAdminRole({ uid, role: select.value, ...(office ? { office } : {}) });
           say('Role updated.', 'ok');
-          loadRoleHistory();
+          bindRoleManagement();
         } catch (error) {
           select.value = previous;
           say(roleCallError(error, 'Could not change the role.'), 'error');
@@ -3119,6 +3175,45 @@
         }
       });
     });
+
+    box.querySelectorAll('.rm-office-select').forEach((select) => {
+      const previous = select.value;
+      select.addEventListener('change', async () => {
+        const uid = select.closest('tr').dataset.uid;
+        select.disabled = true;
+        say('Saving…');
+        try {
+          await callSetAdminOffice({ uid, office: select.value });
+          say(`Office updated: this admin now manages the ${select.value} emergency hotlines.`, 'ok');
+          loadRoleHistory();
+        } catch (error) {
+          select.value = previous;
+          say(roleCallError(error, 'Could not change the office.'), 'error');
+        } finally {
+          select.disabled = false;
+        }
+      });
+    });
+    // A Super Administrator row being made an Administrator / Viewer: an
+    // office picker appears in its Office cell first.
+    function bindRoleManagementOfficeFor(row) {
+      const cell = row.querySelector('[data-label="Office"]');
+      if (!cell || cell.querySelector('select')) return;
+      cell.innerHTML = `<select class="rm-office-select" aria-label="Office">${officeOptions(null)}</select>`;
+      cell.querySelector('select').focus();
+    }
+
+    // The add form's office: none for a Super Administrator.
+    const addRole = document.getElementById('rmAddRole');
+    const addOffice = document.getElementById('rmAddOffice');
+    const syncAddOffice = () => {
+      if (!addRole || !addOffice) return;
+      const none = addRole.value === 'Super Administrator';
+      addOffice.disabled = none;
+      addOffice.hidden = none;
+    };
+    addRole?.addEventListener('change', syncAddOffice);
+    syncAddOffice();
 
     box.querySelectorAll('.rm-remove').forEach((button) => {
       let armed = null;
@@ -3257,6 +3352,13 @@
       event.preventDefault();
       const email = document.getElementById('rmAddEmail').value.trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say('Enter a valid email address.', 'error'); return; }
+      const newRole = document.getElementById('rmAddRole').value;
+      const newOffice = document.getElementById('rmAddOffice')?.value || '';
+      if (newRole !== 'Super Administrator' && !ADMIN_OFFICES.includes(newOffice)) {
+        say('Choose the new admin\'s office: CITY ENRO or UPLB MCME.', 'error');
+        document.getElementById('rmAddOffice')?.focus();
+        return;
+      }
       if (!verifiedPhone || verifiedPhone.e164 !== parsePhone(phoneInput.value)?.e164) {
         sayPhone('Verify the new admin\'s mobile number first: Send code, then enter the code from the SMS.', 'error');
         phoneInput.focus();
@@ -3269,7 +3371,8 @@
         const { data: result } = await callAddAdmin({
           email,
           name: document.getElementById('rmAddName').value.trim(),
-          role: document.getElementById('rmAddRole').value,
+          role: newRole,
+          ...(newRole !== 'Super Administrator' ? { office: newOffice } : {}),
           phone: phoneInput.value.trim(),
           phoneToken: verifiedPhone.token
         });
@@ -3297,7 +3400,8 @@
         ? '<li class="rm-muted">No role changes yet.</li>'
         : snap.docs.map((d) => {
           const entry = d.data();
-          const text = entry.action === 'add' ? `added ${who(entry)} as ${entry.to}`
+          const text = entry.action === 'add' ? `added ${who(entry)} as ${entry.to}${entry.office ? ` (${entry.office})` : ''}`
+            : entry.action === 'office' ? `moved ${who(entry)} to ${entry.to}${entry.from ? ` (was ${entry.from})` : ''}`
             : entry.action === 'remove' ? `removed ${who(entry)} (${entry.from || 'no role'})`
             : `changed ${who(entry)} from ${entry.from || 'no role'} to ${entry.to}`;
           const at = entry.at?.toDate ? formatPortalDateTime(entry.at.toDate()) : '';
@@ -3380,6 +3484,225 @@
     ['I forgot my password — what now?', 'On the Sign In screen, tap "Forgot password?" You\'ll verify your identity with a one-time code sent to the Gmail account linked to your account, then set a new password.'],
     ['What does the SOS button do?', 'It logs an emergency alert (with your current trail, if any) and calls the local emergency hotline. Only use it for genuine emergencies.']
   ];
+  /* ---------------------------------------------------------------------
+     Emergency hotlines
+     emergencyHotlines/{id} = { name, number, office, createdAt, createdBy,
+     updatedAt, updatedBy }. office is 'CITY ENRO' (the Sto. Tomas side of
+     the mountain) or 'UPLB MCME' (the Los Baños side); the app's SOS button
+     and Help & Support read this list. An admin manages only their own
+     office's hotlines, by admins/{uid}.office -- firestore.rules enforces
+     the same, so the restriction holds outside this page too. Accounts
+     without an office (the Super Administrator, Viewers) only view them.
+     --------------------------------------------------------------------- */
+  const HOTLINE_OFFICES = [
+    { key: 'CITY ENRO', area: 'Sto. Tomas side' },
+    { key: 'UPLB MCME', area: 'Los Baños side' }
+  ];
+  const hotlineState = { items: null, error: null, office: null };
+  // An 11-digit Philippine mobile number, 09 + 9 digits. Spaces and dashes
+  // typed in are ignored; the number is stored as the 11 digits.
+  const hotlineDigits = (value) => String(value || '').replace(/[\s-]/g, '');
+  const isPhilippineHotline = (value) => /^09\d{9}$/.test(value);
+  const hotlineText = (number) => (isPhilippineHotline(number) ? `${number.slice(0, 4)}-${number.slice(4, 7)}-${number.slice(7)}` : number);
+  // Administrators and the Super Administrator can write; only for their office.
+  const canManageHotlines = (office) => Boolean(hotlineState.office) && hotlineState.office === office
+    && ['Super Administrator', 'Administrator'].includes(document.documentElement.dataset.adminRole);
+
+  auth.authStateReady().then(() => {
+    onSnapshot(collection(db, 'emergencyHotlines'), (snapshot) => {
+      const time = (value) => (value?.toMillis ? value.toMillis() : Number.MAX_SAFE_INTEGER);
+      hotlineState.items = snapshot.docs
+        .map((hotlineDoc) => ({ id: hotlineDoc.id, ...hotlineDoc.data() }))
+        // Oldest first, so the main number an office added first stays on top.
+        .sort((a, b) => time(a.createdAt) - time(b.createdAt) || String(a.name || '').localeCompare(String(b.name || '')));
+      hotlineState.error = null;
+      renderHotlineRow();
+      renderHotlines();
+    }, (error) => {
+      console.error('Could not load emergency hotlines:', error);
+      hotlineState.error = error;
+      renderHotlines();
+    });
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    // The signed-in admin's office, live, so a change shows at once.
+    onSnapshot(doc(db, 'admins', uid), (adminSnap) => {
+      const office = adminSnap.data()?.office;
+      hotlineState.office = HOTLINE_OFFICES.some((o) => o.key === office) ? office : null;
+      renderHotlines();
+    }, () => { hotlineState.office = null; renderHotlines(); });
+  });
+
+  function renderHotlineRow() {
+    const desc = document.getElementById('hotlineRowDesc');
+    if (!desc || !hotlineState.items) return;
+    const count = (office) => hotlineState.items.filter((h) => h.office === office).length;
+    desc.textContent = `Emergency numbers shown to hikers in the app · CITY ENRO ${count('CITY ENRO')} · UPLB MCME ${count('UPLB MCME')}.`;
+  }
+
+  const hotlineStatus = (text, ok = false) => {
+    const status = document.getElementById('hotlineStatus');
+    if (!status) return;
+    status.className = `rm-status ${ok ? 'is-ok' : 'is-error'}`;
+    status.textContent = text;
+  };
+  const hotlineWriteError = (error, office) => (error?.code === 'permission-denied'
+    ? `Not saved: only the ${office} admin account can change ${office} hotlines.`
+    : `Not saved: ${error?.message || 'unknown error'}`);
+
+  function bindHotlines() {
+    if (!document.getElementById('hotlineBox')) return;
+    renderHotlines();
+  }
+
+  function renderHotlines() {
+    const box = document.getElementById('hotlineBox');
+    if (!box) return;
+    if (hotlineState.error) {
+      box.innerHTML = `<p class="rm-error">${escapeHTML(`Could not load the hotlines: ${hotlineState.error.message || 'unknown error'}`)}</p>`;
+      return;
+    }
+    if (!hotlineState.items) {
+      box.innerHTML = '<p class="rm-muted">Loading hotlines…</p>';
+      return;
+    }
+    const mine = HOTLINE_OFFICES.find((o) => canManageHotlines(o.key));
+    box.innerHTML = `
+      <p class="rm-muted" style="margin:0">${mine
+        ? `You manage the <strong>${escapeHTML(mine.key)}</strong> hotlines. The other office's are shown for reference and can only be changed by its own admin account.`
+        : 'Each office manages its own hotlines from its admin account (CITY ENRO or UPLB MCME). Your account can view them.'}
+        Hikers see these numbers in the app's SOS button and Help &amp; Support.</p>
+      <div class="hotline-columns">${HOTLINE_OFFICES.map((office) => {
+        const items = hotlineState.items.filter((h) => h.office === office.key);
+        const manage = canManageHotlines(office.key);
+        return `
+        <section class="hotline-col${manage ? ' is-mine' : ''}" data-office="${escapeHTML(office.key)}" aria-label="${escapeHTML(office.key)} hotlines">
+          <div class="hotline-col-head">
+            <div><h4>${escapeHTML(office.key)}</h4><small>${escapeHTML(office.area)}</small></div>
+            <span class="hotline-tag">${manage ? 'Your office' : 'View only'}</span>
+          </div>
+          ${items.length ? `<ul class="hotline-list">${items.map((item) => `
+            <li class="hotline-item" data-hotline-id="${escapeHTML(item.id)}">
+              <div class="hotline-item-text">
+                <strong>${escapeHTML(item.name || 'Hotline')}</strong>
+                <a href="tel:${escapeHTML(item.number || '')}">${escapeHTML(hotlineText(item.number || ''))}</a>
+              </div>
+              ${manage ? `<div class="hotline-actions">
+                <button type="button" data-hotline-edit>Edit</button>
+                <button type="button" class="rm-remove" data-hotline-delete>Delete</button>
+              </div>` : ''}
+            </li>`).join('')}</ul>` : '<p class="rm-muted" style="margin:0">No hotlines yet.</p>'}
+          <div data-hotline-form></div>
+          ${manage ? '<button type="button" class="primary-btn" data-hotline-add><i class="fa-solid fa-plus" aria-hidden="true"></i> Add hotline</button>' : ''}
+        </section>`;
+      }).join('')}</div>
+      <p class="rm-status" id="hotlineStatus" role="status"></p>`;
+
+    box.querySelectorAll('.hotline-col').forEach((col) => {
+      const office = col.dataset.office;
+      col.querySelector('[data-hotline-add]')?.addEventListener('click', () => openHotlineForm(col, office, null));
+      col.querySelectorAll('.hotline-item').forEach((row) => {
+        const item = hotlineState.items.find((h) => h.id === row.dataset.hotlineId);
+        row.querySelector('[data-hotline-edit]')?.addEventListener('click', () => openHotlineForm(col, office, item));
+        const del = row.querySelector('[data-hotline-delete]');
+        del?.addEventListener('click', async () => {
+          // Two clicks, like deleting an FAQ: the first arms it.
+          if (!del.classList.contains('is-armed')) {
+            del.classList.add('is-armed');
+            del.textContent = 'Click again to delete';
+            return;
+          }
+          del.disabled = true;
+          try {
+            await deleteDoc(doc(db, 'emergencyHotlines', item.id));
+            hotlineStatus(`${item.name} deleted.`, true);
+          } catch (error) {
+            hotlineStatus(hotlineWriteError(error, office));
+            del.disabled = false;
+          }
+        });
+      });
+    });
+  }
+
+  function openHotlineForm(col, office, item) {
+    if (!canManageHotlines(office)) return;
+    const slot = col.querySelector('[data-hotline-form]');
+    col.querySelector('[data-hotline-add]')?.setAttribute('hidden', '');
+    slot.innerHTML = `
+      <form class="faq-form" novalidate>
+        <div style="font-weight:700;font-size:12.5px">${item ? 'Edit hotline' : `New ${escapeHTML(office)} hotline`}</div>
+        <label for="hotlineName">Name for hotline</label>
+        <input id="hotlineName" type="text" maxlength="60" placeholder="e.g. Operation Center" required>
+        <label for="hotlineNumber">Hotline number</label>
+        <input id="hotlineNumber" type="tel" inputmode="numeric" maxlength="13" placeholder="e.g. 0917-109-1843" required>
+        <div class="hotline-field-hint" id="hotlineNumberHint">11-digit Philippine mobile number starting with 09.</div>
+        <div class="faq-form-actions">
+          <button type="button" class="ghost-btn" data-hotline-cancel>Cancel</button>
+          <button type="submit" class="primary-btn" data-hotline-save>${item ? 'Save changes' : 'Add hotline'}</button>
+        </div>
+      </form>`;
+    const form = slot.querySelector('form');
+    const name = form.querySelector('#hotlineName');
+    const number = form.querySelector('#hotlineNumber');
+    const hint = form.querySelector('#hotlineNumberHint');
+    name.value = item?.name || '';
+    number.value = item?.number || '';
+    name.focus();
+    const close = () => { slot.innerHTML = ''; col.querySelector('[data-hotline-add]')?.removeAttribute('hidden'); };
+    form.querySelector('[data-hotline-cancel]').addEventListener('click', close);
+
+    // Why a number is refused, or null when it can be saved.
+    const numberProblem = () => {
+      const digits = hotlineDigits(number.value);
+      if (!digits) return 'Enter the hotline number.';
+      if (/[^0-9]/.test(digits)) return 'Use digits only (spaces and dashes are fine).';
+      if (!digits.startsWith('09')) return 'A Philippine mobile number starts with 09.';
+      if (digits.length !== 11) return `It must be 11 digits; this has ${digits.length}.`;
+      const taken = (hotlineState.items || []).find((h) => h.office === office && h.number === digits && h.id !== item?.id);
+      if (taken) return `${office} already has this number (${taken.name}).`;
+      return null;
+    };
+    number.addEventListener('input', () => {
+      const problem = hotlineDigits(number.value) ? numberProblem() : null;
+      hint.textContent = problem || '11-digit Philippine mobile number starting with 09.';
+      hint.classList.toggle('is-error', Boolean(problem));
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const label = name.value.trim();
+      if (!label) { hotlineStatus('Enter a name for the hotline.'); name.focus(); return; }
+      const problem = numberProblem();
+      if (problem) {
+        hint.textContent = problem;
+        hint.classList.add('is-error');
+        hotlineStatus(`Not saved: ${problem}`);
+        number.focus();
+        return;
+      }
+      const save = form.querySelector('[data-hotline-save]');
+      save.disabled = true;
+      const stamp = { updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || null };
+      try {
+        if (item) {
+          await updateDoc(doc(db, 'emergencyHotlines', item.id), { name: label, number: hotlineDigits(number.value), ...stamp });
+          hotlineStatus(`${label} updated.`, true);
+        } else {
+          await setDoc(doc(collection(db, 'emergencyHotlines')), {
+            name: label, number: hotlineDigits(number.value), office,
+            createdAt: serverTimestamp(), createdBy: auth.currentUser?.uid || null, ...stamp
+          });
+          hotlineStatus(`${label} added to ${office}.`, true);
+        }
+        close();
+      } catch (error) {
+        hotlineStatus(hotlineWriteError(error, office));
+        save.disabled = false;
+      }
+    });
+  }
+
   const faqState = { items: null, error: null, search: '', editing: null };
   const canEditFaqs = () => {
     const role = document.documentElement.dataset.adminRole;
@@ -4179,7 +4502,13 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  const csvEscape = (value) => (/[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
+  /* Text a spreadsheet would run as a formula (a hiker's name or report
+     starting with =, +, - or @) gets a leading ' so Excel shows it as
+     text; plain numbers such as -5 are left alone. */
+  const csvEscape = (raw) => {
+    const value = /^[=+@\t\r]|^-(?!\d+(\.\d+)?$)/.test(raw) ? `'${raw}` : raw;
+    return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  };
 
   async function downloadBackup(format, box) {
     const buttons = box.querySelectorAll('[data-backup-format]');
@@ -4385,8 +4714,8 @@
     });
     roleLog.forEach((entry) => {
       const who = entry.targetName || entry.targetEmail || 'an admin';
-      const action = entry.action === 'add' ? 'Admin added' : entry.action === 'remove' ? 'Admin removed' : 'Role changed';
-      const details = entry.action === 'add' ? `${who} as ${entry.to}` : entry.action === 'remove' ? `${who} (${entry.from || 'no role'})` : `${who}: ${entry.from || 'No role'} → ${entry.to}`;
+      const action = entry.action === 'add' ? 'Admin added' : entry.action === 'remove' ? 'Admin removed' : entry.action === 'office' ? 'Office changed' : 'Role changed';
+      const details = entry.action === 'add' ? `${who} as ${entry.to}${entry.office ? ` (${entry.office})` : ''}` : entry.action === 'remove' ? `${who} (${entry.from || 'no role'})` : entry.action === 'office' ? `${who}: ${entry.from || 'No office'} → ${entry.to}` : `${who}: ${entry.from || 'No role'} → ${entry.to}`;
       add(entry.at, 'Admin', action, details, entry.byName || '—');
     });
     return events.sort((a, b) => b.at - a.at);
@@ -4744,6 +5073,16 @@
           </div>
         `
       },
+      emergencyHotlines: {
+        title: 'Emergency Hotlines',
+        // Filled in by bindHotlines(), live from the Firestore "emergencyHotlines" collection.
+        content: `
+          <div id="hotlineBox" class="rm"><p class="rm-muted">Loading hotlines…</p></div>
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" data-close-modal>Close</button>
+          </div>
+        `
+      },
       hikerChecklist: {
         title: 'Hiker Checklist',
         // Filled in by bindChecklist(), live from the Firestore "checkListItems" collection.
@@ -4777,7 +5116,7 @@
     );
     modalCard.classList.toggle('preference-theme', ['profile', 'password', 'timezone'].includes(action));
     modalCard.classList.toggle('profile-wide', action === 'profile');
-    modalCard.classList.toggle('dialog-wide', ['roleManagement', 'accessControl', 'dataBackup', 'auditLogs', 'faqs', 'hikerChecklist', 'helpGuide'].includes(action));
+    modalCard.classList.toggle('dialog-wide', ['roleManagement', 'accessControl', 'dataBackup', 'auditLogs', 'faqs', 'hikerChecklist', 'helpGuide', 'emergencyHotlines'].includes(action));
     modalCard.classList.toggle('dialog-fixed', action === 'hikerChecklist');
     modalTitle.textContent = config.title;
     modalBody.innerHTML = config.content;
@@ -4834,6 +5173,9 @@
     }
     if (action === 'hikerChecklist') {
       bindChecklist();
+    }
+    if (action === 'emergencyHotlines') {
+      bindHotlines();
     }
 
     modalBody.querySelectorAll('[data-close-modal]').forEach((button) => {

@@ -562,6 +562,21 @@ const checkRole = (role) => {
   return role;
 };
 
+/* The office an admin works for: CITY ENRO (Sto. Tomas side of the
+   mountain) or UPLB MCME (Los Banos side). It decides which emergency
+   hotlines they manage (firestore.rules, emergencyHotlines) -- an
+   Administrator manages their office's hotlines like every other feature
+   their role allows; a Viewer only reads. Every Administrator and Viewer
+   has one; the Super Administrator belongs to neither office. */
+const ADMIN_OFFICES = ["CITY ENRO", "UPLB MCME"];
+const checkOffice = (office, role) => {
+  if (role === SUPER_ROLE) return null;
+  if (!ADMIN_OFFICES.includes(office)) {
+    throw new HttpsError("invalid-argument", `Choose the admin's office: ${ADMIN_OFFICES.join(" or ")}.`);
+  }
+  return office;
+};
+
 async function superAdminCount() {
   const all = await db.collection("admins").get();
   return all.docs.filter((d) => roleOf(d.data()) === SUPER_ROLE).length;
@@ -598,6 +613,7 @@ exports.listAdmins = onCall(async (request) => {
         username: data.username || "",
         email: data.email || user?.email || "",
         role: roleOf(data),
+        office: ADMIN_OFFICES.includes(data.office) ? data.office : null,
         lastSignIn: user?.metadata?.lastSignInTime || null
       };
     }).sort((a, b) => (a.role ? ADMIN_ROLES.indexOf(a.role) : ADMIN_ROLES.length) - (b.role ? ADMIN_ROLES.indexOf(b.role) : ADMIN_ROLES.length) || a.name.localeCompare(b.name))
@@ -664,7 +680,14 @@ exports.setAdminRole = onCall(async (request) => {
   if (from === SUPER_ROLE && (await superAdminCount()) <= 1) {
     throw new HttpsError("failed-precondition", "There must always be at least one Super Administrator.");
   }
-  await ref.update({ role, roleUpdatedAt: FieldValue.serverTimestamp(), roleUpdatedBy: caller.uid });
+  // An Administrator or Viewer works for an office: the one they have, or
+  // the one chosen with the new role.
+  const current = ADMIN_OFFICES.includes(snap.get("office")) ? snap.get("office") : null;
+  const office = role === SUPER_ROLE ? current : checkOffice(request.data?.office || current, role);
+  await ref.update({
+    role, roleUpdatedAt: FieldValue.serverTimestamp(), roleUpdatedBy: caller.uid,
+    ...(office && office !== current ? { office } : {})
+  });
   await logRoleChange({
     action: "role", targetUid: uid, targetName: snap.get("name") || "", targetEmail: snap.get("email") || "",
     from, to: role, byUid: caller.uid, byName: caller.name
@@ -692,6 +715,7 @@ exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (
   const caller = await requireSuperAdmin(request);
   const email = normalizeEmail(request.data?.email);
   const role = checkRole(request.data?.role);
+  const office = checkOffice(request.data?.office, role);
   const name = String(request.data?.name || "").trim().slice(0, 80);
 
   const phoneMatch = /^(?:\+?63|0)?(9\d{9})$/.exec(String(request.data?.phone || "").replace(/[\s\-().]/g, ""));
@@ -732,6 +756,7 @@ exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (
     name: name || user.displayName || "",
     email,
     role,
+    ...(office ? { office } : {}),
     phone: phoneLocal,
     twoFactorPhone: phoneE164,
     twoFactorPhoneVerifiedAt: FieldValue.serverTimestamp(),
@@ -786,9 +811,34 @@ exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (
 
   await logRoleChange({
     action: "add", targetUid: user.uid, targetName: name || user.displayName || "", targetEmail: email,
-    from: null, to: role, byUid: caller.uid, byName: caller.name
+    from: null, to: role, office: office || null, byUid: caller.uid, byName: caller.name
   });
   return { uid: user.uid, created, emailed };
+});
+
+/* Settings > Role & Permission Settings > an admin's Office. Super
+   Administrators only. Moves an Administrator or Viewer to the other
+   office; their emergency hotline access follows at once. */
+exports.setAdminOffice = onCall(async (request) => {
+  const caller = await requireSuperAdmin(request);
+  const uid = String(request.data?.uid || "");
+  if (!uid) throw new HttpsError("invalid-argument", "Choose an admin.");
+  const ref = db.collection("admins").doc(uid);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError("not-found", "That admin no longer exists.");
+  const role = roleOf(snap.data());
+  if (role === SUPER_ROLE) {
+    throw new HttpsError("failed-precondition", "A Super Administrator belongs to neither office.");
+  }
+  const office = checkOffice(request.data?.office, role || "Administrator");
+  const from = ADMIN_OFFICES.includes(snap.get("office")) ? snap.get("office") : null;
+  if (from === office) return { office };
+  await ref.update({ office, officeUpdatedAt: FieldValue.serverTimestamp(), officeUpdatedBy: caller.uid });
+  await logRoleChange({
+    action: "office", targetUid: uid, targetName: snap.get("name") || "", targetEmail: snap.get("email") || "",
+    from, to: office, byUid: caller.uid, byName: caller.name
+  });
+  return { office };
 });
 
 exports.removeAdmin = onCall(async (request) => {

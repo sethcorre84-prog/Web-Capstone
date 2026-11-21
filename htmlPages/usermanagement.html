@@ -2757,7 +2757,6 @@
             <option>All Status</option>
             <option>Active</option>
             <option>Inactive</option>
-            <option>Pending</option>
             <option>Suspended</option>
           </select>
           <select class="filter" id="userTeamFilter" aria-label="Filter by team">
@@ -6222,7 +6221,13 @@
       select.value = values.includes(previous) ? previous : allLabel;
     };
 
-    const roles = [...new Set(state.users.map(user => user.role).filter(Boolean))].sort();
+    // One option per role whatever its letter case in Firestore ("hiker" and
+    // "Hiker" are the same role; the filter matches either), shown capitalized.
+    const titleCase = (role) => role.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+    const roles = [...new Set(state.users
+      .map(user => String(user.role || '').trim())
+      .filter(Boolean)
+      .map(titleCase))].sort();
     // Every team in the collection, so an empty team is still selectable.
     const teams = [...new Set(state.teams.map(team => team.name))].filter(Boolean).sort();
 
