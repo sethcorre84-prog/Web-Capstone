@@ -2,3 +2,6 @@
 # Never commit it.
 gmail-senders.json
 gmail-app-password.txt
+
+# Firebase CLI debug output (written on every deploy).
+firebase-debug.log
