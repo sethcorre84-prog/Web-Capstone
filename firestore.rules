@@ -286,8 +286,10 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly([
              'uid', 'trailName', 'trailID', 'startedAt', 'endedAt',
-             'minutes', 'km', 'status'
+             'minutes', 'km', 'status', 'startSide'
            ])
+        // MakTrav only: the side the hike started from.
+        && request.resource.data.get('startSide', 'Sipit') in ['Sipit', 'Mariang Makiling']
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.trailName is string
         && request.resource.data.trailID is string

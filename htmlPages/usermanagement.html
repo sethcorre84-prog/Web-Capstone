@@ -2246,6 +2246,78 @@
         align-items: center;
         gap: 8px;
     }
+    /* Filter: one icon; the trail, month and hikes dropdowns open in a
+       panel under it. A dot on the icon when anything is narrowed. */
+    .ha-filter { position: relative; }
+    .ha-filter-summary {
+        max-width: 340px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 12.5px;
+        color: var(--text-secondary, #5b6a60);
+    }
+    .ha-filter-dot {
+        position: absolute;
+        top: 7px;
+        right: 7px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent, #2f8f4e);
+        box-shadow: 0 0 0 2px var(--dm-surface, #ffffff);
+    }
+    #hikerAnalyticsFilterBtn[aria-expanded="true"] {
+        border-color: var(--accent, #2f8f4e);
+        color: var(--accent, #2f8f4e);
+    }
+    .ha-filter-panel {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 40;
+        display: grid;
+        gap: 10px;
+        width: 260px;
+        padding: 14px;
+        border: 1px solid var(--dm-border, #e4e7e1);
+        border-radius: 12px;
+        background: var(--dm-surface, #ffffff);
+        box-shadow: 0 14px 34px rgba(20, 35, 20, .16);
+    }
+    .ha-filter-panel[hidden] { display: none; }
+    .ha-filter-title {
+        margin: 0;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--text-secondary, #5b6a60);
+    }
+    .ha-filter-field {
+        display: grid;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--dm-text, #1c231c);
+    }
+    .hiker-analytics-card .ha-filter-field select { width: 100%; }
+    .ha-filter-reset {
+        justify-self: start;
+        padding: 4px 0;
+        border: 0;
+        background: none;
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--accent, #2f8f4e);
+        cursor: pointer;
+    }
+    .ha-filter-reset:hover,
+    .ha-filter-reset:focus-visible { text-decoration: underline; outline: none; }
+    @media (max-width: 720px) {
+        .ha-filter-summary { display: none; }
+    }
     /* Headline tiles: an icon, the number, what it is, and how it moved. The
        first (Total hikers) leads, with its six-month line. */
     .ha-stats {
@@ -2862,14 +2934,29 @@
       <div class="card-head">
         <h2 id="hikerAnalyticsTitle">Hiker Analytics</h2>
         <div class="card-head-actions">
-          <select id="hikerAnalyticsMonth" aria-label="Month"></select>
-          <!-- Which hikes the panel counts: all, only completed (reached the
-               end of the trail) or only partial (ended at a station). -->
-          <select id="hikerAnalyticsResult" aria-label="Hike result">
-            <option value="all" selected>All hikes</option>
-            <option value="completed">Completed</option>
-            <option value="partial">Partial</option>
-          </select>
+          <!-- What the panel is showing, in words, beside the filter icon. -->
+          <span class="ha-filter-summary" id="hikerAnalyticsFilterSummary" aria-live="polite"></span>
+          <div class="ha-filter">
+            <button type="button" class="btn-ghost icon-only" id="hikerAnalyticsFilterBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="hikerAnalyticsFilterPanel" aria-label="Filter Hiker Analytics"><i class="fa-solid fa-filter" aria-hidden="true"></i><span class="ha-filter-dot" id="hikerAnalyticsFilterDot" hidden></span><span class="btn-tooltip">Filter</span></button>
+            <div class="ha-filter-panel" id="hikerAnalyticsFilterPanel" role="dialog" aria-label="Filter Hiker Analytics" hidden>
+              <p class="ha-filter-title">Filter</p>
+              <!-- Every trail whose Trail Type is Major Trail (Trail Management),
+                   so a major trail added later appears here by itself. -->
+              <label class="ha-filter-field" for="hikerAnalyticsTrail"><span>Trail</span>
+                <select id="hikerAnalyticsTrail"><option value="" selected>All trails</option></select></label>
+              <label class="ha-filter-field" for="hikerAnalyticsMonth"><span>Month</span>
+                <select id="hikerAnalyticsMonth"></select></label>
+              <!-- Which hikes the panel counts: all, only completed (reached the
+                   end of the trail) or only partial (ended at a station). -->
+              <label class="ha-filter-field" for="hikerAnalyticsResult"><span>Hikes</span>
+                <select id="hikerAnalyticsResult">
+                  <option value="all" selected>All hikes</option>
+                  <option value="completed">Completed</option>
+                  <option value="partial">Partial</option>
+                </select></label>
+              <button type="button" class="ha-filter-reset" id="hikerAnalyticsFilterReset">Reset filters</button>
+            </div>
+          </div>
           <button type="button" class="btn-ghost icon-only" id="hikerAnalyticsExport" aria-haspopup="menu" aria-expanded="false" aria-label="Download as PDF or Word"><i class="fa-solid fa-download" aria-hidden="true"></i><span class="btn-tooltip">Download</span></button>
         </div>
       </div>
@@ -2903,6 +2990,11 @@
         <div class="ha-col ha-col-wide">
           <h3><span class="ha-ico"><i class="fa-solid fa-person-hiking" aria-hidden="true"></i></span>First-time vs Repeat Hikers</h3>
           <div id="hikerAnalyticsVisits"></div>
+        </div>
+        <!-- MakTrav only: which side each hike started from. -->
+        <div class="ha-col ha-col-wide" id="hikerAnalyticsStartCol" hidden>
+          <h3><span class="ha-ico"><i class="fa-solid fa-signs-post" aria-hidden="true"></i></span>Starting Point<small id="hikerAnalyticsStartSub"></small></h3>
+          <div id="hikerAnalyticsStart"></div>
         </div>
       </div>
       <p class="ha-note">Different hikers who started at least one hike in the PeakPath app that month, from their profiles: gender, nationality, address and age (from the birthdate, at the month's end). First-time hikers had their first hike on Mount Makiling that month; repeat hikers had hiked in an earlier month (hikes from before they used PeakPath are not known). Hikers from abroad give where they are staying in the Philippines.</p>
@@ -6293,6 +6385,8 @@
   /* The result filter beside the month: which hikes every card, chart and
      the download count. field: the per-month figure in monthlyVisits. */
   const hikerAnalyticsResult = document.getElementById('hikerAnalyticsResult');
+  // Major trails only; filled in by renderHikerAnalytics from the trails.
+  const hikerAnalyticsTrail = document.getElementById('hikerAnalyticsTrail');
   const HA_RESULTS = {
     all: { label: 'All hikes', field: 'count', hikersLabel: 'Total hikers', hikesLabel: 'Hikes started', icon: 'fa-person-hiking', noun: 'hikes' },
     completed: { label: 'Completed', field: 'completed', hikersLabel: 'Hikers who completed', hikesLabel: 'Completed hikes', icon: 'fa-flag-checkered', noun: 'completed hikes' },
@@ -6356,8 +6450,9 @@
   const pctOf = (value, total) => (total ? Math.round((value / total) * 100) : 0);
 
   // A donut with its legend, like Reports About User Behavior's.
-  const donutHtml = (items, total) => {
-    if (!total) return '<p class="ha-empty">No hikers this month.</p>';
+  // unit: what the donut counts ('hiker' unless given, e.g. 'hike').
+  const donutHtml = (items, total, unit = 'hiker') => {
+    if (!total) return `<p class="ha-empty">No ${unit}s this month.</p>`;
     const radius = 46;
     const circumference = 2 * Math.PI * radius;
     const shown = items.filter((item) => item.value > 0);
@@ -6367,7 +6462,7 @@
       const length = (item.value / total) * circumference;
       const arc = `<circle data-arc cx="60" cy="60" r="${radius}" fill="none" stroke="${item.color}" stroke-width="20"
         stroke-dasharray="${Math.max(length - gap, 0.5)} ${circumference}" stroke-dashoffset="${-offset}">
-        <title>${escapeHtml(item.label)}: ${item.value} hiker${item.value === 1 ? '' : 's'} (${pctOf(item.value, total)}%)</title></circle>`;
+        <title>${escapeHtml(item.label)}: ${item.value} ${unit}${item.value === 1 ? '' : 's'} (${pctOf(item.value, total)}%)</title></circle>`;
       offset += length;
       return arc;
     }).join('');
@@ -6377,7 +6472,7 @@
           <circle cx="60" cy="60" r="${radius}" fill="none" style="stroke:var(--dm-surface-2, #eef1ec)" stroke-width="20"/>
           ${arcs}
         </svg>
-        <div class="ha-donut-center"><span>Hikers</span><strong>${total.toLocaleString()}</strong></div>
+        <div class="ha-donut-center"><span>${unit === 'hiker' ? 'Hikers' : `${unit.charAt(0).toUpperCase()}${unit.slice(1)}s`}</span><strong>${total.toLocaleString()}</strong></div>
       </div>
       <div class="ha-legend">${items.map((item) => `
         <div class="ha-legend-item">
@@ -6464,6 +6559,21 @@
     if (!firstDrawDone) return;
     const selected = hikerAnalyticsMonth.value || 'all';
     const result = HA_RESULTS[hikerAnalyticsResult.value] ? hikerAnalyticsResult.value : 'all';
+    /* Trail filter: the major trails (Trail Type "Major Trail"), rebuilt
+       from the trails collection each time, so one added or retyped in
+       Trail Management shows up here, and a deleted one goes. */
+    const majorTrails = (state.trailDocs || [])
+      .filter((trail) => isMajorTrail(trail))
+      .map((trail) => ({ id: trail.id, name: normalizeText(trail.Trail || trail.name || trail.trailName) }))
+      .filter((trail) => trail.name)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const chosenTrail = majorTrails.some((trail) => trail.id === hikerAnalyticsTrail.value) ? hikerAnalyticsTrail.value : '';
+    haTarget(hikerAnalyticsTrail).innerHTML = '<option value="">All trails</option>'
+      + majorTrails.map((trail) => `<option value="${escapeHtml(trail.id)}">${escapeHtml(trail.name)}</option>`).join('');
+    hikerAnalyticsTrail.value = chosenTrail;
+    const trailInfo = majorTrails.find((trail) => trail.id === chosenTrail) || null;
+    // MakTrav: hikes there can start from Sipit or from Mariang Makiling.
+    const isTraverse = Boolean(trailInfo && /traverse|maktrav/i.test(trailInfo.name));
     const resultInfo = HA_RESULTS[result];
     const allTime = selected === 'all';
     // Hiker accounts only: guides (and rangers / admins) who tap Start Hike
@@ -6479,7 +6589,8 @@
       users: users.map((user) => ({ id: user.id, ...user.raw })),
       sessions: state.hikeSessions,
       trails: state.trailDocs,
-      timeZone: portalTimeZone()
+      timeZone: portalTimeZone(),
+      trailId: chosenTrail
     });
     const histories = new Map();
     /* A hiker's hikes for the chosen result. months: month -> hikes with a
@@ -6497,7 +6608,9 @@
         : {};
       const dated = Object.values(months).reduce((sum, n) => sum + n, 0);
       // Lifetime hikes only count for someone who hiked a current trail.
-      const allTotal = visit ? Math.max(hikeHistory(user.raw).total, visit.dated) : 0;
+      // With a trail chosen, only that trail's hikes (the profile's
+      // lifetime total covers every trail).
+      const allTotal = !visit ? 0 : chosenTrail ? visit.dated : Math.max(hikeHistory(user.raw).total, visit.dated);
       const total = !visit ? 0 : result === 'all' ? allTotal : visit[result];
       const history = {
         total, dated, undated: Math.max(0, total - dated), months,
@@ -6518,7 +6631,8 @@
     const key = allTime ? recentMonths(1)[0].key : selected;
     const [, y, m] = /^m(\d{4})_(\d{2})$/.exec(key) || [];
     const monthEnd = allTime ? new Date() : new Date(Number(y), Number(m), 0);
-    const monthLabel = allTime ? 'All time' : new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const monthLabel = (allTime ? 'All time' : new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+      + (trailInfo ? ` · ${trailInfo.name}` : '');
     const previous = new Date(Number(y), Number(m) - 2, 1);
     const previousKey = `m${previous.getFullYear()}_${String(previous.getMonth() + 1).padStart(2, '0')}`;
     const startsIn = (user, monthKey) => historyOf(user).months[monthKey] || 0;
@@ -6609,6 +6723,42 @@
 
     if (unknownHistory) visitItems.push({ label: 'Earlier dates unknown', value: unknownHistory, color: HA_OTHER[0], exportColor: HA_OTHER[1] });
 
+    /* Starting point (MakTrav): the chosen hikes by the side they started
+       from -- Sipit (Sto. Tomas) or Mariang Makiling Trail (MMT, Los
+       Banos) -- for the month, or every month in All time. */
+    const startCol = document.getElementById('hikerAnalyticsStartCol');
+    startCol.hidden = !isTraverse;
+    let startItems = [];
+    if (isTraverse) {
+      const sideTotals = new Map([['Mariang Makiling', 0], ['Sipit', 0], ['', 0]]);
+      const sideHikers = new Map([['Mariang Makiling', new Set()], ['Sipit', new Set()], ['', new Set()]]);
+      visits.forEach((visit, uid) => {
+        Object.entries(visit.months).forEach(([monthKey, month]) => {
+          if (!allTime && monthKey !== key) return;
+          Object.entries(month.sides || {}).forEach(([side, counts]) => {
+            const n = counts[resultInfo.field] || 0;
+            if (!n || !sideTotals.has(side)) return;
+            sideTotals.set(side, sideTotals.get(side) + n);
+            sideHikers.get(side).add(uid);
+          });
+        });
+      });
+      const SIDE_LABELS = { 'Mariang Makiling': 'Mariang Makiling Trail (MMT)', Sipit: 'Sipit Trail', '': 'Start not recorded' };
+      startItems = [...sideTotals]
+        .filter(([side, n]) => side !== '' || n > 0)
+        .map(([side, n], index) => ({
+          label: `${SIDE_LABELS[side]} · ${sideHikers.get(side).size} hiker${sideHikers.get(side).size === 1 ? '' : 's'}`,
+          value: n,
+          color: side === '' ? HA_OTHER[0] : HA_SLOTS[index][0],
+          exportColor: side === '' ? HA_OTHER[1] : HA_SLOTS[index][1]
+        }));
+      const startHikes = [...sideTotals.values()].reduce((sum, n) => sum + n, 0);
+      haTarget('hikerAnalyticsStartSub').textContent = `${startHikes.toLocaleString()} ${resultInfo.noun} on ${trailInfo.name}, by where they started`;
+      haTarget('hikerAnalyticsStart').innerHTML = startHikes
+        ? donutHtml(startItems, startHikes, 'hike')
+        : `<p class="ha-empty">No ${escapeHtml(resultInfo.noun)} on ${escapeHtml(trailInfo.name)} ${allTime ? 'yet' : 'this month'}.</p>`;
+    }
+
     haTarget('hikerAnalyticsGender').innerHTML = donutHtml(genderItems, total);
     haTarget('hikerAnalyticsAge').innerHTML = columnsHtml(ageRows, total);
     haTarget('hikerAnalyticsNationality').innerHTML = donutHtml(nationalityItems, total);
@@ -6634,10 +6784,45 @@
     hikerReport = {
       monthLabel, resultLabel: resultInfo.label, hikesLabel: resultInfo.hikesLabel, key, total, hikes, change: allTime ? 'All recorded sessions' : change, filipinos,
       gender: genderItems, age: ageRows, nationality: nationalityItems, province: provinceItems,
-      visits: visitItems, firstTimers, unknownHistory
+      visits: visitItems, firstTimers, unknownHistory,
+      trailName: trailInfo?.name || '', starts: isTraverse ? startItems : null
     };
+
+    // Beside the filter icon: what is showing. The dot: anything narrowed.
+    const optionText = (select) => select.options[select.selectedIndex]?.textContent || '';
+    haTarget('hikerAnalyticsFilterSummary').textContent = [trailInfo ? trailInfo.name : 'All trails', optionText(hikerAnalyticsMonth), resultInfo.label].join(' · ');
+    document.getElementById('hikerAnalyticsFilterDot').hidden = !(chosenTrail || !allTime || result !== 'all');
   };
   hikerAnalyticsMonth.addEventListener('change', renderHikerAnalytics);
+  hikerAnalyticsTrail.addEventListener('change', renderHikerAnalytics);
+
+  /* The filter panel: opens under the filter icon, closes on a click
+     outside it or Escape. The dropdowns apply as soon as they change. */
+  const haFilterBtn = document.getElementById('hikerAnalyticsFilterBtn');
+  const haFilterPanel = document.getElementById('hikerAnalyticsFilterPanel');
+  const setFilterOpen = (open) => {
+    haFilterPanel.hidden = !open;
+    haFilterBtn.setAttribute('aria-expanded', String(open));
+    if (open) hikerAnalyticsTrail.focus();
+  };
+  haFilterBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setFilterOpen(haFilterPanel.hidden);
+  });
+  haFilterPanel.addEventListener('click', (event) => event.stopPropagation());
+  document.addEventListener('click', () => { if (!haFilterPanel.hidden) setFilterOpen(false); });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !haFilterPanel.hidden) {
+      setFilterOpen(false);
+      haFilterBtn.focus();
+    }
+  });
+  document.getElementById('hikerAnalyticsFilterReset').addEventListener('click', () => {
+    hikerAnalyticsTrail.value = '';
+    hikerAnalyticsMonth.value = 'all';
+    hikerAnalyticsResult.value = 'all';
+    renderHikerAnalytics();
+  });
   hikerAnalyticsResult.addEventListener('change', renderHikerAnalytics);
   // Until the first draw: a loading line rather than empty charts.
   document.getElementById('hikerAnalyticsStats').innerHTML = '<p class="ha-empty">Loading hiker analytics…</p>';
@@ -6691,6 +6876,16 @@
             },
             { title: 'Nationality', headers: ['Nationality', 'Hikers', 'Share'], rows: tableRows(r.nationality), chart: r.total ? donut('Hikers by nationality', r.nationality) : null },
             { title: 'Province (Address)', note: 'Hikers from abroad give where they are staying in the Philippines.', headers: ['Province', 'Hikers', 'Share'], rows: tableRows(r.province), chart: r.total ? donut('Hikers by province', r.province) : null },
+            ...(r.starts ? [{
+              title: `Starting Point · ${r.trailName}`,
+              note: 'Hikes on the traverse by the side they started from: Sipit Trail (Sto. Tomas) or Mariang Makiling Trail (MMT, Los Banos).',
+              headers: ['Started from', 'Hikes', 'Share'],
+              rows: (() => {
+                const all = r.starts.reduce((sum, item) => sum + item.value, 0);
+                return r.starts.map((item) => [item.label, item.value, `${pctOf(item.value, all)}%`]);
+              })(),
+              chart: r.starts.some((item) => item.value) ? { type: 'donut', title: 'Hikes by starting point', items: r.starts.map((item) => ({ label: item.label, value: item.value, color: item.exportColor })), centerLabel: 'Hikes', centerValue: r.starts.reduce((sum, item) => sum + item.value, 0).toLocaleString() } : null
+            }] : []),
             { title: 'First-time vs Repeat Hikers', note: 'All time: first-time means one recorded hike, repeat means multiple hikes. Monthly: first-time means the first dated hike was in this month with no undated sessions; earlier dates unknown means session totals cannot establish the first month.', headers: ['Hikers', 'Count', 'Share'], rows: tableRows(r.visits), chart: r.total ? donut('First-time vs repeat hikers', r.visits) : null }
           ]
         };

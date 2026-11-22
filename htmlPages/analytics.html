@@ -1454,20 +1454,6 @@
         color: var(--text-secondary);
         font-weight: 400;
     }
-    #descriptiveEngagement .de-bar-track {
-        display: block;
-        height: 6px;
-        margin-top: 7px;
-        border-radius: 999px;
-        background: var(--border);
-        overflow: hidden;
-    }
-    #descriptiveEngagement .de-bar-track > span {
-        display: block;
-        height: 100%;
-        border-radius: inherit;
-        background: var(--accent);
-    }
     #descriptiveEngagement .de-duration .row {
         align-items: center;
         gap: 12px;
@@ -1479,13 +1465,6 @@
     #descriptiveEngagement .de-duration .row strong {
         text-align: right;
         overflow-wrap: anywhere;
-    }
-    #descriptiveEngagement .de-duration .de-note { margin: 12px 0; }
-    #descriptiveEngagement .de-participation {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        font-size: 11.5px;
     }
     #descriptiveEngagement .de-summary {
         margin-top: 12px;
@@ -2091,7 +2070,7 @@
           <button type="button" data-period="90" aria-pressed="false">90 days</button>
         </div>
       </div>
-      <p class="de-note">Everything below follows the selected period, hiking included: every hike of every hiker, from the app and the imported dummy session data alike; a hike with no date of its own counts on the hiker's last hike.</p>
+      <p class="de-note">Everything below follows the selected period, hiking included.</p>
       <div class="kpi-row de-kpis" data-engagement-kpis aria-live="polite" aria-busy="true">
         <div class="empty-state">Loading user engagement...</div>
       </div>
@@ -3598,7 +3577,7 @@
           `Open hazards: ${row.hazardCount} verified${row.hazardCount ? ` (${topOf(row.active, typeOf)})` : ''}${pendingNote(row.pendingCount)} → ${pts(row.points.hazards)}`,
           `History: ${row.historyCount} report${row.historyCount === 1 ? '' : 's'} in ${span} days, ${row.recurrence}% chance of another within 7 days → ${pts(row.points.recurrence)}`,
           `Weather: ${peakRain.toFixed(0)} mm peak day, ${Math.round(row.rainShare * 100)}% of its history rain-driven → ${pts(row.points.weather)}`,
-          `Hikers: ${row.hikers} in the last ${TRAIL_TRAFFIC_DAYS} days (app and imported session data) → ${pts(row.points.traffic)}`,
+          `Hikers: ${row.hikers} in the last ${TRAIL_TRAFFIC_DAYS} days → ${pts(row.points.traffic)}`,
           row.closed ? `Trail closed → ${pts(row.points.closed)}` : 'Trail open'
         ]
       };

@@ -129,5 +129,5 @@ export function renderTrailUsagePrediction({ root, trails, users, sessions = [],
     const ready = data.rows.filter(row => row.estimate !== null).length;
     const pending = data.rows.length - ready;
     note.textContent = `${numberText(ready)} ${ready === 1 ? 'trail' : 'trails'} with forecasts${pending ? ` · ${numberText(pending)} with no dated hikes yet` : ''}. `
-        + 'Each estimate uses that trail’s hike rate over the current and previous two months, with a minimum seven-day baseline: every hike, from the app and the imported dummy session data (a hike with no date of its own counts on the hiker’s last hike). New trails and hikes update automatically.';
+        + 'Each estimate uses that trail’s hike rate over the current and previous two months, with a minimum seven-day baseline, counting every recorded hike. New trails and hikes update automatically.';
 }

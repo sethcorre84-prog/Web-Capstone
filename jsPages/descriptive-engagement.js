@@ -290,10 +290,7 @@ export function renderDescriptiveEngagement({ root, users, trails, sessions = []
         <p class="de-note">Each user counts once per trail, even after repeat visits. Percentages use the total across trails; users visiting several trails count on each.</p>
         ${trailContent}`;
     durationCard.innerHTML = durationHeading + `
-        ${durationRows.map(([label, value]) => `<div class="row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}
-        <p class="de-note">Every hike of every hiker, app and imported dummy data alike: completed, partial and ended early from their totals. A hike with no date of its own (most imported ones) is counted on the hiker's latest hike, the only date the data gives. Time is each hiker's total spread over their completed and partial hikes.</p>
-        <div class="de-participation"><span>Users with hiking activity</span><strong>${participation}%</strong></div>
-        <div class="de-bar-track" role="progressbar" aria-label="Registered users with hiking activity" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${participation}"><span style="width:${participation}%"></span></div>`;
+        ${durationRows.map(([label, value]) => `<div class="row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}`;
     summaryText.textContent = summary.join(' ');
     summaryText.hidden = false;
     bindTrailPieInteractions(root);

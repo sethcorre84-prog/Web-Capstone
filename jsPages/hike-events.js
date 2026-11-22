@@ -56,6 +56,16 @@ const resultOf = (value) => {
   if (/ended|early/.test(result)) return 'ended';
   return null;
 };
+/* On the Makiling Traverse (MakTrav), the side a hike started from: the
+   app saves it on each per-hike record (startSide); for the imported
+   session data it is the hiker's traverseStartSide. 'Sipit' or
+   'Mariang Makiling' (MMT); '' when not recorded. */
+const sideOf = (value) => {
+  const side = text(value).toLowerCase();
+  if (side.includes('sipit')) return 'Sipit';
+  if (side.includes('mariang') || side.includes('mmt')) return 'Mariang Makiling';
+  return '';
+};
 const SAME_HIKE_MS = 5 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -117,7 +127,8 @@ function hikerHikes(user, sessions, timeZone, resolve = null) {
     hikes.push({
       uid, date, trails: trail ? [trail] : [], minutes: number(session.minutes),
       status: ['completed', 'partial'].includes(session.status) ? session.status : 'ended',
-      source: 'session', estimated: false, fixedResult: true, precision: 'time'
+      source: 'session', estimated: false, fixedResult: true, precision: 'time',
+      startSide: sideOf(session.startSide)
     });
   });
 
@@ -180,6 +191,10 @@ function hikerHikes(user, sessions, timeZone, resolve = null) {
         minutes: null, status: lastStatus, fixedResult: Boolean(lastStatus), source: 'total', estimated: !isLast, precision: 'day' });
     }
   }
+
+  // Every hike without its own record: the hiker's traverse side, if any.
+  const profileSide = sideOf(user.traverseStartSide);
+  hikes.forEach((hike) => { if (hike.startSide === undefined) hike.startSide = profileSide; });
 
   // Hikes on trails deleted in Trail Management leave BEFORE results are
   // handed out, so the hiker's completed and partial hikes all land on
@@ -280,17 +295,20 @@ export function datedHikesOnTrails(users = [], sessions = [], trails = [], timeZ
    The monthly view of the same list, for the Dashboard and User
    Management. Returns Map uid -> {
      months: { m2026_11: { count, completed, partial, trails: { trailId:
-       hikers' hikes there } } },
+       hikers' hikes there }, sides: { 'Sipit' | 'Mariang Makiling' | '':
+       { count, completed, partial } } } },
      dated      every hike counted (all of them have a date now),
      estimated  hikes placed on the last hike for want of their own date,
      completed, partial   lifetime results
    }. Hikers with no hike on a current trail are not in the map.
    --------------------------------------------------------------------- */
-export function monthlyVisits({ users = [], sessions = [], trails = [], timeZone = 'Asia/Manila' } = {}) {
+export function monthlyVisits({ users = [], sessions = [], trails = [], timeZone = 'Asia/Manila', trailId = '' } = {}) {
   const visits = new Map();
   datedHikesOnTrails(users, sessions, trails, timeZone).forEach((hike) => {
     // A hike with no trail at all cannot be a trail visit.
     if (!hike.trailIds.length) return;
+    // One trail only (User Management's trail filter): its hikes alone.
+    if (trailId && !hike.trailIds.includes(trailId)) return;
     const visit = visits.get(hike.uid) || { months: {}, dated: 0, estimated: 0, completed: 0, partial: 0, firstDate: null, firstEstimated: false };
     // Whether the earliest hike's date is real or assumed decides whether
     // the hiker's first month is known (User Management's first-timers).
@@ -299,10 +317,15 @@ export function monthlyVisits({ users = [], sessions = [], trails = [], timeZone
       visit.firstEstimated = hike.estimated;
     }
     const key = monthKeyOf(hike.date, timeZone);
-    const month = visit.months[key] || (visit.months[key] = { count: 0, completed: 0, partial: 0, trails: {} });
+    const month = visit.months[key] || (visit.months[key] = { count: 0, completed: 0, partial: 0, trails: {}, sides: {} });
     month.count += 1;
     if (hike.status === 'completed') { month.completed += 1; visit.completed += 1; }
     if (hike.status === 'partial') { month.partial += 1; visit.partial += 1; }
+    // Where the hike started (MakTrav): per side, for each result.
+    const side = month.sides[hike.startSide || ''] || (month.sides[hike.startSide || ''] = { count: 0, completed: 0, partial: 0 });
+    side.count += 1;
+    if (hike.status === 'completed') side.completed += 1;
+    if (hike.status === 'partial') side.partial += 1;
     hike.trailIds.forEach((id) => { month.trails[id] = (month.trails[id] || 0) + 1; });
     visit.dated += 1;
     if (hike.estimated) visit.estimated += 1;
