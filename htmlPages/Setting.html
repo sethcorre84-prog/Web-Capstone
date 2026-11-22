@@ -908,6 +908,8 @@
     .rm-table th { padding: 9px 12px; background: var(--dm-surface-2, #f6f8f5); text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-secondary, #5b6b60); white-space: nowrap; }
     .rm-table td { padding: 9px 12px; border-top: 1px solid var(--border, #e4e7e1); vertical-align: middle; }
     .rm-table:not(.rm-matrix) td:first-child { min-width: 150px; }
+    .rm-table .rm-office-input { width: 100%; min-width: 140px; padding: 5px 8px; border: 1px solid var(--border, #e4e7e1); border-radius: 7px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 12.5px; }
+    .rm-table .rm-office-input:disabled { opacity: .6; }
     .rm-role-select { padding: 5px 8px; border: 1px solid var(--border, #e4e7e1); border-radius: 7px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 12.5px; }
     .rm-remove { padding: 5px 10px; border: 1px solid #f1c9c3; border-radius: 7px; background: var(--dm-surface, #fff); color: #c8402f; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
     .rm-remove.is-armed { background: #c8402f; border-color: #c8402f; color: #fff; }
@@ -916,7 +918,7 @@
     .rm-status.is-error, .rm-error { color: var(--danger, #c8402f); }
     .rm-add, .rm-history { padding: 12px; border-radius: 10px; background: var(--dm-surface-2, #f6f8f5); }
     .rm-add-title { margin-bottom: 8px; font-weight: 700; font-size: 12.5px; }
-    .rm-add-grid { display: grid; grid-template-columns: 1fr 1.2fr auto auto auto; gap: 8px; margin-bottom: 6px; }
+    .rm-add-grid { display: grid; grid-template-columns: 1fr 1.2fr auto minmax(150px, 1fr) auto; gap: 8px; margin-bottom: 6px; }
     .rm-add-grid input, .rm-add-grid select { min-width: 0; padding: 8px 10px; border: 1px solid var(--border, #e4e7e1); border-radius: 8px; background: var(--dm-surface, #fff); color: inherit; font: inherit; font-size: 13px; }
     .rm-add-grid input:disabled, .rm-add-grid input:read-only { opacity: .7; }
     .rm-add-phone { grid-template-columns: 1fr auto 1fr auto; }
@@ -937,7 +939,7 @@
     /* Help & Support > FAQs */
     .faq-tools { display: flex; gap: 8px; align-items: center; }
     /* Emergency Hotlines: one column per office, side by side. */
-    .hotline-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .hotline-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
     .hotline-col { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--border, #e4e7e1); border-radius: 12px; background: var(--dm-surface, #fff); min-width: 0; }
     .hotline-col.is-mine { border-color: var(--accent, #2f8f4e); box-shadow: 0 0 0 1px var(--accent, #2f8f4e) inset; }
     .hotline-col-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border, #e4e7e1); }
@@ -3061,11 +3063,20 @@
   const callRemoveAdmin = httpsCallable(roleFunctions, 'removeAdmin');
   const callSetAdminOffice = httpsCallable(roleFunctions, 'setAdminOffice');
   /* Every Administrator and Viewer works for an office -- CITY ENRO (Sto.
-     Tomas side) or UPLB MCME (Los Banos side) -- which decides the
-     emergency hotlines they manage. The Super Administrator has none. */
+     Tomas side), UPLB MCME (Los Banos side), or any other office typed in
+     (admins in other places) -- which decides the emergency hotlines they
+     manage. The Super Administrator has none. The Office box suggests the
+     offices already in use; the server (checkOffice) keeps an office typed
+     in another case spelled as the one in use. */
   const ADMIN_OFFICES = ['CITY ENRO', 'UPLB MCME'];
-  const officeOptions = (current, placeholder = 'Choose office') => (ADMIN_OFFICES.includes(current) ? '' : `<option value="" selected disabled>${placeholder}</option>`)
-    + ADMIN_OFFICES.map((office) => `<option${office === current ? ' selected' : ''}>${office}</option>`).join('');
+  const OFFICE_MAX_LENGTH = 60;
+  const OFFICE_PATTERN = /^[\p{L}\p{N} .,&()'/-]+$/u;
+  const tidyOffice = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
+  // Why an office name can't be saved ('' when it can).
+  const officeProblem = (office) => (!office ? 'Enter the admin\'s office: pick CITY ENRO or UPLB MCME, or type another office.'
+    : office.length > OFFICE_MAX_LENGTH ? `The office name can be at most ${OFFICE_MAX_LENGTH} characters.`
+      : !OFFICE_PATTERN.test(office) ? 'The office name can only have letters, numbers, spaces and . , & ( ) \' / -' : '');
+  const officeInput = ({ id = '', value = '', label = 'Office', placeholder = 'Office' } = {}) => `<input type="text"${id ? ` id="${id}"` : ''} class="rm-office-input" list="rmOfficeList" maxlength="${OFFICE_MAX_LENGTH}" autocomplete="off" value="${escapeHTML(value)}" placeholder="${escapeHTML(placeholder)}" aria-label="${escapeHTML(label)}">`;
 
   const roleCallError = (error, fallback) => (error?.code === 'functions/not-found' && !error?.details
     ? 'Role management is not set up yet: deploy the Cloud Functions (listAdmins, setAdminRole, addAdmin, removeAdmin).'
@@ -3090,8 +3101,12 @@
     const roleOptions = (current) => (ADMIN_ROLES.includes(current) ? '' : `<option value="" selected disabled>${escapeHTML(NO_ROLE_LABEL)}</option>`)
       + ADMIN_ROLES.map((role) => `<option${role === current ? ' selected' : ''}>${escapeHTML(role)}</option>`).join('');
     const when = (iso) => (iso ? formatPortalDateTime(new Date(iso)) : 'Never');
+    // Suggestions for the Office boxes: the main two and every office in use.
+    const knownOffices = [...new Set([...ADMIN_OFFICES, ...data.admins.map((admin) => tidyOffice(admin.office)).filter(Boolean)])]
+      .sort((a, b) => a.localeCompare(b));
 
     box.innerHTML = `
+      <datalist id="rmOfficeList">${knownOffices.map((office) => `<option value="${escapeHTML(office)}"></option>`).join('')}</datalist>
       <div class="rm-me">
         Your role: <span class="rm-role">${escapeHTML(myRole)}</span>
         <span class="rm-muted">${escapeHTML(ROLE_HINTS[myRole] || '')}</span>
@@ -3111,7 +3126,7 @@
               <td data-label="Office">${admin.role === 'Super Administrator'
                 ? '<span class="rm-muted">—</span>'
                 : isSuper && !self
-                  ? `<select class="rm-office-select" aria-label="Office of ${escapeHTML(admin.name || admin.email)}">${officeOptions(admin.office)}</select>`
+                  ? officeInput({ value: admin.office || '', label: `Office of ${admin.name || admin.email}`, placeholder: 'Type or pick an office' })
                   : escapeHTML(admin.office || 'No office')}</td>
               <td data-label="Last sign-in">${escapeHTML(when(admin.lastSignIn))}</td>
               ${isSuper ? `<td class="rm-actions">${self ? '' : '<button type="button" class="rm-remove">Remove</button>'}</td>` : ''}
@@ -3127,7 +3142,7 @@
             <input id="rmAddName" type="text" maxlength="80" placeholder="Full name" aria-label="Full name">
             <input id="rmAddEmail" type="email" placeholder="Email address" aria-label="Email address" required>
             <select id="rmAddRole" aria-label="Role">${roleOptions('Administrator')}</select>
-            <select id="rmAddOffice" aria-label="Office">${officeOptions(null, 'Office (CITY ENRO / UPLB MCME)')}</select>
+            ${officeInput({ id: 'rmAddOffice', placeholder: 'Office (pick or type)' })}
             <button type="submit" class="primary-btn">Add Admin</button>
           </div>
           <div class="rm-add-grid rm-add-phone">
@@ -3138,7 +3153,7 @@
           </div>
           <p class="rm-status" id="rmPhoneStatus" role="status"></p>
           <div id="rmAddRecaptcha"></div>
-          <p class="rm-muted">The new admin's mobile number is verified with a code sent to it by SMS. An email with no PeakPath account gets one, and is emailed a link to set their password. An Administrator or Viewer works for an office (CITY ENRO or UPLB MCME): an Administrator manages that office's emergency hotlines.</p>
+          <p class="rm-muted">The new admin's mobile number is verified with a code sent to it by SMS. The new admin is emailed their role and office. An email with no PeakPath account gets one, with a link in that email to set their password. An Administrator or Viewer works for an office: pick CITY ENRO or UPLB MCME, or type another office for an admin in a different place. An Administrator manages that office's emergency hotlines.</p>
         </form>` : ''}
       <div class="rm-history">
         <div class="rm-add-title">Recent role changes</div>
@@ -3153,11 +3168,11 @@
       select.addEventListener('change', async () => {
         const row = select.closest('tr');
         const uid = row.dataset.uid;
-        const office = row.querySelector('.rm-office-select')?.value || '';
-        if (select.value !== 'Super Administrator' && !office) {
+        const office = tidyOffice(row.querySelector('.rm-office-input')?.value);
+        if (select.value !== 'Super Administrator' && officeProblem(office)) {
           // e.g. a Super Administrator made an Administrator: their office first.
           select.value = previous;
-          say('Choose this admin\'s office first (CITY ENRO or UPLB MCME), then change the role.', 'error');
+          say(office ? officeProblem(office) : 'Enter this admin\'s office first (pick CITY ENRO or UPLB MCME, or type another office), then change the role.', 'error');
           bindRoleManagementOfficeFor(row);
           return;
         }
@@ -3176,31 +3191,48 @@
       });
     });
 
-    box.querySelectorAll('.rm-office-select').forEach((select) => {
-      const previous = select.value;
-      select.addEventListener('change', async () => {
-        const uid = select.closest('tr').dataset.uid;
-        select.disabled = true;
+    /* An admin's Office box saves when it is changed (Enter, or leaving the
+       box). An office row added for a Super Administrator being made an
+       Administrator / Viewer (bindRoleManagementOfficeFor) is not saved on
+       its own: the role change sends it. */
+    const bindOfficeInput = (input) => {
+      let previous = tidyOffice(input.value);
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') { event.preventDefault(); input.blur(); }
+        if (event.key === 'Escape') { input.value = previous; input.blur(); }
+      });
+      input.addEventListener('change', async () => {
+        const office = tidyOffice(input.value);
+        input.value = office;
+        if (office === previous) return;
+        const problem = officeProblem(office);
+        if (problem) { input.value = previous; say(problem, 'error'); return; }
+        const uid = input.closest('tr').dataset.uid;
+        input.disabled = true;
         say('Saving…');
         try {
-          await callSetAdminOffice({ uid, office: select.value });
-          say(`Office updated: this admin now manages the ${select.value} emergency hotlines.`, 'ok');
+          const { data: result } = await callSetAdminOffice({ uid, office });
+          // The server may keep an office in use spelled its usual way.
+          input.value = result?.office || office;
+          previous = input.value;
+          say(`Office updated: this admin now manages the ${input.value} emergency hotlines.`, 'ok');
           loadRoleHistory();
         } catch (error) {
-          select.value = previous;
+          input.value = previous;
           say(roleCallError(error, 'Could not change the office.'), 'error');
         } finally {
-          select.disabled = false;
+          input.disabled = false;
         }
       });
-    });
+    };
+    box.querySelectorAll('tbody .rm-office-input').forEach(bindOfficeInput);
     // A Super Administrator row being made an Administrator / Viewer: an
-    // office picker appears in its Office cell first.
+    // Office box appears in its Office cell first.
     function bindRoleManagementOfficeFor(row) {
       const cell = row.querySelector('[data-label="Office"]');
-      if (!cell || cell.querySelector('select')) return;
-      cell.innerHTML = `<select class="rm-office-select" aria-label="Office">${officeOptions(null)}</select>`;
-      cell.querySelector('select').focus();
+      if (!cell || cell.querySelector('input')) return;
+      cell.innerHTML = officeInput({ placeholder: 'Type or pick an office' });
+      cell.querySelector('input').focus();
     }
 
     // The add form's office: none for a Super Administrator.
@@ -3353,9 +3385,9 @@
       const email = document.getElementById('rmAddEmail').value.trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say('Enter a valid email address.', 'error'); return; }
       const newRole = document.getElementById('rmAddRole').value;
-      const newOffice = document.getElementById('rmAddOffice')?.value || '';
-      if (newRole !== 'Super Administrator' && !ADMIN_OFFICES.includes(newOffice)) {
-        say('Choose the new admin\'s office: CITY ENRO or UPLB MCME.', 'error');
+      const newOffice = tidyOffice(document.getElementById('rmAddOffice')?.value);
+      if (newRole !== 'Super Administrator' && officeProblem(newOffice)) {
+        say(newOffice ? officeProblem(newOffice) : 'Enter the new admin\'s office: pick CITY ENRO or UPLB MCME, or type another office.', 'error');
         document.getElementById('rmAddOffice')?.focus();
         return;
       }
@@ -3377,8 +3409,8 @@
           phoneToken: verifiedPhone.token
         });
         say(result.created
-          ? (result.emailed ? `Admin added. ${email} was emailed a link to set their password.` : `Admin added, but the password email could not be sent. Use Forgot Password on the login page for ${email}.`)
-          : 'Admin added. They can sign in with their existing account.', 'ok');
+          ? (result.emailed ? `Admin added. ${email} was emailed a link to set their password.` : `Admin added, but the email could not be sent. Use Forgot Password on the login page for ${email}.`)
+          : (result.emailed ? `Admin added. ${email} was emailed that they can now sign in with their existing account.` : `Admin added. They can sign in with their existing account (the email to ${email} could not be sent).`), 'ok');
         bindRoleManagement();
       } catch (error) {
         say(roleCallError(error, 'Could not add the admin.'), 'error');
@@ -3498,6 +3530,16 @@
     { key: 'CITY ENRO', area: 'Sto. Tomas side' },
     { key: 'UPLB MCME', area: 'Los Baños side' }
   ];
+  /* One column per office: the main two first, then every other office that
+     has hotlines or is the signed-in admin's own (an admin in another place,
+     added with their office typed in Role Management), A to Z. */
+  const hotlineOffices = () => {
+    const others = new Set([
+      ...(hotlineState.items || []).map((h) => String(h.office || '').trim()),
+      hotlineState.office || ''
+    ].filter((key) => key && !HOTLINE_OFFICES.some((o) => o.key === key)));
+    return [...HOTLINE_OFFICES, ...[...others].sort((a, b) => a.localeCompare(b)).map((key) => ({ key, area: 'Other office' }))];
+  };
   const hotlineState = { items: null, error: null, office: null };
   // An 11-digit Philippine mobile number, 09 + 9 digits. Spaces and dashes
   // typed in are ignored; the number is stored as the 11 digits.
@@ -3527,8 +3569,10 @@
     if (!uid) return;
     // The signed-in admin's office, live, so a change shows at once.
     onSnapshot(doc(db, 'admins', uid), (adminSnap) => {
+      // Exactly as stored: firestore.rules compares it with each hotline's office.
       const office = adminSnap.data()?.office;
-      hotlineState.office = HOTLINE_OFFICES.some((o) => o.key === office) ? office : null;
+      hotlineState.office = typeof office === 'string' && office.trim() ? office : null;
+      renderHotlineRow();
       renderHotlines();
     }, () => { hotlineState.office = null; renderHotlines(); });
   });
@@ -3537,7 +3581,7 @@
     const desc = document.getElementById('hotlineRowDesc');
     if (!desc || !hotlineState.items) return;
     const count = (office) => hotlineState.items.filter((h) => h.office === office).length;
-    desc.textContent = `Emergency numbers shown to hikers in the app · CITY ENRO ${count('CITY ENRO')} · UPLB MCME ${count('UPLB MCME')}.`;
+    desc.textContent = `Emergency numbers shown to hikers in the app · ${hotlineOffices().map((o) => `${o.key} ${count(o.key)}`).join(' · ')}.`;
   }
 
   const hotlineStatus = (text, ok = false) => {
@@ -3566,13 +3610,14 @@
       box.innerHTML = '<p class="rm-muted">Loading hotlines…</p>';
       return;
     }
-    const mine = HOTLINE_OFFICES.find((o) => canManageHotlines(o.key));
+    const offices = hotlineOffices();
+    const mine = offices.find((o) => canManageHotlines(o.key));
     box.innerHTML = `
       <p class="rm-muted" style="margin:0">${mine
-        ? `You manage the <strong>${escapeHTML(mine.key)}</strong> hotlines. The other office's are shown for reference and can only be changed by its own admin account.`
-        : 'Each office manages its own hotlines from its admin account (CITY ENRO or UPLB MCME). Your account can view them.'}
+        ? `You manage the <strong>${escapeHTML(mine.key)}</strong> hotlines. The other offices' are shown for reference and can only be changed by their own admin accounts.`
+        : 'Each office manages its own hotlines from its admin accounts. Your account can view them.'}
         Hikers see these numbers in the app's SOS button and Help &amp; Support.</p>
-      <div class="hotline-columns">${HOTLINE_OFFICES.map((office) => {
+      <div class="hotline-columns">${offices.map((office) => {
         const items = hotlineState.items.filter((h) => h.office === office.key);
         const manage = canManageHotlines(office.key);
         return `

@@ -540,6 +540,12 @@ exports.confirmSignupVerificationCode = onCall(async (request) => {
    cannot be locked. Every change is written to adminRoleLog. */
 const ADMIN_ROLES = ["Super Administrator", "Administrator", "Viewer"];
 const SUPER_ROLE = "Super Administrator";
+// What each role can do, for the new admin's email (as Settings > Role & Permission Settings says).
+const ADMIN_ROLE_NOTES = {
+  "Super Administrator": "You can use everything in the portal and manage the admins and their roles.",
+  "Administrator": "You handle day-to-day operations: trails, hazard reports, advisories, emergencies and users, and your office's emergency hotlines.",
+  "Viewer": "You can see everything in the portal and export it, but cannot change anything."
+};
 // The admin's role, or null when none is set (no access).
 const roleOf = (data) => (ADMIN_ROLES.includes(data?.role) ? data.role : null);
 
@@ -563,19 +569,41 @@ const checkRole = (role) => {
 };
 
 /* The office an admin works for: CITY ENRO (Sto. Tomas side of the
-   mountain) or UPLB MCME (Los Banos side). It decides which emergency
-   hotlines they manage (firestore.rules, emergencyHotlines) -- an
-   Administrator manages their office's hotlines like every other feature
-   their role allows; a Viewer only reads. Every Administrator and Viewer
-   has one; the Super Administrator belongs to neither office. */
+   mountain), UPLB MCME (Los Banos side), or any other office typed in Role
+   Management (admins in other places). It decides which emergency hotlines
+   they manage (firestore.rules, emergencyHotlines) -- an Administrator
+   manages their office's hotlines like every other feature their role
+   allows; a Viewer only reads. Every Administrator and Viewer has one; the
+   Super Administrator belongs to none. */
 const ADMIN_OFFICES = ["CITY ENRO", "UPLB MCME"];
-const checkOffice = (office, role) => {
+const OFFICE_MAX_LENGTH = 60;
+// Letters (any language), digits, spaces and . , & ( ) ' / -
+const OFFICE_PATTERN = /^[\p{L}\p{N} .,&()'/-]+$/u;
+// Spaces tidied; "" when there is none.
+const tidyOffice = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
+// A stored office as the portal shows it (null when there is none).
+const storedOffice = (value) => tidyOffice(value) || null;
+
+/* The office for an Administrator or Viewer (null for a Super
+   Administrator). An office already in use -- the two main offices, or one
+   another admin has -- typed in another case keeps its usual spelling, so
+   "city enro" stays the same office as "CITY ENRO" for its hotlines. */
+async function checkOffice(value, role) {
   if (role === SUPER_ROLE) return null;
-  if (!ADMIN_OFFICES.includes(office)) {
-    throw new HttpsError("invalid-argument", `Choose the admin's office: ${ADMIN_OFFICES.join(" or ")}.`);
+  const office = tidyOffice(value);
+  if (!office) {
+    throw new HttpsError("invalid-argument", "Enter the admin's office (e.g. CITY ENRO, UPLB MCME, or another office).");
   }
-  return office;
-};
+  if (office.length > OFFICE_MAX_LENGTH) {
+    throw new HttpsError("invalid-argument", `The office name can be at most ${OFFICE_MAX_LENGTH} characters.`);
+  }
+  if (!OFFICE_PATTERN.test(office)) {
+    throw new HttpsError("invalid-argument", "The office name can only have letters, numbers, spaces and . , & ( ) ' / -");
+  }
+  const admins = await db.collection("admins").get();
+  const known = [...ADMIN_OFFICES, ...admins.docs.map((d) => storedOffice(d.get("office"))).filter(Boolean)];
+  return known.find((name) => name.toLowerCase() === office.toLowerCase()) || office;
+}
 
 async function superAdminCount() {
   const all = await db.collection("admins").get();
@@ -613,7 +641,7 @@ exports.listAdmins = onCall(async (request) => {
         username: data.username || "",
         email: data.email || user?.email || "",
         role: roleOf(data),
-        office: ADMIN_OFFICES.includes(data.office) ? data.office : null,
+        office: storedOffice(data.office),
         lastSignIn: user?.metadata?.lastSignInTime || null
       };
     }).sort((a, b) => (a.role ? ADMIN_ROLES.indexOf(a.role) : ADMIN_ROLES.length) - (b.role ? ADMIN_ROLES.indexOf(b.role) : ADMIN_ROLES.length) || a.name.localeCompare(b.name))
@@ -682,8 +710,8 @@ exports.setAdminRole = onCall(async (request) => {
   }
   // An Administrator or Viewer works for an office: the one they have, or
   // the one chosen with the new role.
-  const current = ADMIN_OFFICES.includes(snap.get("office")) ? snap.get("office") : null;
-  const office = role === SUPER_ROLE ? current : checkOffice(request.data?.office || current, role);
+  const current = storedOffice(snap.get("office"));
+  const office = role === SUPER_ROLE ? current : await checkOffice(request.data?.office || current, role);
   await ref.update({
     role, roleUpdatedAt: FieldValue.serverTimestamp(), roleUpdatedBy: caller.uid,
     ...(office && office !== current ? { office } : {})
@@ -715,7 +743,7 @@ exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (
   const caller = await requireSuperAdmin(request);
   const email = normalizeEmail(request.data?.email);
   const role = checkRole(request.data?.role);
-  const office = checkOffice(request.data?.office, role);
+  const office = await checkOffice(request.data?.office, role);
   const name = String(request.data?.name || "").trim().slice(0, 80);
 
   const phoneMatch = /^(?:\+?63|0)?(9\d{9})$/.exec(String(request.data?.phone || "").replace(/[\s\-().]/g, ""));
@@ -781,32 +809,49 @@ exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (
     }
   }
 
+  /* The new admin is always emailed (Gmail, GMAIL_USER): who added them, as
+     what role and for which office. A new account also gets the link to
+     choose its password; an existing account (a hiker made an admin, say)
+     signs in with the password it already has. */
   let emailed = false;
-  if (created) {
-    try {
-      const link = await passwordSetupLink(email);
-      const sender = GMAIL_USER.value();
-      await mailTransport().sendMail({
-        from: { name: "PeakPath", address: sender },
-        replyTo: sender,
-        to: email,
-        subject: "You've been added as a PeakPath admin",
-        text:
-          `Hello${name ? ` ${name}` : ""},\n\n` +
-          `${caller.name} added you to the PeakPath Admin Portal as ${role}.\n\n` +
-          `Choose your password here (the link works for 1 hour): ${link}\n\nThen sign in at the PeakPath Admin Portal with this email.\n\nPeakPath Admin Portal`,
-        html: `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>PeakPath admin access</title></head>
+  try {
+    const link = created ? await passwordSetupLink(email) : null;
+    const loginUrl = `${PORTAL_URL}/htmlPages/Home`;
+    const sender = GMAIL_USER.value();
+    const greeting = `Hello${name ? ` ${name}` : ""},`;
+    const added = `${caller.name} added you to the PeakPath Admin Portal as ${role}${office ? ` for ${office}` : ""}.`;
+    const roleNote = ADMIN_ROLE_NOTES[role] || "";
+    const p = (html, margin = 12) => `<p style="margin:0 0 ${margin}px;font-size:14px;line-height:1.5">${html}</p>`;
+    await mailTransport().sendMail({
+      from: { name: "PeakPath", address: sender },
+      replyTo: sender,
+      to: email,
+      subject: "You've been added as a PeakPath admin",
+      text: [
+        greeting,
+        added,
+        roleNote,
+        created
+          ? `Choose your password here (the link works for 1 hour): ${link}\nThen sign in at ${loginUrl} with this email.`
+          : `Sign in at ${loginUrl} with this email and the password you already use for PeakPath. Forgot it? Use Forgot Password on the sign-in page.`,
+        "If you weren't expecting this, reply to this email.",
+        "PeakPath Admin Portal"
+      ].filter(Boolean).join("\n\n"),
+      html: `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>PeakPath admin access</title></head>
 <body style="margin:0;padding:0;background:#ffffff"><div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:460px;margin:0 auto;padding:28px 24px;color:#1c231c">
 <h2 style="margin:0 0 16px;font-size:20px;color:#1f6b39">PeakPath</h2>
-<p style="margin:0 0 12px;font-size:14px">Hello${name ? ` ${escapeHtml(name)}` : ""},</p>
-<p style="margin:0 0 12px;font-size:14px">${escapeHtml(caller.name)} added you to the PeakPath Admin Portal as <strong>${escapeHtml(role)}</strong>.</p>
-<p style="margin:0 0 20px;font-size:14px"><a href="${link}" style="color:#1f6b39;font-weight:700">Choose your password</a>, then sign in with this email. The link works for 1 hour.</p>
+${p(escapeHtml(greeting))}
+${p(`${escapeHtml(caller.name)} added you to the PeakPath Admin Portal as <strong>${escapeHtml(role)}</strong>${office ? ` for <strong>${escapeHtml(office)}</strong>` : ""}.`)}
+${roleNote ? p(escapeHtml(roleNote)) : ""}
+${created
+    ? p(`<a href="${link}" style="color:#1f6b39;font-weight:700">Choose your password</a>, then sign in at the <a href="${loginUrl}" style="color:#1f6b39">PeakPath Admin Portal</a> with this email. The link works for 1 hour.`, 20)
+    : p(`<a href="${loginUrl}" style="color:#1f6b39;font-weight:700">Sign in to the PeakPath Admin Portal</a> with this email and the password you already use for PeakPath. Forgot it? Use Forgot Password on the sign-in page.`, 20)}
+${p("If you weren't expecting this, reply to this email.", 20)}
 <p style="margin:0;font-size:12px;color:#93a199">PeakPath Admin Portal</p></div></body></html>`
-      });
-      emailed = true;
-    } catch (error) {
-      logger.error("Could not email the new admin their password link", error);
-    }
+    });
+    emailed = true;
+  } catch (error) {
+    logger.error("Could not email the new admin", error);
   }
 
   await logRoleChange({
@@ -817,8 +862,9 @@ exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (
 });
 
 /* Settings > Role & Permission Settings > an admin's Office. Super
-   Administrators only. Moves an Administrator or Viewer to the other
-   office; their emergency hotline access follows at once. */
+   Administrators only. Moves an Administrator or Viewer to another office
+   (one of the main two, or any other typed in); their emergency hotline
+   access follows at once. */
 exports.setAdminOffice = onCall(async (request) => {
   const caller = await requireSuperAdmin(request);
   const uid = String(request.data?.uid || "");
@@ -828,10 +874,10 @@ exports.setAdminOffice = onCall(async (request) => {
   if (!snap.exists) throw new HttpsError("not-found", "That admin no longer exists.");
   const role = roleOf(snap.data());
   if (role === SUPER_ROLE) {
-    throw new HttpsError("failed-precondition", "A Super Administrator belongs to neither office.");
+    throw new HttpsError("failed-precondition", "A Super Administrator does not belong to an office.");
   }
-  const office = checkOffice(request.data?.office, role || "Administrator");
-  const from = ADMIN_OFFICES.includes(snap.get("office")) ? snap.get("office") : null;
+  const office = await checkOffice(request.data?.office, role || "Administrator");
+  const from = storedOffice(snap.get("office"));
   if (from === office) return { office };
   await ref.update({ office, officeUpdatedAt: FieldValue.serverTimestamp(), officeUpdatedBy: caller.uid });
   await logRoleChange({

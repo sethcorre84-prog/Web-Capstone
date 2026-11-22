@@ -1,0 +1,134 @@
+[debug] [2026-11-22T13:10:22.090Z] ----------------------------------------------------------------------
+[debug] [2026-11-22T13:10:22.099Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions firestore:rules
+[debug] [2026-11-22T13:10:22.099Z] CLI Version:   15.23.0
+[debug] [2026-11-22T13:10:22.099Z] Platform:      win32
+[debug] [2026-11-22T13:10:22.100Z] Node Version:  v24.18.0
+[debug] [2026-11-22T13:10:22.100Z] Detected Agent: unknown
+[debug] [2026-11-22T13:10:22.100Z] Time:          Sun Nov 22 2026 21:10:22 GMT+0800 (Philippine Standard Time)
+[debug] [2026-11-22T13:10:22.100Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-11-22T13:10:22.140Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-11-22T13:10:39.321Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-11-22T13:10:39.322Z] > authorizing via signed-in user (arvycabello@gmail.com)
+[debug] [2026-11-22T13:10:39.322Z] [iam] checking project peakpath-ccd4a for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-11-22T13:10:39.324Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:39.324Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:39.324Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/peakpath-ccd4a:testIamPermissions [none]
+[debug] [2026-11-22T13:10:39.325Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/peakpath-ccd4a:testIamPermissions  x-goog-user-project=peakpath-ccd4a
+[debug] [2026-11-22T13:10:39.325Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/peakpath-ccd4a:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-11-22T13:10:39.819Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-11-22T13:10:39.819Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-11-22T13:10:40.413Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/peakpath-ccd4a:testIamPermissions 200
+[debug] [2026-11-22T13:10:40.413Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/peakpath-ccd4a:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-11-22T13:10:40.414Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:40.414Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:40.414Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/peakpath-ccd4a/serviceAccounts/peakpath-ccd4a@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-11-22T13:10:40.414Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/peakpath-ccd4a/serviceAccounts/peakpath-ccd4a@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-11-22T13:10:41.605Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/peakpath-ccd4a/serviceAccounts/peakpath-ccd4a@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2026-11-22T13:10:41.605Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/peakpath-ccd4a/serviceAccounts/peakpath-ccd4a@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'peakpath-ccd4a'...
+[info] 
+[info] i  deploying firestore, functions 
+[info] Running command: node tool/copy-shared-to-functions.mjs
+[info] +  functions: Finished running predeploy script. 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-11-22T13:10:41.982Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:41.982Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:41.983Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/peakpath-ccd4a/databases/(default) [none]
+[debug] [2026-11-22T13:10:42.465Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/peakpath-ccd4a/databases/(default) 200
+[debug] [2026-11-22T13:10:42.466Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/peakpath-ccd4a/databases/(default) {"name":"projects/peakpath-ccd4a/databases/(default)","uid":"e8484967-eed9-4656-b616-3abe4b42934f","createTime":"2026-07-09T09:32:36.205694Z","updateTime":"2026-07-09T09:32:36.205694Z","locationId":"asia-southeast1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-11-22T12:10:42.577847Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"zas","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IPfO5aLTm5gDMIjb8f3LipcD"}
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-11-22T13:10:42.470Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:42.471Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:42.471Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/peakpath-ccd4a:test [none]
+[debug] [2026-11-22T13:10:42.472Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/peakpath-ccd4a:test [omitted]
+[debug] [2026-11-22T13:10:43.258Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/peakpath-ccd4a:test 200
+[debug] [2026-11-22T13:10:43.258Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/peakpath-ccd4a:test {"issues":[{"sourcePosition":{"fileName":"firestore.rules","line":37,"column":14,"currentOffset":1546,"endOffset":1557},"description":"Unused function: isSuperAdmin.","severity":"WARNING"}]}
+[warn] !  [W] 37:14 - Unused function: isSuperAdmin. 
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-11-22T13:10:43.263Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:43.264Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:43.264Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/peakpath-ccd4a [none]
+[debug] [2026-11-22T13:10:43.534Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/peakpath-ccd4a 200
+[debug] [2026-11-22T13:10:43.534Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/peakpath-ccd4a {"projectNumber":"153325648552","projectId":"peakpath-ccd4a","lifecycleState":"ACTIVE","name":"PeakPath","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-07-09T09:20:34.344Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-11-22T13:10:43.543Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:43.543Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:43.544Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/peakpath-ccd4a/adminSdkConfig [none]
+[debug] [2026-11-22T13:10:44.651Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/peakpath-ccd4a/adminSdkConfig 200
+[debug] [2026-11-22T13:10:44.651Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/peakpath-ccd4a/adminSdkConfig {"projectId":"peakpath-ccd4a","storageBucket":"peakpath-ccd4a.firebasestorage.app"}
+[debug] [2026-11-22T13:10:44.651Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:44.651Z] Checked if tokens are valid: true, expires at: 1795355867728
+[debug] [2026-11-22T13:10:44.652Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/peakpath-ccd4a/configs [none]
+[debug] [2026-11-22T13:10:45.105Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/peakpath-ccd4a/configs 200
+[debug] [2026-11-22T13:10:45.105Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/peakpath-ccd4a/configs {}
+[debug] [2026-11-22T13:10:45.113Z] Validating nodejs source
+[warn] !  functions: Couldn't find firebase-functions package in your source code. Have you run 'npm install'? 
+[debug] [2026-11-22T13:10:45.115Z] getFunctionsSDKVersion encountered error: Cannot find module 'firebase-functions'
+Require stack:
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\versioning.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\runtimes\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\prepare.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\emulator\functionsEmulatorShared.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\frameworks\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\hosting\prepare.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\hosting\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\commands\deploy.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\commands\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\cli.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js {"code":"MODULE_NOT_FOUND","requireStack":["C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\deploy\\functions\\runtimes\\node\\versioning.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\deploy\\functions\\runtimes\\node\\index.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\deploy\\functions\\runtimes\\index.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\deploy\\functions\\prepare.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\emulator\\functionsEmulatorShared.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\frameworks\\index.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\deploy\\hosting\\prepare.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\deploy\\hosting\\index.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\deploy\\index.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\commands\\deploy.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\commands\\index.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\index.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\bin\\cli.js","C:\\Users\\Arvy Cabello\\AppData\\Roaming\\npm\\node_modules\\firebase-tools\\lib\\bin\\firebase.js"]}
+[debug] [2026-11-22T13:10:45.118Z] checkFunctionsSDKVersion encountered error: Invalid Version:  {}
+[debug] [2026-11-22T13:10:45.118Z] > [functions] package.json contents: {
+  "name": "peakpath-functions",
+  "private": true,
+  "description": "Cloud Functions for the PeakPath admin portal (Forgot Password codes).",
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.0.1",
+    "imapflow": "^1.7.8",
+    "nodemailer": "^6.9.15"
+  }
+}
+[debug] [2026-11-22T13:10:45.119Z] Building nodejs source
+[info] i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[debug] [2026-11-22T13:10:45.120Z] Could not parse firebase-functions version '' into semver.
+[debug] [2026-11-22T13:10:45.122Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-11-22T13:10:45.258Z] Error: Cannot find module 'firebase-functions'
+Require stack:
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\runtimes\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\prepare.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\emulator\functionsEmulatorShared.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\frameworks\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\hosting\prepare.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\hosting\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\commands\deploy.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\commands\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\index.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\cli.js
+- C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1122:12)
+    at require.resolve (node:internal/modules/helpers:171:31)
+    at Delegate.findFunctionsBinary (C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\index.js:100:33)
+    at Delegate.spawnFunctionsProcess (C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\index.js:130:30)
+    at Delegate.serveAdmin (C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\index.js:151:35)
+    at Delegate.discoverBuild (C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\runtimes\node\index.js:191:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async loadCodebases (C:\Users\Arvy Cabello\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\prepare.js:482:33)
+[error] 
+[error] Error: An unexpected error has occurred.
