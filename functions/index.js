@@ -810,12 +810,13 @@ exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (
   }
 
   /* The new admin is always emailed (Gmail, GMAIL_USER): who added them, as
-     what role and for which office. A new account also gets the link to
-     choose its password; an existing account (a hiker made an admin, say)
-     signs in with the password it already has. */
+     what role and for which office, and a Create password link (1 hour) to
+     the portal's setPassword page. An existing account (a hiker made an
+     admin, say) gets it too -- it may have no password (Google or phone
+     sign-in) -- and is told it may keep the password it already uses. */
   let emailed = false;
   try {
-    const link = created ? await passwordSetupLink(email) : null;
+    const link = await passwordSetupLink(email);
     const loginUrl = `${PORTAL_URL}/htmlPages/Home`;
     const sender = GMAIL_USER.value();
     const greeting = `Hello${name ? ` ${name}` : ""},`;
@@ -831,9 +832,11 @@ exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (
         greeting,
         added,
         roleNote,
+        `Create your password here (the link works for 1 hour): ${link}`,
         created
-          ? `Choose your password here (the link works for 1 hour): ${link}\nThen sign in at ${loginUrl} with this email.`
-          : `Sign in at ${loginUrl} with this email and the password you already use for PeakPath. Forgot it? Use Forgot Password on the sign-in page.`,
+          ? `Then sign in at ${loginUrl} with this email and your new password.`
+          : `Then sign in at ${loginUrl} with this email and your new password. This email already has a PeakPath account: the new password also replaces the one you use in the PeakPath app. To keep your current password, skip the link and sign in with it.`,
+        "Link expired? Use Forgot Password on the sign-in page to get a new one.",
         "If you weren't expecting this, reply to this email.",
         "PeakPath Admin Portal"
       ].filter(Boolean).join("\n\n"),
@@ -843,9 +846,13 @@ exports.addAdmin = onCall({ secrets: [GMAIL_USER, GMAIL_APP_PASSWORD] }, async (
 ${p(escapeHtml(greeting))}
 ${p(`${escapeHtml(caller.name)} added you to the PeakPath Admin Portal as <strong>${escapeHtml(role)}</strong>${office ? ` for <strong>${escapeHtml(office)}</strong>` : ""}.`)}
 ${roleNote ? p(escapeHtml(roleNote)) : ""}
-${created
-    ? p(`<a href="${link}" style="color:#1f6b39;font-weight:700">Choose your password</a>, then sign in at the <a href="${loginUrl}" style="color:#1f6b39">PeakPath Admin Portal</a> with this email. The link works for 1 hour.`, 20)
-    : p(`<a href="${loginUrl}" style="color:#1f6b39;font-weight:700">Sign in to the PeakPath Admin Portal</a> with this email and the password you already use for PeakPath. Forgot it? Use Forgot Password on the sign-in page.`, 20)}
+${p("Create your password, then sign in with this email:", 14)}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px"><tr><td style="border-radius:8px;background:#2f8f4e">
+<a href="${link}" style="display:inline-block;padding:11px 22px;border-radius:8px;background:#2f8f4e;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none">Create password</a>
+</td></tr></table>
+${p(`The link works for 1 hour. Then sign in at the <a href="${loginUrl}" style="color:#1f6b39;font-weight:700">PeakPath Admin Portal</a>.`)}
+${created ? "" : p("This email already has a PeakPath account: the new password also replaces the one you use in the PeakPath app. To keep your current password, skip the button and sign in with it.")}
+${p("Link expired? Use Forgot Password on the sign-in page to get a new one.", 20)}
 ${p("If you weren't expecting this, reply to this email.", 20)}
 <p style="margin:0;font-size:12px;color:#93a199">PeakPath Admin Portal</p></div></body></html>`
     });

@@ -3342,7 +3342,7 @@
           </div>
           <p class="rm-status" id="rmPhoneStatus" role="status"></p>
           <div id="rmAddRecaptcha"></div>
-          <p class="rm-muted">The new admin's mobile number is verified with a code sent to it by SMS. The new admin is emailed their role and office. An email with no PeakPath account gets one, with a link in that email to set their password. An Administrator or Viewer works for an office: pick CITY ENRO or UPLB MCME, or type another office for an admin in a different place. An Administrator manages that office's emergency hotlines.</p>
+          <p class="rm-muted">The new admin's mobile number is verified with a code sent to it by SMS. The new admin is emailed their role and office, with a link to create their password. An email with no PeakPath account gets one. An Administrator or Viewer works for an office: pick CITY ENRO or UPLB MCME, or type another office for an admin in a different place. An Administrator manages that office's emergency hotlines.</p>
         </form>` : ''}
       <div class="rm-history">
         <div class="rm-add-title">Recent role changes</div>
@@ -3606,7 +3606,7 @@
         });
         say(result.created
           ? (result.emailed ? `Admin added. ${email} was emailed a link to set their password.` : `Admin added, but the email could not be sent. Use Forgot Password on the login page for ${email}.`)
-          : (result.emailed ? `Admin added. ${email} was emailed that they can now sign in with their existing account.` : `Admin added. They can sign in with their existing account (the email to ${email} could not be sent).`), 'ok');
+          : (result.emailed ? `Admin added. ${email} was emailed a link to create a password, or they can sign in with their existing account.` : `Admin added. They can sign in with their existing account (the email to ${email} could not be sent).`), 'ok');
         bindRoleManagement();
       } catch (error) {
         say(roleCallError(error, 'Could not add the admin.'), 'error');
